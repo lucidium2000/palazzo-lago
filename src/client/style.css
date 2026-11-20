@@ -1,0 +1,221 @@
+:root {
+  --gold: #d8b25a;
+  --gold-light: #f3dc9a;
+  --ink: #120c08;
+  --panel: rgba(16, 11, 8, 0.82);
+  --serif: Georgia, 'Times New Roman', serif;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--gold-light);
+  font-family: var(--serif);
+}
+#app canvas {
+  display: block;
+  touch-action: none;
+}
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  align-items: center;
+  pointer-events: none;
+}
+.bar.top {
+  top: 0;
+  justify-content: space-between;
+  background: linear-gradient(rgba(10, 6, 4, 0.75), transparent);
+}
+.bar.bottom {
+  bottom: 0;
+  justify-content: center;
+  flex-wrap: wrap;
+  background: linear-gradient(transparent, rgba(10, 6, 4, 0.75));
+}
+.brand {
+  display: flex;
+  flex-direction: column;
+}
+.brand .name {
+  font-style: italic;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 12px rgba(255, 200, 100, 0.4);
+}
+.brand .chips {
+  font-size: 15px;
+  color: #e9dcc0;
+}
+.brand b {
+  color: var(--gold-light);
+  font-size: 19px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+button {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 15px;
+  color: var(--gold-light);
+  background: var(--panel);
+  border: 1.5px solid var(--gold);
+  border-radius: 999px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+button:hover:not(:disabled) {
+  background: rgba(60, 42, 26, 0.9);
+}
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button.active,
+button.primary {
+  background: linear-gradient(#fbe7a6, #c8973c);
+  color: #1a1410;
+  font-weight: 600;
+}
+#toasts {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: min(92vw, 560px);
+}
+.toast {
+  background: var(--panel);
+  border: 1.5px solid var(--gold);
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 17px;
+  text-align: center;
+  animation: pop 0.25s ease-out;
+  transition: opacity 0.5s, transform 0.5s;
+}
+.toast.win {
+  background: rgba(46, 30, 6, 0.92);
+  color: #ffe08a;
+  box-shadow: 0 0 24px rgba(255, 190, 80, 0.35);
+}
+.toast.warn {
+  border-color: #e07a6a;
+  background: rgba(60, 12, 12, 0.9);
+}
+.toast.out {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+#stats {
+  position: absolute;
+  left: 16px;
+  bottom: 64px;
+  font: 12px ui-monospace, monospace;
+  color: #cbb991;
+}
+#help {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 16px;
+}
+#help.open {
+  display: flex;
+}
+#help .card {
+  max-width: 560px;
+  background: rgba(20, 14, 10, 0.96);
+  border: 1.5px solid var(--gold);
+  border-radius: 18px;
+  padding: 20px 26px;
+  color: #ecdfc2;
+  line-height: 1.45;
+}
+#help h2 {
+  margin: 0 0 8px;
+  font-style: italic;
+  color: var(--gold-light);
+}
+#help .fine {
+  font-size: 13px;
+  color: #a99670;
+}
+#loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(#2a1a10, #0a0604);
+  transition: opacity 0.8s;
+  text-align: center;
+}
+#loading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#loading .name {
+  font-style: italic;
+  font-size: 44px;
+  text-shadow: 0 0 24px rgba(255, 200, 100, 0.5);
+}
+#loading .sub {
+  color: #cbb991;
+}
+#loading.done {
+  opacity: 0;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .bar {
+    padding: 8px;
+  }
+  button {
+    font-size: 13px;
+    padding: 6px 11px;
+  }
+  .brand .name {
+    font-size: 18px;
+  }
+  #reset,
+  #help-btn {
+    display: none;
+  }
+}

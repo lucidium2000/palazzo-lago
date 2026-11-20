@@ -1,0 +1,193 @@
+import * as THREE from 'three';
+import type { Bankroll } from '../rules/bankroll';
+import { money } from './game';
+import type { Interaction } from './interaction';
+import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
+import type { Viewpoint } from './player';
+
+export type ToastKind = 'info' | 'win' | 'warn';
+
+export interface NavItem {
+  id: string;
+  label: string;
+  viewpoint?: Viewpoint;
+  disabled?: string;
+}
+
+/**
+ * Browser HUD (HTML overlay) plus its VR twin: a wrist menu on the left hand
+ * and toasts that float in front of the player.
+ */
+export class Hud {
+  station: string | null = null;
+  private pending = new Map<string, number>();
+  private root: HTMLElement;
+  private balanceEl: HTMLElement;
+  private toastEl: HTMLElement;
+  private navEl: HTMLElement;
+  private vrToast: CanvasPanel;
+  private vrToastUntil = 0;
+  private wrist: CanvasPanel;
+  private wristAttached = false;
+  private nav: NavItem[] = [];
+  onNavigate: ((item: NavItem) => void) | null = null;
+
+  constructor(
+    private bankroll: Bankroll,
+    scene: THREE.Scene,
+    private renderer: THREE.WebGLRenderer,
+    private interaction: Interaction,
+  ) {
+    this.root = document.getElementById('hud')!;
+    this.balanceEl = this.root.querySelector('#balance')!;
+    this.toastEl = this.root.querySelector('#toasts')!;
+    this.navEl = this.root.querySelector('#nav')!;
+    bankroll.onChange(() => this.renderBalance());
+    this.renderBalance();
+
+    this.vrToast = new CanvasPanel(0.7, 1400, 200);
+    this.vrToast.mesh.visible = false;
+    (this.vrToast.mesh.material as THREE.MeshBasicMaterial).depthTest = false;
+    this.vrToast.mesh.renderOrder = 1000;
+    scene.add(this.vrToast.mesh);
+
+    this.wrist = new CanvasPanel(0.2, 600, 720);
+    this.wrist.mesh.visible = false;
+    this.wrist.register(interaction);
+    renderer.xr.addEventListener('sessionend', () => {
+      this.wrist.mesh.visible = false;
+      this.vrToast.mesh.visible = false;
+    });
+  }
+
+  setNav(items: NavItem[]) {
+    this.nav = items;
+    this.navEl.innerHTML = '';
+    for (const item of items) {
+      const b = document.createElement('button');
+      b.textContent = item.label;
+      b.dataset.id = item.id;
+      if (item.disabled) {
+        b.disabled = true;
+        b.title = item.disabled;
+      }
+      b.onclick = () => this.onNavigate?.(item);
+      this.navEl.appendChild(b);
+    }
+    this.buildWrist();
+  }
+
+  setStation(id: string | null) {
+    this.station = id;
+    this.navEl.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.id === id));
+    this.wrist.redraw();
+  }
+
+  /** Hides a win from the balance until the reels show it. */
+  setPending(key: string, amount: number) {
+    if (amount > 0) this.pending.set(key, amount);
+    else this.pending.delete(key);
+    this.renderBalance();
+  }
+
+  private shownBalance() {
+    let p = 0;
+    for (const v of this.pending.values()) p += v;
+    return this.bankroll.balance - p;
+  }
+
+  private renderBalance() {
+    this.balanceEl.textContent = money(this.shownBalance());
+    this.wrist?.redraw();
+  }
+
+  toast(text: string, kind: ToastKind = 'info') {
+    const el = document.createElement('div');
+    el.className = `toast ${kind}`;
+    el.textContent = text;
+    this.toastEl.prepend(el);
+    while (this.toastEl.children.length > 3) this.toastEl.lastElementChild!.remove();
+    setTimeout(() => el.classList.add('out'), 2600);
+    setTimeout(() => el.remove(), 3200);
+
+    // VR copy.
+    const p = this.vrToast;
+    const ctx = p.ctx;
+    ctx.clearRect(0, 0, p.pxW, p.pxH);
+    roundRect(ctx, 6, 6, p.pxW - 12, p.pxH - 12, 60);
+    ctx.fillStyle = kind === 'win' ? 'rgba(46,30,6,0.92)' : kind === 'warn' ? 'rgba(60,12,12,0.92)' : 'rgba(14,10,8,0.9)';
+    ctx.fill();
+    ctx.strokeStyle = kind === 'warn' ? '#e07a6a' : GOLD;
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    ctx.fillStyle = kind === 'win' ? '#ffe08a' : GOLD_LIGHT;
+    ctx.font = `600 ${text.length > 40 ? 58 : 70}px ${SERIF}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, p.pxW / 2, p.pxH / 2 + 4);
+    p.texture.needsUpdate = true;
+    this.vrToastUntil = performance.now() + 2800;
+  }
+
+  private buildWrist() {
+    const w = this.wrist;
+    w.buttons.length = 0;
+    w.background = (ctx) => {
+      roundRect(ctx, 4, 4, w.pxW - 8, w.pxH - 8, 36);
+      ctx.fillStyle = 'rgba(14,10,8,0.92)';
+      ctx.fill();
+      ctx.strokeStyle = GOLD;
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      ctx.fillStyle = GOLD_LIGHT;
+      ctx.textAlign = 'center';
+      ctx.font = `italic 600 40px ${SERIF}`;
+      ctx.fillText('Palazzo Lago', w.pxW / 2, 58);
+      ctx.font = `600 52px ${SERIF}`;
+      ctx.fillText(money(this.shownBalance()), w.pxW / 2, 120);
+    };
+    const items = this.nav.filter((n) => !n.disabled);
+    items.forEach((item, i) => {
+      w.add({
+        id: item.id,
+        x: 40,
+        y: 160 + i * 92,
+        w: w.pxW - 80,
+        h: 78,
+        label: item.label,
+        active: () => this.station === item.id,
+        onPress: () => this.onNavigate?.(item),
+      });
+    });
+    w.redraw();
+  }
+
+  /** Per-frame VR placement for the wrist menu and toasts. */
+  update() {
+    if (!this.renderer.xr.isPresenting) return;
+    if (!this.wristAttached) {
+      const left = this.interaction.controller('left');
+      if (left) {
+        left.add(this.wrist.mesh);
+        this.wrist.mesh.position.set(0, 0.07, 0.04);
+        this.wrist.mesh.rotation.set(-1.0, 0, 0);
+        this.wristAttached = true;
+      }
+    }
+    if (this.wristAttached) this.wrist.mesh.visible = true;
+
+    const p = this.vrToast.mesh;
+    const xrCam = this.renderer.xr.getCamera();
+    const head = new THREE.Vector3().setFromMatrixPosition(xrCam.matrixWorld);
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(xrCam.getWorldQuaternion(new THREE.Quaternion()));
+    fwd.y = 0;
+    fwd.normalize();
+    const target = head.clone().addScaledVector(fwd, 1.3);
+    target.y = head.y - 0.28;
+    if (!p.visible) p.position.copy(target);
+    else p.position.lerp(target, 0.08);
+    p.lookAt(head);
+    p.visible = performance.now() < this.vrToastUntil;
+  }
+}
+
