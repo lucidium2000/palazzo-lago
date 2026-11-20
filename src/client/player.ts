@@ -123,17 +123,17 @@ export class Player {
     }
   }
 
+  /** Head position in the world. three.js copies the XR pose into the camera's local transform each frame. */
   private headWorld(): THREE.Vector3 {
-    const xrCam = this.renderer.xr.getCamera();
-    return new THREE.Vector3().setFromMatrixPosition(xrCam.matrixWorld);
+    this.rig.updateMatrixWorld(true);
+    return this.camera.getWorldPosition(new THREE.Vector3());
   }
 
   private teleportHeadTo(p: THREE.Vector3, yaw?: number) {
     if (yaw !== undefined) {
       // Turn the rig so the head faces `yaw`, keeping the head where it is, then move.
       const head = this.headWorld();
-      const xrCam = this.renderer.xr.getCamera();
-      const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(xrCam.getWorldQuaternion(new THREE.Quaternion()));
+      const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.getWorldQuaternion(new THREE.Quaternion()));
       const headYaw = Math.atan2(-dir.x, -dir.z);
       this.rotateAround(head, yaw - headYaw);
     }

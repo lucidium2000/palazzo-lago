@@ -190,7 +190,7 @@ async function main() {
     roulette.update(dt);
     for (const m of machines) m.update(dt);
     casino.update(t);
-    hud.update();
+    hud.update(camera);
     renderer.render(scene, camera);
     if (first) {
       first = false;

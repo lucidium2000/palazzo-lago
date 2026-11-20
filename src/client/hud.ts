@@ -163,7 +163,7 @@ export class Hud {
   }
 
   /** Per-frame VR placement for the wrist menu and toasts. */
-  update() {
+  update(camera: THREE.Camera) {
     if (!this.renderer.xr.isPresenting) return;
     if (!this.wristAttached) {
       const left = this.interaction.controller('left');
@@ -177,9 +177,9 @@ export class Hud {
     if (this.wristAttached) this.wrist.mesh.visible = true;
 
     const p = this.vrToast.mesh;
-    const xrCam = this.renderer.xr.getCamera();
-    const head = new THREE.Vector3().setFromMatrixPosition(xrCam.matrixWorld);
-    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(xrCam.getWorldQuaternion(new THREE.Quaternion()));
+    camera.updateMatrixWorld(true);
+    const head = camera.getWorldPosition(new THREE.Vector3());
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
     fwd.y = 0;
     fwd.normalize();
     const target = head.clone().addScaledVector(fwd, 1.3);
