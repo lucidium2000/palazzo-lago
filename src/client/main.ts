@@ -127,10 +127,19 @@ async function main() {
   setTimeout(() => {
     hud.toast(bonus ? `Welcome to Palazzo Lago · daily bonus ${money(bonus)}` : 'Welcome back to Palazzo Lago', 'win');
   }, 900);
-  document.getElementById('reset')!.addEventListener('click', () => {
-    if (bankroll.balance < 100 || confirm('Reset your chips to $10,000?')) {
+  // Two-step reset (no browser dialogs: they are blocked in embedded viewers).
+  const resetBtn = document.getElementById('reset')!;
+  let armed = 0;
+  resetBtn.addEventListener('click', () => {
+    if (bankroll.balance < 100 || performance.now() < armed) {
+      armed = 0;
+      resetBtn.textContent = 'Reset chips';
       bankroll.reset();
       hud.toast(`Chips reset to ${money(bankroll.balance)}`);
+    } else {
+      armed = performance.now() + 3000;
+      resetBtn.textContent = 'Tap again to reset';
+      setTimeout(() => (resetBtn.textContent = 'Reset chips'), 3000);
     }
   });
 

@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --gold: #d8b25a;
   --gold-light: #f3dc9a;
   --ink: #120c08;
@@ -16,6 +17,10 @@ body {
   background: var(--ink);
   color: var(--gold-light);
   font-family: var(--serif);
+}
+#app {
+  position: fixed;
+  inset: 0;
 }
 #app canvas {
   display: block;
@@ -38,11 +43,17 @@ body {
 }
 .bar.top {
   top: 0;
+  padding-top: max(12px, env(safe-area-inset-top, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   justify-content: space-between;
   background: linear-gradient(rgba(10, 6, 4, 0.75), transparent);
 }
 .bar.bottom {
   bottom: 0;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   justify-content: center;
   flex-wrap: wrap;
   background: linear-gradient(transparent, rgba(10, 6, 4, 0.75));

@@ -9,7 +9,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p .",
     "dev:quest": "vite --host --mode quest",
-    "rtp": "tsx scripts/rtp.ts"
+    "rtp": "tsx scripts/rtp.ts",
+    "build:artifact": "vite build && node scripts/artifact.mjs"
   },
   "keywords": [],
   "author": "",
