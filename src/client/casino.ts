@@ -56,7 +56,29 @@ const M = (x = 0, y = 0, z = 0, ry = 0, sx = 1, sy = 1, sz = 1) =>
 export interface Casino {
   root: THREE.Group;
   floor: THREE.Mesh;
-  update(t: number): void;
+  columns: [number, number][];
+  planters: [number, number][];
+  doorsOpen(): number;
+  fountainLevel(): number;
+  fountainAnchor: THREE.Object3D;
+  update(t: number, player?: THREE.Vector3): void;
+}
+
+/** The terrace sits at floor level outside the French doors; the lake is far below. */
+export const TERRACE = { x0: -10, x1: 10, z0: -18.2, z1: -14 };
+const LAKE_Y = -7;
+const DOOR_H = 3.6;
+
+/** Walkable areas, obstacles and floor surfaces of the hall itself. */
+export function registerHall(world: import('./world').World, c: Casino) {
+  world.addWalkable(-17.7, 17.7, -13.7, 13.7);
+  world.addWalkable(-1.45, 1.45, -14.8, -13.2);
+  world.addWalkable(TERRACE.x0 + 0.35, TERRACE.x1 - 0.35, TERRACE.z0 + 0.35, -14.35);
+  for (const [x, z] of c.columns) world.addCircle(x, z, 0.5);
+  for (const [x, z] of c.planters) world.addCircle(x, z, 0.45);
+  world.addSurface('carpet', -12, -3, -11, 6);
+  world.addSurface('carpet', 5.6, 13.6, -0.3, 8.7);
+  world.addSurface('stone', -12, 12, -20, -14.05);
 }
 
 export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q: Quality): Casino {
@@ -203,24 +225,34 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   const winW = 3.4,
     winY0 = 1.1,
     winY1 = 5.3;
-  wallPanel(0, -D / 2, W, 0, 0, winY0);
+  const doorHalf = winW / 2;
+  wallPanel((-W / 2 - doorHalf) / 2, -D / 2, W / 2 - doorHalf, 0, 0, winY0);
+  wallPanel((W / 2 + doorHalf) / 2, -D / 2, W / 2 - doorHalf, 0, 0, winY0);
   wallPanel(0, -D / 2, W, 0, winY1, H);
   let edge = -W / 2;
   for (const wx of windowsX) {
     const l = wx - winW / 2;
     wallPanel((edge + l) / 2, -D / 2, l - edge, 0, winY0, winY1);
     edge = wx + winW / 2;
-    // Gold frame + mullions.
-    batch.add(box, gold, M(wx, winY0, -D / 2 + 0.06, 0, winW + 0.2, 0.12, 0.14));
+    const isDoor = wx === 0;
+    // Gold frame + mullions (the door has a threshold instead of a sill).
+    if (!isDoor) batch.add(box, gold, M(wx, winY0, -D / 2 + 0.06, 0, winW + 0.2, 0.12, 0.14));
     batch.add(box, gold, M(wx, winY1, -D / 2 + 0.06, 0, winW + 0.2, 0.12, 0.14));
-    batch.add(box, gold, M(wx - winW / 2, (winY0 + winY1) / 2, -D / 2 + 0.06, 0, 0.12, winY1 - winY0, 0.14));
-    batch.add(box, gold, M(wx + winW / 2, (winY0 + winY1) / 2, -D / 2 + 0.06, 0, 0.12, winY1 - winY0, 0.14));
+    const y0 = isDoor ? 0 : winY0;
+    batch.add(box, gold, M(wx - winW / 2, (y0 + winY1) / 2, -D / 2 + 0.06, 0, 0.12, winY1 - y0, 0.3));
+    batch.add(box, gold, M(wx + winW / 2, (y0 + winY1) / 2, -D / 2 + 0.06, 0, 0.12, winY1 - y0, 0.3));
+    if (isDoor) {
+      batch.add(box, gold, M(wx, DOOR_H + 0.03, -D / 2, 0, winW, 0.08, 0.3));
+      batch.add(box, darkMarble, M(wx, 0.004, -D / 2, 0, winW, 0.008, 0.5));
+      continue;
+    }
     batch.add(box, gold, M(wx, (winY0 + winY1) / 2, -D / 2 + 0.02, 0, 0.05, winY1 - winY0, 0.05));
     batch.add(box, gold, M(wx, winY0 + (winY1 - winY0) * 0.62, -D / 2 + 0.02, 0, winW, 0.05, 0.05));
     batch.add(box, darkMarble, M(wx, winY0 - 0.05, -D / 2 + 0.25, 0, winW + 0.3, 0.1, 0.4));
   }
   wallPanel((edge + W / 2) / 2, -D / 2, W / 2 - edge, 0, winY0, winY1);
-  trim(0, -D / 2, W, 0);
+  trim((-W / 2 - doorHalf - 0.06) / 2, -D / 2, W / 2 - doorHalf - 0.06, 0);
+  trim((W / 2 + doorHalf + 0.06) / 2, -D / 2, W / 2 - doorHalf - 0.06, 0);
 
   // Entrance doors on the south wall.
   const doorMat = new THREE.MeshStandardMaterial({ color: 0x1b1410, metalness: 0.6, roughness: 0.15, envMapIntensity: 1.5 });
@@ -310,10 +342,10 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     [3.4, 11],
     [-16.5, -12.5],
     [16.5, -12.5],
-    [-16.5, 12.5],
     [16.5, 12.5],
     [3.2, -5],
-    [-0.5, -12.5],
+    [-4.2, -12.8],
+    [4.2, -12.8],
   ];
   const leafGeo = new THREE.IcosahedronGeometry(0.5, 1);
   const leaves = new THREE.InstancedMesh(
@@ -369,25 +401,21 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     new THREE.PlaneGeometry(160, 70),
     new THREE.MeshBasicMaterial({ map: toTexture(lakeView(2048, 900)), toneMapped: false }),
   );
-  lake.position.set(0, 14, -D / 2 - 70);
+  lake.position.set(0, 10, -D / 2 - 70);
   root.add(lake);
   const water = new THREE.Mesh(
     new THREE.PlaneGeometry(160, 70),
     new THREE.MeshStandardMaterial({ color: 0x0a1230, roughness: 0.05, metalness: 0.2, envMapIntensity: 0.3 }),
   );
   water.rotation.x = -Math.PI / 2;
-  water.position.set(0, -1.5, -D / 2 - 35);
+  water.position.set(0, LAKE_Y, -D / 2 - 35);
   root.add(water);
-  // Terrace balustrade just outside.
-  for (let x = -W / 2; x <= W / 2; x += 0.5) batch.add(box, wallMat, M(x, -0.4, -D / 2 - 3, 0, 0.12, 1, 0.12));
-  batch.add(box, wallMat, M(0, 0.12, -D / 2 - 3, 0, W, 0.12, 0.3));
-  const terrace = new THREE.Mesh(new THREE.PlaneGeometry(W, 3), darkMarble);
-  terrace.rotation.x = -Math.PI / 2;
-  terrace.position.set(0, -0.9, -D / 2 - 1.5);
-  root.add(terrace);
+  const terraceParts = buildTerrace(root, batch, box, { gold, darkMarble, wallMat, q });
   const fountains = fountainShow();
-  fountains.position.set(0, -1.5, -D / 2 - 26);
+  fountains.position.set(0, LAKE_Y, -D / 2 - 26);
   root.add(fountains);
+  const doors = frenchDoors();
+  root.add(doors.group);
 
   // --- Contact shadows (cheap baked look under objects) -----------------------------------
   const shadowTex = toTexture(radial(128, 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0)'));
@@ -413,15 +441,21 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
 
   batch.build(root, q.shadows);
   fountains.userData.dynamic = true;
+  doors.group.userData.dynamic = true;
+  void terraceParts;
   bakeStatic(root, { shadows: q.shadows });
 
-  let fountainT = 0;
   return {
     root,
     floor,
-    update(t: number) {
-      fountainT = t;
-      (fountains.userData.update as (t: number) => void)(fountainT);
+    columns: columnSpots,
+    planters,
+    doorsOpen: () => doors.open,
+    fountainLevel: () => fountains.userData.level as number,
+    fountainAnchor: fountains,
+    update(t: number, player?: THREE.Vector3) {
+      (fountains.userData.update as (t: number) => void)(t);
+      if (player) doors.update(player);
     },
   };
 }
@@ -591,19 +625,27 @@ function fountainShow(): THREE.Group {
     cv.height = 256;
     return [cv, cv.getContext('2d')!] as const;
   })();
-  const grad = ctx.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, 'rgba(255,255,255,0)');
-  grad.addColorStop(0.15, 'rgba(230,240,255,0.7)');
-  grad.addColorStop(1, 'rgba(200,220,255,0.9)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 64, 256);
-  const side = ctx.createLinearGradient(0, 0, 64, 0);
-  side.addColorStop(0, 'rgba(0,0,0,1)');
-  side.addColorStop(0.5, 'rgba(0,0,0,0)');
-  side.addColorStop(1, 'rgba(0,0,0,1)');
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = side;
-  ctx.fillRect(0, 0, 64, 256);
+  // A water column: a bright core near the base, breaking into spray toward the top.
+  const img = ctx.createImageData(64, 256);
+  let seed = 3;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let y = 0; y < 256; y++) {
+    const v = y / 255; // 0 top, 1 base
+    const width = 0.12 + (1 - v) * 0.3;
+    for (let x = 0; x < 64; x++) {
+      const u = (x - 31.5) / 32;
+      const core = Math.exp(-((u / width) ** 2) * 2.2);
+      const spray = rnd() < 0.25 * (1 - v) ? 0.6 : 0;
+      const fade = Math.min(1, v * 4) * (0.55 + 0.45 * v);
+      const a = Math.min(1, (core * (0.5 + 0.5 * v) + spray * core * 0.8) * fade);
+      const i = (y * 64 + x) * 4;
+      img.data[i] = 225;
+      img.data[i + 1] = 236;
+      img.data[i + 2] = 255;
+      img.data[i + 3] = a * 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
   const tex = new THREE.CanvasTexture(c);
   const mat = new THREE.MeshBasicMaterial({
     map: tex,
@@ -618,26 +660,189 @@ function fountainShow(): THREE.Group {
   const b = new THREE.PlaneGeometry(1, 1).rotateY(Math.PI / 2);
   const jetGeo = mergeGeometries([a, b])!;
   jetGeo.translate(0, 0.5, 0);
-  const count = 36;
+  const count = 48;
   const jets = new THREE.InstancedMesh(jetGeo, mat, count);
   jets.frustumCulled = false;
   g.add(jets);
   const tmp = new THREE.Object3D();
+  g.userData.level = 0;
   g.userData.update = (time: number) => {
-    // Phrases cycle every 24 s: wave, burst, sweep.
-    const phase = (time % 24) / 24;
+    // A 70-second show: gentle wave, alternating bursts, a travelling sweep, then a finale.
+    const cycle = time % 70;
+    let total = 0;
     for (let i = 0; i < count; i++) {
       const t = i / (count - 1);
       let h: number;
-      if (phase < 0.33) h = 0.5 + 0.5 * Math.sin(time * 2.2 - t * 9);
-      else if (phase < 0.66) h = Math.max(0, Math.sin((time * 1.4) % Math.PI)) * (i % 2 ? 1 : 0.6);
-      else h = Math.exp(-(((t - ((time * 0.35) % 1)) * 6) ** 2));
+      if (cycle < 18) h = 0.35 + 0.3 * Math.sin(time * 1.6 - t * 9);
+      else if (cycle < 34) h = Math.max(0, Math.sin((time * 1.4) % Math.PI)) * (i % 2 ? 0.9 : 0.5);
+      else if (cycle < 52) h = 0.15 + 0.8 * Math.exp(-(((t - ((cycle - 34) / 18)) * 5) ** 2));
+      else if (cycle < 66) {
+        const k = (cycle - 52) / 14;
+        h = Math.min(1, 0.4 + k * 0.7) * (0.85 + 0.15 * Math.sin(time * 6 + i));
+      } else h = Math.max(0.05, 1 - (cycle - 66) / 4);
+      total += h;
       tmp.position.set((t - 0.5) * 90, 0, Math.sin(t * Math.PI) * -12);
-      tmp.scale.set(1.2 + h * 1.4, 3 + h * 22, 1.2 + h * 1.4);
+      // In the bursts and the finale the jets fan out in pairs, like a choreographed show.
+      const fan = cycle >= 18 && cycle < 34 ? (i % 2 ? 0.16 : -0.16) : cycle >= 52 ? Math.sin(i * 1.7) * 0.12 : 0;
+      tmp.rotation.set(0, 0, fan);
+      tmp.scale.set(1.6 + h * 2.4, 4 + h * 26, 1.6 + h * 2.4);
       tmp.updateMatrix();
       jets.setMatrixAt(i, tmp.matrix);
     }
+    g.userData.level = total / count;
     jets.instanceMatrix.needsUpdate = true;
   };
   return g;
+}
+
+/** Stone terrace over the lake: balustrade, lanterns, the building's outer face, and the night sky. */
+function buildTerrace(
+  root: THREE.Object3D,
+  batch: { add(g: THREE.BufferGeometry, m: THREE.Material, mat: THREE.Matrix4): void },
+  box: THREE.BufferGeometry,
+  m: { gold: THREE.Material; darkMarble: THREE.Material; wallMat: THREE.Material; q: Quality },
+) {
+  const { x0, x1, z0, z1 } = TERRACE;
+  const w = x1 - x0,
+    d = z1 - z0;
+  const stoneTex = toTexture(marble(512, 'cream', 41));
+  stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping;
+  const stoneGeo = new THREE.PlaneGeometry(w, d);
+  const uv = stoneGeo.attributes.uv as THREE.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (w / 2), uv.getY(i) * (d / 2));
+  const stone = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.55, color: 0xeee4d2 });
+  const floor = new THREE.Mesh(stoneGeo, stone);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set((x0 + x1) / 2, 0.002, (z0 + z1) / 2);
+  root.add(floor);
+  // Slab edge and the cliff of the building below it.
+  batch.add(box, stone, M((x0 + x1) / 2, -0.25, z0 - 0.05, 0, w + 0.3, 0.5, 0.2));
+  batch.add(box, stone, M((x0 + x1) / 2, -3.6, z1 - 0.4, 0, w + 6, 7.2, 0.8));
+  // Balustrade: posts, rail, and end walls.
+  for (let x = x0 + 0.2; x <= x1 - 0.2; x += 0.32) batch.add(new THREE.CylinderGeometry(0.045, 0.06, 0.78, 8), stone, M(x, 0.42, z0 + 0.15));
+  batch.add(box, stone, M((x0 + x1) / 2, 0.06, z0 + 0.15, 0, w, 0.12, 0.3));
+  batch.add(box, stone, M((x0 + x1) / 2, 0.86, z0 + 0.15, 0, w + 0.1, 0.12, 0.34));
+  for (const x of [x0, x1]) {
+    batch.add(box, stone, M(x, 0.5, (z0 + z1) / 2, 0, 0.3, 1.0, d));
+    batch.add(box, stone, M(x, 1.05, (z0 + z1) / 2, 0, 0.36, 0.1, d));
+  }
+  // Lanterns on the corners and either side of the doors.
+  const glowTex = toTexture(radial(128, 'rgba(255,214,150,1)', 'rgba(255,170,90,0)'));
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  const lampMat = new THREE.MeshBasicMaterial({ color: 0xffe2a8 });
+  for (const [lx, lz] of [[x0 + 0.3, z0 + 0.3], [x1 - 0.3, z0 + 0.3], [-2.4, z1 - 0.3], [2.4, z1 - 0.3]]) {
+    batch.add(new THREE.CylinderGeometry(0.04, 0.06, 2.2, 8), m.gold, M(lx, 1.1, lz));
+    batch.add(new THREE.SphereGeometry(0.13, 12, 8), lampMat, M(lx, 2.3, lz));
+    const glow = new THREE.Sprite(glowMat);
+    glow.position.set(lx, 2.3, lz);
+    glow.scale.setScalar(1.8);
+    root.add(glow);
+  }
+  // Outer face of the north wall, with openings for the windows and the doors.
+  const face = new THREE.Shape();
+  face.moveTo(-HALL.w / 2, 0);
+  face.lineTo(HALL.w / 2, 0);
+  face.lineTo(HALL.w / 2, HALL.h + 0.6);
+  face.lineTo(-HALL.w / 2, HALL.h + 0.6);
+  face.closePath();
+  for (const wx of [-12, -6, 0, 6, 12]) {
+    const y0 = wx === 0 ? 0.001 : 1.1;
+    const hole = new THREE.Path();
+    hole.moveTo(wx - 1.7, y0);
+    hole.lineTo(wx + 1.7, y0);
+    hole.lineTo(wx + 1.7, 5.3);
+    hole.lineTo(wx - 1.7, 5.3);
+    hole.closePath();
+    face.holes.push(hole);
+  }
+  const facade = new THREE.Mesh(new THREE.ShapeGeometry(face), stone.clone());
+  (facade.material as THREE.Material).side = THREE.DoubleSide;
+  facade.rotation.y = Math.PI;
+  facade.position.set(0, 0, -HALL.d / 2 - 0.12);
+  facade.scale.x = -1;
+  root.add(facade);
+  // Window reveals so the openings have depth from outside.
+  for (const wx of [-12, -6, 0, 6, 12]) {
+    const y0 = wx === 0 ? 0 : 1.1;
+    batch.add(box, stone, M(wx, 5.35, -HALL.d / 2 - 0.06, 0, 3.6, 0.1, 0.14));
+    for (const sx of [-1.75, 1.75]) batch.add(box, stone, M(wx + sx, (y0 + 5.3) / 2, -HALL.d / 2 - 0.06, 0, 0.1, 5.3 - y0, 0.14));
+  }
+  batch.add(box, m.gold, M(0, HALL.h + 0.55, -HALL.d / 2 - 0.2, 0, HALL.w, 0.12, 0.2));
+  // Night sky dome, seen from the terrace and through the windows.
+  const sky = document.createElement('canvas');
+  sky.width = 1024;
+  sky.height = 512;
+  const g = sky.getContext('2d')!;
+  const grad = g.createLinearGradient(0, 0, 0, 512);
+  grad.addColorStop(0, '#02030a');
+  grad.addColorStop(0.55, '#0b1230');
+  grad.addColorStop(0.75, '#2a2a4a');
+  grad.addColorStop(1, '#2a2a4a');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 1024, 512);
+  let seed = 5;
+  const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 900; i++) {
+    g.fillStyle = `rgba(255,255,255,${0.2 + r() * 0.7})`;
+    const sz = r() < 0.95 ? 1 : 2;
+    g.fillRect(r() * 1024, r() * 300, sz, sz);
+  }
+  const skyTex = new THREE.CanvasTexture(sky);
+  skyTex.colorSpace = THREE.SRGBColorSpace;
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(180, 32, 16), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, depthWrite: false, toneMapped: false }));
+  dome.position.set(0, 0, -40);
+  dome.renderOrder = -1;
+  root.add(dome);
+  return { floor, facade };
+}
+
+/** Two glass doors that swing out onto the terrace as you approach. */
+function frenchDoors() {
+  const group = new THREE.Group();
+  const gold = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.25 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0xbfd8ff, transparent: true, opacity: 0.16, roughness: 0.02, metalness: 0.8, envMapIntensity: 2, depthWrite: false, side: THREE.DoubleSide });
+  const leafW = 1.6;
+  const leaves: THREE.Group[] = [];
+  for (const side of [-1, 1]) {
+    const hinge = new THREE.Group();
+    hinge.position.set(side * 1.65, 0, -HALL.d / 2);
+    const leaf = new THREE.Group();
+    const cx = -side * leafW / 2;
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(leafW - 0.1, DOOR_H - 0.1), glass);
+    pane.position.set(cx, DOOR_H / 2, 0);
+    leaf.add(pane);
+    const frame = (w: number, h: number, x: number, y: number) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), gold);
+      b.position.set(x, y, 0);
+      leaf.add(b);
+    };
+    frame(leafW, 0.06, cx, 0.03);
+    frame(leafW, 0.06, cx, DOOR_H - 0.03);
+    frame(0.06, DOOR_H, cx - leafW / 2 + 0.03, DOOR_H / 2);
+    frame(0.06, DOOR_H, cx + leafW / 2 - 0.03, DOOR_H / 2);
+    frame(leafW, 0.03, cx, DOOR_H * 0.62);
+    frame(0.03, DOOR_H, cx, DOOR_H / 2);
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 8), gold);
+    handle.position.set(-side * (leafW - 0.15), 1.05, 0.05);
+    leaf.add(handle);
+    leaf.traverse((o) => (o.raycast = () => {}));
+    hinge.add(leaf);
+    group.add(hinge);
+    leaves.push(hinge);
+  }
+  const state = { open: 0 };
+  return {
+    group,
+    get open() {
+      return state.open;
+    },
+    update(player: THREE.Vector3) {
+      const near = Math.hypot(player.x, player.z + HALL.d / 2) < 3.2;
+      const target = near ? 1 : 0;
+      state.open += (target - state.open) * 0.06;
+      // Doors swing outward onto the terrace.
+      leaves[0].rotation.y = state.open * 1.45;
+      leaves[1].rotation.y = -state.open * 1.45;
+    },
+  };
 }

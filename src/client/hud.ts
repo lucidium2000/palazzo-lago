@@ -60,6 +60,23 @@ export class Hud {
     });
   }
 
+  private crosshair = document.getElementById('crosshair')!;
+  private promptEl = document.getElementById('prompt')!;
+
+  /** Desktop crosshair (first-person mode) and the hint under it. */
+  setAim(locked: boolean, label: string | null) {
+    this.crosshair.classList.toggle('on', locked);
+    this.crosshair.classList.toggle('active', locked && !!label);
+    const text = label ?? '';
+    if (this.promptEl.textContent !== text) this.promptEl.textContent = text;
+    this.promptEl.classList.toggle('on', !!label);
+    if (!locked) this.promptEl.style.top = '';
+  }
+
+  toggleMap(open?: boolean) {
+    this.navEl.classList.toggle('open', open);
+  }
+
   setNav(items: NavItem[]) {
     this.nav = items;
     this.navEl.innerHTML = '';
@@ -71,7 +88,10 @@ export class Hud {
         b.disabled = true;
         b.title = item.disabled;
       }
-      b.onclick = () => this.onNavigate?.(item);
+      b.onclick = () => {
+        this.onNavigate?.(item);
+        this.toggleMap(false);
+      };
       this.navEl.appendChild(b);
     }
     this.buildWrist();

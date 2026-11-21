@@ -391,6 +391,38 @@ export class SlotMachineView {
     this.deck.redraw();
   }
 
+  /** VR: grab the lever knob and pull it down to spin. */
+  leverGrab(): import('../hands').Grabbable | null {
+    const arm = this.lever;
+    if (!arm) return null;
+    let startY = 0,
+      fired = false;
+    const knob = new THREE.Vector3(0.03, 0.44, 0);
+    return {
+      at: () => arm.localToWorld(knob.clone()),
+      radius: 0.09,
+      enabled: () => this.mode !== 'spinning',
+      grab: (hand) => {
+        startY = hand.pos.y;
+        fired = false;
+        return 'drag';
+      },
+      drag: (_h, pos) => {
+        const a = THREE.MathUtils.clamp(((startY - pos.y) / 0.32) * 1.1, 0, 1.1);
+        arm.rotation.x = a;
+        if (a > 0.95 && !fired) {
+          fired = true;
+          this.ctx.sound.play('lever', arm, { volume: 0.8 });
+          this.onSpinPressed();
+        }
+      },
+      release: () => {
+        const from = arm.rotation.x;
+        this.tweens.add(0.35, (k) => (arm.rotation.x = from * (1 - k) ** 2));
+      },
+    };
+  }
+
   private pullLever() {
     if (!this.lever || this.mode === 'spinning') return;
     this.ctx.sound.play('lever', this.lever, { volume: 0.8 });

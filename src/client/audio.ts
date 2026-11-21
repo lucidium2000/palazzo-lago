@@ -19,7 +19,18 @@ type SoundName =
   | 'bonus'
   | 'lever'
   | 'ambience'
-  | 'denied';
+  | 'denied'
+  | 'stepMarble'
+  | 'stepCarpet'
+  | 'stepStone'
+  | 'cheer'
+  | 'gasp'
+  | 'clink'
+  | 'pour'
+  | 'sip'
+  | 'door'
+  | 'water'
+  | 'shaker';
 
 const rand = (() => {
   let s = 12345;
@@ -158,7 +169,93 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
     return buf;
   })();
 
-  return { chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, ambience, denied };
+  // Footsteps: a heel click on marble, a soft thud on carpet, grit on stone.
+  const stepMarble = (() => {
+    const h = hp(0.5),
+      l = lp(0.15);
+    return synth(ctx, 0.18, (t) =>
+      h(rand()) * 0.5 * env(t, 0.0006, 0.006) +
+      (Math.sin(2 * Math.PI * 1900 * t) * 0.18 + Math.sin(2 * Math.PI * 3100 * t) * 0.08) * env(t, 0.0006, 0.025) +
+      l(rand()) * 0.9 * env(t, 0.002, 0.03),
+    );
+  })();
+  const stepCarpet = (() => {
+    const l = lp(0.04);
+    return synth(ctx, 0.2, (t) => l(rand()) * 2.4 * env(t, 0.008, 0.045) + Math.sin(2 * Math.PI * 85 * t) * 0.12 * env(t, 0.004, 0.04));
+  })();
+  const stepStone = (() => {
+    const b = hp(0.3),
+      l = lp(0.3);
+    return synth(ctx, 0.22, (t) => l(b(rand())) * 1.1 * env(t, 0.003, 0.05) * (0.7 + 0.3 * Math.abs(rand())));
+  })();
+
+  // A table erupting: shaped crowd noise with a few rising whoops.
+  const cheer = (() => {
+    const l = [lp(0.08), lp(0.08)],
+      b = [hp(0.9), hp(0.9)];
+    const whoops = Array.from({ length: 7 }, () => ({ at: Math.abs(rand()) * 0.8, f: 300 + Math.abs(rand()) * 300, g: 0.05 + Math.abs(rand()) * 0.05 }));
+    return synth(
+      ctx,
+      2.4,
+      (t) => {
+        const crowd = b[0](l[0](rand())) * 3.2 * env(t, 0.08, 0.7) * (0.8 + 0.2 * Math.sin(t * 23));
+        let w = 0;
+        for (const k of whoops) {
+          const u = t - k.at;
+          if (u > 0 && u < 0.6) w += Math.sin(2 * Math.PI * (k.f + u * 500) * u) * k.g * env(u, 0.03, 0.2);
+        }
+        return crowd + w;
+      },
+    );
+  })();
+  const gasp = (() => {
+    const l = lp(0.1),
+      b = hp(0.85);
+    return synth(ctx, 0.9, (t) => b(l(rand())) * 2.5 * env(t, 0.06, 0.25));
+  })();
+  const clink = synth(ctx, 0.8, (t) => (Math.sin(2 * Math.PI * 3520 * t) * 0.3 + Math.sin(2 * Math.PI * 5270 * t) * 0.15 + Math.sin(2 * Math.PI * 2210 * t) * 0.1) * env(t, 0.0008, 0.18));
+  const pour = (() => {
+    const l = lp(0.12);
+    return synth(ctx, 1.6, (t) => {
+      const gl = 0.6 + 0.4 * Math.sin(2 * Math.PI * (9 + t * 4) * t);
+      return l(rand()) * 1.6 * gl * env(t, 0.1, 0.9) * (t < 1.3 ? 1 : (1.6 - t) / 0.3);
+    });
+  })();
+  const sip = (() => {
+    const l = lp(0.2);
+    return synth(ctx, 0.5, (t) => l(rand()) * 0.8 * env(t, 0.05, 0.12) + Math.sin(2 * Math.PI * (300 - t * 200) * t) * 0.05 * env(t, 0.1, 0.08));
+  })();
+  const door = (() => {
+    const l = lp(0.02);
+    return synth(ctx, 0.9, (t) => l(rand()) * 3 * env(t, 0.15, 0.3) + Math.sin(2 * Math.PI * 55 * t) * 0.2 * env(t > 0.6 ? t - 0.6 : 0, 0.002, 0.08) * (t > 0.6 ? 1 : 0));
+  })();
+  const shaker = (() => {
+    const h = hp(0.7);
+    return synth(ctx, 1.4, (t) => h(rand()) * 0.5 * Math.abs(Math.sin(2 * Math.PI * 4.5 * t)) ** 3 * (t < 1.2 ? 1 : (1.4 - t) / 0.2));
+  })();
+  // Lake water and fountains: a broad stereo wash.
+  const water = (() => {
+    const sr = ctx.sampleRate,
+      len = 6 * sr;
+    const buf = ctx.createBuffer(2, len, sr);
+    for (let c = 0; c < 2; c++) {
+      const d = buf.getChannelData(c);
+      const l = lp(0.25),
+        h = hp(0.6);
+      for (let i = 0; i < len; i++) d[i] = h(l(rand())) * 1.4 * (0.75 + 0.25 * Math.sin((i / sr) * 0.9 + c * 2));
+      const fade = Math.floor(sr * 0.4);
+      for (let i = 0; i < fade; i++) {
+        const a = i / fade;
+        d[i] = d[i] * a + d[len - fade + i] * (1 - a);
+      }
+    }
+    return buf;
+  })();
+
+  return {
+    chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, ambience, denied,
+    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, pour, sip, door, water, shaker,
+  };
 }
 
 export class Sound {
@@ -178,6 +275,7 @@ export class Sound {
       if (ctx.state !== 'running') ctx.resume();
       this.ensure();
       this.startAmbience();
+      this.flushAmbient();
     };
     addEventListener('pointerdown', unlock);
     addEventListener('keydown', unlock);
@@ -195,6 +293,11 @@ export class Sound {
     this.ambient.setLoop(true);
     this.ambient.setVolume(this.muted ? 0 : 0.35);
     this.ambient.play();
+  }
+
+  /** Room tone level (quieter out on the terrace). */
+  setAmbience(level: number) {
+    if (this.ambient) this.ambient.setVolume(0.35 * level);
   }
 
   setMuted(m: boolean) {
@@ -230,6 +333,75 @@ export class Sound {
     return a;
   }
 
+  private local: THREE.Audio[] = [];
+
+  /** A one-shot that is not placed in the world (your own footsteps). */
+  playLocal(name: SoundName, volume = 1, rate = 1) {
+    if (this.listener.context.state !== 'running') return;
+    const buffers = this.ensure();
+    let a = this.local.find((p) => !p.isPlaying);
+    if (!a) {
+      if (this.local.length >= 6) return;
+      a = new THREE.Audio(this.listener);
+      this.local.push(a);
+    }
+    a.setBuffer(buffers[name]);
+    a.setVolume(volume);
+    a.setPlaybackRate(rate);
+    a.play();
+  }
+
+  /** A looping sound fixed in the world (piano, fountains). Starts once audio is unlocked. */
+  ambientAt(name: SoundName | (() => Promise<AudioBuffer>), at: THREE.Object3D, opts: { volume?: number; ref?: number; rolloff?: number } = {}) {
+    const a = new THREE.PositionalAudio(this.listener);
+    a.setRefDistance(opts.ref ?? 2);
+    a.setRolloffFactor(opts.rolloff ?? 1.2);
+    a.setDistanceModel('inverse');
+    at.add(a);
+    const start = async () => {
+      const buf = typeof name === 'function' ? await name() : this.ensure()[name];
+      a.setBuffer(buf);
+      a.setLoop(true);
+      a.setVolume(opts.volume ?? 1);
+      a.play();
+    };
+    this.pendingAmbient.push(start);
+    if (this.listener.context.state === 'running') this.flushAmbient();
+    return a;
+  }
+
+  private pendingAmbient: (() => Promise<void>)[] = [];
+  private flushAmbient() {
+    const list = this.pendingAmbient;
+    this.pendingAmbient = [];
+    for (const f of list) f().catch(() => {});
+  }
+
+  /** Renders a looping lounge-piano progression offline (async, off the frame loop). */
+  pianoLoop(): Promise<AudioBuffer> {
+    return renderPiano(this.listener.context.sampleRate);
+  }
+
+  /** A short spoken line (croupier calls). Uses the browser's speech voice when it has one. */
+  say(text: string, volume = 1) {
+    if (this.muted) return;
+    try {
+      const synthApi = globalThis.speechSynthesis;
+      if (!synthApi) return;
+      synthApi.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const voices = synthApi.getVoices();
+      const pick = voices.find((v) => /en-GB/i.test(v.lang) && /male|daniel|george|arthur/i.test(v.name)) ?? voices.find((v) => /^en/i.test(v.lang));
+      if (pick) u.voice = pick;
+      u.rate = 0.95;
+      u.pitch = 0.9;
+      u.volume = Math.max(0, Math.min(1, volume));
+      synthApi.speak(u);
+    } catch {
+      /* no speech on this device */
+    }
+  }
+
   /** A looping positional sound whose volume/rate the caller drives (ball roll, reel spin). */
   loop(name: SoundName, at: THREE.Object3D): { set(volume: number, rate?: number): void; stop(): void } {
     const a = new THREE.PositionalAudio(this.listener);
@@ -254,4 +426,100 @@ export class Sound {
       },
     };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Lounge piano: an 8-bar progression in F, voiced like a hotel-bar pianist.
+// ---------------------------------------------------------------------------
+
+const NOTE = (n: string) => {
+  const m = /^([A-G])(b|#)?(\d)$/.exec(n)!;
+  const base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1] as 'C'];
+  const semis = base + (m[2] === 'b' ? -1 : m[2] === '#' ? 1 : 0) + (Number(m[3]) + 1) * 12;
+  return 440 * 2 ** ((semis - 69) / 12);
+};
+
+async function renderPiano(sampleRate: number): Promise<AudioBuffer> {
+  const bpm = 76;
+  const beat = 60 / bpm;
+  const bars: { bass: string; chord: string[]; scale: string[] }[] = [
+    { bass: 'F2', chord: ['A3', 'C4', 'E4', 'G4'], scale: ['A4', 'C5', 'E5', 'G5', 'F5'] },
+    { bass: 'D2', chord: ['F3', 'A3', 'C4', 'E4'], scale: ['F4', 'A4', 'C5', 'E5', 'D5'] },
+    { bass: 'G2', chord: ['Bb3', 'D4', 'F4', 'A4'], scale: ['Bb4', 'D5', 'F5', 'A4', 'G4'] },
+    { bass: 'C2', chord: ['Bb3', 'E4', 'A4', 'D5'], scale: ['E5', 'D5', 'A4', 'Bb4', 'G4'] },
+    { bass: 'A2', chord: ['G3', 'C4', 'E4', 'G4'], scale: ['C5', 'E5', 'G5', 'E5', 'A4'] },
+    { bass: 'D2', chord: ['F#3', 'C4', 'Eb4', 'A4'], scale: ['F#4', 'A4', 'C5', 'Eb5', 'D5'] },
+    { bass: 'G2', chord: ['F3', 'Bb3', 'D4', 'A4'], scale: ['D5', 'F5', 'A5', 'G5', 'Bb4'] },
+    { bass: 'C2', chord: ['E3', 'Bb3', 'D4', 'G4'], scale: ['G4', 'Bb4', 'D5', 'E5', 'C5'] },
+  ];
+  const loopLen = bars.length * 4 * beat;
+  const tail = 3;
+  const ctx = new OfflineAudioContext(2, Math.ceil((loopLen + tail) * sampleRate), sampleRate);
+  const harmonics = new Float32Array([0, 1, 0.55, 0.32, 0.2, 0.12, 0.08, 0.05, 0.03]);
+  const wave = ctx.createPeriodicWave(harmonics, new Float32Array(harmonics.length));
+  const master = ctx.createGain();
+  master.gain.value = 0.16;
+  const verb = ctx.createDelay(1);
+  verb.delayTime.value = 0.23;
+  const fb = ctx.createGain();
+  fb.gain.value = 0.28;
+  const wet = ctx.createGain();
+  wet.gain.value = 0.35;
+  master.connect(ctx.destination);
+  master.connect(verb);
+  verb.connect(fb);
+  fb.connect(verb);
+  verb.connect(wet);
+  wet.connect(ctx.destination);
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const play = (note: string, at: number, vel: number, len: number, pan: number) => {
+    const f = NOTE(note);
+    const o = ctx.createOscillator();
+    o.setPeriodicWave(wave);
+    o.frequency.value = f;
+    o.detune.value = (rnd() - 0.5) * 6;
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.setValueAtTime(Math.min(9000, f * 9), at);
+    lpf.frequency.exponentialRampToValueAtTime(Math.max(300, f * 2), at + len);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(vel, at + 0.006);
+    g.gain.exponentialRampToValueAtTime(vel * 0.35, at + 0.25);
+    g.gain.exponentialRampToValueAtTime(0.0005, at + len);
+    const p = ctx.createStereoPanner();
+    p.pan.value = pan;
+    o.connect(lpf).connect(g).connect(p).connect(master);
+    o.start(at);
+    o.stop(at + len + 0.05);
+  };
+  const swing = (eighth: number) => (eighth % 2 ? beat * 0.62 : 0);
+  bars.forEach((bar, i) => {
+    const t0 = i * 4 * beat;
+    play(bar.bass, t0, 0.9, 3.2, -0.3);
+    play(bar.bass.replace(/\d/, (d) => String(Number(d) + 1)), t0 + 2 * beat, 0.45, 1.8, -0.3);
+    bar.chord.forEach((n, k) => {
+      play(n, t0 + beat * 1 + swing(1) + k * 0.012, 0.32, 1.6, -0.05);
+      play(n, t0 + beat * 2.5 + k * 0.01, 0.26, 1.4, -0.05);
+    });
+    // Right hand: a lazy swung line through the chord's colour tones.
+    for (let e = 0; e < 8; e++) {
+      if (rnd() < 0.28) continue;
+      const n = bar.scale[Math.floor(rnd() * bar.scale.length)];
+      const at = t0 + Math.floor(e / 2) * beat + swing(e) + (rnd() - 0.5) * 0.015;
+      play(n, at, 0.3 + rnd() * 0.25, 1.2 + rnd() * 0.8, 0.25);
+    }
+  });
+  const rendered = await ctx.startRendering();
+  // Fold the tail back onto the start so the loop is seamless.
+  const n = Math.ceil(loopLen * sampleRate);
+  const out = new AudioBuffer({ numberOfChannels: 2, length: n, sampleRate });
+  for (let c = 0; c < 2; c++) {
+    const src = rendered.getChannelData(c);
+    const dst = out.getChannelData(c);
+    dst.set(src.subarray(0, n));
+    for (let i = n; i < src.length; i++) dst[i - n] += src[i];
+  }
+  return out;
 }

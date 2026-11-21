@@ -43,6 +43,9 @@ export class RouletteTable {
   private ballLoop: ReturnType<GameContext['sound']['loop']>;
   private undoStack: { spotId: string; amount: number }[] = [];
   private lastResult: { pocket: Pocket; net: number } | null = null;
+  /** Hooks for the croupier and onlookers. */
+  onSpin: (() => void) | null = null;
+  onResult: ((pocket: Pocket, staked: number, returned: number) => void) | null = null;
 
   constructor(
     private ctx: GameContext,
@@ -100,6 +103,7 @@ export class RouletteTable {
     dynamic(this.ball);
     dynamic(this.ghost);
     dynamic(this.dolly);
+    this.buildRack();
     bakeStatic(this.group, { shadows: ctx.quality.shadows });
   }
 
@@ -538,8 +542,9 @@ export class RouletteTable {
     }
   }
 
-  private setHover(spotId: string | null) {
-    if (spotId === this.hoverSpot) return;
+  private setHover(spotId: string | null, chip: ChipDenom = this.chip) {
+    if (spotId === this.hoverSpot && chip === this.chip) return;
+    if (chip !== this.chip) this.chip = chip;
     this.hoverSpot = spotId;
     if (spotId && this.game.phase === 'betting') {
       const [x, z] = spotAnchor(SPOTS_BY_ID.get(spotId)!);
@@ -578,6 +583,76 @@ export class RouletteTable {
   // Spin
   // ---------------------------------------------------------------------------
 
+  /** World spots for the croupier and for guests standing around the table. */
+  spots() {
+    const w = (x: number, z: number) => this.group.localToWorld(new THREE.Vector3(x, 0, z));
+    const yaw = this.group.rotation.y;
+    return {
+      croupier: { pos: w(WHEEL_CENTER.x + 0.42, -0.86), yaw },
+      watchers: [
+        { pos: w(0.35, -0.9), yaw },
+        { pos: w(0.95, -0.85), yaw: yaw - 0.3 },
+        { pos: w(1.55, -0.1), yaw: yaw - Math.PI / 2 },
+        { pos: w(-0.75, 0.98), yaw: yaw + Math.PI, seated: true },
+      ],
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Chip rack on the rail: pick chips up with your hand in VR.
+  // ---------------------------------------------------------------------------
+
+  /** Grabbables for the VR hands system (set up by main once hands exist). */
+  readonly grabbables: import('../hands').Grabbable[] = [];
+
+  private buildRack() {
+    const y = TOP + 0.09,
+      z = 0.47;
+    const tray = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.02, 0.09), new THREE.MeshStandardMaterial({ color: 0x2a1408, roughness: 0.4 }));
+    tray.position.set(-0.62, y - 0.01, z);
+    this.group.add(tray);
+    const chipGeo = new THREE.CylinderGeometry(0.0195, 0.0195, 0.0033, 20);
+    const perStack = 12;
+    const rack = new THREE.InstancedMesh(chipGeo, new THREE.MeshStandardMaterial({ roughness: 0.45 }), CHIP_DENOMS.length * perStack);
+    const tmp = new THREE.Object3D();
+    const COLORS = [0xf2f0ea, 0xc0262d, 0x1e7a3a, 0x1b1b1f, 0x6b2f8f, 0xe4b833, 0x8a4f22];
+    CHIP_DENOMS.forEach((d, i) => {
+      const x = -0.86 + i * 0.08;
+      for (let k = 0; k < perStack; k++) {
+        tmp.position.set(x, y + 0.0017 + k * 0.0033, z);
+        tmp.updateMatrix();
+        rack.setMatrixAt(i * perStack + k, tmp.matrix);
+        rack.setColorAt(i * perStack + k, new THREE.Color(COLORS[i]));
+      }
+      const top = new THREE.Vector3(x, y + perStack * 0.0033, z);
+      this.grabbables.push({
+        at: () => this.group.localToWorld(top.clone()),
+        radius: 0.085,
+        enabled: () => this.game.phase === 'betting',
+        grab: () => {
+          const chip = makeChip(d);
+          chip.position.copy(this.group.localToWorld(top.clone()));
+          this.ctx.sound.play('chip', chip, { volume: 0.5 });
+          return chip;
+        },
+        drag: (_h, pos) => {
+          const l = this.group.worldToLocal(pos.clone());
+          this.setHover(l.y > TOP - 0.05 && l.y < TOP + 0.35 ? spotAt(l.x, l.z)?.id ?? null : null, d);
+        },
+        release: (_h, pos, carried) => {
+          carried?.removeFromParent();
+          const l = this.group.worldToLocal(pos.clone());
+          const spot = l.y > TOP - 0.05 && l.y < TOP + 0.35 ? spotAt(l.x, l.z) : null;
+          this.setHover(null);
+          if (spot) this.bet(spot.id, d);
+          else this.ctx.sound.play('chip', this.panel.mesh, { volume: 0.3 });
+        },
+      });
+    });
+    rack.raycast = () => {};
+    this.group.add(dynamic(rack));
+  }
+
   private startSpin() {
     if (this.game.phase !== 'betting') return;
     if (this.game.bets.size === 0) {
@@ -585,6 +660,7 @@ export class RouletteTable {
       return;
     }
     const target = this.game.spin(this.ctx.rng);
+    this.onSpin?.();
     const idx = WHEEL_ORDER.indexOf(target);
     // Relative angle to cover: the ball runs the opposite way to the rotor.
     this.spin = { t: 0, target, theta: idx * SECTOR, r0: 34 + Math.random() * 4 };
@@ -605,6 +681,7 @@ export class RouletteTable {
     this.spin = null;
     this.ballLoop.stop();
     const net = result.totalReturned - result.totalStaked;
+    this.onResult?.(result.pocket, result.totalStaked, result.totalReturned);
     this.lastResult = { pocket: result.pocket, net };
     const label = `${pocketLabel(result.pocket)} ${result.color}`;
     if (result.totalReturned > 0) {

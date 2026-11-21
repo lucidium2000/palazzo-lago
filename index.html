@@ -18,23 +18,36 @@
         </div>
         <div class="actions">
           <button id="vr" class="primary" hidden>Enter VR</button>
+          <button id="map-btn" title="Go to a game (M)">Map</button>
           <button id="sound">Sound on</button>
           <button id="help-btn">Help</button>
           <button id="reset" title="Reset play-money chips">Reset chips</button>
         </div>
       </div>
       <div id="toasts"></div>
+      <div id="crosshair"></div>
+      <div id="prompt"></div>
       <nav id="nav" class="bar bottom"></nav>
       <div id="stats"></div>
     </div>
     <div id="help">
       <div class="card">
         <h2>How to play</h2>
-        <p><b>Move:</b> use the buttons below, click the floor to walk, drag to look around, or WASD / arrow keys.</p>
+        <p><b>Walk:</b> WASD (Shift to hurry), mouse to look. Esc frees the cursor; drag to look and click the floor to walk there. <b>M</b> opens the map to jump to a game.</p>
+        <p><b>Sit down:</b> walk up to a table or machine and press <b>E</b>. Walk away to stand up.</p>
+        <p><b>Bar &amp; piano:</b> click the bar to order (drinks are on the house), <b>F</b> to sip, <b>Q</b> to set it down. Tip the pianist at the jar on the piano.</p>
         <p><b>Roulette:</b> pick a chip on the table's panel (or keys 1–7), click the layout to bet. Click between numbers for splits, corners and streets. Space spins, Z undoes, C clears, R rebets.</p>
         <p><b>Slots:</b> walk up to a machine, use − / + to set your bet, press SPIN (or tap the screen). Info shows the paytable.</p>
-        <p><b>VR (Quest):</b> press Enter VR. Point and pull the trigger (or pinch) to select. Point at the floor to teleport, flick a thumbstick to turn. Your left wrist has a menu.</p>
+        <p><b>VR (Quest):</b> left stick walks, right stick turns, point and pull the trigger (or pinch) to select or teleport. Grab with the grip button: chips from your rack (drop them on the felt to bet), the slot lever, glasses (raise one to your mouth to sip). Your left wrist has a menu.</p>
         <p class="fine">Play money only. Chips have no cash value. 18+.</p>
+      </div>
+    </div>
+    <div id="enter">
+      <div class="card">
+        <span class="name">Palazzo Lago</span>
+        <p>Walk the casino floor. Sit down at a table, order a drink at the bar, step out onto the terrace for the fountains.</p>
+        <button id="enter-btn" class="primary">Step inside</button>
+        <p class="keys"><b>Mouse</b> look · <b>WASD</b> walk · <b>Shift</b> hurry · <b>Click</b> interact · <b>E</b> sit down · <b>F</b> sip · <b>M</b> map · <b>Esc</b> free the cursor</p>
       </div>
     </div>
     <div id="loading"><div><span class="name">Palazzo Lago</span><span class="sub">Opening the doors…</span></div></div>

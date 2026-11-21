@@ -21,6 +21,8 @@ export interface Interactable {
   onSelect?(e: SelectEvent): void;
   onHover?(e: SelectEvent | null): void;
   enabled?(): boolean;
+  /** What a click/point would do, shown next to the crosshair (e.g. "Order a drink"). */
+  label?: string | ((e: SelectEvent) => string | null);
 }
 
 interface Pointer {
@@ -49,6 +51,20 @@ export class Interaction {
   private tmpMat = new THREE.Matrix4();
   /** Called with pixel deltas when the user drags on the desktop canvas (look around). */
   onDrag: ((dx: number, dy: number) => void) | null = null;
+  /** Called with mouse deltas while the pointer is locked (first-person look). */
+  onLook: ((dx: number, dy: number) => void) | null = null;
+
+  private get locked() {
+    return document.pointerLockElement === this.dom;
+  }
+
+  /** What the desktop crosshair or cursor is over right now, with its label. */
+  hoverLabel(): string | null {
+    const item = this.mouse.hovered;
+    if (!item || !item.label || !this.mouse.lastHit) return null;
+    if (typeof item.label === 'string') return item.label;
+    return item.label(this.event(item, this.mouse.lastHit, 'mouse'));
+  }
 
   constructor(
     private dom: HTMLElement,
@@ -62,6 +78,11 @@ export class Interaction {
       this.dragged = false;
     });
     dom.addEventListener('pointermove', (e) => {
+      if (this.locked) {
+        this.onLook?.(e.movementX, e.movementY);
+        this.ndc.set(0, 0);
+        return;
+      }
       if (this.pointerDown && this.pointerDown.id === e.pointerId) {
         const dx = e.clientX - this.pointerDown.x,
           dy = e.clientY - this.pointerDown.y;
@@ -76,10 +97,12 @@ export class Interaction {
       if (!this.pointerDown) return;
       this.pointerDown = null;
       if (this.dragged) return;
-      this.setNdc(e);
+      if (this.locked) this.ndc.set(0, 0);
+      else this.setNdc(e);
       this.updateMouseRay();
       const hit = this.cast(this.mouse);
-      if (hit) this.fire(hit, e.pointerType === 'touch' ? 'touch' : 'mouse');
+      // In first-person mode you walk; clicking the floor does nothing.
+      if (hit && !(this.locked && hit.item.kind === 'floor')) this.fire(hit, e.pointerType === 'touch' ? 'touch' : 'mouse');
     });
     dom.addEventListener('pointerleave', () => {
       this.pointerDown = null;
@@ -107,6 +130,8 @@ export class Interaction {
   }
 
   private updateMouseRay() {
+    // The view may have turned since the last render: use the current transform.
+    this.camera.updateWorldMatrix(true, false);
     this.raycaster.setFromCamera(this.ndc, this.camera);
     this.mouse.ray.copy(this.raycaster.ray);
   }
@@ -177,6 +202,11 @@ export class Interaction {
       this.setHover(pointer, null);
     });
     ctrl.addEventListener('select', () => {
+      // A pinch/trigger that grabbed something is not also a laser select.
+      if (ctrl.userData.grabbing || ctrl.userData.suppressSelect) {
+        ctrl.userData.suppressSelect = false;
+        return;
+      }
       this.updateControllerRay(entry);
       const r = this.cast(pointer);
       if (r) {
@@ -217,6 +247,14 @@ export class Interaction {
       for (const c of this.controllers) {
         if (!c.ctrl.userData.connected) continue;
         this.updateControllerRay(c);
+        if (c.ctrl.userData.grabbing || c.ctrl.userData.nearGrab) {
+          // Hand is busy holding or reaching for something: hide the laser.
+          c.laser.visible = false;
+          c.reticle.visible = false;
+          this.setHover(c.pointer, null, 'xr');
+          continue;
+        }
+        c.laser.visible = !!c.ctrl.userData.connected;
         const r = this.cast(c.pointer);
         this.setHover(c.pointer, r, 'xr');
         if (r) {
@@ -236,7 +274,7 @@ export class Interaction {
       this.updateMouseRay();
       const r = this.cast(this.mouse);
       this.setHover(this.mouse, r);
-      this.dom.style.cursor = r && r.item.kind !== 'floor' ? 'pointer' : r ? 'crosshair' : 'grab';
+      this.dom.style.cursor = this.locked ? 'none' : r && r.item.kind !== 'floor' ? 'pointer' : r ? 'crosshair' : 'grab';
     }
   }
 }
