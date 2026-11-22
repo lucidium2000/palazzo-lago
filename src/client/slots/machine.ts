@@ -712,7 +712,7 @@ export class SlotMachineView {
     } else if (this.machine.type === 'video') {
       ctx.fillStyle = 'rgba(255,240,200,0.75)';
       ctx.font = `28px ${SERIF}`;
-      ctx.fillText(`${this.machine.lines.length} LINES  ·  RTP ${(this.machine.targetRtp * 100).toFixed(0)}%`, s.pxW / 2, 36);
+      ctx.fillText(`${this.machine.lines.length} LINES  ·  MAX BET ${money(this.machine.betLevels[this.machine.betLevels.length - 1])}`, s.pxW / 2, 36);
     }
     if (this.shownWin > 0 && this.mode === 'showing') {
       const y = this.machine.type === 'video' ? s.pxH - 70 : s.pxH - 50;
@@ -819,7 +819,7 @@ export class SlotMachineView {
       });
       ctx.textAlign = 'center';
       ctx.font = `italic 24px ${SERIF}`;
-      ctx.fillText(`Return to player ${(m.targetRtp * 100).toFixed(1)}%  ·  tap to close`, s.pxW / 2, ay + ah - 8);
+      ctx.fillText(`Malfunction voids all pays and plays  ·  tap to close`, s.pxW / 2, ay + ah - 8);
       return;
     }
     const paying = m.symbols.filter((sym) => sym.pays);
@@ -846,7 +846,7 @@ export class SlotMachineView {
         ? `3+ Fountains anywhere: ${f.spins} free spins, wins x${f.multiplier}. Scatter pays 3: ${m.scatterPays[3]}x 4: ${m.scatterPays[4]}x 5: ${m.scatterPays[5]}x total bet`
         : `Keys on reels 1, 3 and 5 open Garden Pick: choose 3 of 12 prizes (2x–100x bet)`;
     ctx.fillText(featureText, s.pxW / 2, s.pxH - 70);
-    ctx.fillText(`Line pays are multiples of line bet (bet ÷ ${m.lines.length}). Wild substitutes. RTP ${(m.targetRtp * 100).toFixed(1)}%  ·  tap to close`, s.pxW / 2, s.pxH - 34);
+    ctx.fillText(`Line pays are multiples of line bet (bet ÷ ${m.lines.length}). Wild substitutes. Malfunction voids all pays and plays  ·  tap to close`, s.pxW / 2, s.pxH - 34);
   }
 
   // ---------------------------------------------------------------------------

@@ -297,7 +297,7 @@ export class Lounge {
       g.font = 'italic bold 34px Georgia, serif';
       g.fillText('Buy a Round', 128, 62);
       g.font = '24px Georgia, serif';
-      g.fillText('for the table · $60', 128, 108);
+      g.fillText('for the crew · $80', 128, 108);
       const t = new THREE.CanvasTexture(c);
       t.colorSpace = THREE.SRGBColorSpace;
       return t;
@@ -317,7 +317,7 @@ export class Lounge {
     this.d.scene.add(card);
     this.d.interaction.register({
       object: card,
-      label: () => (this.roundPending > 0 ? 'A round is on its way…' : 'Buy the boys a round · $60'),
+      label: () => (this.roundPending > 0 ? 'A round is on its way…' : 'Buy the boys a round · $80 (four drinks, tip included)'),
       onSelect: () => this.buyRound(),
     });
 
@@ -329,7 +329,7 @@ export class Lounge {
     this.d.interaction.register({
       object: counterHit,
       kind: 'button',
-      label: () => (this.pending ? 'Your drink is being made…' : this.waiting ? 'Your drink is on the bar' : `Order a ${MENU[this.menuIndex].name} (on the house)`),
+      label: () => (this.pending ? 'Your drink is being made…' : this.waiting ? 'Your drink is on the bar' : `Order a ${MENU[this.menuIndex].name} · $20 with tip (cocktail servers comp you while you play)`),
       onSelect: (e) => this.order(e.hit.point.z),
     });
   }
@@ -340,6 +340,13 @@ export class Lounge {
       this.d.hud.toast('Your drink is waiting on the bar', 'info');
       return;
     }
+    // Strip bar prices: an $18 cocktail plus a $2 tip. (Drinks are only free
+    // from the cocktail servers on the floor while you are gambling.)
+    if (!this.d.bankroll.canAfford(20)) {
+      this.d.hud.toast('Not enough chips for a drink', 'warn');
+      return;
+    }
+    this.d.bankroll.debit(20, 'bet', 'bar');
     const zz = THREE.MathUtils.clamp(z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
     this.bartenderZ = zz;
     this.pending = { t: 2.6, z: zz };
@@ -355,11 +362,11 @@ export class Lounge {
 
   buyRound() {
     if (this.roundPending > 0) return;
-    if (!this.d.bankroll.canAfford(60)) {
+    if (!this.d.bankroll.canAfford(80)) {
       this.d.hud.toast('Not enough chips for a round', 'warn');
       return;
     }
-    this.d.bankroll.debit(60, 'bet', 'bar');
+    this.d.bankroll.debit(80, 'bet', 'bar');
     this.roundPending = 2.6;
     if (this.bartender) {
       this.bartender.actionKind = 'pour';

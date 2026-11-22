@@ -110,7 +110,7 @@ describe('RouletteGame', () => {
     expect(() => g.placeBet('nope', 1)).toThrow(BetRejected);
     expect(() => g.placeBet('red', 0.5)).toThrow(BetRejected);
     expect(() => g.spin(new SeededRng())).toThrow('Place a bet first');
-    g.placeBet('red', 5);
+    g.placeBet('red', 10);
     g.spin(new SeededRng());
     expect(() => g.placeBet('red', 5)).toThrow('No more bets');
   });
@@ -122,17 +122,44 @@ describe('RouletteGame', () => {
     g.placeBet('odd', 5);
     expect(g.clearBets()).toBe(10);
     expect(bank.balance).toBe(100);
-    g.placeBet('odd', 5);
+    g.placeBet('odd', 10);
     g.spin(fixed(indexOf(2)));
     g.settle();
     expect(g.canRebet).toBe(true);
     expect(g.rebet()).toBe(true);
-    expect(g.bets.get('odd')).toBe(5);
+    expect(g.bets.get('odd')).toBe(10);
+  });
+
+  it('enforces Strip table minimums when betting closes', () => {
+    const bank = new Bankroll({ balance: 1000 });
+    const g = new RouletteGame(bank);
+    g.placeBet('red', 5);
+    expect(() => g.spin(new SeededRng())).toThrow('Outside bets are $10 minimum each');
+    g.placeBet('red', 5); // two $5 chips make a legal $10 bet
+    g.placeBet('straight:17', 1);
+    g.placeBet('straight:20', 1);
+    expect(() => g.spin(new SeededRng())).toThrow('Inside bets must total at least $10');
+    for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) g.placeBet(`straight:${n}`, 1);
+    expect(() => g.spin(new SeededRng())).not.toThrow();
+  });
+
+  it('caps each bet by the numbers it covers', () => {
+    const bank = new Bankroll({ balance: 100_000 });
+    const g = new RouletteGame(bank);
+    g.placeBet('straight:17', 500);
+    expect(() => g.placeBet('straight:17', 1)).toThrow('$500');
+    g.placeBet('split:17-20', 1000);
+    expect(() => g.placeBet('split:17-20', 1)).toThrow('$1,000');
+    g.placeBet('corner:17-18-20-21', 2000);
+    g.placeBet('dozen:2', 5000);
+    expect(() => g.placeBet('dozen:2', 1)).toThrow('$5,000');
+    g.placeBet('red', 10_000);
+    expect(() => g.placeBet('red', 1)).toThrow('$10,000');
   });
 
   it('returns about 94.7% over many spins', () => {
     const bank = new Bankroll({ balance: 1e9 });
-    const g = new RouletteGame(bank, { minBet: 1, maxInside: 1e9, maxOutside: 1e9, maxTotal: 1e9 });
+    const g = new RouletteGame(bank, { tableMin: 1, minChip: 1, maxStraightUp: 1e9, maxDozen: 1e9, maxEvenMoney: 1e9 });
     const rng = new SeededRng(42);
     let staked = 0;
     let back = 0;

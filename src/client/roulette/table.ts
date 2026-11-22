@@ -15,13 +15,13 @@ import { easeInOut, money, Tweens, type GameContext } from '../game';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from '../panel';
 import type { Viewpoint } from '../player';
 import { CHIP_DENOMS, chipFace, radial, toTexture, wood, type ChipDenom } from '../textures';
+import { aimFor, sampleAt, simulateSpin, type SpinPlan } from './ballsim';
 import { describeSpot, FELT, FELT_SIZE, feltTexture, spotAnchor, spotAt, WHEEL_CENTER } from './layout';
 
 const TOP = 0.8; // felt height
 const POCKETS = WHEEL_ORDER.length;
 const SECTOR = (Math.PI * 2) / POCKETS;
 const R = { bowl: 0.43, track: 0.372, pocket: 0.218, numbersIn: 0.248, numbersOut: 0.288 };
-const SPIN_TIME = 7.2;
 
 export class RouletteTable {
   readonly group = new THREE.Group();
@@ -31,7 +31,7 @@ export class RouletteTable {
   private ball: THREE.Mesh;
   private rotorAngle = 0;
   private rotorSpeed = 0.35;
-  private spin: { t: number; target: Pocket; theta: number; r0: number } | null = null;
+  private spin: { t: number; target: Pocket; plan: SpinPlan; aim: number; rotor0: number; hit: number } | null = null;
   private ballRest: Pocket | null = null;
   private stacks = new Map<string, THREE.Group>();
   private ghost: THREE.Group;
@@ -469,7 +469,7 @@ export class RouletteTable {
       ctx.fillText('Roulette', b.pxW / 2, 60);
       ctx.font = `22px ${SERIF}`;
       ctx.fillStyle = '#a99670';
-      ctx.fillText('MIN $1  ·  MAX $1,000', b.pxW / 2, 96);
+      ctx.fillText('MIN $10  ·  MAX $500 STRAIGHT UP', b.pxW / 2, 96);
       const hist = this.game.history.slice(0, 14);
       hist.forEach((p, i) => {
         const y = 150 + i * 60;
@@ -686,12 +686,23 @@ export class RouletteTable {
       this.ctx.hud.toast('Place a bet first', 'warn');
       return;
     }
-    const target = this.game.spin(this.ctx.rng);
+    let target: Pocket;
+    try {
+      target = this.game.spin(this.ctx.rng);
+    } catch (e) {
+      if (!(e instanceof BetRejected)) throw e;
+      this.ctx.hud.toast(e.message, 'warn');
+      this.ctx.sound.play('denied', this.panel.mesh, { volume: 0.6 });
+      return;
+    }
     this.onSpin?.();
-    const idx = WHEEL_ORDER.indexOf(target);
-    // Relative angle to cover: the ball runs the opposite way to the rotor.
-    this.spin = { t: 0, target, theta: idx * SECTOR, r0: 34 + Math.random() * 4 };
-    this.rotorSpeed = 2.4;
+    // The dealer spins the rotor up and launches the ball against it; the
+    // motion is simulated in advance and turned so it ends in the chosen pocket.
+    const rotorSpeed = 2.0 + Math.random() * 0.8;
+    const plan = simulateSpin({ rotorSpeed, seed: (Math.random() * 2 ** 31) | 0 });
+    const aim = aimFor(plan, WHEEL_ORDER.indexOf(target));
+    this.spin = { t: 0, target, plan, aim, rotor0: this.rotorAngle, hit: 0 };
+    this.rotorSpeed = rotorSpeed;
     this.ballRest = null;
     this.ghost.visible = false;
     this.dolly.visible = false;
@@ -763,43 +774,34 @@ export class RouletteTable {
   update(dt: number) {
     this.tweens.update(dt);
 
-    // Rotor slows toward its idle speed.
-    this.rotorSpeed = Math.max(0.35, this.rotorSpeed * Math.exp(-0.12 * dt));
-    this.rotorAngle += this.rotorSpeed * dt;
-    this.rotor.rotation.y = this.rotorAngle;
-
     const sp = this.spin;
     if (sp) {
       sp.t += dt;
-      const s = Math.min(1, sp.t / SPIN_TIME);
-      const rel = sp.r0 * (1 - s) ** 3;
-      const phi = this.rotorAngle + sp.theta + rel;
-      let r: number, y: number;
-      if (s < 0.6) {
-        r = R.track;
-        y = 0.104 + Math.sin(sp.t * 40) * 0.0006;
-      } else if (s < 0.78) {
-        const k = (s - 0.6) / 0.18;
-        r = R.track + (0.29 - R.track) * k * k;
-        y = 0.104 + (0.07 - 0.104) * k + Math.abs(Math.sin(k * 9)) * 0.012 * (1 - k);
-      } else {
-        const k = (s - 0.78) / 0.22;
-        const bounce = Math.abs(Math.sin(k * 14)) * (1 - k) ** 2;
-        r = 0.29 + (R.pocket - 0.29) * Math.min(1, k * 1.6) + bounce * 0.03;
-        y = 0.07 + (0.058 - 0.07) * Math.min(1, k * 1.6) + bounce * 0.02;
-        if (bounce < 0.02 && (k * 14) % Math.PI < 0.3 && Math.random() < 0.3) {
-          this.ctx.sound.play('ballDrop', this.ball, { volume: 0.25 * (1 - k) + 0.05 });
-        }
-      }
-      this.ball.position.set(Math.cos(phi) * r, y, -Math.sin(phi) * r);
-      const speed = Math.abs(-3 * sp.r0 * (1 - s) ** 2 / SPIN_TIME);
-      if (s < 0.78) this.ballLoop.set(Math.min(1, speed / 10) * 0.7, 0.6 + speed / 14);
+      const p = sampleAt(sp.plan, sp.t);
+      this.rotorAngle = sp.rotor0 + p.rotor;
+      this.rotor.rotation.y = this.rotorAngle;
+      const phi = sp.rotor0 + p.ball + sp.aim;
+      this.ball.position.set(Math.cos(phi) * p.r, p.y, -Math.sin(phi) * p.r);
+      // Rolling on the track hums; hops on the frets and deflectors click.
+      if (p.phase === 'track' || p.phase === 'spiral') this.ballLoop.set(Math.min(1, p.speed / 4.5) * 0.7, 0.55 + p.speed / 6);
       else this.ballLoop.set(0);
-      if (s >= 1) {
+      const hits = sp.plan.hits;
+      while (sp.hit < hits.length && hits[sp.hit].t <= sp.t) {
+        this.ctx.sound.play('ballDrop', this.ball, { volume: 0.08 + 0.4 * hits[sp.hit].strength, rate: 0.9 + Math.random() * 0.25 });
+        sp.hit++;
+      }
+      if (sp.t >= sp.plan.duration) {
+        this.rotorSpeed = sp.plan.rotorSpeedEnd;
         this.ballRest = sp.target;
         this.finishSpin();
       }
-    } else if (this.ballRest !== null) {
+    } else {
+      // Between spins the rotor coasts down toward its idle speed.
+      this.rotorSpeed = Math.max(0.35, this.rotorSpeed * Math.exp(-0.12 * dt));
+      this.rotorAngle += this.rotorSpeed * dt;
+      this.rotor.rotation.y = this.rotorAngle;
+    }
+    if (!this.spin && this.ballRest !== null) {
       const phi = this.rotorAngle + WHEEL_ORDER.indexOf(this.ballRest) * SECTOR;
       this.ball.position.set(Math.cos(phi) * R.pocket, 0.058, -Math.sin(phi) * R.pocket);
     }

@@ -6,7 +6,7 @@ import { assets } from './assets';
 import { canvas, radial, toTexture, wood } from './textures';
 
 /**
- * Phase 3 placeholder: a dressed craps table behind velvet ropes, so the floor
+ * Phase 3 placeholder: a dressed 12-ft craps table (accurate Vegas layout) behind velvet ropes, so the floor
  * plan is final and players can see what's coming.
  */
 export function buildCrapsPreview(ctx: GameContext, position: THREE.Vector3) {
@@ -15,7 +15,7 @@ export function buildCrapsPreview(ctx: GameContext, position: THREE.Vector3) {
   ctx.scene.add(g);
   const L = 3.6,
     Wd = 1.5,
-    H = 0.78;
+    H = 0.92; // rail top ~0.98 m, felt bed ~0.8 m, like a real 12-ft table
   const woodTex = toTexture(wood(512));
   const woodMat = assets.material('walnut', { repeat: [3, 1], rough: 0.55, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 }) });
   const leather = assets.material('leather', { repeat: 3, rough: 0.85, tint: 0x8a3a3a, fallback: () => new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 0.55 }) });
@@ -39,39 +39,8 @@ export function buildCrapsPreview(ctx: GameContext, position: THREE.Vector3) {
   rail.position.y = H;
   g.add(rail);
 
-  const [c, c2d] = canvas(2048, 860);
-  const grad = c2d.createRadialGradient(1024, 430, 100, 1024, 430, 1100);
-  grad.addColorStop(0, '#1d7a46');
-  grad.addColorStop(1, '#0e4a2a');
-  c2d.fillStyle = grad;
-  c2d.fillRect(0, 0, 2048, 860);
-  c2d.strokeStyle = '#f1e6c8';
-  c2d.lineWidth = 6;
-  c2d.fillStyle = '#f1e6c8';
-  c2d.textAlign = 'center';
-  c2d.textBaseline = 'middle';
-  for (const side of [-1, 1]) {
-    const x0 = 1024 + side * 300;
-    c2d.strokeRect(side < 0 ? x0 - 600 : x0, 120, 600, 620);
-    c2d.font = 'italic 600 70px Georgia, serif';
-    c2d.fillText('PASS LINE', side < 0 ? x0 - 300 : x0 + 300, 690);
-    c2d.font = '600 52px Georgia, serif';
-    c2d.fillText('COME', side < 0 ? x0 - 300 : x0 + 300, 420);
-    c2d.fillText('FIELD  2 · 3 · 4 · 9 · 10 · 11 · 12', side < 0 ? x0 - 300 : x0 + 300, 540);
-    ['4', '5', 'SIX', '8', 'NINE', '10'].forEach((n, i) => {
-      const bx = (side < 0 ? x0 - 600 : x0) + i * 100;
-      c2d.strokeRect(bx, 140, 100, 150);
-      c2d.font = 'bold 44px Georgia, serif';
-      c2d.fillText(n, bx + 50, 215);
-    });
-  }
-  c2d.strokeRect(724, 180, 600, 500);
-  c2d.font = 'italic 600 48px Georgia, serif';
-  c2d.fillText('Seven  4 to 1', 1024, 240);
-  c2d.fillText('Hard 6  9 to 1  ·  Hard 8  9 to 1', 1024, 330);
-  c2d.fillText('Hard 4  7 to 1  ·  Hard 10  7 to 1', 1024, 420);
-  c2d.fillText('Any Craps  7 to 1', 1024, 600);
-  const felt = new THREE.Mesh(new THREE.PlaneGeometry(L - 0.3, Wd - 0.25), new THREE.MeshStandardMaterial({ map: toTexture(c), roughness: 0.9 }));
+  const c = crapsFelt();
+  const felt = new THREE.Mesh(new THREE.PlaneGeometry(L - 0.3, Wd - 0.25), new THREE.MeshStandardMaterial({ map: (() => { const t = toTexture(c); t.anisotropy = 8; return t; })(), roughness: 0.92 }));
   felt.rotation.x = -Math.PI / 2;
   felt.position.y = H - 0.12;
   g.add(felt);
@@ -129,4 +98,176 @@ export function buildCrapsPreview(ctx: GameContext, position: THREE.Vector3) {
   g.add(shadow);
   bakeStatic(g, { shadows: ctx.quality.shadows });
   return g;
+}
+
+/**
+ * A Las Vegas craps layout (one 2048×860 canvas covering the bed). Each half is
+ * the standard mirror image: Don't Come bar, place numbers (4 5 SIX 8 NINE 10),
+ * Come, a Field paying double on 2 and triple on 12, Big 6/8, Don't Pass bar and
+ * the Pass Line wrapping round the end. Proposition bets sit in the centre with
+ * their Strip odds ("to 1"), plus the C & E circles.
+ */
+export function crapsFelt(): HTMLCanvasElement {
+  const [c, g] = canvas(2048, 860);
+  const grad = g.createRadialGradient(1024, 430, 100, 1024, 430, 1100);
+  grad.addColorStop(0, '#1d7a46');
+  grad.addColorStop(1, '#0d4527');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 2048, 860);
+  const INK = '#f1e6c8';
+  const RED = '#c8202a';
+  const YEL = '#f2c94c';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.lineJoin = 'round';
+
+  const text = (s: string, x: number, y: number, size: number, opts: { color?: string; italic?: boolean; rot?: number; weight?: number } = {}) => {
+    g.save();
+    g.translate(x, y);
+    if (opts.rot) g.rotate(opts.rot);
+    g.fillStyle = opts.color ?? INK;
+    g.font = `${opts.italic ? 'italic ' : ''}${opts.weight ?? 700} ${size}px Georgia, serif`;
+    g.fillText(s, 0, 0);
+    g.restore();
+  };
+  const die = (x: number, y: number, n: number, s = 30) => {
+    g.fillStyle = '#fbf6ea';
+    g.beginPath();
+    g.roundRect(x - s / 2, y - s / 2, s, s, s * 0.18);
+    g.fill();
+    g.fillStyle = n === 1 ? RED : '#111';
+    const o = s * 0.27;
+    const pips: Record<number, [number, number][]> = {
+      1: [[0, 0]],
+      2: [[-o, -o], [o, o]],
+      3: [[-o, -o], [0, 0], [o, o]],
+      4: [[-o, -o], [o, -o], [-o, o], [o, o]],
+      5: [[-o, -o], [o, -o], [0, 0], [-o, o], [o, o]],
+      6: [[-o, -o], [o, -o], [-o, 0], [o, 0], [-o, o], [o, o]],
+    };
+    for (const [px, py] of pips[n]) {
+      g.beginPath();
+      g.arc(x + px, y + py, s * 0.09, 0, Math.PI * 2);
+      g.fill();
+    }
+  };
+
+  for (const side of [-1, 1] as const) {
+    // Work in left-half coordinates; X() mirrors them for the right half.
+    const X = (x: number) => (side < 0 ? x : 2048 - x);
+    const rect = (x0: number, y0: number, x1: number, y1: number) => {
+      const a = X(x0),
+        b = X(x1);
+      g.strokeRect(Math.min(a, b), y0, Math.abs(b - a), y1 - y0);
+    };
+    g.strokeStyle = INK;
+    g.lineWidth = 5;
+
+    // Pass Line: along the players' edge and up round the end.
+    g.beginPath();
+    for (const [x, y] of [[40, 70], [40, 815], [724, 815], [724, 710], [130, 710], [130, 70]]) g.lineTo(X(x), y);
+    g.closePath();
+    g.stroke();
+    text('PASS LINE', X(430), 762, 64, { italic: true });
+    text('PASS LINE', X(85), 390, 40, { italic: true, rot: side < 0 ? -Math.PI / 2 : Math.PI / 2 });
+
+    // Don't Come bar 12.
+    rect(130, 70, 225, 235);
+    text("DON'T", X(177), 105, 22);
+    text('COME', X(177), 130, 22);
+    text('BAR', X(177), 155, 22);
+    die(X(160), 200, 6, 26);
+    die(X(194), 200, 6, 26);
+
+    // Place numbers.
+    const nums = ['4', '5', 'SIX', '8', 'NINE', '10'];
+    const w = (724 - 225) / 6;
+    nums.forEach((n, i) => {
+      const x0 = 225 + i * w;
+      rect(x0, 70, x0 + w, 235);
+      g.strokeStyle = INK;
+      g.lineWidth = 2;
+      rect(x0 + 6, 76, x0 + w - 6, 106);
+      g.lineWidth = 5;
+      text(n, X(x0 + w / 2), 170, n.length > 3 ? 32 : n.length > 2 ? 38 : 58, { color: n === 'SIX' || n === '8' ? YEL : INK });
+    });
+
+    // Come.
+    rect(130, 235, 724, 400);
+    text('COME', X(430), 318, 110, { color: RED, italic: true });
+
+    // Field: 2 pays double, 12 pays triple.
+    rect(225, 400, 724, 615);
+    text('FIELD', X(475), 590, 30, { color: YEL });
+    const fx = [265, 335, 405, 475, 545, 615, 685];
+    ['2', '3', '4', '9', '10', '11', '12'].forEach((n, i) => {
+      const x = X(fx[i]);
+      const circled = n === '2' || n === '12';
+      if (circled) {
+        g.lineWidth = 3;
+        g.beginPath();
+        g.arc(x, 490, 34, 0, Math.PI * 2);
+        g.stroke();
+        g.lineWidth = 5;
+      }
+      text(n, x, 490, 48, { color: circled ? YEL : INK });
+    });
+    text('PAYS DOUBLE', X(fx[0] + 22), 436, 16, { color: YEL });
+    text('PAYS TRIPLE', X(fx[6] - 24), 436, 16, { color: YEL });
+
+    // Big 6 / Big 8.
+    rect(130, 400, 225, 710);
+    text('6', X(177), 480, 70, { color: RED });
+    text('8', X(177), 610, 70, { color: RED });
+    text('BIG', X(177), 545, 22);
+
+    // Don't Pass bar 12.
+    rect(225, 615, 724, 710);
+    text("DON'T PASS BAR", X(430), 662, 40, { italic: true });
+    die(X(640), 662, 6, 30);
+    die(X(678), 662, 6, 30);
+  }
+
+  // Centre: proposition bets with Strip odds.
+  g.strokeStyle = INK;
+  g.lineWidth = 5;
+  g.strokeRect(744, 70, 560, 745);
+  g.fillStyle = '#9e1a22';
+  g.fillRect(746, 72, 556, 76);
+  g.fillRect(746, 602, 556, 86);
+  text('SEVEN   4 TO 1', 1024, 110, 46);
+  g.strokeRect(744, 70, 560, 80);
+  // Hard ways.
+  const hard: [number, string][] = [[3, '9 TO 1'], [4, '9 TO 1'], [2, '7 TO 1'], [5, '7 TO 1']];
+  hard.forEach(([d, odds], i) => {
+    const cx = 744 + (i % 2) * 280;
+    const cy = 150 + Math.floor(i / 2) * 150;
+    g.strokeRect(cx, cy, 280, 150);
+    die(cx + 110, cy + 60, d, 44);
+    die(cx + 170, cy + 60, d, 44);
+    text(odds, cx + 140, cy + 120, 30);
+  });
+  // One-roll bets.
+  const one: [number, number, string][] = [[1, 1, '30 TO 1'], [6, 6, '30 TO 1'], [1, 2, '15 TO 1'], [5, 6, '15 TO 1']];
+  one.forEach(([a, b], i) => {
+    const cx = 744 + i * 140;
+    g.strokeRect(cx, 450, 140, 150);
+    die(cx + 50, 500, a, 36);
+    die(cx + 90, 500, b, 36);
+    text(one[i][2], cx + 70, 565, 22);
+  });
+  g.strokeRect(744, 600, 560, 90);
+  text('ANY CRAPS   7 TO 1', 1024, 645, 40);
+  // C & E circles.
+  for (let i = 0; i < 4; i++) {
+    const cx = 800 + i * 150;
+    for (const [dy, l, col] of [[735, 'C', RED], [780, 'E', YEL]] as const) {
+      g.beginPath();
+      g.arc(cx, dy, 20, 0, Math.PI * 2);
+      g.lineWidth = 3;
+      g.stroke();
+      text(l, cx, dy + 1, 24, { color: col });
+    }
+  }
+  return c;
 }

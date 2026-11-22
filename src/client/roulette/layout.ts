@@ -292,7 +292,7 @@ export function feltTexture(pxW: number): THREE.CanvasTexture {
   ctx.restore();
   ctx.fillStyle = 'rgba(232,201,120,0.6)';
   ctx.font = `${Math.round(sx * 0.022)}px ${SERIF}`;
-  ctx.fillText('TABLE LIMITS  $1 – $1,000 INSIDE  ·  $5,000 OUTSIDE', X(0.2), Z(0.375));
+  ctx.fillText('$10 MINIMUM  ·  $500 STRAIGHT UP  ·  $10,000 OUTSIDE', X(0.2), Z(0.375));
 
   return toTexture(c, { aniso: 8 });
 }

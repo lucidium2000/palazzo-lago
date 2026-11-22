@@ -124,19 +124,37 @@ export function spotFor(kind: BetKind, numbers: Pocket[]): BetSpot | undefined {
   return SPOTS_BY_ID.get(`${kind}:${sorted.map(pocketLabel).join('-')}`);
 }
 
+/**
+ * Table limits as Las Vegas Strip tables post them:
+ *  - a table minimum that each outside bet must meet, and that your inside
+ *    bets must meet in total (you may spread $1 chips on inside numbers);
+ *  - inside maximums that grow with the numbers covered ($500 straight up,
+ *    $1,000 a split, $1,500 a street, $2,000 a corner, $3,000 a six line);
+ *  - separate maximums for dozens/columns and even-money bets.
+ * Minimums are checked when the dealer closes betting (as at a real table you
+ * can build a $10 bet from two $5 chips); maximums are checked as you bet.
+ */
 export interface TableLimits {
-  minBet: number;
-  maxInside: number;
-  maxOutside: number;
-  maxTotal: number;
+  tableMin: number;
+  minChip: number;
+  maxStraightUp: number;
+  maxDozen: number;
+  maxEvenMoney: number;
 }
 
 export const DEFAULT_LIMITS: TableLimits = {
-  minBet: 1,
-  maxInside: 1_000,
-  maxOutside: 5_000,
-  maxTotal: 25_000,
+  tableMin: 10,
+  minChip: 1,
+  maxStraightUp: 500,
+  maxDozen: 5_000,
+  maxEvenMoney: 10_000,
 };
+
+/** The most that may be wagered on one spot. */
+export function spotMax(spot: BetSpot, l: TableLimits = DEFAULT_LIMITS): number {
+  if (spot.inside) return l.maxStraightUp * spot.numbers.length;
+  return spot.kind === 'dozen' || spot.kind === 'column' ? l.maxDozen : l.maxEvenMoney;
+}
 
 export type RoulettePhase = 'betting' | 'spinning';
 
@@ -185,11 +203,10 @@ export class RouletteGame {
     if (this.phase !== 'betting') throw new BetRejected('No more bets');
     const spot = SPOTS_BY_ID.get(spotId);
     if (!spot) throw new BetRejected('Not a valid bet');
-    if (amount < this.limits.minBet) throw new BetRejected(`Minimum bet is $${this.limits.minBet}`);
+    if (amount < this.limits.minChip) throw new BetRejected(`Smallest chip is $${this.limits.minChip}`);
     const current = this.bets.get(spotId) ?? 0;
-    const max = spot.inside ? this.limits.maxInside : this.limits.maxOutside;
-    if (current + amount > max) throw new BetRejected(`Table max on that spot is $${max}`);
-    if (this.totalBet + amount > this.limits.maxTotal) throw new BetRejected('Table maximum reached');
+    const max = spotMax(spot, this.limits);
+    if (current + amount > max) throw new BetRejected(`Table maximum on that bet is $${max.toLocaleString('en-US')}`);
     if (!this.bankroll.canAfford(amount)) throw new BetRejected('Not enough chips');
     this.bankroll.debit(amount, 'bet', 'roulette');
     this.bets.set(spotId, current + amount);
@@ -226,9 +243,24 @@ export class RouletteGame {
   }
 
   /** Closes betting and decides the pocket. The client animates the ball to it, then calls settle(). */
+  /** Why the dealer would refuse to spin right now (table minimums), or null. */
+  minimumProblem(): string | null {
+    const min = this.limits.tableMin;
+    let inside = 0;
+    for (const [id, v] of this.bets) {
+      const spot = SPOTS_BY_ID.get(id)!;
+      if (spot.inside) inside += v;
+      else if (v < min) return `Outside bets are $${min} minimum each`;
+    }
+    if (inside > 0 && inside < min) return `Inside bets must total at least $${min}`;
+    return null;
+  }
+
   spin(rng: Rng): Pocket {
     if (this.phase !== 'betting') throw new BetRejected('Already spinning');
     if (this.bets.size === 0) throw new BetRejected('Place a bet first');
+    const problem = this.minimumProblem();
+    if (problem) throw new BetRejected(problem);
     this.phase = 'spinning';
     this.pending = WHEEL_ORDER[rng.int(POCKET_COUNT)];
     return this.pending;
