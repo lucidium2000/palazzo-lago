@@ -3,11 +3,18 @@
 A VR-first luxury casino that also runs in any web browser. Built with TypeScript, Three.js and WebXR.
 Play money only.
 
-**Built so far:** a casino you walk around in. The hall, American roulette with a croupier, three
-playable slot machines (Diamond Sevens, Lago Fortuna, Royal Conservatory) plus two rows of machines
+**Built so far:** a casino you walk around in. The hall, American roulette with a croupier, four
+playable slot machines (Diamond Sevens, Lago Fortuna, Royal Conservatory, and Porkbelly Payday: three
+piggy banks fill with coins and burst into a Hold & Spin with Mini/Minor/Major/Grand jackpots) plus two rows of machines
 played by guests, Bar Lago (order a drink, hold it, sip it), a grand piano with a pianist playing live,
 and French doors onto a terrace over the lake fountains. About 40 guests and staff wander, play,
-cheer and look at you. Craps is on the floor as "opening soon".
+cheer and look at you.
+
+**Craps** is a full Strip game on a 12-ft table with a boxman, two dealers and a stickman who calls
+every roll: Pass/Don't Pass, Come/Don't Come (bets travel to the numbers), 3-4-5x odds and 6x lay
+odds, Place bets (9:5, 7:5, 7:6), a Field paying double on 2 and triple on 12, Big 6/8, hardways and
+the one-roll props, $10 table minimum. The dice are thrown with real rigid-body physics (19 mm cubes
+off the felt and the rubber pyramids on the back wall); in VR you pick them up and throw them yourself.
 
 It plays like a night out with the guys: your crew (Rocco, Dev and Mikey) follow you around, hype your
 wins and razz your losses; there's a casino-floor groove, hot streaks, big-win celebrations with confetti,

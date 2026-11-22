@@ -79,7 +79,7 @@ export class Night {
   }
 
   /** A game finished. `at` is where to throw the confetti. */
-  result(game: 'roulette' | 'slots', staked: number, returned: number, at: THREE.Vector3) {
+  result(game: 'roulette' | 'slots' | 'craps', staked: number, returned: number, at: THREE.Vector3) {
     if (staked === 0 && returned === 0) return;
     const win = staked === 0 ? returned > 0 : returned >= staked && returned > 0;
     const big = returned >= Math.max(staked * 10, 500) || returned - staked >= 1000;

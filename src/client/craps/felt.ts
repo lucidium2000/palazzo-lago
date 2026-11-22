@@ -1,112 +1,114 @@
-import * as THREE from 'three';
-import type { GameContext } from './game';
-import { textSign } from './panel';
-import { bakeStatic } from './merge';
-import { assets } from './assets';
-import { canvas, radial, toTexture, wood } from './textures';
+import { canvas } from '../textures';
 
 /**
- * Phase 3 placeholder: a dressed 12-ft craps table (accurate Vegas layout) behind velvet ropes, so the floor
- * plan is final and players can see what's coming.
+ * The craps layout: drawing, hit-testing and chip positions.
+ *
+ * Canvas is 2048×860 px and covers the felt bed exactly (BED_W × BED_D metres).
+ * Canvas top is the dealers' side (−z), bottom the players' rail (+z).
  */
-export function buildCrapsPreview(ctx: GameContext, position: THREE.Vector3) {
-  const g = new THREE.Group();
-  g.position.copy(position);
-  ctx.scene.add(g);
-  const L = 3.6,
-    Wd = 1.5,
-    H = 0.92; // rail top ~0.98 m, felt bed ~0.8 m, like a real 12-ft table
-  const woodTex = toTexture(wood(512));
-  const woodMat = assets.material('walnut', { repeat: [3, 1], rough: 0.55, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 }) });
-  const leather = assets.material('leather', { repeat: 3, rough: 0.85, tint: 0x8a3a3a, fallback: () => new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 0.55 }) });
-  const gold = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3 });
+export const FELT_PX = { w: 2048, h: 860 };
+export const BED = { w: 3.1, d: 1.3 };
 
-  // Tub: outer walls with a rail, felt bed recessed below.
-  const outer = new THREE.Shape();
-  const r = 0.55;
-  outer.absarc(-L / 2 + r, 0, r, Math.PI / 2, (3 * Math.PI) / 2, false);
-  outer.lineTo(L / 2 - r, -r);
-  outer.absarc(L / 2 - r, 0, r, -Math.PI / 2, Math.PI / 2, false);
-  outer.closePath();
-  const sx = Wd / (2 * r);
-  const body = new THREE.Mesh(new THREE.ExtrudeGeometry(outer, { depth: H, bevelEnabled: false, curveSegments: 24 }), woodMat);
-  body.rotation.x = -Math.PI / 2;
-  body.scale.set(1, sx, 1);
-  g.add(body);
-  const rail = new THREE.Mesh(new THREE.ExtrudeGeometry(outer, { depth: 0.06, bevelEnabled: true, bevelSize: 0.04, bevelThickness: 0.03, curveSegments: 24 }), leather);
-  rail.rotation.x = -Math.PI / 2;
-  rail.scale.set(1.02, sx * 1.04, 1);
-  rail.position.y = H;
-  g.add(rail);
+/** Canvas px → table-local x/z on the bed. */
+export const pxToLocal = (x: number, y: number): [number, number] => [(x / FELT_PX.w - 0.5) * BED.w, (y / FELT_PX.h - 0.5) * BED.d];
+export const localToPx = (x: number, z: number): [number, number] => [(x / BED.w + 0.5) * FELT_PX.w, (z / BED.d + 0.5) * FELT_PX.h];
 
-  const c = crapsFelt();
-  const felt = new THREE.Mesh(new THREE.PlaneGeometry(L - 0.3, Wd - 0.25), new THREE.MeshStandardMaterial({ map: (() => { const t = toTexture(c); t.anisotropy = 8; return t; })(), roughness: 0.92 }));
-  felt.rotation.x = -Math.PI / 2;
-  felt.position.y = H - 0.12;
-  g.add(felt);
-  const bed = new THREE.Mesh(new THREE.BoxGeometry(L - 0.2, 0.02, Wd - 0.15), new THREE.MeshStandardMaterial({ color: 0x0e4a2a }));
-  bed.position.y = H - 0.135;
-  g.add(bed);
+const PLACE_W = (724 - 225) / 6;
+const PLACE_NUMS = [4, 5, 6, 8, 9, 10];
+const HARD_BOXES: [number, number, number][] = [
+  [6, 744, 150],
+  [8, 1024, 150],
+  [4, 744, 300],
+  [10, 1024, 300],
+];
+const ONE_ROLL = ['two', 'twelve', 'three', 'eleven'];
+const inR = (x: number, y: number, x0: number, y0: number, x1: number, y1: number) => x >= x0 && x <= x1 && y >= y0 && y <= y1;
 
-  // Dice resting on the felt.
-  const dieMat = new THREE.MeshPhysicalMaterial({ color: 0xc8121e, roughness: 0.1, transmission: 0, clearcoat: 1 });
-  for (const [x, z, ry] of [[0.3, 0.1, 0.3], [0.38, 0.05, 1.1]] as const) {
-    const d = new THREE.Mesh(new THREE.BoxGeometry(0.019, 0.019, 0.019), dieMat);
-    d.position.set(x, H - 0.115, z);
-    d.rotation.y = ry;
-    g.add(d);
+/**
+ * What area of the layout a canvas point is on. Returns the base spot: 'pass',
+ * 'dontPass', 'come', 'dontCome', 'field', 'place6' (the number box), 'big6',
+ * 'hard8', 'any7', 'anyCraps', 'two'…, 'ceC', 'ceE'. The table decides
+ * whether a number-box tap means a place bet or odds on your come bet.
+ */
+export function regionAt(px: number, py: number): string | null {
+  if (px >= 744 && px <= 1304) {
+    if (inR(px, py, 744, 70, 1304, 150)) return 'any7';
+    for (const [n, x, y] of HARD_BOXES) if (inR(px, py, x, y, x + 280, y + 150)) return `hard${n}`;
+    for (let i = 0; i < 4; i++) if (inR(px, py, 744 + i * 140, 450, 744 + (i + 1) * 140, 600)) return ONE_ROLL[i];
+    if (inR(px, py, 744, 600, 1304, 690)) return 'anyCraps';
+    if (inR(px, py, 744, 690, 1304, 815)) return py < 757 ? 'ceC' : 'ceE';
+    return null;
   }
-
-  // Velvet ropes on brass stanchions.
-  const post = new THREE.CylinderGeometry(0.025, 0.03, 0.95, 12);
-  const top = new THREE.SphereGeometry(0.045, 14, 10);
-  const base = new THREE.CylinderGeometry(0.14, 0.16, 0.03, 20);
-  const velvet = new THREE.MeshStandardMaterial({ color: 0x7a0a1a, roughness: 0.8 });
-  const posts: THREE.Vector3[] = [];
-  for (const [x, z] of [[-2.6, 1.4], [-0.9, 1.6], [0.9, 1.6], [2.6, 1.4]]) {
-    const p = new THREE.Group();
-    const a = new THREE.Mesh(post, gold);
-    a.position.y = 0.475;
-    const b = new THREE.Mesh(top, gold);
-    b.position.y = 0.97;
-    const c3 = new THREE.Mesh(base, gold);
-    c3.position.y = 0.015;
-    p.add(a, b, c3);
-    p.position.set(x, 0, z);
-    g.add(p);
-    posts.push(new THREE.Vector3(x, 0.9, z));
-  }
-  for (let i = 0; i < posts.length - 1; i++) {
-    const curve = new THREE.QuadraticBezierCurve3(posts[i], posts[i].clone().lerp(posts[i + 1], 0.5).setY(0.62), posts[i + 1]);
-    g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.018, 8), velvet));
-  }
-
-  const sign = textSign('Craps', { width: 1.3, px: 140, sub: 'OPENING SOON', bg: 'rgba(16,10,8,0.9)' });
-  sign.position.set(0, 1.9, 0);
-  sign.rotation.y = 0;
-  g.add(sign);
-  const easel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.6, 8), gold);
-  easel.position.set(0, 0.8, -0.02);
-  g.add(easel);
-
-  const shadow = new THREE.Mesh(
-    new THREE.PlaneGeometry(L + 1, Wd + 1),
-    new THREE.MeshBasicMaterial({ map: toTexture(radial(128, 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0)')), transparent: true, depthWrite: false }),
-  );
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = 0.012;
-  g.add(shadow);
-  bakeStatic(g, { shadows: ctx.quality.shadows });
-  return g;
+  const x = px > 1024 ? 2048 - px : px;
+  const y = py;
+  if (inR(x, y, 40, 710, 724, 860) || inR(x, y, 0, 40, 130, 860)) return 'pass';
+  if (inR(x, y, 130, 40, 225, 235)) return 'dontCome';
+  if (inR(x, y, 225, 40, 724, 235)) return `place${PLACE_NUMS[Math.min(5, Math.floor((x - 225) / PLACE_W))]}`;
+  if (inR(x, y, 130, 235, 724, 400)) return 'come';
+  if (inR(x, y, 130, 400, 225, 710)) return y < 555 ? 'big6' : 'big8';
+  if (inR(x, y, 225, 400, 724, 615)) return 'field';
+  if (inR(x, y, 225, 615, 724, 710)) return 'dontPass';
+  return null;
 }
 
-/**
- * A Las Vegas craps layout (one 2048×860 canvas covering the bed). Each half is
- * the standard mirror image: Don't Come bar, place numbers (4 5 SIX 8 NINE 10),
- * Come, a Field paying double on 2 and triple on 12, Big 6/8, Don't Pass bar and
- * the Pass Line wrapping round the end. Proposition bets sit in the centre with
- * their Strip odds ("to 1"), plus the C & E circles.
- */
+/** Where a bet's chips sit (canvas px), on the half of the layout in front of the player (right half). */
+export function anchorPx(id: string): [number, number] {
+  const R = (x: number, y: number): [number, number] => [2048 - x, y];
+  const box = (n: number) => 225 + PLACE_NUMS.indexOf(n) * PLACE_W + PLACE_W / 2;
+  const m = id.match(/^([a-zA-Z]+?)(\d+)?$/)!;
+  const k = m[1];
+  const n = m[2] ? Number(m[2]) : 0;
+  switch (k) {
+    case 'pass':
+      return R(400, 772);
+    case 'passOdds':
+      return R(400, 836);
+    case 'dontPass':
+      return R(400, 662);
+    case 'dontOdds':
+      return R(470, 662);
+    case 'come':
+      return n ? R(box(n) - 18, 128) : R(470, 330);
+    case 'comeOdds':
+      return R(box(n) + 20, 128);
+    case 'dontCome':
+      return n ? R(box(n) - 18, 91) : R(177, 205);
+    case 'dontComeOdds':
+      return R(box(n) + 20, 91);
+    case 'place':
+      return R(box(n), 212);
+    case 'field':
+      return R(520, 545);
+    case 'big':
+      return R(177, n === 6 ? 440 : 660);
+    case 'hard': {
+      const b = HARD_BOXES.find((h) => h[0] === n)!;
+      return [b[1] + 140, b[2] + 100];
+    }
+    case 'any':
+      return [1200, 110];
+    case 'anyCraps':
+      return [1200, 645];
+    case 'two':
+    case 'twelve':
+    case 'three':
+    case 'eleven':
+      return [744 + ONE_ROLL.indexOf(k) * 140 + 70, 540];
+    case 'ceC':
+      return [1250, 735];
+    case 'ceE':
+      return [1250, 780];
+  }
+  return [1024, 430];
+}
+
+/** Puck spots: in the Don't Come bar when OFF, on the point's number box when ON (both halves). */
+export function puckPx(point: number | null): [[number, number], [number, number]] {
+  if (!point) return [[177, 150], [2048 - 177, 150]];
+  const x = 225 + PLACE_NUMS.indexOf(point) * PLACE_W + PLACE_W / 2;
+  return [[x, 165], [2048 - x, 165]];
+}
+
 export function crapsFelt(): HTMLCanvasElement {
   const [c, g] = canvas(2048, 860);
   const grad = g.createRadialGradient(1024, 430, 100, 1024, 430, 1100);

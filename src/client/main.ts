@@ -6,7 +6,7 @@ import { CryptoRng } from '../rules/rng';
 import { Sound } from './audio';
 import { buildCasino, POSITIONS, registerHall, SLOTS_YAW } from './casino';
 import { preloadChips } from './chips';
-import { buildCrapsPreview } from './craps';
+import { CrapsTable } from './craps/table';
 import { SlotRows } from './decor';
 import { money, type GameContext } from './game';
 import { Hands } from './hands';
@@ -19,6 +19,7 @@ import { detectTier } from './quality';
 import { WHEEL_CENTER } from './roulette/layout';
 import { RouletteTable } from './roulette/table';
 import { SlotMachineView } from './slots/machine';
+import { PiggyMachineView } from './slots/piggy';
 import { World } from './world';
 import { assets } from './assets';
 import { Crew } from './crew';
@@ -118,9 +119,19 @@ async function main() {
     world.addLocalBox(view.group, 0, 0.78, 0.34, 0.34);
     return view;
   });
-  const craps = buildCrapsPreview(ctx, POSITIONS.craps);
-  world.addLocalBox(craps, 0, 0, 3.9, 1.8);
-  world.addLocalBox(craps, 0, 1.5, 5.4, 0.3);
+  // Porkbelly Payday: a premium cabinet at the end of the slot bank.
+  const piggy = (() => {
+    const off = 1.95;
+    const right = new THREE.Vector3(Math.cos(SLOTS_YAW), 0, -Math.sin(SLOTS_YAW));
+    const fwd = new THREE.Vector3(Math.sin(SLOTS_YAW), 0, Math.cos(SLOTS_YAW));
+    const pos = POSITIONS.slots.clone().addScaledVector(right, off).addScaledVector(fwd, -off * 0.12);
+    const view = new PiggyMachineView(ctx, pos, SLOTS_YAW - off * 0.22);
+    world.addLocalBox(view.group, 0, -0.05, 0.84, 0.66);
+    world.addLocalBox(view.group, 0, 0.82, 0.34, 0.34);
+    return view;
+  })();
+  const craps = new CrapsTable(ctx, POSITIONS.craps);
+  world.addLocalBox(craps.group, 0, 0, 3.75, 1.7);
 
   // --- Places and people -------------------------------------------------------------
   const lounge = new Lounge({ ...ctx, crowd, hands, player, world });
@@ -144,6 +155,45 @@ async function main() {
     if (p && w.seated) p.seatY = 0.68;
   }
   const near = (p: THREE.Vector3, r: number) => player.feet().distanceTo(p) < r;
+
+  // Craps crew: boxman and two base dealers across the table, the stickman on
+  // the players' side, and a few regulars at the rail.
+  const cs = craps.spots();
+  const stickman = crowd.add('croupier', staffLook('dealer'), cs.stickman.pos, cs.stickman.yaw);
+  const crapsDealers = [cs.boxman, ...cs.dealers].map((d) => crowd.add('croupier', staffLook('dealer'), d.pos, d.yaw));
+  for (const w of cs.players) crowd.add('watch', randomLook(), w.pos, w.yaw);
+  let crapsBetsTimer = 0;
+  const stickSays = (text: string) => {
+    hud.say('Stickman', text);
+    sound.say(text, { pitch: 1.05, rate: 1.05, voice: 1, interrupt: true });
+  };
+  craps.onRoll = () => {
+    if (stickman) {
+      stickman.actionKind = 'reach';
+      stickman.action = 1.0;
+    }
+    if (near(craps.group.position, 4)) crew.react('spin', { chance: 0.5 });
+  };
+  craps.onResult = (r) => {
+    if (near(craps.group.position, 7)) stickSays(r.call);
+    for (const d of crapsDealers) {
+      if (d && r.results.length) {
+        d.actionKind = 'reach';
+        d.action = 1.6;
+      }
+    }
+    const staked = r.results.filter((x) => x.outcome !== 'move').reduce((s, x) => s + (x.outcome === 'lose' || !x.staysUp ? x.stake : 0), 0);
+    const returned = r.results.reduce((s, x) => s + x.returned, 0);
+    night.result('craps', staked, returned, craps.group.position);
+    if (r.pointMade || (r.comeOut && (r.total === 7 || r.total === 11))) {
+      crowd.react(craps.group.position, 4, 'cheer');
+      sound.play('cheer', craps.group, { volume: r.pointMade ? 0.9 : 0.5 });
+    } else if (r.sevenOut) {
+      crowd.react(craps.group.position, 4, 'gasp');
+      sound.play('gasp', craps.group, { volume: 0.6 });
+    }
+    crapsBetsTimer = r.sevenOut ? 5.5 : 0;
+  };
   let placeBetsTimer = 0;
   roulette.onSpin = () => {
     if (croupier) {
@@ -206,6 +256,20 @@ async function main() {
       if (done) night.result('slots', 0, total, m.group.position);
     };
   });
+  piggy.onResult = (staked, won, feature) => {
+    night.result('slots', staked, won, piggy.group.position);
+    if (feature) {
+      night.complete('bonus');
+      crew.react('bonus', { force: true, cheer: true });
+    }
+  };
+  piggy.onBonusEnd = (won, grand) => {
+    night.result('slots', 0, won, piggy.group.position);
+    if (grand || won >= piggy.game.bet * 50) {
+      crowd.react(piggy.group.position, 4, 'cheer');
+      sound.play('cheer', piggy.group, { volume: 0.8 });
+    }
+  };
   lounge.onOrder = () => crew.react('order', { chance: 0.7 });
   lounge.onTip = () => {
     night.complete('tip');
@@ -223,12 +287,15 @@ async function main() {
 
   // VR hands: chips from the rack, the slot lever.
   for (const g of roulette.grabbables) hands.register(g);
+  for (const g of craps.grabbables) hands.register(g);
   const lever = machines[0].leverGrab();
   if (lever) hands.register(lever);
 
   // Teleport / walk by selecting the floor.
   interaction.register({ object: roulette.group, kind: 'surface' });
+  interaction.register({ object: craps.group, kind: 'surface' });
   for (const m of machines) interaction.register({ object: m.group, kind: 'surface' });
+  interaction.register({ object: piggy.group, kind: 'surface' });
   interaction.register({ object: casino.floor, kind: 'floor', onSelect: (e) => player.teleportTo(e.hit.point) });
 
   // --- Navigation -------------------------------------------------------------
@@ -248,12 +315,13 @@ async function main() {
     { id: 'roulette', label: 'Roulette', viewpoint: roulette.viewpoint },
     { id: 'slots', label: 'Slots', viewpoint: slotsOverview },
     ...machines.map((m) => ({ id: m.machine.id, label: m.machine.name, viewpoint: m.viewpoint })),
+    { id: piggy.machine.id, label: piggy.machine.name, viewpoint: piggy.viewpoint },
     { id: 'bar', label: 'Bar Lago', viewpoint: bar },
     { id: 'terrace', label: 'Terrace', viewpoint: terrace },
-    { id: 'craps', label: 'Craps', disabled: 'Opening soon' },
+    { id: 'craps', label: 'Craps', viewpoint: craps.viewpoint },
   ];
   hud.setNav(nav);
-  const seatable = [{ vp: roulette.viewpoint, label: 'Sit at roulette' }, ...machines.map((m) => ({ vp: m.viewpoint, label: `Play ${m.machine.name}` }))];
+  const seatable = [{ vp: roulette.viewpoint, label: 'Sit at roulette' }, { vp: craps.viewpoint, label: 'Shoot dice' }, ...machines.map((m) => ({ vp: m.viewpoint, label: `Play ${m.machine.name}` })), { vp: piggy.viewpoint, label: `Play ${piggy.machine.name}` }];
   hud.onNavigate = (item) => {
     if (!item.viewpoint) return;
     const seat = seatable.find((s) => s.vp === item.viewpoint);
@@ -451,6 +519,38 @@ async function main() {
       },
     ];
   };
+  const crapsControls = (): Control[] => [
+    ...CHIP_DENOMS.map((d) => ({
+      id: `chip${d}`,
+      label: chipLabel(d),
+      kind: 'chip' as const,
+      color: CHIP_COLORS[d],
+      active: craps.chip === d,
+      onPress: () => craps.selectChip(d),
+    })),
+    { id: 'undo', label: 'Undo', disabled: !craps.canUndo, onPress: () => craps.undo() },
+    { id: 'clear', label: 'Down', sub: 'take bets down', disabled: !craps.canClear, onPress: () => craps.clear() },
+    { id: 'odds', label: 'Odds', sub: '3-4-5x', disabled: !craps.canOdds, onPress: () => craps.maxOdds() },
+    {
+      id: 'roll',
+      label: craps.phase === 'betting' ? 'ROLL' : '…',
+      sub: craps.game.point ? `point ${craps.game.point}` : 'come-out',
+      kind: 'primary',
+      disabled: !craps.canRoll,
+      onPress: () => craps.throwDice(),
+    },
+  ];
+  const piggyControls = (m: PiggyMachineView): Control[] => {
+    const idle = m.canChangeBet;
+    return [
+      { id: 'info', label: 'Info', active: m.mode === 'info', disabled: !idle && m.mode !== 'info', onPress: () => m.toggleInfo() },
+      { id: 'bet-', label: '−', sub: 'bet', disabled: !idle, onPress: () => m.changeBet(-1) },
+      { id: 'betv', label: money(m.bonusBet), sub: 'per spin', disabled: true, onPress: () => {} },
+      { id: 'bet+', label: '+', sub: 'bet', disabled: !idle, onPress: () => m.changeBet(1) },
+      { id: 'max', label: 'Max', disabled: !idle, onPress: () => m.maxBet() },
+      { id: 'spin', label: m.spinLabel, sub: m.spinSub, kind: 'primary', disabled: !m.spinEnabled, onPress: () => m.onSpinPressed() },
+    ];
+  };
   const slotControls = (m: SlotMachineView): Control[] => {
     const idle = m.mode !== 'spinning' && m.game.phase === 'idle';
     return [
@@ -504,7 +604,9 @@ async function main() {
     }
 
     roulette.update(dt);
+    craps.update(dt);
     for (const m of machines) m.update(dt);
+    piggy.update(dt);
     slotRows.update(t, feet);
     lounge.update(dt);
     crowd.update(dt, t, feet, head);
@@ -515,12 +617,13 @@ async function main() {
     adapt();
 
     roulette.setPanelVisible(player.inXR);
+    craps.setPanelVisible(player.inXR);
     // Game controls, the touch context button, and seated state for the layout.
     document.body.classList.toggle('seated', !!player.seated);
     if (!player.inXR) {
       const station = isTouch ? player.seated?.id ?? null : hud.station;
       const m = machines.find((mm) => mm.machine.id === station);
-      hud.setControls(station === 'roulette' ? rouletteControls() : m ? slotControls(m) : null);
+      hud.setControls(station === 'roulette' ? rouletteControls() : station === 'craps' ? crapsControls() : m ? slotControls(m) : station === piggy.machine.id ? piggyControls(piggy) : null);
       if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());
       else if (player.seated) touch.setAction('Stand', () => player.stand());
       else {
@@ -533,6 +636,10 @@ async function main() {
     if (placeBetsTimer > 0) {
       placeBetsTimer -= dt;
       if (placeBetsTimer <= 0 && near(roulette.group.position, 5)) croupierSays('Place your bets, please.');
+    }
+    if (crapsBetsTimer > 0) {
+      crapsBetsTimer -= dt;
+      if (crapsBetsTimer <= 0 && near(craps.group.position, 6)) stickSays('New shooter coming out! Get your line bets down.');
     }
     // Waiters stop and offer when they pass close by.
     const now = performance.now() / 1000;
@@ -578,7 +685,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, roulette, machines, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE };
 }
 
 main().catch((e) => {

@@ -8,6 +8,7 @@ import type { Viewpoint } from '../player';
 import { radial, toTexture } from '../textures';
 import { symbolAtlas } from './symbols';
 import { bakeStatic, dynamic } from '../merge';
+import { addCabinetDetails, GLOW } from './details';
 
 export interface CabinetTheme {
   body: number;
@@ -264,6 +265,11 @@ export class SlotMachineView {
     seat.castShadow = false;
     add(new THREE.CylinderGeometry(0.028, 0.028, 0.6, 10), gold, 0, 0.32, 0.78);
     add(new THREE.CylinderGeometry(0.19, 0.21, 0.03, 24), gold, 0, 0.015, 0.78);
+
+    // Candle tower, bill validator, ticket printer, card reader.
+    const acc = new THREE.Color(this.theme.accent);
+    const candle = acc.r >= acc.g && acc.r >= acc.b ? GLOW.red : acc.b >= acc.g ? GLOW.blue : GLOW.green;
+    addCabinetDetails(g, { topY: 2.15, topZ: -0.12, frontZ: 0.3, panelY: 0.64, halfW: 0.35, candle, dark: black });
 
     // Classic machines get a pull lever on the right side.
     if (this.machine.type === 'classic') {
