@@ -10,6 +10,7 @@ import {
 } from '../../rules/roulette';
 import { makeChip, makeChipStack, CHIP_HEIGHT } from '../chips';
 import { bakeStatic, dynamic } from '../merge';
+import { assets } from '../assets';
 import { easeInOut, money, Tweens, type GameContext } from '../game';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from '../panel';
 import type { Viewpoint } from '../player';
@@ -136,8 +137,9 @@ export class RouletteTable {
     const woodTex = toTexture(wood(512));
     woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
     woodTex.repeat.set(3, 3);
-    const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35, envMapIntensity: 1 });
-    const leather = new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 0.55, envMapIntensity: 0.6 });
+    const woodMat = assets.material('walnut', { repeat: [3, 1], rough: 0.55, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35, envMapIntensity: 1 }) });
+    // Padded rail: real leather grain (Poly Haven), deepened to a burgundy.
+    const leather = assets.material('leather', { repeat: 3, rough: 0.85, tint: 0x8a3a3a, envIntensity: 0.6, fallback: () => new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 0.55, envMapIntensity: 0.6 }) });
     const gold = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3 });
 
     const cx = (FELT.x0 + FELT.x1) / 2,
@@ -148,7 +150,14 @@ export class RouletteTable {
     // Felt.
     const felt = new THREE.Mesh(
       new THREE.PlaneGeometry(fw, fd),
-      new THREE.MeshStandardMaterial({ map: feltTexture(q.texSize), roughness: 0.92, envMapIntensity: 0.25 }),
+      new THREE.MeshStandardMaterial({
+        map: feltTexture(q.texSize),
+        // Fine cloth weave from the velvet scan, very subtle.
+        normalMap: assets.pbr('velvet', [14, 5])?.normalMap ?? null,
+        normalScale: new THREE.Vector2(0.25, 0.25),
+        roughness: 0.92,
+        envMapIntensity: 0.25,
+      }),
     );
     felt.rotation.x = -Math.PI / 2;
     felt.position.set(cx, TOP, cz);

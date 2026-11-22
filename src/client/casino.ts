@@ -4,6 +4,7 @@ import type { Quality } from './quality';
 import { carpet, damask, floorTile, lakeView, marble, radial, toTexture, wood } from './textures';
 import { textSign } from './panel';
 import { bakeStatic } from './merge';
+import { assets } from './assets';
 
 /**
  * The casino hall: an original resort interior in an Italian-lakeside style.
@@ -90,7 +91,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
 
   // --- Lighting -----------------------------------------------------------------
   scene.background = new THREE.Color(0x120c08);
-  scene.environment = warmEnvironment(renderer);
+  scene.environment = assets.envHdr ? hdrEnvironment(renderer, assets.envHdr) : warmEnvironment(renderer);
   scene.environmentIntensity = 0.75;
   const hemi = new THREE.HemisphereLight(0xffdcae, 0x4a2016, 1.0);
   scene.add(hemi);
@@ -126,12 +127,17 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   });
 
   // --- Materials ------------------------------------------------------------------
-  const floorTex = toTexture(floorTile(tex / 2), { aniso });
+  const floorTex = toTexture(floorTile(tex / 2, assets.image('marble')), { aniso });
   floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
   floorTex.repeat.set(HALL.w / 2, HALL.d / 2);
+  const floorMaps = assets.pbr('marble', [HALL.w / 2, HALL.d / 2]);
   const floorMat = new THREE.MeshPhysicalMaterial({
     map: floorTex,
-    roughness: 0.12,
+    // Scanned marble relief and polish variation (Poly Haven), one per tile.
+    normalMap: floorMaps?.normalMap ?? null,
+    normalScale: new THREE.Vector2(0.35, 0.35),
+    roughnessMap: floorMaps?.roughnessMap ?? null,
+    roughness: floorMaps ? 0.32 : 0.12,
     metalness: 0,
     clearcoat: q.name === 'desktop' ? 0.6 : 0,
     clearcoatRoughness: 0.08,
@@ -146,18 +152,18 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.85 });
   const woodTex = toTexture(wood(512), { aniso });
   woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
-  const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.4, envMapIntensity: 0.8 });
+  const woodMat = assets.material('walnut', { repeat: [6, 1], rough: 0.7, envIntensity: 0.8, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.4, envMapIntensity: 0.8 }) });
   const gold = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.28, envMapIntensity: 1.4 });
   const columnTex = toTexture(marble(tex / 4, 'cream', 9), { aniso });
   columnTex.wrapS = columnTex.wrapT = THREE.RepeatWrapping;
   columnTex.repeat.set(2, 3);
-  const columnMat = new THREE.MeshStandardMaterial({ map: columnTex, roughness: 0.18, envMapIntensity: 1.1 });
+  const columnMat = assets.material('marble', { repeat: [1.5, 2.5], rough: 0.4, normal: 0.4, envIntensity: 1.1, fallback: () => new THREE.MeshStandardMaterial({ map: columnTex, roughness: 0.18, envMapIntensity: 1.1 }) });
   const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xe8d6b4, roughness: 0.7, emissive: 0x3a2410, emissiveIntensity: 0.45 });
   const cofferGlow = new THREE.MeshBasicMaterial({ color: 0xffc878, toneMapped: true });
   // Softly lit brass for the rails: the room glows a little at night.
   const goldGlow = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3, emissive: 0xb07020, emissiveIntensity: 0.55 });
   const darkMarbleTex = toTexture(marble(256, 'dark', 4), { aniso });
-  const darkMarble = new THREE.MeshStandardMaterial({ map: darkMarbleTex, roughness: 0.2 });
+  const darkMarble = assets.material('darkmarble', { repeat: 1, rough: 0.45, tint: 0x9a7a6a, envIntensity: 1.1, fallback: () => new THREE.MeshStandardMaterial({ map: darkMarbleTex, roughness: 0.2 }) });
 
   const batch = new Batcher();
   const box = new THREE.BoxGeometry(1, 1, 1);
@@ -468,6 +474,14 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
       if (player) doors.update(player);
     },
   };
+}
+
+/** Reflections from the real ballroom HDRI (Poly Haven, CC0), prefiltered for PBR. */
+function hdrEnvironment(renderer: THREE.WebGLRenderer, hdr: THREE.Texture): THREE.Texture {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const rt = pmrem.fromEquirectangular(hdr);
+  pmrem.dispose();
+  return rt.texture;
 }
 
 /** A warm, bright environment map for reflections on gold, marble and lacquer. */

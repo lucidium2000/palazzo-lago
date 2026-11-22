@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import type { Quality } from './quality';
 import type { World } from './world';
+import { spawnCharacter, type PeopleLib } from './assets';
+
+// Bone offsets for poses the clips don't have (tuned against the Quaternius rig).
+export const POSE = { sitThigh: 1.5, sitShin: -1.6, sitHips: 0.95, trayUpper: 0.9, trayLower: 1.2, trayAxis: 'x' as 'x' | 'z' };
 
 /**
  * The casino's guests and staff. Every body part is one InstancedMesh shared by
@@ -19,6 +23,8 @@ export interface Look {
   hair: number;
   hairStyle: 'short' | 'long' | 'bald' | 'bun';
   height: number;
+  /** Which character model to wear (see assets.ts). */
+  kind?: string;
 }
 
 export class Person {
@@ -47,6 +53,12 @@ export class Person {
   /** Invisible proxy used for clicks (waiters). */
   proxy?: THREE.Mesh;
   onUpdate?: (p: Person, dt: number) => void;
+  /** The animated character (when the people assets loaded). */
+  rig?: ReturnType<typeof spawnCharacter>;
+  /** Animation clock skipping for far-away people. */
+  animSkip = 0;
+  animDt = 0;
+  tray?: THREE.Object3D;
 
   constructor(
     readonly role: Role,
@@ -66,7 +78,11 @@ const pick = <T>(a: readonly T[]) => a[Math.floor(rnd() * a.length)];
 
 export function randomLook(): Look {
   const dress = rnd() < 0.45;
+  // A night at a Strip resort: mostly dressed up, some vacation casual.
+  const r = rnd();
+  const kind = dress ? (r < 0.45 ? 'female_formal' : r < 0.7 ? 'female_suit' : 'female_casual') : r < 0.5 ? 'male_suit' : r < 0.8 ? 'male_casual_2' : 'male_beach';
   return {
+    kind,
     dress,
     main: dress ? pick(DRESSES) : pick(SUITS),
     second: pick(SHIRTS),
@@ -79,10 +95,10 @@ export function randomLook(): Look {
 
 export function staffLook(kind: 'dealer' | 'bar' | 'waiter' | 'pianist'): Look {
   const base = randomLook();
-  if (kind === 'dealer') return { ...base, dress: false, main: 0x14100e, second: 0xf6f2ea, hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle };
-  if (kind === 'bar') return { ...base, dress: false, main: 0x5a0e18, second: 0xf6f2ea };
-  if (kind === 'pianist') return { ...base, dress: false, main: 0x0c0c10, second: 0xf6f2ea };
-  return { ...base, dress: false, main: 0xf0ead8, second: 0x14100e, hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle };
+  if (kind === 'dealer') return { ...base, dress: false, main: 0x14100e, second: 0xf6f2ea, hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle, kind: 'male_suit', height: 1.8 };
+  if (kind === 'bar') return { ...base, dress: false, main: 0x5a0e18, second: 0xf6f2ea, kind: 'female_suit', height: 1.7 };
+  if (kind === 'pianist') return { ...base, dress: false, main: 0x0c0c10, second: 0xf6f2ea, kind: 'male_suit', height: 1.8 };
+  return { ...base, dress: false, main: 0xf0ead8, second: 0x14100e, hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle, kind: 'female_formal', height: 1.7 };
 }
 
 // Body proportions for a 1.75 m person (scaled per height).
@@ -155,6 +171,7 @@ export class Crowd {
     scene: THREE.Scene,
     q: Quality,
     private world: World,
+    private lib: PeopleLib | null = null,
   ) {
     // Three extra slots are always kept for your crew.
     this.max = q.people + 3;
@@ -252,6 +269,24 @@ export class Crowd {
     set('hair', look.hair);
     this.shadowMesh.count = this.people.length;
     for (const part of Object.values(this.parts)) if (part.mesh.instanceColor) part.mesh.instanceColor.needsUpdate = true;
+    if (this.lib) {
+      const rig = spawnCharacter(this.lib, look.kind ?? (look.dress ? 'female_formal' : 'male_suit'));
+      p.rig = rig;
+      this.group.add(rig.root);
+      for (const [name, a] of Object.entries(rig.actions)) {
+        a.play();
+        a.setEffectiveWeight(name === 'Idle_Neutral' ? 1 : 0);
+        a.time = Math.random() * a.getClip().duration;
+      }
+      if (role === 'waiter') {
+        const tray = new THREE.Mesh(this.trays.geometry, this.trays.material);
+        tray.raycast = () => {};
+        p.tray = tray;
+        rig.bones['WristR']?.add(tray);
+        tray.position.set(0, 0.08, 0.05);
+      }
+      for (const part of Object.values(this.parts)) part.mesh.visible = false;
+    }
     return p;
   }
 
@@ -337,7 +372,8 @@ export class Crowd {
       }
       p.headYaw += (wantYaw - p.headYaw) * Math.min(1, dt * 3);
       p.headPitch += (wantPitch - p.headPitch) * Math.min(1, dt * 3);
-      this.pose(p, i, time);
+      if (p.rig) this.poseRig(p, i, dt, dist);
+      else this.pose(p, i, time);
       if (p.role === 'waiter' && trayN < this.trays.instanceMatrix.count) {
         this.trays.setMatrixAt(trayN++, this.trayMatrix);
       }
@@ -403,6 +439,71 @@ export class Crowd {
   }
 
   private trayMatrix = new THREE.Matrix4();
+
+  /** Drives an animated character: blends clips by what the person is doing, then poses bones. */
+  private poseRig(p: Person, i: number, dt: number, dist: number) {
+    const rig = p.rig!;
+    const female = (p.look.kind ?? '').startsWith('female');
+    const sc = p.look.height / (female ? 1.72 : 1.82);
+    rig.root.position.set(p.pos.x, 0, p.pos.z);
+    rig.root.rotation.y = p.yaw;
+    rig.root.scale.setScalar(sc);
+    // Far away people animate at a third of the rate (saves CPU on Quest and phones).
+    p.animDt += dt;
+    const every = dist > 14 ? 3 : dist > 8 ? 2 : 1;
+    if (++p.animSkip % every !== 0 && !p.seated) {
+      this.shadowAt(p, i, sc);
+      return;
+    }
+    const step = p.animDt;
+    p.animDt = 0;
+    const a = rig.actions;
+    const mv = p.seated ? 0 : p.moving;
+    const run = THREE.MathUtils.clamp((mv - 1.9) / 0.6, 0, 1);
+    const walk = THREE.MathUtils.clamp(mv / 0.6, 0, 1) * (1 - run);
+    const cheer = p.cheer > 0 ? Math.min(1, p.cheer * 3) : 0;
+    const gasp = p.gaspT > 0 ? Math.min(1, p.gaspT * 3) : 0;
+    const busy =
+      p.role === 'pianist' || (p.role !== 'slots' && p.action > 0 && p.actionKind !== 'none' && p.actionKind !== 'offer') ? 1 : 0;
+    const over = Math.max(cheer, gasp, busy * 0.9);
+    const baseW = 1 - over;
+    const w = (name: string, v: number) => a[name]?.setEffectiveWeight(v);
+    w('Idle_Neutral', baseW * (1 - walk - run) * 0.7);
+    w('Idle', baseW * (1 - walk - run) * 0.3);
+    w('Walk', baseW * walk);
+    w('Run', baseW * run);
+    w('Wave', cheer);
+    w('HitRecieve', gasp * (1 - cheer));
+    w('Interact', busy * (1 - cheer) * 0.9);
+    if (a.Walk) a.Walk.timeScale = THREE.MathUtils.clamp(mv / (1.15 * sc), 0.5, 1.6);
+    if (a.Run) a.Run.timeScale = THREE.MathUtils.clamp(mv / (3.2 * sc), 0.6, 1.4);
+    if (a.Interact) a.Interact.timeScale = p.role === 'pianist' ? 1.6 : 1;
+    rig.mixer.update(step);
+
+    const b = rig.bones;
+    if (p.seated) {
+      // Sit: lower the body onto the seat, thighs forward, shins down.
+      rig.root.position.y = p.seatY - POSE.sitHips * sc;
+      for (const s of ['L', 'R']) {
+        b[`UpperLeg${s}`]?.rotateX(POSE.sitThigh);
+        b[`LowerLeg${s}`]?.rotateX(POSE.sitShin);
+      }
+    }
+    if (p.role === 'waiter' && b['UpperArmR']) {
+      b['UpperArmR'].rotateX(POSE.trayUpper);
+      b['LowerArmR']?.rotateX(POSE.trayLower);
+    }
+    // Look at the player / glance around.
+    b.Head?.rotateY(p.headYaw * 0.8);
+    b.Head?.rotateX(-p.headPitch);
+    this.shadowAt(p, i, sc);
+    if (p.proxy) p.proxy.position.set(p.pos.x, 1.0, p.pos.z);
+  }
+
+  private shadowAt(p: Person, i: number, sc: number) {
+    this.v.set(p.pos.x, 0.015, p.pos.z);
+    this.shadowMesh.setMatrixAt(i, this.m.compose(this.v, this.q.identity(), this.s.set(sc, 1, sc)));
+  }
 
   /** Writes every body part's matrix for one person. */
   private pose(p: Person, i: number, time: number) {

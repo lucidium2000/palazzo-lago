@@ -13,13 +13,14 @@ import { Hands } from './hands';
 import { Hud, type NavItem } from './hud';
 import { Interaction } from './interaction';
 import { Lounge } from './lounge';
-import { Crowd, randomLook, staffLook, type Person } from './people';
+import { Crowd, POSE, randomLook, staffLook, type Person } from './people';
 import { Player, type Viewpoint } from './player';
 import { detectTier } from './quality';
 import { WHEEL_CENTER } from './roulette/layout';
 import { RouletteTable } from './roulette/table';
 import { SlotMachineView } from './slots/machine';
 import { World } from './world';
+import { assets } from './assets';
 import { Crew } from './crew';
 import { Night } from './night';
 import { TouchControls } from './touch';
@@ -65,6 +66,12 @@ async function main() {
   renderer.xr.cameraAutoUpdate = false;
   document.getElementById('app')!.appendChild(renderer.domElement);
 
+  // Photo textures, the HDRI and the people (all CC0). Falls back to procedural art if anything fails.
+  const loadingSub = document.querySelector('#loading .sub');
+  await assets.load(renderer, (k) => {
+    if (loadingSub) loadingSub.textContent = `Opening the doors… ${Math.round(k * 100)}%`;
+  });
+
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.03, 400);
   const world = new World();
@@ -88,7 +95,7 @@ async function main() {
   preloadChips();
 
   const ctx: GameContext = { scene, interaction, sound, bankroll, hud, rng: new CryptoRng(), quality };
-  const crowd = new Crowd(scene, quality, world);
+  const crowd = new Crowd(scene, quality, world, assets.people);
 
   // --- Games -------------------------------------------------------------------
   const roulette = new RouletteTable(ctx, POSITIONS.roulette);
@@ -571,7 +578,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, roulette, machines, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, roulette, machines, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE };
 }
 
 main().catch((e) => {

@@ -1,3 +1,4 @@
+import { assets } from './assets';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { LAGO_FORTUNA, ROYAL_CONSERVATORY, DIAMOND_SEVENS } from '../rules/machines';
@@ -73,7 +74,7 @@ export class SlotRows {
     );
     const gold = new THREE.MeshStandardMaterial({ color: 0xd8ae58, metalness: 1, roughness: 0.25, envMapIntensity: 1.4 });
     const black = new THREE.MeshStandardMaterial({ color: 0x0c0a0a, roughness: 0.35 });
-    const leather = new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.5 });
+    const leather = assets.material('leather', { repeat: 1, rough: 0.8, tint: 0x7a4040, fallback: () => new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.5 }) });
     const screenMat = new THREE.MeshBasicMaterial({ map: this.screenTex, toneMapped: false });
     const marqueeMat = new THREE.MeshBasicMaterial({ map: this.marqueeAtlas(), toneMapped: false });
     const base = new RoundedBoxGeometry(0.66, 0.8, 0.55, 2, 0.03);

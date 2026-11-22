@@ -115,11 +115,22 @@ function marbleRaw(size: number, tone: 'cream' | 'honey' | 'dark', seed = 1): HT
 }
 
 /** One 1.5 m floor tile: cream field, honey border, dark inlay and a gold star. */
-export function floorTile(size: number): HTMLCanvasElement {
+export function floorTile(size: number, photo?: CanvasImageSource | null): HTMLCanvasElement {
   const [c, ctx] = canvas(size);
-  const cream = marble(size, 'cream', 3);
-  const honey = marble(size / 2, 'honey', 5);
-  ctx.drawImage(cream, 0, 0);
+  let honey: HTMLCanvasElement;
+  if (photo) {
+    // Scanned marble for the field; a warm-tinted copy for the honey border.
+    ctx.drawImage(photo, 0, 0, size, size);
+    const [h, hx] = canvas(size / 2);
+    hx.drawImage(photo, 0, 0, size / 2, size / 2);
+    hx.globalCompositeOperation = 'multiply';
+    hx.fillStyle = '#d9a35a';
+    hx.fillRect(0, 0, size / 2, size / 2);
+    honey = h;
+  } else {
+    ctx.drawImage(marble(size, 'cream', 3), 0, 0);
+    honey = marble(size / 2, 'honey', 5);
+  }
   const b = size * 0.06;
   ctx.save();
   ctx.fillStyle = ctx.createPattern(honey, 'repeat')!;

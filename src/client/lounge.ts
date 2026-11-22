@@ -3,6 +3,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import type { GameContext } from './game';
 import type { Grabbable, Hands } from './hands';
 import { bakeStatic, dynamic } from './merge';
+import { assets } from './assets';
 import { textSign } from './panel';
 import type { Crowd, Person } from './people';
 import { randomLook, staffLook } from './people';
@@ -167,10 +168,10 @@ export class Lounge {
     const woodTex = toTexture(wood(512));
     woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
     woodTex.repeat.set(2, 6);
-    const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 });
-    const top = new THREE.MeshStandardMaterial({ map: toTexture(marble(512, 'dark', 21)), roughness: 0.08, envMapIntensity: 1.4 });
+    const woodMat = assets.material('walnut', { repeat: [2, 6], rough: 0.6, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 }) });
+    const top = assets.material('darkmarble', { repeat: [1, 6], rough: 0.25, envIntensity: 1.4, fallback: () => new THREE.MeshStandardMaterial({ map: toTexture(marble(512, 'dark', 21)), roughness: 0.08, envMapIntensity: 1.4 }) });
     const gold = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.25 });
-    const leather = new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.5 });
+    const leather = assets.material('leather', { repeat: 1, rough: 0.8, tint: 0x8a5050, fallback: () => new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.5 }) });
     const glow = new THREE.MeshBasicMaterial({ color: 0xffb860 });
     const x = Lounge.COUNTER_X,
       z0 = Lounge.COUNTER_Z0,
@@ -499,9 +500,9 @@ export class Lounge {
   private buildSeating() {
     const g = new THREE.Group();
     this.d.scene.add(g);
-    const velvet = new THREE.MeshStandardMaterial({ color: 0x5a1a2a, roughness: 0.85 });
+    const velvet = assets.material('velvet', { repeat: 2, tint: 0x9a3048, rough: 1, fallback: () => new THREE.MeshStandardMaterial({ color: 0x5a1a2a, roughness: 0.85 }) });
     const gold = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3 });
-    const top = new THREE.MeshStandardMaterial({ map: toTexture(marble(256, 'cream', 31)), roughness: 0.1 });
+    const top = assets.material('marble', { repeat: 1, rough: 0.3, normal: 0.4, fallback: () => new THREE.MeshStandardMaterial({ map: toTexture(marble(256, 'cream', 31)), roughness: 0.1 }) });
     const tables: [number, number][] = [
       [-11.6, 11.4],
       [-11.4, 8.2],

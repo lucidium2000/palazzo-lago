@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { GameContext } from './game';
 import { textSign } from './panel';
 import { bakeStatic } from './merge';
+import { assets } from './assets';
 import { canvas, radial, toTexture, wood } from './textures';
 
 /**
@@ -16,8 +17,8 @@ export function buildCrapsPreview(ctx: GameContext, position: THREE.Vector3) {
     Wd = 1.5,
     H = 0.78;
   const woodTex = toTexture(wood(512));
-  const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 });
-  const leather = new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 0.55 });
+  const woodMat = assets.material('walnut', { repeat: [3, 1], rough: 0.55, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 }) });
+  const leather = assets.material('leather', { repeat: 3, rough: 0.85, tint: 0x8a3a3a, fallback: () => new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 0.55 }) });
   const gold = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3 });
 
   // Tub: outer walls with a rail, felt bed recessed below.

@@ -1,3 +1,4 @@
+import { assets } from '../assets';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { SlotGame, symbolMap, type Machine, type SpinOutcome } from '../../rules/slots';
@@ -258,7 +259,7 @@ export class SlotMachineView {
     g.add(pool);
 
     // Stool.
-    const leather = new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.5 });
+    const leather = assets.material('leather', { repeat: 1, rough: 0.8, tint: 0x7a4040, fallback: () => new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.5 }) });
     const seat = add(new THREE.CylinderGeometry(0.19, 0.17, 0.08, 24), leather, 0, 0.66, 0.78);
     seat.castShadow = false;
     add(new THREE.CylinderGeometry(0.028, 0.028, 0.6, 10), gold, 0, 0.32, 0.78);
