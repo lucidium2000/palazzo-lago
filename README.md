@@ -4,8 +4,9 @@ A VR-first luxury casino that also runs in any web browser. Built with TypeScrip
 Play money only.
 
 **Built so far:** a casino you walk around in. The hall, American roulette with a croupier, four
-playable slot machines (Diamond Sevens, Lago Fortuna, Royal Conservatory, and Porkbelly Payday: three
-piggy banks fill with coins and burst into a Hold & Spin with Mini/Minor/Major/Grand jackpots) plus two rows of machines
+playable slot machines (Diamond Sevens, Lago Fortuna, Royal Conservatory, and Porkbelly Payday: mystery crates
+turn into one symbol and flick Blue, Yellow and Red coins up to three piggy banks that fatten and set
+off free-spin bonuses: banked spins, six collectable jackpots, and reels with low symbols crossed out) plus two rows of machines
 played by guests, Bar Lago (order a drink, hold it, sip it), a grand piano with a pianist playing live,
 and French doors onto a terrace over the lake fountains. About 40 guests and staff wander, play,
 cheer and look at you.

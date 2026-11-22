@@ -1,39 +1,59 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { JACKPOTS, PIG_CAPACITY, PIGGY, PIGS, PiggyGame, type Coin, type PiggySpin, type RespinResult } from '../../rules/piggy';
-import { windowAt } from '../../rules/slots';
+import {
+  BLUE_START,
+  COLORS,
+  JACKPOT_BASE,
+  JACKPOT_GROWTH,
+  JACKPOT_NAMES,
+  JACKPOT_NEED,
+  PIGGY,
+  PiggyGame,
+  RED_ORDER,
+  type CoinColor,
+  type Feature,
+  type PiggySpin,
+} from '../../rules/piggy';
 import { assets } from '../assets';
 import { easeOut, money, Tweens, type GameContext } from '../game';
 import { bakeStatic, dynamic } from '../merge';
-import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from '../panel';
+import { CanvasPanel, GOLD_LIGHT, roundRect } from '../panel';
 import type { Viewpoint } from '../player';
 import { radial, toTexture } from '../textures';
 import { addCabinetDetails, GLOW } from './details';
-import { coin as paintCoin, coinLabel, paintCoinLabel, piggyAtlas, pigFace } from './piggyArt';
+import { COIN_COLORS, colorCoin, PIG_PALETTE, piggyAtlas, pigPortrait } from './piggyArt';
 
 /**
- * Porkbelly Payday: a premium cabinet with three 3D piggy banks standing on
- * top. Coins that land fly up into the banks; full banks glow and wait, then
- * smash open when Hold & Spin starts and add their power.
+ * Porkbelly Payday on a modern tall cabinet: a big portrait screen with the
+ * three piggy banks across the top, 5x3 reels with the jackpot ladder beside
+ * them, and a roll-up win meter. Mystery coins reveal one symbol; any of them
+ * can flick a coloured coin up into its pig (which gulps and fattens) or set
+ * off that pig's bonus. Large glossy 3D banks also stand on the cabinet top.
  */
 
-type Mode = 'idle' | 'spinning' | 'showing' | 'intro' | 'respin' | 'bonusEnd' | 'info';
+type Mode = 'idle' | 'spinning' | 'reveal' | 'showing' | 'intro' | 'free' | 'bonusEnd' | 'info';
 
-const CELL = 176;
-const COLS = 5;
-const ROWS = 3;
-const REELS_X = (1000 - COLS * CELL) / 2;
-const REELS_Y = 196;
-const SCREEN = { w: 0.66, px: 1000, py: 1000, y: 1.45, z: 0.162, tilt: 0 };
+// Screen layout (canvas px).
+const W = 800;
+const H = 1120;
+const CELL = 128;
+const REELS_X = 14;
+const REELS_Y = 374;
+const LADDER_X = 670;
+const PIG_Y = 158;
+const PIG_R = 80;
+const PIG_SX: Record<CoinColor, number> = { blue: 140, yellow: 400, red: 660 };
+const SCREEN = { w: 0.7, y: 1.5, z: 0.072 };
+const DISPLAY = '"Arial Black", "Helvetica Neue", Arial, sans-serif';
+const SERIF = 'Georgia, "Times New Roman", serif';
 const DECK_TILT = 0.3;
-const PIG_COLORS = [0xd8202c, 0x23a04a, 0x2a5ad8];
-const PIG_NAMES = ['Red Bank', 'Green Bank', 'Blue Bank'];
-const PIG_POWERS = ['Coins ×2', '5 Respins', 'Jackpot Coin'];
-const PIG_X = [-0.25, 0, 0.25];
-const STAGE_Y = 2.08;
-/** Coin values cycled on reels while they spin (looks alive, means nothing). */
-const DISPLAY_VALUES = [1, 0.5, 2, 1.5, 5, 1, 3, 0.5, 10, 2, 1, 25];
+const PIG_COLORS: Record<CoinColor, number> = { blue: 0x2a5ae8, yellow: 0xf8b818, red: 0xe81c2c };
+const PIG_X3: Record<CoinColor, number> = { blue: -0.27, yellow: 0, red: 0.27 };
+const STAGE_Y = 2.12;
+const JP_COLORS = JACKPOT_NAMES.map((n) => COIN_COLORS[n][1]);
+const LOW_LABEL: Record<string, string> = { T: '10', J: 'J', Q: 'Q', K: 'K', A: 'A' };
+const hex = (c: number) => '#' + new THREE.Color(c).getHexString();
 
 interface ReelAnim {
   pos: number;
@@ -44,24 +64,47 @@ interface ReelAnim {
   stopped: boolean;
 }
 
-interface PigView {
+interface Pig3D {
   group: THREE.Group;
   mat: THREE.MeshPhysicalMaterial;
-  scale: number;
+  fat: number;
   wobble: number;
-  shown: number;
-  hiddenUntil: number;
-  /** The bank is smashed and rebuilding until this time. */
+  party: number;
 }
 
-interface Flyer {
-  mesh: THREE.Mesh;
-  from: THREE.Vector3;
-  to: THREE.Vector3;
-  vel?: THREE.Vector3;
+/** On-screen pig animation state. */
+interface Pig2D {
+  fat: number;
+  squash: number;
+  shake: number;
+  glow: number;
+}
+
+interface Flick {
+  color: string;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
   t: number;
   dur: number;
-  done?: () => void;
+  done: () => void;
+}
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  spin: number;
+  life: number;
+  color: string;
+}
+
+interface Flyer3D {
+  mesh: THREE.Mesh;
+  vel: THREE.Vector3;
+  t: number;
 }
 
 export class PiggyMachineView {
@@ -70,19 +113,21 @@ export class PiggyMachineView {
   readonly viewpoint: Viewpoint;
   readonly machine = { id: PIGGY.id, name: PIGGY.name };
   mode: Mode = 'idle';
-  /** Base spin settled: (staked, line win, Hold & Spin started). */
-  onResult: ((staked: number, won: number, feature?: 'holdSpin') => void) | null = null;
-  /** Hold & Spin finished: total paid. */
-  onBonusEnd: ((won: number, grand: boolean) => void) | null = null;
+  /** Paid spin settled: (staked, won, a bonus started). */
+  onResult: ((staked: number, won: number, feature?: 'bonus') => void) | null = null;
+  /** Bonus finished: total paid by its free spins and jackpots. */
+  onBonusEnd: ((won: number, features: Feature[]) => void) | null = null;
 
   private screen: CanvasPanel;
   private deck: CanvasPanel;
-  private meters: CanvasPanel;
   private marquee: CanvasPanel;
   private atlas: { canvas: HTMLCanvasElement; index: Map<string, number> };
   private blurAtlas: HTMLCanvasElement;
-  private coinFace: HTMLCanvasElement;
+  private coinFaces = new Map<string, HTMLCanvasElement>();
+  private bg: HTMLCanvasElement;
+  private bgBonus: HTMLCanvasElement;
   private reels: ReelAnim[];
+  private reelStrips: readonly (readonly string[])[] = PIGGY.reels;
   private time = 0;
   private tweens = new Tweens();
   private reelLoop: ReturnType<GameContext['sound']['loop']>;
@@ -91,25 +136,36 @@ export class PiggyMachineView {
   private pendingWin = 0;
   private shownWin = 0;
   private winTimer = 0;
+  private revealAt = 0;
   private dirty = true;
-  private pigs: PigView[] = [];
-  private flyers: Flyer[] = [];
-  private coinPool: THREE.Mesh[] = [];
-  private coinGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.004, 16).rotateX(Math.PI / 2);
-  private coinMat = new THREE.MeshStandardMaterial({ color: 0xf0c040, metalness: 1, roughness: 0.25, emissive: 0x402800 });
+  private redrawClock = 0;
+  private pig3: Record<CoinColor, Pig3D> = {} as Record<CoinColor, Pig3D>;
+  private pig2: Record<CoinColor, Pig2D> = {
+    blue: { fat: 0, squash: 0, shake: 0, glow: 0 },
+    yellow: { fat: 0, squash: 0, shake: 0, glow: 0 },
+    red: { fat: 0, squash: 0, shake: 0, glow: 0 },
+  };
+  /** Meter values as shown (they catch up as coins arrive). */
+  private shown = { blue: BLUE_START, boost: 0, red: 0 };
+  private flicks: Flick[] = [];
+  private particles: Particle[] = [];
+  private flyers: Flyer3D[] = [];
+  private coinPool = new Map<string, THREE.Mesh[]>();
+  private coinGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.004, 16).rotateX(Math.PI / 2);
+  private coinMats = new Map<string, THREE.MeshStandardMaterial>();
   private bulbs: THREE.InstancedMesh;
   private bulbOn = new THREE.Color(0xfff0b0);
   private bulbOff = new THREE.Color(0x4a3518);
   private bulbPhase = -1;
-  /** Bonus presentation. */
-  private cellSpin: number[] = new Array(15).fill(0); // time each empty cell stops spinning (0 = still)
-  private cellFlash: number[] = new Array(15).fill(-10);
-  private banner: { text: string; until: number; color?: string } | null = null;
-  private respinTimer = 0;
-  private lastRespin: RespinResult | null = null;
+  private led: THREE.MeshBasicMaterial;
+  private banner: { text: string; sub?: string; at: number; until: number; color: string } | null = null;
+  private freeTimer = 0;
   private bonusShownTotal = 0;
   private bonusCounted = false;
-  private redApplied = false;
+  private cellFlash: number[] = new Array(15).fill(-10);
+  private jpFlash: number[] = new Array(6).fill(-10);
+  private lastFeatures: Feature[] = [];
+  private infoPage = 0;
 
   constructor(
     private ctx: GameContext,
@@ -117,7 +173,8 @@ export class PiggyMachineView {
     yaw: number,
   ) {
     this.game = new PiggyGame(ctx.bankroll);
-    this.game.betIndex = 1;
+    // A machine as the last player left it: sometimes a fat pig worth playing.
+    this.game.randomizeBanks(ctx.rng);
     this.group.position.copy(position);
     this.group.rotation.y = yaw;
     ctx.scene.add(this.group);
@@ -125,39 +182,41 @@ export class PiggyMachineView {
     const ids = PIGGY.symbols.map((s) => s.id);
     this.atlas = piggyAtlas(ids, CELL);
     this.blurAtlas = blurred(this.atlas.canvas);
-    this.coinFace = document.createElement('canvas');
-    this.coinFace.width = this.coinFace.height = CELL;
-    paintCoin(this.coinFace.getContext('2d')!, CELL);
+    this.bg = background(false);
+    this.bgBonus = background(true);
     this.reels = PIGGY.reels.map((strip) => ({ pos: Math.floor(Math.random() * strip.length), from: 0, distance: 0, start: 0, stopAt: 0, stopped: true }));
 
-    this.screen = new CanvasPanel(SCREEN.w, SCREEN.px, SCREEN.py, { transparent: false });
-    this.deck = new CanvasPanel(0.7, 1240, 360);
-    this.meters = new CanvasPanel(0.72, 1200, 190, { transparent: false });
-    this.marquee = new CanvasPanel(0.76, 1240, 400, { transparent: false });
-    this.bulbs = this.buildCabinet();
+    this.screen = new CanvasPanel(SCREEN.w, W, H, { transparent: false });
+    this.deck = new CanvasPanel(0.72, 1240, 360);
+    this.marquee = new CanvasPanel(0.8, 1240, 360, { transparent: false });
+    const { bulbs, led } = this.buildCabinet();
+    this.bulbs = bulbs;
+    this.led = led;
     this.buildPigs();
+    this.syncShown(true);
     this.setupScreen();
     this.setupDeck();
     this.drawMarquee();
-    this.drawMeters();
     this.reelLoop = ctx.sound.loop('reelTick', this.screen.mesh);
 
-    const vp = new THREE.Vector3(0, 0, 0.86).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).add(position);
-    this.viewpoint = { id: PIGGY.id, label: PIGGY.name, position: vp, yaw, pitch: 0.06, eye: 1.6, back: 0.55, portrait: { back: 0.25, eye: 1.55, pitch: 0.08 } };
+    const vp = new THREE.Vector3(0, 0, 0.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).add(position);
+    this.viewpoint = { id: PIGGY.id, label: PIGGY.name, position: vp, yaw, pitch: 0.0, eye: 1.55, back: 0.62, portrait: { back: 0.5, eye: 1.5, pitch: 0.02 } };
     ctx.bankroll.onChange(() => this.deck.redraw());
     bakeStatic(this.group, { shadows: ctx.quality.shadows });
   }
 
   // ---------------------------------------------------------------------------
-  // Cabinet and banks
+  // Cabinet and 3D banks
   // ---------------------------------------------------------------------------
 
-  private buildCabinet(): THREE.InstancedMesh {
+  private buildCabinet() {
     const g = this.group;
     const q = this.ctx.quality;
-    const lacquer = new THREE.MeshPhysicalMaterial({ color: 0x5a1830, roughness: 0.22, metalness: 0.15, clearcoat: q.name === 'desktop' ? 1 : 0, clearcoatRoughness: 0.08, envMapIntensity: 1.2 });
-    const gold = new THREE.MeshStandardMaterial({ color: 0xd8ae58, metalness: 1, roughness: 0.25, envMapIntensity: 1.4 });
-    const black = new THREE.MeshStandardMaterial({ color: 0x0c0a0a, roughness: 0.35 });
+    const body = new THREE.MeshPhysicalMaterial({ color: 0x141018, roughness: 0.25, metalness: 0.3, clearcoat: q.name === 'desktop' ? 1 : 0, clearcoatRoughness: 0.06, envMapIntensity: 1.1 });
+    const accent = new THREE.MeshPhysicalMaterial({ color: 0x6a1840, roughness: 0.2, metalness: 0.4, clearcoat: q.name === 'desktop' ? 1 : 0, envMapIntensity: 1.2 });
+    const chrome = new THREE.MeshStandardMaterial({ color: 0xe8e8f0, metalness: 1, roughness: 0.12, envMapIntensity: 1.6 });
+    const gold = new THREE.MeshStandardMaterial({ color: 0xe0b860, metalness: 1, roughness: 0.2, envMapIntensity: 1.5 });
+    const black = new THREE.MeshStandardMaterial({ color: 0x0a0a0c, roughness: 0.35 });
     const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, rx = 0) => {
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x, y, z);
@@ -166,183 +225,149 @@ export class PiggyMachineView {
       g.add(m);
       return m;
     };
-    // Lower body, plinth, deck shelf, tall upper body.
-    add(new RoundedBoxGeometry(0.8, 0.82, 0.62, 3, 0.03), lacquer, 0, 0.41, 0);
-    add(new THREE.BoxGeometry(0.82, 0.03, 0.64), gold, 0, 0.82, 0);
-    add(new THREE.BoxGeometry(0.76, 0.06, 0.52), black, 0, 0.03, 0);
-    add(new RoundedBoxGeometry(0.8, 0.05, 0.32, 2, 0.015), lacquer, 0, 0.88, 0.2, DECK_TILT);
-    add(new RoundedBoxGeometry(0.8, 1.2, 0.44, 3, 0.03), lacquer, 0, 1.48, -0.07);
-    // Gold bezel around the screen.
+    // Base, deck, tall upper body with a slim chrome-framed screen.
+    add(new RoundedBoxGeometry(0.82, 0.8, 0.64, 3, 0.03), body, 0, 0.4, 0.02);
+    add(new THREE.BoxGeometry(0.84, 0.02, 0.66), chrome, 0, 0.805, 0.02);
+    add(new THREE.BoxGeometry(0.78, 0.06, 0.54), black, 0, 0.03, 0.02);
+    add(new RoundedBoxGeometry(0.82, 0.05, 0.32, 2, 0.015), body, 0, 0.86, 0.2, DECK_TILT);
+    add(new RoundedBoxGeometry(0.84, 1.22, 0.3, 3, 0.04), body, 0, 1.5, -0.08);
+    // Accent side fins.
+    for (const sx of [-1, 1]) add(new RoundedBoxGeometry(0.035, 1.2, 0.26, 2, 0.012), accent, sx * 0.425, 1.5, -0.07);
     const sw = SCREEN.w,
-      sh = (SCREEN.w * SCREEN.py) / SCREEN.px;
+      sh = (SCREEN.w * H) / W;
     const bezel = new THREE.Shape();
-    bezel.moveTo(-sw / 2 - 0.03, -sh / 2 - 0.03);
-    bezel.lineTo(sw / 2 + 0.03, -sh / 2 - 0.03);
-    bezel.lineTo(sw / 2 + 0.03, sh / 2 + 0.03);
-    bezel.lineTo(-sw / 2 - 0.03, sh / 2 + 0.03);
+    const m = 0.014;
+    bezel.moveTo(-sw / 2 - m, -sh / 2 - m);
+    bezel.lineTo(sw / 2 + m, -sh / 2 - m);
+    bezel.lineTo(sw / 2 + m, sh / 2 + m);
+    bezel.lineTo(-sw / 2 - m, sh / 2 + m);
     bezel.holes.push(new THREE.Path().moveTo(-sw / 2, -sh / 2).lineTo(sw / 2, -sh / 2).lineTo(sw / 2, sh / 2).lineTo(-sw / 2, sh / 2));
-    const bz = add(new THREE.ExtrudeGeometry(bezel, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.004, bevelSegments: 2 }), gold, 0, SCREEN.y, SCREEN.z - 0.015);
-    bz.rotation.x = SCREEN.tilt;
+    add(new THREE.ExtrudeGeometry(bezel, { depth: 0.008, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.003, bevelSegments: 2 }), chrome, 0, SCREEN.y, SCREEN.z - 0.01);
     this.screen.mesh.position.set(0, SCREEN.y, SCREEN.z);
-    this.screen.mesh.rotation.x = SCREEN.tilt;
     g.add(this.screen.mesh);
-    // Bank meters strip above the screen.
-    this.meters.mesh.position.set(0, 1.94, 0.152);
-    g.add(this.meters.mesh);
-    // Deck.
     this.deck.mesh.rotation.x = -Math.PI / 2 + DECK_TILT;
-    this.deck.mesh.position.set(0, 0.88, 0.2).add(new THREE.Vector3(0, Math.cos(DECK_TILT), Math.sin(DECK_TILT)).multiplyScalar(0.027));
+    this.deck.mesh.position.set(0, 0.86, 0.2).add(new THREE.Vector3(0, Math.cos(DECK_TILT), Math.sin(DECK_TILT)).multiplyScalar(0.027));
     g.add(this.deck.mesh);
 
-    // The stage the banks stand on: a gold-rimmed ledge with a little hay-bale trim.
-    add(new RoundedBoxGeometry(0.84, 0.04, 0.46, 2, 0.012), gold, 0, STAGE_Y - 0.02, -0.04);
-    const hay = new THREE.MeshStandardMaterial({ color: 0xc8a04a, roughness: 0.95 });
-    for (const x of [-0.37, 0.37]) add(new RoundedBoxGeometry(0.07, 0.05, 0.1, 2, 0.01), hay, x, STAGE_Y + 0.025, 0.1);
-    // Marquee behind the banks.
-    add(new RoundedBoxGeometry(0.84, 0.36, 0.1, 3, 0.03), lacquer, 0, STAGE_Y + 0.33, -0.24);
-    this.marquee.mesh.position.set(0, STAGE_Y + 0.33, -0.188);
+    // LED edge light around the cabinet face (colour animates).
+    const led = new THREE.MeshBasicMaterial({ color: 0xff40a0, toneMapped: false });
+    const ledGroup = new THREE.Group();
+    for (const sx of [-1, 1]) {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.008, 1.16, 0.008), led);
+      strip.position.set(sx * 0.4, 1.5, 0.075);
+      ledGroup.add(strip);
+    }
+    const topStrip = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.008, 0.008), led);
+    topStrip.position.set(0, 2.1, 0.075);
+    ledGroup.add(topStrip);
+    const baseStrip = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.008, 0.008), led);
+    baseStrip.position.set(0, 0.07, 0.345);
+    ledGroup.add(baseStrip);
+    g.add(dynamic(ledGroup));
+
+    // Topper: chrome shelf for the banks, marquee sign behind with chasing bulbs.
+    add(new RoundedBoxGeometry(0.88, 0.035, 0.44, 2, 0.012), chrome, 0, STAGE_Y - 0.015, -0.06);
+    add(new RoundedBoxGeometry(0.86, 0.3, 0.08, 3, 0.03), body, 0, STAGE_Y + 0.36, -0.24);
+    add(new THREE.BoxGeometry(0.88, 0.012, 0.09), gold, 0, STAGE_Y + 0.51, -0.24);
+    this.marquee.mesh.position.set(0, STAGE_Y + 0.36, -0.198);
     g.add(this.marquee.mesh);
-    const mw = 0.76,
-      mh = (0.76 * this.marquee.pxH) / this.marquee.pxW;
-    const bulbCount = 48;
-    const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.008, 8, 6), new THREE.MeshBasicMaterial({ toneMapped: false }), bulbCount);
+    const mw = 0.8,
+      mh = (0.8 * this.marquee.pxH) / this.marquee.pxW;
+    const bulbCount = 52;
+    const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.0075, 8, 6), new THREE.MeshBasicMaterial({ toneMapped: false }), bulbCount);
     const tmp = new THREE.Object3D();
     for (let i = 0; i < bulbCount; i++) {
       let d = (i / bulbCount) * 2 * (mw + mh);
       let x: number, y: number;
-      if (d < mw) [x, y] = [-mw / 2 + d, mh / 2 + 0.01];
-      else if ((d -= mw) < mh) [x, y] = [mw / 2 + 0.01, mh / 2 - d];
-      else if ((d -= mh) < mw) [x, y] = [mw / 2 - d, -mh / 2 - 0.01];
-      else [x, y] = [-mw / 2 - 0.01, -mh / 2 + (d - mw)];
-      tmp.position.set(x, STAGE_Y + 0.33 + y, -0.186);
+      if (d < mw) [x, y] = [-mw / 2 + d, mh / 2 + 0.008];
+      else if ((d -= mw) < mh) [x, y] = [mw / 2 + 0.008, mh / 2 - d];
+      else if ((d -= mh) < mw) [x, y] = [mw / 2 - d, -mh / 2 - 0.008];
+      else [x, y] = [-mw / 2 - 0.008, -mh / 2 + (d - mw)];
+      tmp.position.set(x, STAGE_Y + 0.36 + y, -0.196);
       tmp.updateMatrix();
       bulbs.setMatrixAt(i, tmp.matrix);
       bulbs.setColorAt(i, this.bulbOn);
     }
     g.add(dynamic(bulbs));
 
-    addCabinetDetails(g, { topY: STAGE_Y + 0.51, topZ: -0.24, frontZ: 0.31, panelY: 0.64, halfW: 0.4, candle: GLOW.pink, dark: black });
+    addCabinetDetails(g, { topY: STAGE_Y + 0.51, topZ: -0.24, frontZ: 0.34, panelY: 0.62, halfW: 0.41, candle: GLOW.pink, dark: black });
 
-    // Floor: contact shadow, coloured glow pool, stool.
     const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.4), new THREE.MeshBasicMaterial({ map: toTexture(radial(128, 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0)')), transparent: true, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.set(0, 0.011, 0.1);
     g.add(shadow);
     const pool = new THREE.Mesh(
       new THREE.PlaneGeometry(1.1, 0.9),
-      new THREE.MeshBasicMaterial({ map: toTexture(radial(128, '#ff6ab0', 'rgba(0,0,0,0)')), transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ map: toTexture(radial(128, '#ff4aa0', 'rgba(0,0,0,0)')), transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false }),
     );
     pool.rotation.x = -Math.PI / 2;
-    pool.position.set(0, 0.012, 0.6);
+    pool.position.set(0, 0.012, 0.62);
     g.add(pool);
     const leather = assets.material('leather', { repeat: 1, rough: 0.8, tint: 0x7a4040, fallback: () => new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.5 }) });
-    add(new THREE.CylinderGeometry(0.19, 0.17, 0.08, 24), leather, 0, 0.66, 0.82).castShadow = false;
-    add(new THREE.CylinderGeometry(0.028, 0.028, 0.6, 10), gold, 0, 0.32, 0.82);
-    add(new THREE.CylinderGeometry(0.19, 0.21, 0.03, 24), gold, 0, 0.015, 0.82);
-    return bulbs;
+    add(new THREE.CylinderGeometry(0.19, 0.17, 0.08, 24), leather, 0, 0.66, 0.86).castShadow = false;
+    add(new THREE.CylinderGeometry(0.028, 0.028, 0.6, 10), chrome, 0, 0.32, 0.86);
+    add(new THREE.CylinderGeometry(0.19, 0.21, 0.03, 24), chrome, 0, 0.015, 0.86);
+    return { bulbs, led };
   }
 
   private buildPigs() {
     const black = new THREE.MeshStandardMaterial({ color: 0x140808, roughness: 0.3 });
-    const gold = new THREE.MeshStandardMaterial({ color: 0xe0b860, metalness: 1, roughness: 0.2, envMapIntensity: 1.5 });
-    const { body, dark, trim } = pigGeometry(0.08);
-    PIG_COLORS.forEach((c, i) => {
-      const mat = new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.18, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.4, emissive: c, emissiveIntensity: 0 });
+    const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+    const gold = new THREE.MeshStandardMaterial({ color: 0xe8c060, metalness: 1, roughness: 0.18, envMapIntensity: 1.6 });
+    const geo = pigGeometry(0.1);
+    for (const c of COLORS) {
+      const col = PIG_COLORS[c];
+      const mat = new THREE.MeshPhysicalMaterial({ color: col, roughness: 0.12, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.6, emissive: col, emissiveIntensity: 0 });
       const pg = new THREE.Group();
-      pg.add(new THREE.Mesh(body, mat), new THREE.Mesh(dark, black), new THREE.Mesh(trim, gold));
-      pg.position.set(PIG_X[i], STAGE_Y, -0.02);
-      pg.rotation.y = -PIG_X[i] * 0.9; // turned a little toward the player
+      pg.add(new THREE.Mesh(geo.body, mat), new THREE.Mesh(geo.dark, black), new THREE.Mesh(geo.trim, gold), new THREE.Mesh(geo.white, white));
+      pg.position.set(PIG_X3[c], STAGE_Y, -0.02);
+      pg.rotation.y = -PIG_X3[c] * 0.8;
       this.group.add(dynamic(pg));
-      this.pigs.push({ group: pg, mat, scale: 0.8, wobble: 0, shown: 0, hiddenUntil: 0 });
-    });
+      this.pig3[c] = { group: pg, mat, fat: 0, wobble: 0, party: 0 };
+    }
   }
 
-  private pigFill(i: number): number {
-    return Math.min(1, this.pigs[i].shown / PIG_CAPACITY[PIGS[i]]);
+  /** How full each bank looks, 0..1. */
+  private fullness(c: CoinColor): number {
+    if (c === 'blue') return Math.min(1, (this.shown.blue - BLUE_START) / 40);
+    if (c === 'yellow') return Math.min(1, this.shown.boost / 100);
+    return this.shown.red / RED_ORDER.length;
+  }
+
+  private boostOf(jackpots: number[]): number {
+    return Math.round(((jackpots[4] - JACKPOT_BASE[4]) / JACKPOT_BASE[4]) * 100);
+  }
+
+  private syncShown(snap = false) {
+    const b = this.game.bankFor();
+    this.shown = { blue: b.blue, boost: this.boostOf(b.jackpots), red: b.reds };
+    if (snap) for (const c of COLORS) this.pig2[c].fat = this.pig3[c].fat = this.fullness(c);
+    this.dirty = true;
   }
 
   private drawMarquee() {
     const m = this.marquee;
     const ctx = m.ctx;
     const g = ctx.createLinearGradient(0, 0, 0, m.pxH);
-    g.addColorStop(0, '#3a0c22');
-    g.addColorStop(0.5, '#a0285a');
-    g.addColorStop(1, '#3a0c22');
+    g.addColorStop(0, '#1a0418');
+    g.addColorStop(0.5, '#6a0c48');
+    g.addColorStop(1, '#1a0418');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, m.pxW, m.pxH);
     ctx.save();
-    ctx.translate(m.pxW / 2, m.pxH * 0.7);
-    for (let i = 0; i < 28; i++) {
-      ctx.rotate((Math.PI * 2) / 28);
-      ctx.fillStyle = i % 2 ? 'rgba(255,220,160,0.1)' : 'rgba(255,255,255,0.03)';
+    ctx.translate(m.pxW / 2, m.pxH * 0.62);
+    for (let i = 0; i < 32; i++) {
+      ctx.rotate((Math.PI * 2) / 32);
+      ctx.fillStyle = i % 2 ? 'rgba(255,200,120,0.12)' : 'rgba(255,255,255,0.03)';
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(m.pxW, -70);
-      ctx.lineTo(m.pxW, 70);
+      ctx.lineTo(m.pxW, -60);
+      ctx.lineTo(m.pxW, 60);
       ctx.fill();
     }
     ctx.restore();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `italic bold 120px ${SERIF}`;
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = '#3a0a1a';
-    ctx.strokeText('Porkbelly Payday', m.pxW / 2, m.pxH * 0.4);
-    const tg = ctx.createLinearGradient(0, m.pxH * 0.25, 0, m.pxH * 0.55);
-    tg.addColorStop(0, '#fff5cf');
-    tg.addColorStop(0.5, '#ffc0dc');
-    tg.addColorStop(1, '#f08ab8');
-    ctx.fillStyle = tg;
-    ctx.shadowColor = '#ff80c0';
-    ctx.shadowBlur = 30;
-    ctx.fillText('Porkbelly Payday', m.pxW / 2, m.pxH * 0.4);
-    ctx.shadowBlur = 0;
-    ctx.font = `44px ${SERIF}`;
-    ctx.fillStyle = '#ffeedd';
-    ctx.fillText('Feed the banks · Hold & Spin for the Grand', m.pxW / 2, m.pxH * 0.78);
-    m.texture.needsUpdate = true;
-  }
-
-  private drawMeters() {
-    const m = this.meters;
-    const ctx = m.ctx;
-    ctx.fillStyle = '#1a0a10';
-    ctx.fillRect(0, 0, m.pxW, m.pxH);
-    const meters = this.game.metersFor();
-    const w = m.pxW / 3;
-    PIGS.forEach((p, i) => {
-      const x = i * w;
-      const fill = this.pigFill(i);
-      const full = meters[i] >= PIG_CAPACITY[p] && this.pigs[i].shown >= PIG_CAPACITY[p];
-      const col = '#' + new THREE.Color(PIG_COLORS[i]).getHexString();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = `bold 40px ${SERIF}`;
-      ctx.fillStyle = full ? '#fff2a0' : '#f6e2d0';
-      ctx.fillText(full ? `${PIG_NAMES[i]} FULL!` : PIG_NAMES[i], x + w / 2, 38);
-      ctx.font = `italic 30px ${SERIF}`;
-      ctx.fillStyle = GOLD_LIGHT;
-      ctx.fillText(PIG_POWERS[i], x + w / 2, 80);
-      roundRect(ctx, x + 40, 112, w - 80, 46, 23);
-      ctx.fillStyle = '#000';
-      ctx.fill();
-      ctx.strokeStyle = full ? '#ffe070' : GOLD;
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      if (fill > 0) {
-        roundRect(ctx, x + 44, 116, Math.max(38, (w - 88) * fill), 38, 19);
-        const gr = ctx.createLinearGradient(0, 116, 0, 154);
-        gr.addColorStop(0, '#ffffff');
-        gr.addColorStop(0.3, col);
-        gr.addColorStop(1, '#200008');
-        ctx.fillStyle = gr;
-        ctx.fill();
-      }
-      if (i > 0) {
-        ctx.fillStyle = 'rgba(216,178,90,0.5)';
-        ctx.fillRect(x - 2, 20, 4, m.pxH - 40);
-      }
-    });
+    titleText(ctx, 'PORKBELLY', m.pxW / 2, m.pxH * 0.32, 118);
+    titleText(ctx, 'PAYDAY', m.pxW / 2, m.pxH * 0.72, 128, true);
     m.texture.needsUpdate = true;
   }
 
@@ -354,9 +379,9 @@ export class PiggyMachineView {
     const d = this.deck;
     d.background = (ctx) => {
       roundRect(ctx, 4, 4, d.pxW - 8, d.pxH - 8, 30);
-      ctx.fillStyle = 'rgba(14,10,8,0.92)';
+      ctx.fillStyle = 'rgba(10,8,12,0.94)';
       ctx.fill();
-      ctx.strokeStyle = GOLD;
+      ctx.strokeStyle = '#c8c8d8';
       ctx.lineWidth = 4;
       ctx.stroke();
       ctx.fillStyle = GOLD_LIGHT;
@@ -383,38 +408,45 @@ export class PiggyMachineView {
   get bonusBet() {
     return this.game.bonus?.totalBet ?? this.game.bet;
   }
+  get inBonus() {
+    return this.mode === 'intro' || this.mode === 'free' || this.mode === 'bonusEnd' || (this.game.phase === 'bonus' && (this.mode === 'spinning' || this.mode === 'reveal' || this.mode === 'showing'));
+  }
   get spinLabel() {
-    return this.mode === 'spinning' ? 'STOP' : this.mode === 'bonusEnd' ? 'COLLECT' : this.inBonus ? 'BONUS' : 'SPIN';
+    if (this.mode === 'spinning') return 'STOP';
+    if (this.mode === 'bonusEnd') return 'COLLECT';
+    return this.inBonus ? 'FREE' : 'SPIN';
   }
   get spinSub() {
-    if (this.mode === 'respin' || this.mode === 'intro') return `${this.game.bonus?.respinsLeft ?? 0} respins`;
-    return '';
+    const b = this.game.bonus;
+    return b && !b.done ? `${b.spinsLeft} left` : '';
   }
   get spinEnabled() {
-    return this.mode !== 'intro' && this.mode !== 'respin';
-  }
-  get inBonus() {
-    return this.mode === 'intro' || this.mode === 'respin' || this.mode === 'bonusEnd';
+    return this.mode === 'idle' || this.mode === 'showing' || this.mode === 'spinning' || this.mode === 'info' || (this.mode === 'bonusEnd' && this.bonusCounted);
   }
 
   changeBet(dir: 1 | -1) {
     if (!this.canChangeBet) return;
     this.game.changeBet(dir);
-    this.ctx.sound.play('click', this.deck.mesh, { volume: 0.5 });
-    // Bank meters are kept per bet level: show this level's banks.
-    this.game.metersFor().forEach((v, i) => (this.pigs[i].shown = v));
-    this.drawMeters();
-    this.deck.redraw();
-    this.dirty = true;
+    this.afterBetChange();
   }
 
   maxBet() {
-    while (this.game.betIndex < PIGGY.betLevels.length - 1) this.changeBet(1);
+    if (!this.canChangeBet) return;
+    this.game.betIndex = PIGGY.betLevels.length - 1;
+    this.afterBetChange();
+  }
+
+  private afterBetChange() {
+    this.ctx.sound.play('click', this.deck.mesh, { volume: 0.5 });
+    // Banks are kept per bet level: show this level's banks.
+    this.syncShown();
+    this.deck.redraw();
   }
 
   toggleInfo() {
     if (this.mode !== 'idle' && this.mode !== 'showing' && this.mode !== 'info') return;
     this.mode = this.mode === 'info' ? 'idle' : 'info';
+    this.infoPage = 0;
     this.dirty = true;
     this.deck.redraw();
   }
@@ -422,41 +454,47 @@ export class PiggyMachineView {
   onSpinPressed() {
     if (this.mode === 'spinning') return this.slamStop();
     if (this.mode === 'bonusEnd') return this.collect();
-    if (this.mode === 'info') return this.toggleInfo();
-    if (this.mode === 'idle' || this.mode === 'showing') this.startSpin();
+    if (this.mode === 'info') {
+      if (this.infoPage < 1) {
+        this.infoPage++;
+        this.dirty = true;
+        return;
+      }
+      return this.toggleInfo();
+    }
+    if ((this.mode === 'idle' || this.mode === 'showing') && this.game.phase === 'idle') this.startSpin();
   }
 
   // ---------------------------------------------------------------------------
-  // Base game
+  // Spins (paid and free)
   // ---------------------------------------------------------------------------
 
   private startSpin(forcedStops?: number[]) {
-    if (!this.ctx.bankroll.canAfford(this.game.bet)) {
+    const free = this.game.phase === 'bonus';
+    if (!free && !this.ctx.bankroll.canAfford(this.game.bet)) {
       this.ctx.hud.toast('Not enough credits — lower your bet', 'warn');
       this.ctx.sound.play('denied', this.deck.mesh);
       return;
     }
-    this.lastStake = this.game.bet;
+    const strips = free && this.game.bonus ? this.game.bonus.reels : PIGGY.reels;
+    this.lastStake = free ? 0 : this.game.bet;
     const out = this.game.spin(this.ctx.rng, forcedStops);
     this.out = out;
-    this.pendingWin = out.lineWin;
-    this.ctx.hud.setPending(PIGGY.id, out.lineWin);
-    // Banks animate up to the new meter as coins arrive; hold them for now.
+    this.pendingWin = out.win;
+    this.ctx.hud.setPending(PIGGY.id, out.win);
     this.shownWin = 0;
     this.mode = 'spinning';
-    let t = 0.7;
-    let coins = 0;
+    let t = free ? 0.55 : 0.7;
     this.reels.forEach((r, i) => {
-      const len = PIGGY.reels[i].length;
+      const len = strips[i].length;
+      r.pos = ((r.pos % len) + len) % len;
       const target = out.stops[i];
-      // Anticipation: slow the last reels when 4+ coins are already showing.
-      const tease = i >= 3 && coins >= 4;
-      t += tease ? 1.1 : i === 0 ? 0 : 0.26;
+      t += i === 0 ? 0 : free ? 0.18 : 0.25;
       const delta = (((r.pos - target) % len) + len) % len;
       const laps = Math.max(1, Math.round((22 * t - delta) / len));
       Object.assign(r, { from: r.pos, distance: laps * len + delta, start: this.time, stopAt: this.time + t, stopped: false });
-      coins += out.coins[i].filter(Boolean).length;
     });
+    this.reelStrips = strips;
     this.deck.redraw();
   }
 
@@ -473,164 +511,198 @@ export class PiggyMachineView {
     }
   }
 
+  /** Reels stopped: mystery coins flip to reveal their symbol a beat later. */
   private onAllStopped() {
-    const out = this.out!;
     this.reelLoop.stop();
+    const out = this.out!;
+    if (out.mystery) {
+      this.mode = 'reveal';
+      this.revealAt = this.time + 0.6;
+      this.ctx.sound.play('bonus', this.screen.mesh, { volume: 0.25, rate: 1.6 });
+    } else this.afterReveal();
+  }
+
+  private afterReveal() {
+    const out = this.out!;
     this.mode = 'showing';
     this.winTimer = 0;
-    this.ctx.hud.setPending(PIGGY.id, 0);
-    this.pendingWin = 0;
-    this.onResult?.(this.lastStake, out.lineWin, out.triggered ? 'holdSpin' : undefined);
+    this.dirty = true;
+    if (out.mystery) {
+      this.ctx.sound.play('reelStop', this.screen.mesh, { volume: 0.8, rate: 1.3 });
+      out.raw.forEach((col, r) => col.forEach((s, row) => s === 'MYSTERY' && (this.cellFlash[r * 3 + row] = this.time)));
+    }
     if (out.lineWin > 0) {
-      this.ctx.sound.play(out.lineWin >= this.lastStake * 15 ? 'winBig' : 'winSmall', this.screen.mesh);
-      this.tweens.add(Math.min(2.2, 0.6 + out.lineWin / 200), (k) => {
+      const bet = out.bet;
+      const big = out.lineWin >= bet * 10;
+      this.ctx.sound.play(big ? 'winBig' : 'winSmall', this.screen.mesh);
+      if (big) this.shower(Math.min(120, 30 + out.lineWin / bet));
+      this.tweens.add(Math.min(3, 0.6 + out.lineWin / bet / 8), (k) => {
         this.shownWin = Math.round(out.lineWin * k * 100) / 100;
-        this.dirty = true;
       });
     }
-    // Coins fly up into the banks.
-    out.fed.forEach((f, n) => {
-      this.after(0.12 * n, () => {
-        this.ctx.sound.play('chip', this.screen.mesh, { volume: 0.5, rate: 1.2 + n * 0.05 });
-        if (f.pig < 0) return;
-        this.fly(this.cellWorld(f.reel * 3 + f.row), this.pigSlot(f.pig), 0.55, () => {
-          const p = this.pigs[f.pig];
-          p.shown = Math.min(PIG_CAPACITY[PIGS[f.pig]], p.shown + 1);
-          p.wobble = 1;
-          this.ctx.sound.play('chips', p.group, { volume: 0.35, rate: 1.4 });
-          if (p.shown >= PIG_CAPACITY[PIGS[f.pig]]) {
-            this.ctx.sound.play('bonus', p.group, { volume: 0.5 });
-            this.ctx.hud.toast(`${PIG_NAMES[f.pig]} is full! ${PIG_POWERS[f.pig]} on the next Hold & Spin`, 'win');
-          }
-          this.drawMeters();
+    // Jackpot coins in the Yellow bonus.
+    out.jackpotCoins.forEach((c, n) =>
+      this.after(0.15 * n, () => {
+        this.cellFlash[c.reel * 3 + c.row] = this.time;
+        this.jpFlash[c.jackpot] = this.time;
+        this.ctx.sound.play('chip', this.screen.mesh, { volume: 0.8, rate: 1 + c.jackpot * 0.1 });
+      }),
+    );
+    for (const w of out.jackpotWins) {
+      this.after(0.4 + 0.15 * out.jackpotCoins.length, () => {
+        this.showBanner(`${JACKPOT_NAMES[w.jackpot]}!`, money(w.amount), JP_COLORS[w.jackpot], 2.6);
+        this.jpFlash[w.jackpot] = this.time + 1.5;
+        this.ctx.sound.play('winBig', this.screen.mesh);
+        this.shower(40 + w.jackpot * 25, JACKPOT_NAMES[w.jackpot]);
+        if (w.jackpot >= 3) this.ctx.sound.play('cheer', this.screen.mesh, { volume: 0.8 });
+        this.ctx.hud.toast(`${JACKPOT_NAMES[w.jackpot]} jackpot · ${money(w.amount)}`, 'win');
+      });
+    }
+
+    // Coins flick up into the pigs.
+    out.coins.forEach((c, n) => {
+      this.after(0.3 + 0.28 * n, () => {
+        this.ctx.sound.play('chip', this.screen.mesh, { volume: 0.6, rate: 1.4 });
+        const cx = REELS_X + c.reel * CELL + CELL / 2,
+          cy = REELS_Y + c.row * CELL + CELL / 2;
+        this.flicks.push({
+          color: c.color,
+          x0: cx,
+          y0: cy,
+          x1: PIG_SX[c.color],
+          y1: PIG_Y - PIG_R * 0.7,
+          t: 0,
+          dur: 0.65,
+          done: () => this.coinArrived(c.color, c.result, out),
         });
       });
     });
-    if (out.triggered) {
-      const wait = 700 + 120 * out.fed.length;
-      this.ctx.sound.play('bonus', this.screen.mesh);
-      this.banner = { text: 'HOLD & SPIN!', until: this.time + 3, color: '#ffd86b' };
-      this.after(wait / 1000, () => this.startIntro());
-      this.mode = 'intro';
+
+    const settle = 0.3 + 0.28 * out.coins.length + (out.coins.length ? 0.9 : 0.2);
+    this.ctx.hud.setPending(PIGGY.id, 0);
+    this.pendingWin = 0;
+    if (!out.free) {
+      this.onResult?.(this.lastStake, out.win, out.triggered ? 'bonus' : undefined);
+      if (out.triggered) this.after(settle + 0.6, () => this.startIntro());
+      else this.after(settle, () => this.syncShown());
+    } else {
+      const b = this.game.bonus!;
+      this.freeTimer = (out.lineWin > 0 ? 1.4 : 0.75) + (out.jackpotWins.length ? 2.6 : 0) + 0.15 * out.jackpotCoins.length;
+      this.mode = 'free';
+      if (b.done) this.freeTimer += 0.4;
     }
-    this.dirty = true;
     this.deck.redraw();
   }
 
+  private coinArrived(c: CoinColor, result: 'trigger' | 'feed' | 'none', out: PiggySpin) {
+    const p2 = this.pig2[c];
+    const p3 = this.pig3[c];
+    p2.squash = 1;
+    this.ctx.sound.play('gulp', this.screen.mesh, { volume: 0.7 });
+    if (result === 'feed') {
+      if (c === 'blue') this.shown.blue = Math.min(out.bank.blue, this.shown.blue + 1);
+      if (c === 'yellow') {
+        const step = Math.round((JACKPOT_GROWTH[4] / JACKPOT_BASE[4]) * 100);
+        this.shown.boost = Math.min(this.boostOf(out.bank.jackpots), this.shown.boost + step);
+      }
+      if (c === 'red') this.shown.red = Math.min(out.bank.reds, this.shown.red + 1);
+      p3.wobble = 1;
+    } else if (result === 'trigger') {
+      p2.shake = 1.2;
+      p3.party = 2;
+      this.ctx.sound.play('bonus', this.screen.mesh, { volume: 0.8 });
+      this.after(0.7, () => this.showBanner(`${c.toUpperCase()} PIG!`, 'BONUS', hex(PIG_COLORS[c]), 1.4));
+    } else p3.wobble = 0.3;
+    this.dirty = true;
+  }
+
+  private showBanner(text: string, sub: string | undefined, color: string, dur: number) {
+    this.banner = { text, sub, at: this.time, until: this.time + dur, color };
+  }
+
+  /** Coin shower particles over the screen. */
+  private shower(n: number, color = 'gold') {
+    for (let i = 0; i < n; i++) {
+      this.particles.push({
+        x: W / 2 + (Math.random() - 0.5) * 200,
+        y: REELS_Y + CELL * 1.5,
+        vx: (Math.random() - 0.5) * 900,
+        vy: -500 - Math.random() * 700,
+        spin: Math.random() * 6,
+        life: 2.2 + Math.random(),
+        color: Math.random() < 0.7 ? color : 'gold',
+      });
+    }
+  }
+
   // ---------------------------------------------------------------------------
-  // Hold & Spin
+  // Bonus
   // ---------------------------------------------------------------------------
 
   private startIntro() {
     const b = this.game.bonus!;
-    this.cellSpin.fill(0);
-    this.cellFlash.fill(-10);
+    const feats = COLORS.filter((c) => b.features[c]);
+    this.lastFeatures = feats;
+    this.mode = 'intro';
     this.bonusShownTotal = 0;
     this.bonusCounted = false;
-    this.redApplied = false;
-    this.ctx.hud.toast('Hold & Spin! Coins lock, every new coin resets the respins', 'win');
-    // Full banks smash, one after another.
-    const smash = PIGS.map((p, i) => (b.powers[p] ? i : -1)).filter((i) => i >= 0);
-    smash.forEach((i, n) => {
-      this.after(0.9 + n * 1.1, () => {
-        this.smashPig(i);
-        this.banner = { text: `${PIG_NAMES[i].toUpperCase()} · ${PIG_POWERS[i].toUpperCase()}`, until: this.time + 1.6, color: '#' + new THREE.Color(PIG_COLORS[i]).getHexString() };
-        if (PIGS[i] === 'blue' && b.blueCell !== null) {
-          this.fly(this.pigSlot(i), this.cellWorld(b.blueCell), 0.7, () => {
-            this.cellFlash[b.blueCell!] = this.time;
-            this.ctx.sound.play('winSmall', this.screen.mesh);
-          });
-        }
-        this.dirty = true;
-      });
+    const title = feats.map((f) => f.toUpperCase()).join(' + ');
+    this.showBanner(title + '!', `${b.totalSpins} FREE SPINS`, feats.length > 1 ? '#ffd86b' : hex(PIG_COLORS[feats[0]]), 3.4);
+    this.ctx.sound.play('banjo', this.screen.mesh, { volume: 0.9 });
+    this.ctx.sound.play('bonus', this.screen.mesh, { volume: 0.6 });
+    this.ctx.hud.toast(this.describe(feats, b.totalSpins), 'win');
+    feats.forEach((c, n) => this.after(0.3 + n * 0.45, () => this.celebrate(c)));
+    this.shower(40 * feats.length);
+    this.after(3.6, () => {
+      this.mode = 'free';
+      this.freeTimer = 0.2;
+      this.syncShown();
     });
-    this.respinTimer = 2.2 + smash.length * 1.1;
-    this.mode = 'respin';
-    this.lastRespin = null;
-    this.drawMeters();
     this.deck.redraw();
   }
 
-  private smashPig(i: number) {
-    const p = this.pigs[i];
-    this.ctx.sound.play('winBig', p.group, { volume: 0.6 });
-    this.ctx.sound.play('chips', p.group, { volume: 1 });
-    // Bulge, then burst into coins, then a fresh empty bank pops back.
-    const g = p.group;
-    this.tweens.add(0.35, (k) => g.scale.setScalar(p.scale * (1 + k * 0.5)), () => {
-      g.visible = false;
-      const at = this.pigSlot(i);
-      for (let n = 0; n < 16; n++) {
-        const a = (n / 16) * Math.PI * 2;
-        const v = new THREE.Vector3(Math.cos(a) * (0.4 + Math.random() * 0.4), 0.8 + Math.random() * 0.8, Math.sin(a) * 0.3 + 0.35);
-        this.burst(at, v);
-      }
-    });
-    p.shown = 0;
-    p.hiddenUntil = this.time + 2.4;
-    this.drawMeters();
-  }
-
-  private nextRespin() {
-    const res = this.game.respin(this.ctx.rng);
-    this.lastRespin = res;
-    const b = this.game.bonus!;
-    // Every still-empty cell (plus ones that just landed) spins; stagger the stops.
-    let k = 0;
-    b.board.forEach((c, cell) => {
-      const landedHere = res.landed.some((l) => l.cell === cell);
-      if (c && !landedHere) return;
-      this.cellSpin[cell] = this.time + 0.45 + k * 0.05;
-      k++;
-    });
-    const end = this.time + 0.5 + k * 0.05;
-    for (const l of res.landed) {
-      this.after(this.cellSpin[l.cell] - this.time, () => {
-        this.cellFlash[l.cell] = this.time;
-        this.ctx.sound.play(l.coin.jackpot ? 'winBig' : 'reelStop', this.screen.mesh, { volume: 0.8 });
-        this.ctx.sound.play('chip', this.screen.mesh, { volume: 0.6 });
-      });
+  private describe(feats: Feature[], spins: number): string {
+    const parts: string[] = [`${spins} free spins`];
+    if (feats.includes('yellow')) parts.push('jackpot coins');
+    if (feats.includes('red')) {
+      const x = this.game.bonus!.removed.map((s) => LOW_LABEL[s]);
+      parts.push(x.length ? `no ${x.join(', ')}` : 'Red reels');
     }
-    this.respinTimer = end - this.time + (res.landed.length ? 0.7 : 0.45);
-    if (res.done) this.respinTimer += 0.3;
-    this.reelLoop.set(0.35, 1.3);
-    this.deck.redraw();
+    return parts.join(' · ');
+  }
+
+  /** A bank going off: the 3D pig bounces, glows and throws its coins. */
+  private celebrate(c: CoinColor) {
+    const p3 = this.pig3[c];
+    p3.party = 3;
+    this.pig2[c].glow = 3;
+    this.pig2[c].shake = 0.8;
+    this.ctx.sound.play('chips', p3.group, { volume: 1 });
+    const at = new THREE.Vector3(PIG_X3[c], STAGE_Y + 0.22, -0.02);
+    for (let n = 0; n < 16; n++) {
+      const a = (n / 16) * Math.PI * 2;
+      const mesh = this.coinMesh(c);
+      mesh.position.copy(at);
+      this.flyers.push({ mesh, vel: new THREE.Vector3(Math.cos(a) * (0.3 + Math.random() * 0.4), 1 + Math.random() * 0.8, Math.sin(a) * 0.25 + 0.4), t: 0 });
+    }
   }
 
   private finishBonus() {
     const b = this.game.bonus!;
     this.mode = 'bonusEnd';
-    this.reelLoop.set(0);
-    this.ctx.hud.setPending(PIGGY.id, b.win);
-    this.pendingWin = b.win;
-    if (b.grand) {
-      this.banner = { text: `GRAND JACKPOT ${money(JACKPOTS.GRAND * b.totalBet)}!`, until: this.time + 6, color: '#ffd86b' };
-      this.ctx.sound.play('cheer', this.screen.mesh, { volume: 0.9 });
-    }
-    const count = () => {
-      this.ctx.sound.play(b.win >= b.totalBet * 40 ? 'winBig' : 'winSmall', this.screen.mesh);
-      this.tweens.add(Math.min(4, 1.2 + b.win / b.totalBet / 30), (k) => {
-        this.bonusShownTotal = Math.round(b.win * easeOut(k) * 100) / 100;
-        this.dirty = true;
-      }, () => {
-        this.bonusCounted = true;
-        this.ctx.hud.setPending(PIGGY.id, 0);
-        this.pendingWin = 0;
-        this.deck.redraw();
-        this.ctx.hud.toast(`Hold & Spin paid ${money(b.win)}`, 'win');
-        this.onBonusEnd?.(b.win, b.grand);
-        this.respinTimer = 6; // auto-collect
-      });
-    };
-    if (b.powers.red) {
-      this.banner = { text: 'RED BANK DOUBLES EVERY COIN!', until: this.time + 1.6, color: '#ff6060' };
-      this.after(1.2, () => {
-        this.redApplied = true;
-        b.board.forEach((_c, i) => (this.cellFlash[i] = this.time));
-        this.ctx.sound.play('bonus', this.screen.mesh);
-        this.after(0.9, count);
-      });
-    } else count();
+    const big = b.won >= b.totalBet * 30;
+    this.ctx.sound.play(big ? 'winBig' : 'winSmall', this.screen.mesh);
+    if (big) this.ctx.sound.play('banjo', this.screen.mesh, { volume: 0.7 });
+    this.shower(Math.min(160, 30 + b.won / b.totalBet));
+    this.tweens.add(Math.min(4, 1.2 + b.won / b.totalBet / 30), (k) => {
+      this.bonusShownTotal = Math.round(b.won * easeOut(k) * 100) / 100;
+    }, () => {
+      this.bonusCounted = true;
+      this.ctx.hud.toast(`Bonus paid ${money(b.won)}`, 'win');
+      this.onBonusEnd?.(b.won, this.lastFeatures);
+      this.freeTimer = 6; // auto-collect
+      this.deck.redraw();
+    });
     this.deck.redraw();
   }
 
@@ -639,8 +711,7 @@ export class PiggyMachineView {
     this.game.closeBonus();
     this.mode = 'idle';
     this.banner = null;
-    this.dirty = true;
-    this.drawMeters();
+    this.syncShown();
     this.deck.redraw();
   }
 
@@ -649,61 +720,34 @@ export class PiggyMachineView {
     this.tweens.add(Math.max(0.001, sec), () => {}, fn);
   }
 
-  /** Test/demo hook: fill banks and land a Hold & Spin on the next spin. */
-  debugBonus(fullBanks: boolean[] = [true, true, true]) {
+  /** Test/demo hook: set this bet level's banks and force a bonus with the given features. */
+  debugBonus(features: Partial<Record<Feature, boolean>>, bank: { blue?: number; reds?: number } = {}) {
     if (this.mode !== 'idle' && this.mode !== 'showing') return;
-    fullBanks.forEach((f, i) => {
-      if (f) {
-        this.game.setMeter(i, PIG_CAPACITY[PIGS[i]]);
-        this.pigs[i].shown = PIG_CAPACITY[PIGS[i]];
-      }
-    });
-    this.drawMeters();
-    for (let n = 0; n < 1e5; n++) {
-      const stops = PIGGY.reels.map((s) => Math.floor(Math.random() * s.length));
-      const c = PIGGY.reels.reduce((a, s, i) => a + windowAt(s, stops[i]).filter((x) => x === 'COIN').length, 0);
-      if (c >= 6) return this.startSpin(stops);
-    }
+    this.game.setBank(bank);
+    this.syncShown(true);
+    const g = this.game as unknown as { startBonus: (f: Record<Feature, boolean>, bet: number) => void };
+    g.startBonus({ blue: false, yellow: false, red: false, ...features }, this.game.bet);
+    this.out = null;
+    this.startIntro();
   }
 
   // ---------------------------------------------------------------------------
   // 3D coins
   // ---------------------------------------------------------------------------
 
-  private coinMesh(): THREE.Mesh {
-    const m = this.coinPool.pop() ?? new THREE.Mesh(this.coinGeo, this.coinMat);
+  private coinMesh(color: string): THREE.Mesh {
+    let mat = this.coinMats.get(color);
+    if (!mat) {
+      const c = new THREE.Color(COIN_COLORS[color][1]);
+      this.coinMats.set(color, (mat = new THREE.MeshStandardMaterial({ color: c, metalness: 0.9, roughness: 0.25, emissive: c, emissiveIntensity: 0.35 })));
+    }
+    const pool = this.coinPool.get(color) ?? [];
+    this.coinPool.set(color, pool);
+    const m = pool.pop() ?? new THREE.Mesh(this.coinGeo, mat);
+    m.userData.color = color;
     m.visible = true;
     this.group.add(m);
     return m;
-  }
-
-  private fly(from: THREE.Vector3, to: THREE.Vector3, dur: number, done?: () => void) {
-    const mesh = this.coinMesh();
-    mesh.position.copy(from);
-    this.flyers.push({ mesh, from: from.clone(), to: to.clone(), t: 0, dur, done });
-  }
-
-  private burst(from: THREE.Vector3, vel: THREE.Vector3) {
-    const mesh = this.coinMesh();
-    mesh.position.copy(from);
-    this.flyers.push({ mesh, from: from.clone(), to: from.clone(), vel, t: 0, dur: 2.2 });
-  }
-
-  /** A screen cell's centre in this group's local space. */
-  private cellWorld(cell: number): THREE.Vector3 {
-    const reel = Math.floor(cell / 3),
-      row = cell % 3;
-    const px = REELS_X + reel * CELL + CELL / 2,
-      py = REELS_Y + row * CELL + CELL / 2;
-    const h = (SCREEN.w * SCREEN.py) / SCREEN.px;
-    const v = new THREE.Vector3((px / SCREEN.px - 0.5) * SCREEN.w, (0.5 - py / SCREEN.py) * h, 0.012);
-    v.applyAxisAngle(new THREE.Vector3(1, 0, 0), SCREEN.tilt);
-    return v.add(new THREE.Vector3(0, SCREEN.y, SCREEN.z));
-  }
-
-  private pigSlot(i: number): THREE.Vector3 {
-    const p = this.pigs[i];
-    return new THREE.Vector3(PIG_X[i], STAGE_Y + 0.17 * p.scale, -0.02);
   }
 
   // ---------------------------------------------------------------------------
@@ -713,101 +757,116 @@ export class PiggyMachineView {
   private setupScreen() {
     this.screen.register(this.ctx.interaction);
     this.screen.onSurface = () => {
-      if (this.mode === 'info') this.toggleInfo();
+      if (this.mode === 'info') this.onSpinPressed();
       else if (this.mode === 'bonusEnd') this.collect();
-      else if (this.mode === 'idle' || this.mode === 'showing') this.onSpinPressed();
+      else if ((this.mode === 'idle' || this.mode === 'showing') && this.game.phase === 'idle') this.onSpinPressed();
     };
   }
 
-  private drawScreen() {
-    const s = this.screen;
-    const ctx = s.ctx;
-    const bg = ctx.createLinearGradient(0, 0, 0, s.pxH);
-    const bonus = this.inBonus && this.mode !== 'intro';
-    bg.addColorStop(0, bonus ? '#3a0a28' : '#5a1838');
-    bg.addColorStop(1, bonus ? '#0c0208' : '#1c0610');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, s.pxW, s.pxH);
-    if (this.mode === 'info') return this.drawInfo();
-    this.drawJackpots();
-    if (bonus) this.drawBoard();
-    else this.drawReels();
-    this.drawBottom();
-    if (this.banner && this.time < this.banner.until) {
-      const k = Math.min(1, (this.banner.until - this.time) * 3);
-      ctx.globalAlpha = k;
-      ctx.font = `italic bold 72px ${SERIF}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const y = REELS_Y + (ROWS * CELL) / 2;
-      const w = ctx.measureText(this.banner.text).width + 80;
-      roundRect(ctx, s.pxW / 2 - w / 2, y - 70, w, 140, 40);
-      ctx.fillStyle = 'rgba(20,4,12,0.85)';
-      ctx.fill();
-      ctx.strokeStyle = this.banner.color ?? GOLD;
-      ctx.lineWidth = 6;
-      ctx.stroke();
-      ctx.lineWidth = 10;
-      ctx.strokeStyle = '#2a0610';
-      ctx.strokeText(this.banner.text, s.pxW / 2, y + 4);
-      ctx.fillStyle = this.banner.color ?? '#ffd86b';
-      ctx.shadowColor = ctx.fillStyle as string;
-      ctx.shadowBlur = 24;
-      ctx.fillText(this.banner.text, s.pxW / 2, y + 4);
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 1;
+  private coinFace(color: string): HTMLCanvasElement {
+    let c = this.coinFaces.get(color);
+    if (!c) {
+      c = document.createElement('canvas');
+      c.width = c.height = CELL;
+      colorCoin(c.getContext('2d')!, CELL, color, JACKPOT_NAMES.includes(color as never) ? color : undefined);
+      this.coinFaces.set(color, c);
     }
+    return c;
   }
 
-  private drawJackpots() {
+  private drawScreen() {
     const ctx = this.screen.ctx;
-    const bet = this.bonusBet;
-    const list: [string, number, string][] = [
-      ['GRAND', JACKPOTS.GRAND, '#ffd040'],
-      ['MAJOR', JACKPOTS.MAJOR, '#ff5a5a'],
-      ['MINOR', JACKPOTS.MINOR, '#5aa0ff'],
-      ['MINI', JACKPOTS.MINI, '#5ad080'],
-    ];
-    const w = 220,
-      gap = 14,
-      x0 = (1000 - (w * 4 + gap * 3)) / 2;
-    list.forEach(([name, mult, col], i) => {
-      const x = x0 + i * (w + gap);
-      roundRect(ctx, x, 22, w, 140, 22);
-      const g = ctx.createLinearGradient(0, 22, 0, 162);
-      g.addColorStop(0, '#2a0a1a');
-      g.addColorStop(1, '#0a0206');
-      ctx.fillStyle = g;
+    ctx.drawImage(this.inBonus ? this.bgBonus : this.bg, 0, 0);
+    if (this.mode === 'info') return this.drawInfo();
+    this.drawPigs();
+    this.drawReels();
+    this.drawLadder();
+    this.drawBottom();
+    this.drawFlicks();
+    this.drawParticles();
+    this.drawBanner();
+  }
+
+  private drawPigs() {
+    const ctx = this.screen.ctx;
+    for (const c of COLORS) {
+      const p = this.pig2[c];
+      const x = PIG_SX[c] + (p.shake > 0 ? Math.sin(this.time * 60) * 6 * Math.min(1, p.shake) : 0);
+      const inBonus = this.inBonus && !!this.game.bonus?.features[c];
+      const glow = Math.max(p.glow > 0 ? 1 : 0, inBonus ? 0.6 + 0.4 * Math.sin(this.time * 6) : 0);
+      // Spotlight under each pig.
+      const sp = ctx.createRadialGradient(x, PIG_Y + 60, 5, x, PIG_Y + 60, 130);
+      sp.addColorStop(0, hexA(PIG_PALETTE[c][1], 0.45 + glow * 0.3));
+      sp.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sp;
+      ctx.fillRect(x - 130, PIG_Y - 70, 260, 200);
+      pigPortrait(ctx, x, PIG_Y, PIG_R, c, p.fat, Math.sin(p.squash * Math.PI * 3) * p.squash, glow);
+      // Value plate.
+      const py = 274;
+      roundRect(ctx, x - 118, py, 236, 74, 20);
+      const pg = ctx.createLinearGradient(0, py, 0, py + 74);
+      pg.addColorStop(0, '#2a0a24');
+      pg.addColorStop(1, '#0a0208');
+      ctx.fillStyle = pg;
       ctx.fill();
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = PIG_PALETTE[c][1];
       ctx.stroke();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = `bold 40px ${SERIF}`;
-      ctx.fillStyle = col;
-      ctx.fillText(name, x + w / 2, 62);
-      ctx.font = `bold 44px ${SERIF}`;
-      ctx.fillStyle = '#fff6e0';
-      ctx.fillText(money(mult * bet), x + w / 2, 118);
-    });
+      if (c === 'blue') {
+        ctx.font = `900 46px ${DISPLAY}`;
+        outlined(ctx, `${this.shown.blue}`, x - 44, py + 39, '#ffffff', '#0a1a60', 6);
+        ctx.font = `900 20px ${DISPLAY}`;
+        ctx.fillStyle = '#9ac0ff';
+        ctx.fillText('FREE', x + 42, py + 26);
+        ctx.fillText('SPINS', x + 42, py + 50);
+      } else if (c === 'yellow') {
+        ctx.font = `900 18px ${DISPLAY}`;
+        ctx.fillStyle = '#ffe07a';
+        ctx.fillText('JACKPOT BOOST', x, py + 20);
+        ctx.font = `900 34px ${DISPLAY}`;
+        outlined(ctx, `+${this.shown.boost}%`, x, py + 51, '#ffffff', '#5a3a00', 5);
+      } else {
+        RED_ORDER.forEach((s, i) => {
+          const gx = x - 90 + i * 45;
+          ctx.drawImage(this.atlas.canvas, this.atlas.index.get(s)! * CELL, 0, CELL, CELL, gx - 22, py + 14, 46, 46);
+          if (i < this.shown.red) {
+            ctx.strokeStyle = '#ff2a2a';
+            ctx.lineWidth = 7;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(gx - 16, py + 20);
+            ctx.lineTo(gx + 16, py + 54);
+            ctx.moveTo(gx + 16, py + 20);
+            ctx.lineTo(gx - 16, py + 54);
+            ctx.stroke();
+          }
+        });
+      }
+    }
   }
 
   private drawReels() {
     const ctx = this.screen.ctx;
-    const ah = ROWS * CELL;
+    const ah = 3 * CELL;
     const out = this.out;
+    const revealed = out && this.mode !== 'spinning' && this.mode !== 'reveal';
+    const strips = this.reelStrips;
+    roundRect(ctx, REELS_X - 8, REELS_Y - 8, 5 * CELL + 16, ah + 16, 16);
+    ctx.fillStyle = goldFrame(ctx, REELS_Y - 8, REELS_Y + ah + 8);
+    ctx.fill();
     this.reels.forEach((r, i) => {
-      const strip = PIGGY.reels[i];
+      const strip = strips[i];
       const x = REELS_X + i * CELL;
       ctx.save();
       ctx.beginPath();
-      ctx.rect(x + 3, REELS_Y, CELL - 6, ah);
+      ctx.rect(x, REELS_Y, CELL, ah);
       ctx.clip();
       const rg = ctx.createLinearGradient(0, REELS_Y, 0, REELS_Y + ah);
-      rg.addColorStop(0, '#f3e6c8');
-      rg.addColorStop(0.5, '#fffaf0');
-      rg.addColorStop(1, '#e2d0a8');
+      rg.addColorStop(0, '#1a0828');
+      rg.addColorStop(0.5, '#3a1458');
+      rg.addColorStop(1, '#1a0828');
       ctx.fillStyle = rg;
       ctx.fillRect(x, REELS_Y, CELL, ah);
       const fast = !r.stopped && r.stopAt - this.time > 0.2 && this.time - r.start > 0.1;
@@ -815,33 +874,70 @@ export class PiggyMachineView {
       const base = Math.floor(r.pos);
       const f = r.pos - base;
       const midY = REELS_Y + ah / 2 - CELL / 2;
+      const settled = r.stopped && out && f < 0.01;
       for (let j = -2; j <= 2; j++) {
         const idx = (((base + j) % strip.length) + strip.length) % strip.length;
-        const id = strip[idx];
+        let id = strip[idx];
         const y = midY + (j - f) * CELL;
-        ctx.drawImage(src, this.atlas.index.get(id)! * CELL, 0, CELL, CELL, x + 6, y + 6, CELL - 12, CELL - 12);
-        if (id === 'COIN' && !fast) {
-          const settled = r.stopped && out && Math.abs(j) <= 1 && f < 0.01;
-          const c: Coin = settled ? out.coins[i][j + 1] ?? { mult: 1 } : { mult: DISPLAY_VALUES[idx % DISPLAY_VALUES.length] };
-          paintCoinLabel(ctx, coinLabel(c, this.game.bet), x + CELL / 2, y + CELL / 2 + 4, CELL, !!c.jackpot);
+        const row = j + 1;
+        let flash = 0;
+        let flipX = 1;
+        if (settled && row >= 0 && row <= 2) {
+          id = revealed ? out.grid[i][row] : out.raw[i][row];
+          flash = Math.max(0, 1 - (this.time - this.cellFlash[i * 3 + row]) * 2);
+          if (this.mode === 'reveal' && out.raw[i][row] === 'MYSTERY') {
+            const k = 1 - (this.revealAt - this.time) / 0.6;
+            flipX = k > 0.5 ? Math.max(0.05, Math.abs(Math.cos(((k - 0.5) / 0.5) * Math.PI * 0.5))) : 1;
+          }
         }
+        const grow = 1 + flash * 0.18;
+        const sz = CELL * grow;
+        if (flash > 0) {
+          const hg = ctx.createRadialGradient(x + CELL / 2, y + CELL / 2, 5, x + CELL / 2, y + CELL / 2, CELL * 0.7);
+          hg.addColorStop(0, `rgba(255,220,120,${0.6 * flash})`);
+          hg.addColorStop(1, 'rgba(255,220,120,0)');
+          ctx.fillStyle = hg;
+          ctx.fillRect(x, y, CELL, CELL);
+        }
+        ctx.save();
+        ctx.translate(x + CELL / 2, y + CELL / 2);
+        ctx.scale(flipX, 1);
+        ctx.drawImage(src, this.atlas.index.get(id)! * CELL, 0, CELL, CELL, -sz / 2, -sz / 2, sz, sz);
+        ctx.restore();
       }
+      const sh = ctx.createLinearGradient(0, REELS_Y, 0, REELS_Y + ah);
+      sh.addColorStop(0, 'rgba(0,0,0,0.5)');
+      sh.addColorStop(0.18, 'rgba(0,0,0,0)');
+      sh.addColorStop(0.82, 'rgba(0,0,0,0)');
+      sh.addColorStop(1, 'rgba(0,0,0,0.5)');
+      ctx.fillStyle = sh;
+      ctx.fillRect(x, REELS_Y, CELL, ah);
       ctx.restore();
-      ctx.fillStyle = 'rgba(40,6,20,0.8)';
-      ctx.fillRect(x - 3, REELS_Y, 6, ah);
+      if (i > 0) {
+        ctx.fillStyle = 'rgba(255,215,120,0.35)';
+        ctx.fillRect(x - 1, REELS_Y, 2, ah);
+      }
     });
-    roundRect(ctx, REELS_X - 8, REELS_Y - 8, COLS * CELL + 16, ah + 16, 14);
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 6;
-    ctx.stroke();
+    if (out && revealed) {
+      out.coins.forEach((c, n) => {
+        if (this.time - this.cellFlash[c.reel * 3 + c.row] > 0.3 + 0.28 * n) return;
+        ctx.drawImage(this.coinFace(c.color), REELS_X + c.reel * CELL + 22, REELS_Y + c.row * CELL + 22, CELL - 44, CELL - 44);
+      });
+      for (const c of out.jackpotCoins) {
+        if (this.time < this.cellFlash[c.reel * 3 + c.row]) continue;
+        ctx.drawImage(this.coinFace(JACKPOT_NAMES[c.jackpot]), REELS_X + c.reel * CELL + 6, REELS_Y + c.row * CELL + 6, CELL - 12, CELL - 12);
+      }
+    }
 
-    if (this.mode === 'showing' && out && out.lineWins.length > 0) {
+    if ((this.mode === 'showing' || this.mode === 'free') && out && out.lineWins.length > 0) {
       const k = Math.floor(this.winTimer / 1.3) % (out.lineWins.length + 1);
       const wins = k === 0 ? out.lineWins : [out.lineWins[k - 1]];
       const pulse = 0.6 + 0.4 * Math.sin(this.time * 8);
       for (const w of wins) {
-        ctx.strokeStyle = `rgba(255,214,102,${0.8 * pulse})`;
-        ctx.lineWidth = 6;
+        ctx.strokeStyle = `rgba(255,224,120,${0.85 * pulse})`;
+        ctx.lineWidth = 5;
+        ctx.shadowColor = '#ffcc40';
+        ctx.shadowBlur = 12;
         ctx.beginPath();
         PIGGY.lines[w.line].forEach((row, reel) => {
           const px = REELS_X + reel * CELL + CELL / 2,
@@ -850,181 +946,287 @@ export class PiggyMachineView {
         });
         ctx.stroke();
         for (const [reel, row] of w.cells) {
-          ctx.strokeStyle = `rgba(255,236,160,${pulse})`;
-          ctx.lineWidth = 7;
-          roundRect(ctx, REELS_X + reel * CELL + 6, REELS_Y + row * CELL + 6, CELL - 12, CELL - 12, 14);
+          ctx.lineWidth = 6;
+          roundRect(ctx, REELS_X + reel * CELL + 4, REELS_Y + row * CELL + 4, CELL - 8, CELL - 8, 12);
           ctx.stroke();
         }
+        ctx.shadowBlur = 0;
       }
     }
   }
 
-  private drawBoard() {
+  /** The six jackpots beside the reels, Mega on top. */
+  private drawLadder() {
     const ctx = this.screen.ctx;
+    const bet = this.bonusBet;
+    const jp = this.game.bankFor().jackpots;
     const b = this.game.bonus;
-    if (!b) return;
-    for (let cell = 0; cell < 15; cell++) {
-      const reel = Math.floor(cell / 3),
-        row = cell % 3;
-      const x = REELS_X + reel * CELL,
-        y = REELS_Y + row * CELL;
-      roundRect(ctx, x + 5, y + 5, CELL - 10, CELL - 10, 16);
-      ctx.fillStyle = '#12040c';
+    const yellow = !!b?.features.yellow && this.inBonus;
+    const h = 58,
+      gap = 7.5,
+      w = W - LADDER_X - 10;
+    for (let k = 0; k < 6; k++) {
+      const j = 5 - k;
+      const y = REELS_Y - 6 + k * (h + gap);
+      const flash = Math.max(0, 1 - Math.abs(this.time - this.jpFlash[j]) * 1.2);
+      roundRect(ctx, LADDER_X, y, w, h, 12);
+      const g = ctx.createLinearGradient(0, y, 0, y + h);
+      g.addColorStop(0, shadeHex(JP_COLORS[j], 0.55 + flash * 0.4));
+      g.addColorStop(1, shadeHex(JP_COLORS[j], 0.18));
+      ctx.fillStyle = g;
+      if (flash > 0) {
+        ctx.shadowColor = JP_COLORS[j];
+        ctx.shadowBlur = 30 * flash;
+      }
       ctx.fill();
-      ctx.strokeStyle = 'rgba(216,178,90,0.45)';
+      ctx.shadowBlur = 0;
       ctx.lineWidth = 3;
+      ctx.strokeStyle = COIN_COLORS[JACKPOT_NAMES[j]][0];
       ctx.stroke();
-      const spinning = this.cellSpin[cell] > this.time;
-      const c = b.board[cell];
-      if (spinning) {
-        // A blurred flicker of coins and blanks.
-        const k = (this.time * 14 + cell * 0.37) % 1;
-        ctx.globalAlpha = 0.35;
-        ctx.drawImage(this.coinFace, 0, 0, CELL, CELL, x + 14, y + 14 + (k - 0.5) * CELL * 0.6, CELL - 28, CELL - 28);
-        ctx.globalAlpha = 1;
-      } else if (c) {
-        const flash = Math.max(0, 1 - (this.time - this.cellFlash[cell]) * 1.5);
-        ctx.save();
-        if (flash > 0) {
-          ctx.shadowColor = c.jackpot ? '#ff60c0' : '#ffe060';
-          ctx.shadowBlur = 50 * flash;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `900 15px ${DISPLAY}`;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(JACKPOT_NAMES[j], LADDER_X + w / 2, y + 14);
+      ctx.font = `900 ${j >= 4 ? 19 : 21}px ${DISPLAY}`;
+      outlined(ctx, money(Math.round(jp[j] * bet * 100) / 100), LADDER_X + w / 2, y + 36, '#fff8d8', '#1a0410', 4, w - 10);
+      if (yellow) {
+        const need = JACKPOT_NEED[j];
+        for (let i = 0; i < need; i++) {
+          const cx = LADDER_X + w / 2 + (i - (need - 1) / 2) * 14;
+          ctx.beginPath();
+          ctx.arc(cx, y + h - 4, 5, 0, Math.PI * 2);
+          ctx.fillStyle = i < b!.counts[j] ? '#ffffff' : 'rgba(0,0,0,0.6)';
+          ctx.fill();
         }
-        const grow = 1 + flash * 0.12;
-        const sz = (CELL - 16) * grow;
-        ctx.drawImage(this.coinFace, x + CELL / 2 - sz / 2, y + CELL / 2 - sz / 2, sz, sz);
-        ctx.restore();
-        paintCoinLabel(ctx, coinLabel(c, b.totalBet, this.redApplied), x + CELL / 2, y + CELL / 2 + 4, CELL, !!c.jackpot);
-      } else {
-        ctx.globalAlpha = 0.12;
-        pigFace(ctx, x + CELL / 2, y + CELL / 2, CELL * 0.22, '#ff9ac0', '#ff9ac0');
-        ctx.globalAlpha = 1;
       }
     }
-    roundRect(ctx, REELS_X - 8, REELS_Y - 8, COLS * CELL + 16, ROWS * CELL + 16, 14);
-    ctx.strokeStyle = '#ffd86b';
-    ctx.lineWidth = 6;
-    ctx.stroke();
   }
 
   private drawBottom() {
     const ctx = this.screen.ctx;
-    const s = this.screen;
-    const y = REELS_Y + ROWS * CELL + 60;
+    const b = this.game.bonus;
+    const y0 = REELS_Y + 3 * CELL + 26;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const b = this.game.bonus;
-    if ((this.mode === 'respin' || this.mode === 'bonusEnd') && b) {
-      // Respin lights.
-      ctx.font = `bold 36px ${SERIF}`;
-      ctx.fillStyle = GOLD_LIGHT;
-      ctx.fillText('RESPINS', s.pxW / 2 - 200, y);
-      for (let i = 0; i < b.maxRespins; i++) {
-        ctx.beginPath();
-        ctx.arc(s.pxW / 2 - 60 + i * 56, y, 20, 0, Math.PI * 2);
-        const on = i < b.respinsLeft;
-        ctx.fillStyle = on ? '#ffd86b' : '#3a2a20';
-        ctx.shadowColor = '#ffb030';
-        ctx.shadowBlur = on ? 18 : 0;
+    roundRect(ctx, 40, y0, W - 80, 108, 24);
+    const mg = ctx.createLinearGradient(0, y0, 0, y0 + 108);
+    mg.addColorStop(0, '#2a0a24');
+    mg.addColorStop(1, '#060104');
+    ctx.fillStyle = mg;
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = goldFrame(ctx, y0, y0 + 108);
+    ctx.stroke();
+    const inBonus = !!b && this.inBonus;
+    const value = inBonus ? (this.mode === 'bonusEnd' ? this.bonusShownTotal : b!.won) : this.shownWin;
+    ctx.font = `900 22px ${DISPLAY}`;
+    ctx.fillStyle = GOLD_LIGHT;
+    ctx.fillText(inBonus ? 'BONUS WIN' : 'WIN', W / 2, y0 + 22);
+    ctx.font = `900 ${this.mode === 'bonusEnd' ? 64 : 58}px ${DISPLAY}`;
+    const winText = value > 0 ? money(value) : this.mode === 'spinning' ? 'GOOD LUCK!' : inBonus ? '$0' : 'PLAY NOW';
+    outlined(ctx, winText, W / 2, y0 + 68, value > 0 ? '#ffd86b' : 'rgba(255,240,220,0.55)', '#2a0610', 8, W - 120, value > 0 ? '#ffb030' : undefined);
+
+    const ym = y0 + 160;
+    if (inBonus) {
+      const feats = COLORS.filter((c) => b!.features[c]);
+      const cw = 220;
+      feats.forEach((c, i) => {
+        const x = W / 2 + (i - (feats.length - 1) / 2) * (cw + 12) - cw / 2;
+        roundRect(ctx, x, ym - 24, cw, 48, 24);
+        const cg = ctx.createLinearGradient(0, ym - 24, 0, ym + 24);
+        cg.addColorStop(0, PIG_PALETTE[c][0]);
+        cg.addColorStop(0.4, PIG_PALETTE[c][1]);
+        cg.addColorStop(1, PIG_PALETTE[c][2]);
+        ctx.fillStyle = cg;
         ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-      const filled = b.board.filter(Boolean).length;
-      ctx.font = `30px ${SERIF}`;
-      ctx.fillStyle = 'rgba(255,240,220,0.8)';
-      ctx.fillText(`${filled} / 15 · fill them all for the GRAND`, s.pxW / 2, y + 56);
-      if (this.mode === 'bonusEnd') {
-        ctx.font = `bold 84px ${SERIF}`;
-        ctx.lineWidth = 10;
-        ctx.strokeStyle = '#2a0610';
-        const text = `WIN ${money(this.bonusShownTotal)}`;
-        ctx.strokeText(text, s.pxW / 2, y + 150);
-        ctx.fillStyle = '#ffd86b';
-        ctx.shadowColor = '#ffb030';
-        ctx.shadowBlur = 30;
-        ctx.fillText(text, s.pxW / 2, y + 150);
-        ctx.shadowBlur = 0;
-        if (this.bonusCounted) {
-          ctx.font = `italic 28px ${SERIF}`;
-          ctx.fillStyle = 'rgba(255,240,220,0.8)';
-          ctx.fillText('Tap to collect', s.pxW / 2, y + 215);
-        }
-      }
-      return;
-    }
-    if (this.shownWin > 0 && this.mode === 'showing') {
-      ctx.font = `bold 72px ${SERIF}`;
-      ctx.lineWidth = 8;
-      ctx.strokeStyle = '#2a1206';
-      ctx.strokeText(`WIN ${money(this.shownWin)}`, s.pxW / 2, y + 40);
-      ctx.fillStyle = '#ffd86b';
-      ctx.shadowColor = '#ffb030';
-      ctx.shadowBlur = 24;
-      ctx.fillText(`WIN ${money(this.shownWin)}`, s.pxW / 2, y + 40);
-      ctx.shadowBlur = 0;
+        ctx.font = `900 19px ${DISPLAY}`;
+        const label = c === 'blue' ? 'BLUE · SPINS' : c === 'yellow' ? 'YELLOW · JACKPOTS' : b!.removed.length ? `RED · NO ${b!.removed.map((x) => LOW_LABEL[x]).join(' ')}` : 'RED REELS';
+        outlined(ctx, label, x + cw / 2, ym + 1, '#ffffff', '#000', 4, cw - 16);
+      });
+      const done = b!.totalSpins - b!.spinsLeft;
+      ctx.font = `900 34px ${DISPLAY}`;
+      const spinText = this.mode === 'intro' ? `${b!.totalSpins} FREE SPINS` : this.mode === 'bonusEnd' ? (this.bonusCounted ? 'TAP TO COLLECT' : 'BONUS COMPLETE') : `FREE SPIN ${Math.min(b!.totalSpins, Math.max(1, done))} OF ${b!.totalSpins}`;
+      outlined(ctx, spinText, W / 2, ym + 60, '#ffffff', '#2a0610', 6);
+    } else {
       const out = this.out;
-      const k = out ? Math.floor(this.winTimer / 1.3) % (out.lineWins.length + 1) : 0;
+      const k = out && this.mode === 'showing' ? Math.floor(this.winTimer / 1.3) % (out.lineWins.length + 1) : 0;
+      ctx.font = `600 26px ${SERIF}`;
+      ctx.fillStyle = GOLD_LIGHT;
       if (out && k > 0) {
         const w = out.lineWins[k - 1];
-        ctx.font = `30px ${SERIF}`;
-        ctx.fillStyle = GOLD_LIGHT;
-        ctx.fillText(`Line ${w.line + 1} · ${w.count} × ${PIGGY.symbols.find((x) => x.id === w.symbol)!.name} · ${money(w.amount)}`, s.pxW / 2, y + 120);
+        ctx.fillText(`Line ${w.line + 1} · ${w.count} × ${PIGGY.symbols.find((x) => x.id === w.symbol)!.name} · ${money(w.amount)}`, W / 2, ym, W - 60);
+      } else if (out?.mystery && this.mode === 'showing') {
+        ctx.fillText(`Mystery coins revealed ${PIGGY.symbols.find((x) => x.id === out.mystery)!.name}`, W / 2, ym, W - 60);
+      } else {
+        ctx.fillText('Mystery coins turn into one symbol · coins feed the pigs', W / 2, ym, W - 60);
       }
-    } else {
-      ctx.font = `italic 34px ${SERIF}`;
-      ctx.fillStyle = 'rgba(255,236,220,0.85)';
-      ctx.fillText(this.mode === 'spinning' ? 'Good luck!' : '6 coins anywhere start HOLD & SPIN', s.pxW / 2, y + 20);
-      ctx.font = `28px ${SERIF}`;
-      ctx.fillStyle = 'rgba(255,236,220,0.6)';
-      ctx.fillText(`${PIGGY.lines.length} LINES  ·  MAX BET ${money(PIGGY.betLevels[PIGGY.betLevels.length - 1])}  ·  coins feed the banks above`, s.pxW / 2, y + 80);
+      ctx.font = `italic 22px ${SERIF}`;
+      ctx.fillStyle = 'rgba(255,236,220,0.65)';
+      ctx.fillText('Blue banks free spins · Yellow grows jackpots · Red crosses out royals', W / 2, ym + 40, W - 60);
     }
+
+    const yf = H - 64;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, yf, W, 64);
+    ctx.fillStyle = goldFrame(ctx, yf, yf + 3);
+    ctx.fillRect(0, yf, W, 3);
+    const col = (label: string, v: string, x: number) => {
+      ctx.font = `900 15px ${DISPLAY}`;
+      ctx.fillStyle = '#ffd86b';
+      ctx.fillText(label, x, yf + 20);
+      ctx.font = `900 24px ${DISPLAY}`;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(v, x, yf + 45);
+    };
+    col('CREDIT', money(Math.round((this.ctx.bankroll.balance - this.pendingWin) * 100) / 100), 150);
+    col('BET', money(this.bonusBet), W / 2);
+    col('LINES', `${PIGGY.lines.length}`, W - 150);
+  }
+
+  private drawFlicks() {
+    const ctx = this.screen.ctx;
+    for (const f of this.flicks) {
+      const k = Math.min(1, f.t / f.dur);
+      const e = easeOut(k);
+      const x = f.x0 + (f.x1 - f.x0) * e;
+      const y = f.y0 + (f.y1 - f.y0) * k - Math.sin(k * Math.PI) * 140;
+      const s = 70 * (1 - k * 0.4);
+      ctx.globalAlpha = 0.35;
+      ctx.drawImage(this.coinFace(f.color), x - s / 2 - (f.x1 - f.x0) * 0.03, y - s / 2 + 18, s * 0.8, s * 0.8);
+      ctx.globalAlpha = 1;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(Math.abs(Math.cos(f.t * 14)) * 0.7 + 0.3, 1);
+      ctx.drawImage(this.coinFace(f.color), -s / 2, -s / 2, s, s);
+      ctx.restore();
+    }
+  }
+
+  private drawParticles() {
+    const ctx = this.screen.ctx;
+    for (const p of this.particles) {
+      const s = 34;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, p.life);
+      ctx.translate(p.x, p.y);
+      ctx.scale(Math.cos(p.spin), 1);
+      ctx.drawImage(this.coinFace(p.color), -s / 2, -s / 2, s, s);
+      ctx.restore();
+    }
+  }
+
+  private drawBanner() {
+    const ctx = this.screen.ctx;
+    const b = this.banner;
+    if (!b || this.time > b.until) return;
+    const age = this.time - b.at;
+    const pop = age < 0.25 ? easeOut(age / 0.25) * 1.15 : age < 0.4 ? 1.15 - ((age - 0.25) / 0.15) * 0.15 : 1;
+    const fade = Math.min(1, (b.until - this.time) * 3);
+    const cy = REELS_Y + 1.5 * CELL;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.translate(W / 2, cy);
+    ctx.scale(pop, pop);
+    ctx.save();
+    ctx.rotate(this.time * 0.6);
+    for (let i = 0; i < 18; i++) {
+      ctx.rotate((Math.PI * 2) / 18);
+      ctx.fillStyle = hexA(b.color, 0.25);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(420, -40);
+      ctx.lineTo(420, 40);
+      ctx.fill();
+    }
+    ctx.restore();
+    const bh = b.sub ? 190 : 130;
+    roundRect(ctx, -360, -95, 720, bh, 40);
+    const g = ctx.createLinearGradient(0, -95, 0, 95);
+    g.addColorStop(0, 'rgba(40,6,30,0.95)');
+    g.addColorStop(1, 'rgba(8,0,6,0.95)');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = b.color;
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 30;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `900 76px ${DISPLAY}`;
+    outlined(ctx, b.text, 0, b.sub ? -26 : -30, b.color, '#1a0410', 10, 680, b.color);
+    if (b.sub) {
+      ctx.font = `900 48px ${DISPLAY}`;
+      outlined(ctx, b.sub, 0, 50, '#ffffff', '#1a0410', 8, 680);
+    }
+    ctx.restore();
   }
 
   private drawInfo() {
     const ctx = this.screen.ctx;
-    const s = this.screen;
+    ctx.fillStyle = 'rgba(10,2,8,0.75)';
+    ctx.fillRect(0, 0, W, H);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = GOLD_LIGHT;
-    ctx.font = `italic bold 60px ${SERIF}`;
-    ctx.fillText('How to play', s.pxW / 2, 60);
-    const lines = [
-      ['Hold & Spin', '6 or more coins anywhere. Coins lock and you get 3 respins.'],
-      ['', 'Any new coin resets the respins. Fill all 15 for the GRAND.'],
-      ['Coins', 'Cash prizes, or MINI / MINOR jackpots (MAJOR in the bonus).'],
-      ['Piggy banks', 'Every coin drops into a bank. A full bank smashes at the'],
-      ['', 'next Hold & Spin. Banks are kept per bet level.'],
-      ['Red Bank', 'every cash coin is doubled when the bonus ends'],
-      ['Green Bank', '5 respins instead of 3'],
-      ['Blue Bank', 'drops in a guaranteed jackpot coin'],
-    ];
+    ctx.font = `900 46px ${DISPLAY}`;
+    outlined(ctx, this.infoPage === 0 ? 'THE PIGGY BANKS' : 'PAYS', W / 2, 54, '#ffd86b', '#2a0610', 7);
     ctx.textAlign = 'left';
-    lines.forEach(([h, t], i) => {
-      const y = 140 + i * 50;
-      ctx.font = `bold 30px ${SERIF}`;
-      ctx.fillStyle = i >= 5 ? '#' + new THREE.Color(PIG_COLORS[i - 5]).getHexString() : '#ffd86b';
-      ctx.fillText(h, 60, y);
+    const para = (y: number, color: string, head: string, lines: string[], pig?: CoinColor) => {
+      let x = 40;
+      if (pig) {
+        pigPortrait(ctx, 78, y + 52, 46, pig, 0.3);
+        x = 148;
+      }
+      ctx.textAlign = 'left';
+      ctx.font = `900 32px ${DISPLAY}`;
+      ctx.fillStyle = color;
+      ctx.fillText(head, x, y);
       ctx.font = `28px ${SERIF}`;
       ctx.fillStyle = '#f6e7d8';
-      ctx.fillText(t, 250, y, 720);
-    });
-    // Paytable in line-bet multiples.
+      lines.forEach((l, i) => ctx.fillText(l, x, y + 42 + i * 34, W - x - 24));
+    };
+    if (this.infoPage === 0) {
+      para(130, '#ffd86b', 'COINS', ['Any Mystery coin can carry a Blue, Yellow or Red', 'coin. It flicks up into its pig, which gets fatter', 'or starts its bonus. Others often join in.']);
+      para(300, '#7ab0ff', 'BLUE PIG · FREE SPINS', ['Banks spins: starts at 9, +1 per blue', 'coin, up to 100. Plays them all, then', 'resets to 9.'], 'blue');
+      para(470, '#ffd030', 'YELLOW PIG · JACKPOTS', ['Yellow coins grow all six jackpots.', 'Bonus: collect 2 Mini, 2 Minor, 3 Maxi,', '4 Major, 5 Grand or 6 Mega coins. 7 spins.'], 'yellow');
+      para(640, '#ff7a7a', 'RED PIG · CROSS OUTS', ['Red coins cross out 10, J, Q, K, A in', 'order. Bonus: 7 spins with those royals', 'taken off the reels.'], 'red');
+      para(810, '#ffffff', 'TOGETHER', ['Pigs can go off together: spins = the Blue', 'count if Blue is in, otherwise 7. Pigs are', 'kept per bet level: look for a fat Blue pig!']);
+      ctx.textAlign = 'center';
+      ctx.font = `italic 26px ${SERIF}`;
+      ctx.fillStyle = GOLD_LIGHT;
+      ctx.fillText('tap for pays', W / 2, H - 50);
+      return;
+    }
     const syms = PIGGY.symbols.filter((x) => x.pays);
-    const cell = 70;
+    const cell = 96;
     syms.forEach((sym, i) => {
       const col = i % 2,
         row = Math.floor(i / 2);
-      const x = 70 + col * 450,
-        y = 560 + row * 76;
+      const x = 40 + col * 380,
+        y = 100 + row * 116;
       ctx.drawImage(this.atlas.canvas, this.atlas.index.get(sym.id)! * CELL, 0, CELL, CELL, x, y, cell, cell);
-      ctx.font = `26px ${SERIF}`;
-      ctx.fillStyle = '#f6e7d8';
+      ctx.font = `900 24px ${DISPLAY}`;
+      ctx.fillStyle = '#ffffff';
       const p = sym.pays!;
-      ctx.fillText(`5: ${p[5]}  4: ${p[4]}  3: ${p[3]}`, x + 90, y + cell / 2);
+      ctx.fillText(`5  ${p[5]}`, x + 112, y + 24);
+      ctx.fillText(`4  ${p[4]}`, x + 112, y + 52);
+      ctx.fillText(`3  ${p[3]}`, x + 112, y + 80);
     });
+    const y = 700;
+    ctx.drawImage(this.atlas.canvas, this.atlas.index.get('MYSTERY')! * CELL, 0, CELL, CELL, 40, y, cell, cell);
+    ctx.drawImage(this.atlas.canvas, this.atlas.index.get('WILD')! * CELL, 0, CELL, CELL, 40, y + 120, cell, cell);
+    ctx.font = `24px ${SERIF}`;
+    ctx.fillStyle = '#f6e7d8';
+    ctx.fillText('Mystery coins land in stacks. Every Mystery coin on', 156, y + 30, W - 190);
+    ctx.fillText('screen turns into the same symbol, even the Wild.', 156, y + 60, W - 190);
+    ctx.fillText('WILD on reels 2–4 substitutes for all paying symbols.', 156, y + 150, W - 190);
+    ctx.fillText('It pays nothing on its own.', 156, y + 180, W - 190);
     ctx.textAlign = 'center';
-    ctx.font = `italic 24px ${SERIF}`;
+    ctx.font = `italic 20px ${SERIF}`;
     ctx.fillStyle = GOLD_LIGHT;
-    ctx.fillText('Line pays × line bet (bet ÷ 20), left to right. Wild pig on reels 2–4.  ·  tap to close', s.pxW / 2, s.pxH - 26);
+    ctx.fillText('Pays × line bet (bet ÷ 25), left to right, 25 lines  ·  tap to close', W / 2, H - 40);
   }
 
   // ---------------------------------------------------------------------------
@@ -1040,87 +1242,91 @@ export class PiggyMachineView {
         r.pos = r.from - reelEase(k) * r.distance - reelBounce(k);
         if (k >= 1) {
           r.stopped = true;
-          const len = PIGGY.reels[i].length;
+          const len = this.reelStrips[i].length;
           r.pos = ((Math.round(r.from - r.distance) % len) + len) % len;
-          const coins = this.out!.coins[i].filter(Boolean).length;
-          this.ctx.sound.play(coins ? 'chip' : 'reelStop', this.screen.mesh, { volume: 0.7 });
+          const mys = this.out!.raw[i].includes('MYSTERY');
+          this.ctx.sound.play(mys ? 'chip' : 'reelStop', this.screen.mesh, { volume: 0.7 });
         } else all = false;
       });
       this.reelLoop.set(all ? 0 : 0.5, 1);
       if (all) this.onAllStopped();
-      this.dirty = true;
     }
-    if (this.mode === 'showing') {
-      this.winTimer += dt;
-      if (this.out?.lineWins.length) this.dirty = true;
-    }
-    if (this.mode === 'respin') {
-      this.dirty = true;
-      this.respinTimer -= dt;
-      if (this.respinTimer <= 0) {
-        if (this.lastRespin?.done || this.game.bonus?.done) this.finishBonus();
-        else this.nextRespin();
+    if (this.mode === 'reveal' && this.time >= this.revealAt) this.afterReveal();
+    if (this.mode === 'showing' || this.mode === 'free') this.winTimer += dt;
+    if (this.mode === 'free') {
+      this.freeTimer -= dt;
+      if (this.freeTimer <= 0 && !this.flicks.length) {
+        if (this.game.bonus?.done) this.finishBonus();
+        else this.startSpin();
       }
     }
-    if (this.mode === 'bonusEnd') {
-      this.dirty = true;
-      if (this.bonusCounted) {
-        this.respinTimer -= dt;
-        if (this.respinTimer <= 0) this.collect();
-      }
+    if (this.mode === 'bonusEnd' && this.bonusCounted) {
+      this.freeTimer -= dt;
+      if (this.freeTimer <= 0) this.collect();
     }
-    if (this.banner && this.time < this.banner.until + 0.5) this.dirty = true;
 
-    // Banks: size follows the meter, wobble when fed, bounce and glow when full.
-    this.pigs.forEach((p, i) => {
-      const g = p.group;
-      if (!g.visible) {
-        if (this.time >= p.hiddenUntil) {
-          g.visible = true;
-          p.scale = 0.01;
-        } else return;
-      }
-      const fill = this.pigFill(i);
-      const target = 0.8 + 0.4 * fill;
-      p.scale += (target - p.scale) * Math.min(1, dt * 6);
-      p.wobble = Math.max(0, p.wobble - dt * 2.2);
-      const full = fill >= 1;
-      g.scale.setScalar(p.scale);
-      g.rotation.z = Math.sin(this.time * 22) * 0.18 * p.wobble;
-      g.position.y = STAGE_Y + (full ? Math.abs(Math.sin(this.time * 4 + i)) * 0.02 : 0) + p.wobble * 0.01;
-      p.mat.emissiveIntensity = full ? 0.35 + 0.25 * Math.sin(this.time * 6 + i) : 0;
-    });
-
-    // Flying coins.
-    for (const f of [...this.flyers]) {
+    for (const f of [...this.flicks]) {
       f.t += dt;
-      const k = Math.min(1, f.t / f.dur);
-      if (f.vel) {
-        f.vel.y -= 3.2 * dt;
-        f.mesh.position.addScaledVector(f.vel, dt);
-        if (f.mesh.position.y < 0.01) {
-          // Bounce and skid on the carpet.
-          f.mesh.position.y = 0.01;
-          f.vel.y = Math.abs(f.vel.y) * 0.3;
-          f.vel.x *= 0.5;
-          f.vel.z *= 0.5;
-        }
-        f.mesh.rotation.x += dt * 12;
-      } else {
-        f.mesh.position.lerpVectors(f.from, f.to, k);
-        f.mesh.position.y += Math.sin(k * Math.PI) * 0.12;
-        f.mesh.rotation.y += dt * 14;
+      if (f.t >= f.dur) {
+        this.flicks.splice(this.flicks.indexOf(f), 1);
+        f.done();
       }
-      if (k >= 1) {
-        f.mesh.visible = false;
-        f.mesh.removeFromParent();
-        this.coinPool.push(f.mesh);
-        this.flyers.splice(this.flyers.indexOf(f), 1);
-        f.done?.();
+    }
+    for (const p of this.particles) {
+      p.vy += 1500 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.spin += dt * 9;
+      p.life -= dt;
+    }
+    this.particles = this.particles.filter((p) => p.life > 0 && p.y < H + 40);
+
+    // Pigs: fatness follows the meter, squash-and-stretch gulps, shakes.
+    for (const c of COLORS) {
+      const p = this.pig2[c];
+      const target = this.fullness(c);
+      p.fat += (target - p.fat) * Math.min(1, dt * 5);
+      p.squash = Math.max(0, p.squash - dt * 2.5);
+      p.shake = Math.max(0, p.shake - dt);
+      p.glow = Math.max(0, p.glow - dt);
+      const q = this.pig3[c];
+      const g = q.group;
+      q.fat += (target - q.fat) * Math.min(1, dt * 4);
+      q.wobble = Math.max(0, q.wobble - dt * 2.2);
+      q.party = Math.max(0, q.party - dt);
+      const f = q.fat;
+      g.scale.set(0.85 + f * 0.5, 0.85 + f * 0.25, 0.85 + f * 0.4);
+      g.rotation.z = Math.sin(this.time * 22) * 0.18 * q.wobble + (q.party > 0 ? Math.sin(this.time * 14) * 0.12 : 0);
+      g.position.y = STAGE_Y + (q.party > 0 ? Math.abs(Math.sin(this.time * 9)) * 0.05 : 0) + q.wobble * 0.01;
+      const inBonus = this.inBonus && !!this.game.bonus?.features[c];
+      q.mat.emissiveIntensity = q.party > 0 || inBonus ? 0.35 + 0.25 * Math.sin(this.time * 8) : f > 0.8 ? 0.12 + 0.08 * Math.sin(this.time * 3) : 0;
+    }
+
+    for (const fl of [...this.flyers]) {
+      fl.t += dt;
+      fl.vel.y -= 3.2 * dt;
+      fl.mesh.position.addScaledVector(fl.vel, dt);
+      if (fl.mesh.position.y < 0.01) {
+        fl.mesh.position.y = 0.01;
+        fl.vel.y = Math.abs(fl.vel.y) * 0.3;
+        fl.vel.x *= 0.5;
+        fl.vel.z *= 0.5;
+      }
+      fl.mesh.rotation.x += dt * 12;
+      if (fl.t >= 2.2) {
+        fl.mesh.visible = false;
+        fl.mesh.removeFromParent();
+        this.coinPool.get(fl.mesh.userData.color)!.push(fl.mesh);
+        this.flyers.splice(this.flyers.indexOf(fl), 1);
       }
     }
 
-    const rate = this.mode === 'spinning' ? 14 : this.inBonus ? 24 : this.shownWin > 0 && this.mode === 'showing' ? 20 : 4;
+    // LED edge light: slow pink breathing; rainbow chase in bonuses and wins.
+    const hot = this.inBonus || (this.mode === 'showing' && this.shownWin > 0);
+    if (hot) this.led.color.setHSL((this.time * 0.5) % 1, 0.9, 0.55);
+    else this.led.color.setHSL(0.9, 0.85, 0.42 + 0.12 * Math.sin(this.time * 1.5));
+
+    const rate = this.mode === 'spinning' ? 14 : hot ? 24 : 4;
     const phase = Math.floor(this.time * rate);
     if (phase !== this.bulbPhase) {
       this.bulbPhase = phase;
@@ -1128,7 +1334,21 @@ export class PiggyMachineView {
       this.bulbs.instanceColor!.needsUpdate = true;
     }
 
-    if (this.dirty) {
+    // Redraw the screen when anything on it moves (30 fps is plenty, and kinder to Quest).
+    const animating =
+      this.mode === 'spinning' ||
+      this.mode === 'reveal' ||
+      this.mode === 'intro' ||
+      this.mode === 'free' ||
+      this.mode === 'bonusEnd' ||
+      this.flicks.length > 0 ||
+      this.particles.length > 0 ||
+      (!!this.banner && this.time < this.banner.until + 0.2) ||
+      (this.mode === 'showing' && this.winTimer < 30) ||
+      COLORS.some((c) => this.pig2[c].squash > 0 || this.pig2[c].shake > 0 || Math.abs(this.pig2[c].fat - this.fullness(c)) > 0.002);
+    this.redrawClock += dt;
+    if (this.dirty || (animating && this.redrawClock >= 1 / 30)) {
+      this.redrawClock = 0;
       this.dirty = false;
       this.drawScreen();
       this.screen.texture.needsUpdate = true;
@@ -1136,7 +1356,114 @@ export class PiggyMachineView {
   }
 }
 
-/** One piggy bank, origin between its feet, facing +z: body, dark details, gold trim. */
+// ---------------------------------------------------------------------------
+// Drawing helpers
+// ---------------------------------------------------------------------------
+
+function outlined(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, fill: string, stroke: string, width: number, maxW?: number, glow?: string) {
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = width;
+  ctx.strokeStyle = stroke;
+  ctx.strokeText(text, x, y, maxW);
+  if (glow) {
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 20;
+  }
+  ctx.fillStyle = fill;
+  ctx.fillText(text, x, y, maxW);
+  ctx.shadowBlur = 0;
+}
+
+function titleText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, pink = false) {
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `900 ${size}px ${DISPLAY}`;
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = size * 0.16;
+  ctx.strokeStyle = '#1a0410';
+  ctx.strokeText(text, x, y);
+  ctx.lineWidth = size * 0.07;
+  ctx.strokeStyle = goldFrame(ctx, y - size / 2, y + size / 2);
+  ctx.strokeText(text, x, y);
+  const g = ctx.createLinearGradient(0, y - size / 2, 0, y + size / 2);
+  if (pink) {
+    g.addColorStop(0, '#fff0f8');
+    g.addColorStop(0.45, '#ff70c0');
+    g.addColorStop(0.55, '#c0106a');
+    g.addColorStop(1, '#ff90d0');
+  } else {
+    g.addColorStop(0, '#fffbe0');
+    g.addColorStop(0.45, '#ffd040');
+    g.addColorStop(0.55, '#b07008');
+    g.addColorStop(1, '#ffe080');
+  }
+  ctx.fillStyle = g;
+  ctx.shadowColor = pink ? '#ff60c0' : '#ffc040';
+  ctx.shadowBlur = 24;
+  ctx.fillText(text, x, y);
+  ctx.shadowBlur = 0;
+}
+
+function goldFrame(ctx: CanvasRenderingContext2D, y0: number, y1: number) {
+  const g = ctx.createLinearGradient(0, y0, 0, y1);
+  g.addColorStop(0, '#fff4c0');
+  g.addColorStop(0.3, '#e0a830');
+  g.addColorStop(0.5, '#8a5a10');
+  g.addColorStop(0.7, '#e8b840');
+  g.addColorStop(1, '#fff0b0');
+  return g;
+}
+
+function hexA(c: string, a: number): string {
+  const col = new THREE.Color(c);
+  return `rgba(${Math.round(col.r * 255)},${Math.round(col.g * 255)},${Math.round(col.b * 255)},${a})`;
+}
+
+function shadeHex(c: string, k: number): string {
+  return '#' + new THREE.Color(c).multiplyScalar(k).getHexString();
+}
+
+/** The static screen backdrop: deep plum with a sunburst behind the pigs. */
+function background(bonus: boolean): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, bonus ? '#5a2a08' : '#4a0c3a');
+  g.addColorStop(0.3, bonus ? '#2a1004' : '#22041c');
+  g.addColorStop(1, '#08020a');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W / 2, 170);
+  for (let i = 0; i < 36; i++) {
+    ctx.rotate((Math.PI * 2) / 36);
+    ctx.fillStyle = i % 2 ? (bonus ? 'rgba(255,210,90,0.12)' : 'rgba(255,120,200,0.09)') : 'rgba(255,255,255,0.02)';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(900, -70);
+    ctx.lineTo(900, 70);
+    ctx.fill();
+  }
+  ctx.restore();
+  for (let i = 0; i < 80; i++) {
+    const x = (i * 97) % W,
+      y = (i * 53) % 330;
+    ctx.fillStyle = `rgba(255,230,180,${0.15 + ((i * 7) % 10) / 30})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.5 + (i % 3), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const v = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.75);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+  return c;
+}
+
+/** A glossy 3D piggy bank, origin between its feet, facing +z. */
 function pigGeometry(r: number) {
   const prep = (g: THREE.BufferGeometry, m: THREE.Matrix4) => {
     const n = g.index ? g.toNonIndexed() : g;
@@ -1146,25 +1473,40 @@ function pigGeometry(r: number) {
   };
   const M = (x: number, y: number, z: number, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) =>
     new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
-  const legH = 0.035;
-  const cy = legH + r * 0.85;
+  const legH = 0.03;
+  const cy = legH + r * 0.88;
+  // Body: a lathe so the belly is round and the back slightly flatter.
+  const pts: THREE.Vector2[] = [];
+  for (let i = 0; i <= 24; i++) {
+    const a = -Math.PI / 2 + (i / 24) * Math.PI;
+    pts.push(new THREE.Vector2(Math.max(0.0001, Math.cos(a) * r * (1 + 0.06 * Math.cos(a * 2))), Math.sin(a) * r * 1.22));
+  }
   const body: THREE.BufferGeometry[] = [
-    prep(new THREE.SphereGeometry(r, 28, 20), M(0, cy, 0, 0, 0, 0, 1, 0.9, 1.22)),
-    prep(new THREE.CylinderGeometry(r * 0.3, r * 0.34, r * 0.22, 20), M(0, cy - r * 0.05, r * 1.22, Math.PI / 2)),
+    prep(new THREE.LatheGeometry(pts, 32), M(0, cy, 0, Math.PI / 2, 0, 0, 1, 1, 0.92)),
+    prep(new THREE.CylinderGeometry(r * 0.32, r * 0.36, r * 0.24, 24), M(0, cy - r * 0.05, r * 1.2, Math.PI / 2)),
+    prep(new THREE.SphereGeometry(r * 0.24, 16, 12), M(0, cy + r * 0.4, r * 0.85)),
   ];
   for (const s of [-1, 1]) {
-    body.push(prep(new THREE.ConeGeometry(r * 0.24, r * 0.34, 12), M(s * r * 0.48, cy + r * 0.78, r * 0.55, 0.5, 0, -s * 0.35)));
-    for (const z of [-1, 1]) body.push(prep(new THREE.CylinderGeometry(r * 0.17, r * 0.15, legH + r * 0.4, 12), M(s * r * 0.5, (legH + r * 0.4) / 2, z * r * 0.62)));
+    body.push(prep(new THREE.ConeGeometry(r * 0.26, r * 0.4, 16), M(s * r * 0.5, cy + r * 0.82, r * 0.5, 0.45, 0, -s * 0.4, 1, 1, 0.5)));
+    for (const z of [-1, 1]) body.push(prep(new THREE.CylinderGeometry(r * 0.17, r * 0.15, legH + r * 0.42, 14), M(s * r * 0.52, (legH + r * 0.42) / 2, z * r * 0.62)));
   }
-  body.push(prep(new THREE.TorusGeometry(r * 0.12, r * 0.035, 8, 16, Math.PI * 1.6), M(0, cy + r * 0.1, -r * 1.2, 0, Math.PI / 2, 0)));
-  const dark: THREE.BufferGeometry[] = [prep(new THREE.BoxGeometry(r * 0.55, r * 0.05, r * 0.1), M(0, cy + r * 0.9, -r * 0.1))];
+  const tail = new THREE.CatmullRomCurve3(
+    Array.from({ length: 12 }, (_, i) => {
+      const a = i * 0.9;
+      return new THREE.Vector3(Math.cos(a) * r * 0.1, cy + r * 0.15 + Math.sin(a) * r * 0.1, -r * 1.18 - i * r * 0.012);
+    }),
+  );
+  body.push(prep(new THREE.TubeGeometry(tail, 24, r * 0.03, 8), new THREE.Matrix4()));
+  const dark: THREE.BufferGeometry[] = [prep(new THREE.BoxGeometry(r * 0.6, r * 0.06, r * 0.12), M(0, cy + r * 0.88, -r * 0.1))];
   for (const s of [-1, 1]) {
-    dark.push(prep(new THREE.SphereGeometry(r * 0.08, 10, 8), M(s * r * 0.33, cy + r * 0.32, r * 0.98)));
-    dark.push(prep(new THREE.SphereGeometry(r * 0.06, 8, 6), M(s * r * 0.11, cy - r * 0.05, r * 1.34, 0, 0, 0, 1, 1.3, 0.5)));
+    dark.push(prep(new THREE.SphereGeometry(r * 0.075, 10, 8), M(s * r * 0.3, cy + r * 0.38, r * 0.99)));
+    dark.push(prep(new THREE.SphereGeometry(r * 0.065, 8, 6), M(s * r * 0.12, cy - r * 0.05, r * 1.33, 0, 0, 0, 1, 1.3, 0.5)));
   }
-  const trim: THREE.BufferGeometry[] = [prep(new THREE.TorusGeometry(r * 0.72, r * 0.05, 8, 32), M(0, cy, r * 0.55, 0, 0, 0, 1, 0.9, 1))];
-  for (const s of [-1, 1]) for (const z of [-1, 1]) trim.push(prep(new THREE.CylinderGeometry(r * 0.17, r * 0.18, r * 0.08, 12), M(s * r * 0.5, r * 0.04, z * r * 0.62)));
-  return { body: mergeGeometries(body)!, dark: mergeGeometries(dark)!, trim: mergeGeometries(trim)! };
+  const white: THREE.BufferGeometry[] = [];
+  for (const s of [-1, 1]) white.push(prep(new THREE.SphereGeometry(r * 0.11, 12, 10), M(s * r * 0.3, cy + r * 0.38, r * 0.92)));
+  const trim: THREE.BufferGeometry[] = [prep(new THREE.TorusGeometry(r * 0.36, r * 0.035, 8, 24), M(0, cy + r * 0.88, -r * 0.1, Math.PI / 2, 0, 0, 1, 0.45, 1))];
+  for (const s of [-1, 1]) for (const z of [-1, 1]) trim.push(prep(new THREE.CylinderGeometry(r * 0.17, r * 0.18, r * 0.08, 14), M(s * r * 0.52, r * 0.04, z * r * 0.62)));
+  return { body: mergeGeometries(body)!, dark: mergeGeometries(dark)!, white: mergeGeometries(white)!, trim: mergeGeometries(trim)! };
 }
 
 function reelEase(k: number): number {

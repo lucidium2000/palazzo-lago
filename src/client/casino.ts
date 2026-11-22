@@ -5,6 +5,7 @@ import { carpet, damask, floorTile, lakeView, marble, radial, toTexture, wood } 
 import { textSign } from './panel';
 import { bakeStatic } from './merge';
 import { assets } from './assets';
+import { buildCanopy, buildCeiling, buildPilasters } from './hall';
 
 /**
  * The casino hall: an original resort interior in an Italian-lakeside style.
@@ -92,10 +93,10 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // --- Lighting -----------------------------------------------------------------
   scene.background = new THREE.Color(0x120c08);
   scene.environment = assets.envHdr ? hdrEnvironment(renderer, assets.envHdr) : warmEnvironment(renderer);
-  scene.environmentIntensity = 0.75;
-  const hemi = new THREE.HemisphereLight(0xffdcae, 0x4a2016, 1.0);
+  scene.environmentIntensity = 0.6;
+  const hemi = new THREE.HemisphereLight(0xffdcae, 0x3a1810, 0.5);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff0d8, 1.4);
+  const key = new THREE.DirectionalLight(0xffe6c4, 0.9);
   key.position.set(-4, 12, 6);
   key.target.position.set(-2, 0, 0);
   scene.add(key, key.target);
@@ -121,8 +122,8 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     [11, 8],
   ];
   pools.slice(0, q.pointLights).forEach(([x, z]) => {
-    const l = new THREE.PointLight(0xffc98a, 9, 9, 1.8);
-    l.position.set(x, 4.2, z);
+    const l = new THREE.PointLight(0xffc98a, 16, 11, 1.6);
+    l.position.set(x, 4.0, z);
     scene.add(l);
   });
 
@@ -145,11 +146,11 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   });
   const carpetTex = toTexture(carpet(tex / 2), { aniso });
   carpetTex.wrapS = carpetTex.wrapT = THREE.RepeatWrapping;
-  const carpetMat = new THREE.MeshStandardMaterial({ map: carpetTex, roughness: 0.95 });
-  const wallTex = toTexture(damask(512), { aniso });
+  const carpetMat = new THREE.MeshStandardMaterial({ map: carpetTex, roughness: 0.97, envMapIntensity: 0.3 });
+  const wallTex = toTexture(damask(1024), { aniso });
   wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
   wallTex.repeat.set(1, 1);
-  const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.85 });
+  const wallMat = new THREE.MeshPhysicalMaterial({ map: wallTex, roughness: 0.6, sheen: 0.6, sheenRoughness: 0.4, sheenColor: new THREE.Color(0xfff0d0) });
   const woodTex = toTexture(wood(512), { aniso });
   woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
   const woodMat = assets.material('walnut', { repeat: [6, 1], rough: 0.7, envIntensity: 0.8, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.4, envMapIntensity: 0.8 }) });
@@ -159,7 +160,6 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   columnTex.repeat.set(2, 3);
   const columnMat = assets.material('marble', { repeat: [1.5, 2.5], rough: 0.4, normal: 0.4, envIntensity: 1.1, fallback: () => new THREE.MeshStandardMaterial({ map: columnTex, roughness: 0.18, envMapIntensity: 1.1 }) });
   const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xe8d6b4, roughness: 0.7, emissive: 0x3a2410, emissiveIntensity: 0.45 });
-  const cofferGlow = new THREE.MeshBasicMaterial({ color: 0xffc878, toneMapped: true });
   // Softly lit brass for the rails: the room glows a little at night.
   const goldGlow = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3, emissive: 0xb07020, emissiveIntensity: 0.55 });
   const darkMarbleTex = toTexture(marble(256, 'dark', 4), { aniso });
@@ -274,36 +274,34 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     batch.add(box, gold, M(dx + 1.2, 1.7, D / 2 - 0.12, 0, 0.1, 3.5, 0.1));
   }
 
-  // --- Ceiling: coffers everywhere except over the rotunda -----------------------------
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), ceilingMat);
-  ceil.rotation.x = Math.PI / 2;
-  ceil.position.y = H;
-  root.add(ceil);
-  const step = 2;
-  for (let x = -W / 2 + step; x < W / 2; x += step) {
-    for (let z = -D / 2 + step; z < D / 2; z += step) {
-      const inRotunda = Math.hypot(x - ROTUNDA.x, z - ROTUNDA.z) < ROTUNDA.r + 0.8;
-      if (inRotunda) continue;
-      batch.add(box, ceilingMat, M(x, H - 0.16, z, 0, 0.22, 0.32, 0.22));
-      batch.add(box, ceilingMat, M(x - step / 2, H - 0.16, z, 0, step - 0.22, 0.3, 0.18));
-      batch.add(box, ceilingMat, M(x, H - 0.16, z - step / 2, 0, 0.18, 0.3, step - 0.22));
-      batch.add(box, gold, M(x - step / 2, H - 0.32, z, 0, step - 0.22, 0.03, 0.2));
-      batch.add(box, gold, M(x, H - 0.32, z - step / 2, 0, 0.2, 0.03, step - 0.22));
-      // Softly glowing coffer panel.
-      batch.add(box, cofferGlow, M(x - step / 2, H - 0.02, z - step / 2, 0, step * 0.55, 0.01, step * 0.55));
-    }
-  }
+  // --- Ceiling: vaulted bays with gilded scrollwork, lit from hidden coves ------------
+  root.add(buildCeiling({ w: W, d: D, h: H, rotunda: ROTUNDA }, q, gold));
+  // Silk pavilions over the table games, as at the Bellagio.
+  root.add(buildCanopy({ x: POSITIONS.roulette.x - 0.2, z: POSITIONS.roulette.z - 0.4, w: 6.2, d: 5.2, edge: 4.75, peak: 5.85, colors: ['#7a1424', '#b88a2e'] }, q));
+  root.add(buildCanopy({ x: POSITIONS.craps.x, z: POSITIONS.craps.z, w: 6.6, d: 5.0, edge: 4.75, peak: 5.85, colors: ['#4a1a5e', '#b88a2e'] }, q));
+  // Marble pilasters with sconces along the walls (not behind the bar).
+  root.add(
+    buildPilasters(
+      [
+        { from: [-W / 2, D / 2], to: [W / 2, D / 2], inward: [0, -1], every: 3, skip: (x) => Math.abs(x) < 3.2 },
+        { from: [W / 2, -D / 2], to: [W / 2, D / 2], inward: [-1, 0], every: 3.5 },
+        { from: [-W / 2, -D / 2], to: [-W / 2, D / 2], inward: [1, 0], every: 3.5, skip: (_x, z) => z > 4.5 },
+      ],
+      H,
+      { marble: columnMat, gold },
+    ),
+  );
   // Rotunda: a ring beam and a glowing dome above the glass flowers.
   const ringGeo = new THREE.TorusGeometry(ROTUNDA.r + 0.4, 0.22, 10, 64);
   const ring = new THREE.Mesh(ringGeo, gold);
   ring.rotation.x = Math.PI / 2;
   ring.position.set(ROTUNDA.x, H - 0.3, ROTUNDA.z);
   root.add(ring);
-  const domeTex = toTexture(radial(512, '#fff4dc', '#d9a35a'));
-  const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(ROTUNDA.r + 0.6, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshBasicMaterial({ map: domeTex, side: THREE.BackSide }),
-  );
+  // The dome glows from behind the glass flowers (bright enough to bloom).
+  const domeTex = toTexture(radial(512, '#fff6e4', '#c98a44'));
+  const domeMat = new THREE.MeshBasicMaterial({ map: domeTex, side: THREE.BackSide });
+  domeMat.color.setScalar(1.25);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(ROTUNDA.r + 0.6, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
   dome.scale.y = (ROTUNDA.h - H) / (ROTUNDA.r + 0.6);
   dome.position.set(ROTUNDA.x, H - 0.05, ROTUNDA.z);
   root.add(dome);
@@ -516,67 +514,101 @@ function warmEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
   return rt.texture;
 }
 
-/** The rotunda's ceiling of glass flowers: original design, backlit by the dome. */
+/**
+ * The rotunda's ceiling of hand-blown glass (an original piece in the spirit of
+ * the Bellagio lobby): ruffled blossoms layered under the glowing dome, with
+ * twisted, tapering horns hanging below. The glass shader lets colour glow
+ * through thin edges and brightens at grazing angles, and the bloom pass
+ * makes it shine.
+ */
 function glassFlowers(q: Quality): THREE.Group {
   const g = new THREE.Group();
-  const shape = new THREE.LatheGeometry(
-    [
-      [0.0, 0.0],
-      [0.06, -0.02],
-      [0.16, -0.06],
-      [0.24, -0.16],
-      [0.27, -0.24],
-      [0.25, -0.27],
-    ].map(([r, y]) => new THREE.Vector2(r, y)),
-    10,
+  // Ruffled blossom: a shallow bell with a strongly fluted, wavy rim.
+  const bloom = new THREE.LatheGeometry(
+    [[0.0, 0.02], [0.05, 0.0], [0.12, -0.03], [0.2, -0.09], [0.27, -0.17], [0.31, -0.24], [0.3, -0.28]].map(([r, y]) => new THREE.Vector2(r, y)),
+    28,
   );
-  // Ruffle the rim so each bloom reads as hand-blown glass.
-  const pos = shape.attributes.position as THREE.BufferAttribute;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i),
-      z = pos.getZ(i),
-      y = pos.getY(i);
-    const a = Math.atan2(z, x);
-    pos.setY(i, y + Math.sin(a * 5) * 0.03 * Math.min(1, -y * 5));
+  {
+    const pos = bloom.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i),
+        z = pos.getZ(i),
+        y = pos.getY(i);
+      const a = Math.atan2(z, x);
+      const edge = Math.min(1, -y * 4);
+      const k = 1 + Math.sin(a * 7) * 0.12 * edge;
+      pos.setXYZ(i, x * k, y + Math.sin(a * 7 + 1) * 0.05 * edge, z * k);
+    }
+    bloom.computeVertexNormals();
   }
-  shape.computeVertexNormals();
-  // Glossy glass that also glows in its own colour (instance colour fed into emissive).
-  const mat = new THREE.MeshStandardMaterial({
-    side: THREE.DoubleSide,
-    roughness: 0.12,
-    metalness: 0.0,
-    envMapIntensity: 1.6,
-    transparent: false,
-  });
+  // Twisted horn: a tapering tube along a loose helix.
+  const hornCurve = new THREE.CatmullRomCurve3(
+    Array.from({ length: 9 }, (_, i) => {
+      const t = i / 8;
+      return new THREE.Vector3(Math.cos(t * 5) * 0.08 * (1 - t), -t * 0.9, Math.sin(t * 5) * 0.08 * (1 - t));
+    }),
+  );
+  const horn = new THREE.TubeGeometry(hornCurve, 24, 0.05, 8, false);
+  {
+    const pos = horn.attributes.position as THREE.BufferAttribute;
+    const n = 25;
+    for (let i = 0; i < pos.count; i++) {
+      const ring = Math.floor(i / 9);
+      const t = ring / (n - 1);
+      const p = hornCurve.getPoint(t);
+      const taper = 1 - t * 0.85;
+      pos.setXYZ(i, p.x + (pos.getX(i) - p.x) * taper, p.y + (pos.getY(i) - p.y) * taper, p.z + (pos.getZ(i) - p.z) * taper);
+    }
+    horn.computeVertexNormals();
+  }
+  const mat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.08, metalness: 0.0, envMapIntensity: 2.0 });
   mat.onBeforeCompile = (shader) => {
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <emissivemap_fragment>',
       `#include <emissivemap_fragment>
       #ifdef USE_INSTANCING_COLOR
-        float rim = 1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition)));
-        totalEmissiveRadiance += vColor * (0.55 + 0.9 * rim * rim);
+        float facing = abs(dot(normalize(vNormal), normalize(vViewPosition)));
+        float rim = 1.0 - facing;
+        // Light passing through the glass: strongest through thin, face-on parts.
+        totalEmissiveRadiance += vColor * (0.9 + 1.6 * facing * facing + 1.2 * rim * rim * rim);
       #endif`,
     );
   };
-  const mesh = new THREE.InstancedMesh(shape, mat, q.flowers);
-  const palette = [0xff7a3c, 0xffb238, 0xf25c7a, 0x8f5bd9, 0x4fb3d9, 0xffd45c, 0xe8467c, 0x6fd17a, 0xff9a5c];
   const tmp = new THREE.Object3D();
   let s = 9;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < q.flowers; i++) {
-    const r = Math.sqrt(rnd()) * (ROTUNDA.r - 0.2);
-    const a = rnd() * Math.PI * 2;
-    const depth = (1 - (r / ROTUNDA.r) ** 2) * 1.6;
-    tmp.position.set(ROTUNDA.x + Math.cos(a) * r, HALL.h + 0.2 + depth * 0.6 - rnd() * 0.5, ROTUNDA.z + Math.sin(a) * r);
-    tmp.rotation.set((rnd() - 0.5) * 0.7, rnd() * Math.PI * 2, (rnd() - 0.5) * 0.7);
-    tmp.scale.setScalar(0.6 + rnd() * 1.1);
-    tmp.updateMatrix();
-    mesh.setMatrixAt(i, tmp.matrix);
+  const palette = [0xff6a1a, 0xffb020, 0xff3a4a, 0x7a3ad9, 0x1aa0e0, 0xffe040, 0xe8206a, 0x3ac45a, 0x20c8c0, 0xff8a30];
+  const colour = () => {
     const c = new THREE.Color(palette[Math.floor(rnd() * palette.length)]);
-    c.offsetHSL(0, 0, (rnd() - 0.5) * 0.15);
-    mesh.setColorAt(i, c);
+    c.offsetHSL((rnd() - 0.5) * 0.03, 0.1, (rnd() - 0.5) * 0.1);
+    return c.multiplyScalar(0.55);
+  };
+  const nb = q.flowers;
+  const blooms = new THREE.InstancedMesh(bloom, mat, nb);
+  for (let i = 0; i < nb; i++) {
+    const r = Math.sqrt(rnd()) * (ROTUNDA.r - 0.1);
+    const a = rnd() * Math.PI * 2;
+    const depth = (1 - (r / ROTUNDA.r) ** 2) * 1.5;
+    tmp.position.set(ROTUNDA.x + Math.cos(a) * r, HALL.h + 0.55 + depth * 0.55 - rnd() * 0.55, ROTUNDA.z + Math.sin(a) * r);
+    tmp.rotation.set((rnd() - 0.5) * 1.3, rnd() * Math.PI * 2, (rnd() - 0.5) * 1.3);
+    tmp.scale.setScalar(0.55 + rnd() * 1.0);
+    tmp.updateMatrix();
+    blooms.setMatrixAt(i, tmp.matrix);
+    blooms.setColorAt(i, colour());
   }
-  g.add(mesh);
+  const nh = Math.round(nb * 0.18);
+  const horns = new THREE.InstancedMesh(horn, mat, nh);
+  for (let i = 0; i < nh; i++) {
+    const r = Math.sqrt(rnd()) * (ROTUNDA.r - 0.5);
+    const a = rnd() * Math.PI * 2;
+    tmp.position.set(ROTUNDA.x + Math.cos(a) * r, HALL.h + 0.25 - rnd() * 0.4, ROTUNDA.z + Math.sin(a) * r);
+    tmp.rotation.set((rnd() - 0.5) * 0.5, rnd() * Math.PI * 2, (rnd() - 0.5) * 0.5);
+    tmp.scale.setScalar(0.7 + rnd() * 0.8);
+    tmp.updateMatrix();
+    horns.setMatrixAt(i, tmp.matrix);
+    horns.setColorAt(i, colour());
+  }
+  g.add(blooms, horns);
   return g;
 }
 
@@ -595,7 +627,7 @@ function chandeliers(spots: [number, number][], q: Quality, gold: THREE.Material
   const n = q.crystals;
   const crystals = new THREE.InstancedMesh(crystalGeo, crystalMat, spots.length * n);
   const glowTex = toTexture(radial(128, 'rgba(255,226,170,1)', 'rgba(255,190,110,0)'));
-  const glowMat = new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.6 });
   const bulbGeo = new THREE.SphereGeometry(0.03, 8, 6);
   const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff0d0 });
   const bulbs = new THREE.InstancedMesh(bulbGeo, bulbMat, spots.length * 12);
@@ -631,7 +663,7 @@ function chandeliers(spots: [number, number][], q: Quality, gold: THREE.Material
     }
     const glow = new THREE.Sprite(glowMat);
     glow.position.set(x, y + 0.1, z);
-    glow.scale.setScalar(2.6);
+    glow.scale.setScalar(1.5);
     g.add(glow);
   }
   crystals.count = ci;
@@ -752,7 +784,7 @@ function buildTerrace(
   }
   // Lanterns on the corners and either side of the doors.
   const glowTex = toTexture(radial(128, 'rgba(255,214,150,1)', 'rgba(255,170,90,0)'));
-  const glowMat = new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.6 });
   const lampMat = new THREE.MeshBasicMaterial({ color: 0xffe2a8 });
   for (const [lx, lz] of [[x0 + 0.3, z0 + 0.3], [x1 - 0.3, z0 + 0.3], [-2.4, z1 - 0.3], [2.4, z1 - 0.3]]) {
     batch.add(new THREE.CylinderGeometry(0.04, 0.06, 2.2, 8), m.gold, M(lx, 1.1, lz));

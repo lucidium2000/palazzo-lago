@@ -7,6 +7,9 @@ import { Sound } from './audio';
 import { buildCasino, POSITIONS, registerHall, SLOTS_YAW } from './casino';
 import { preloadChips } from './chips';
 import { CrapsTable } from './craps/table';
+import { PostFX } from './post';
+import { bakeStatic } from './merge';
+import { buildBlackjack } from './pit';
 import { SlotRows } from './decor';
 import { money, type GameContext } from './game';
 import { Hands } from './hands';
@@ -55,7 +58,7 @@ async function main() {
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 0.82;
   renderer.shadowMap.enabled = quality.shadows;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.xr.enabled = true;
@@ -162,6 +165,22 @@ async function main() {
   const stickman = crowd.add('croupier', staffLook('dealer'), cs.stickman.pos, cs.stickman.yaw);
   const crapsDealers = [cs.boxman, ...cs.dealers].map((d) => crowd.add('croupier', staffLook('dealer'), d.pos, d.yaw));
   for (const w of cs.players) crowd.add('watch', randomLook(), w.pos, w.yaw);
+  // Blackjack tables in the pit, each with a dealer and a few players.
+  for (const spec of [
+    { x: -11.1, z: -4.4, yaw: 0, felt: '#1d5a3a', min: 25, max: 5000 },
+    { x: -3.95, z: -4.4, yaw: 0, felt: '#123f6a', min: 100, max: 10000 },
+  ]) {
+    const t = buildBlackjack(quality, spec);
+    scene.add(t.group);
+    bakeStatic(t.group, { shadows: quality.shadows });
+    world.addLocalBox(t.group, 0, 0.35, 2.3, 1.3);
+    crowd.add('croupier', staffLook('dealer'), t.dealer.pos, t.dealer.yaw);
+    for (const k of [0, 2, 3, 5]) {
+      const st = t.seats[k];
+      const p = crowd.add('patron', randomLook(), st.pos, st.yaw);
+      if (p) p.seatY = 0.72;
+    }
+  }
   let crapsBetsTimer = 0;
   const stickSays = (text: string) => {
     hud.say('Stickman', text);
@@ -263,9 +282,9 @@ async function main() {
       crew.react('bonus', { force: true, cheer: true });
     }
   };
-  piggy.onBonusEnd = (won, grand) => {
+  piggy.onBonusEnd = (won, features) => {
     night.result('slots', 0, won, piggy.group.position);
-    if (grand || won >= piggy.game.bet * 50) {
+    if (features.length > 1 || won >= piggy.bonusBet * 50) {
       crowd.react(piggy.group.position, 4, 'cheer');
       sound.play('cheer', piggy.group, { volume: 0.8 });
     }
@@ -457,6 +476,7 @@ async function main() {
   }
 
   // Portrait phones get a taller field of view so you still see the room, not a slice.
+  const post = new PostFX(renderer, scene, camera, quality);
   const fitCamera = () => {
     camera.aspect = innerWidth / innerHeight;
     const hfov = 74;
@@ -464,6 +484,7 @@ async function main() {
     camera.fov = THREE.MathUtils.clamp(v, 58, 92);
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    post?.setSize(innerWidth, innerHeight);
   };
   addEventListener('resize', fitCamera);
   fitCamera();
@@ -484,10 +505,12 @@ async function main() {
     if (fps < 34 && pixelRatio > quality.minPixelRatio) {
       pixelRatio = Math.max(quality.minPixelRatio, pixelRatio - 0.15);
       renderer.setPixelRatio(pixelRatio);
+      post.setSize(innerWidth, innerHeight);
       goodFor = 0;
     } else if (fps > 55 && pixelRatio < quality.pixelRatio && ++goodFor >= 3) {
       pixelRatio = Math.min(quality.pixelRatio, pixelRatio + 0.1);
       renderer.setPixelRatio(pixelRatio);
+      post.setSize(innerWidth, innerHeight);
       goodFor = 0;
     }
   };
@@ -668,7 +691,10 @@ async function main() {
     }
     fountainVoice.setVolume((0.25 + casino.fountainLevel() * 0.9) * (0.25 + doorway * 0.75));
 
-    renderer.render(scene, camera);
+    // Count the whole frame (all post passes), not just the last one.
+    renderer.info.autoReset = false;
+    renderer.info.reset();
+    post.render(scene, camera);
     if (first) {
       first = false;
       document.getElementById('loading')!.classList.add('done');

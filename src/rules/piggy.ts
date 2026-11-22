@@ -1,109 +1,146 @@
 import type { Bankroll } from './bankroll';
 import type { Rng } from './rng';
-import { LINES_20, buildStrip } from './machines';
+import { buildStrip, LINES_20 } from './machines';
 import { evaluateLine, windowAt, type SymbolDef } from './slots';
 
 /**
- * Porkbelly Payday: an original county-fair "cash on reels" game.
+ * Porkbelly Payday: an original county-fair-meets-bank-vault game built on the "three piggy
+ * banks" persistent-state design (mechanics only; name, theme and art are our
+ * own).
  *
- * Base game: 5 reels x 3 rows, 20 lines. Golden Pig wilds appear on reels
- * 2–4. Coins carry a cash value (a multiple of the total bet) or a jackpot
- * label. Every coin that lands drops into one of three piggy banks above the
- * reels (Red, Green, Blue). Each bank has a meter kept per bet level; a full
- * bank waits for the next Hold & Spin, smashes at its start and applies its
- * power:
- *   Red   – every cash coin is doubled when the bonus ends
- *   Green – 5 respins instead of 3
- *   Blue  – a guaranteed jackpot coin (Mini 70%, Minor 25%, Major 5%)
+ * Base game: 5 reels x 3 rows, 25 lines, pays are multiples of the line bet.
+ * Stacked Mystery "?" symbols all turn into the same symbol each spin. Any "?"
+ * may also show a coin, Blue, Yellow or Red, which flicks up to the matching
+ * bank. A coin either triggers that bank's bonus, feeds its meter, or does
+ * nothing.
  *
- * Hold & Spin: 6+ coins anywhere. Coins lock; each respin every empty cell
- * may land a coin; any new coin resets the respins. All 15 cells = Grand.
- * The bonus pays the sum of the coins (plus the Grand) times the total bet.
+ *   Blue   meter = banked free spins (starts at 9, +1 per coin, up to 100)
+ *   Yellow meter = six progressive jackpots that grow with each coin
+ *   Red    meter = low symbols crossed out, in order 10, J, Q, K, A
+ *
+ * Bonuses are free spins at the triggering bet. When one bank triggers, the
+ * others often join in. Spins = the Blue bank's count if Blue is in, else 7.
+ *   Blue   – just the banked spins; the Blue bank resets to 9.
+ *   Yellow – jackpot coins land on "?" symbols; collect 2/2/3/4/5/6 of a
+ *            colour to win Mini/Minor/Maxi/Major/Grand/Mega (re-winnable);
+ *            the jackpots drop back to their base values afterwards.
+ *   Red    – reels with the crossed-out low symbols removed; red bank resets.
+ *
+ * Bank meters are kept per bet level, as on the casino floor, so a machine can
+ * be left with a fat pig: the advantage-play hook.
  */
 
-export type Jackpot = 'MINI' | 'MINOR' | 'MAJOR' | 'GRAND';
-export const JACKPOTS: Record<Jackpot, number> = { MINI: 25, MINOR: 75, MAJOR: 250, GRAND: 1000 };
+export type CoinColor = 'blue' | 'yellow' | 'red';
+export const COLORS: readonly CoinColor[] = ['blue', 'yellow', 'red'];
+export type Feature = CoinColor;
 
-export interface Coin {
-  /** Value as a multiple of the total bet. */
-  mult: number;
-  jackpot?: Jackpot;
-}
+export const JACKPOT_NAMES = ['MINI', 'MINOR', 'MAXI', 'MAJOR', 'GRAND', 'MEGA'] as const;
+export type JackpotName = (typeof JACKPOT_NAMES)[number];
+/** Starting jackpot values, multiples of the total bet. */
+export const JACKPOT_BASE = [10, 25, 100, 250, 1000, 2500];
+/** Growth per yellow coin, multiples of the total bet. */
+export const JACKPOT_GROWTH = [0.2, 0.5, 2, 5, 25, 170];
+/** Jackpots stop growing here (Mega tops out at 12,500x the bet). */
+export const JACKPOT_MAX = [20, 50, 200, 500, 2500, 12500];
+/** Coins of a jackpot's colour needed to win it in the Yellow bonus. */
+export const JACKPOT_NEED = [2, 2, 3, 4, 5, 6];
 
-export const PIGS = ['red', 'green', 'blue'] as const;
-export type Pig = (typeof PIGS)[number];
-/** Coins each bank holds before it is full. */
-export const PIG_CAPACITY: Record<Pig, number> = { red: 90, green: 70, blue: 160 };
+/** Low symbols crossed out by red coins, in order. */
+export const RED_ORDER = ['T', 'J', 'Q', 'K', 'A'] as const;
+export const BLUE_START = 9;
+export const BLUE_MAX = 100;
+export const BONUS_SPINS = 7;
 
 export const PIGGY_SYMBOLS: SymbolDef[] = [
-  { id: 'WILD', name: 'Golden Pig (wild)', kind: 'wild', pays: { 3: 115, 4: 570, 5: 2850 } },
-  { id: 'BARN', name: 'Red Barn', kind: 'line', pays: { 3: 68, 4: 285, 5: 1140 } },
-  { id: 'RIBBON', name: 'Blue Ribbon', kind: 'line', pays: { 3: 57, 4: 230, 5: 685 } },
-  { id: 'CORN', name: 'Sweet Corn', kind: 'line', pays: { 3: 46, 4: 135, 5: 455 } },
-  { id: 'APPLE', name: 'Candy Apple', kind: 'line', pays: { 3: 34, 4: 115, 5: 340 } },
-  { id: 'A', name: 'Ace', kind: 'line', pays: { 3: 23, 4: 68, 5: 230 } },
-  { id: 'K', name: 'King', kind: 'line', pays: { 3: 23, 4: 57, 5: 205 } },
-  { id: 'Q', name: 'Queen', kind: 'line', pays: { 3: 17, 4: 46, 5: 135 } },
-  { id: 'J', name: 'Jack', kind: 'line', pays: { 3: 14, 4: 34, 5: 115 } },
-  { id: 'T', name: 'Ten', kind: 'line', pays: { 3: 14, 4: 28, 5: 103 } },
-  { id: 'COIN', name: 'Pig Coin', kind: 'bonus' },
+  { id: 'WILD', name: 'Wild', kind: 'wild' },
+  { id: 'BANK', name: 'Golden Piggy Bank', kind: 'line', pays: { 3: 15, 4: 100, 5: 150 } },
+  { id: 'BARS', name: 'Gold Bars', kind: 'line', pays: { 3: 10, 4: 50, 5: 100 } },
+  { id: 'VAULT', name: 'Vault', kind: 'line', pays: { 3: 10, 4: 50, 5: 100 } },
+  { id: 'BAG', name: 'Money Bag', kind: 'line', pays: { 3: 5, 4: 30, 5: 75 } },
+  { id: 'A', name: 'Ace', kind: 'line', pays: { 3: 3, 4: 20, 5: 50 } },
+  { id: 'K', name: 'King', kind: 'line', pays: { 3: 3, 4: 20, 5: 50 } },
+  { id: 'Q', name: 'Queen', kind: 'line', pays: { 3: 2, 4: 15, 5: 50 } },
+  { id: 'J', name: 'Jack', kind: 'line', pays: { 3: 2, 4: 15, 5: 50 } },
+  { id: 'T', name: 'Ten', kind: 'line', pays: { 3: 2, 4: 15, 5: 50 } },
+  { id: 'MYSTERY', name: 'Mystery Coin', kind: 'bonus' },
 ];
+const DEFS = new Map(PIGGY_SYMBOLS.map((s) => [s.id, s]));
+
+/** 25 lines: the shared 20 plus five more. */
+export const LINES_25: number[][] = [
+  ...LINES_20,
+  [2, 0, 2, 0, 2],
+  [0, 2, 2, 2, 0],
+  [2, 0, 0, 0, 2],
+  [1, 2, 0, 2, 1],
+  [1, 0, 2, 0, 1],
+];
+
+/** Puts `n` stacks of three "?" evenly round a strip. */
+function withMystery(strip: string[], stacks: number): string[] {
+  const out = [...strip];
+  const step = Math.floor(out.length / stacks);
+  for (let k = stacks - 1; k >= 0; k--) out.splice(k * step + 2, 0, 'MYSTERY', 'MYSTERY', 'MYSTERY');
+  return out;
+}
+
+const BASE = { BANK: 3, BARS: 4, VAULT: 4, BAG: 5, A: 6, K: 6, Q: 7, J: 7, T: 7 };
 
 export const PIGGY = {
   id: 'porkbelly-payday',
   name: 'Porkbelly Payday',
-  tagline: 'Feed the piggy banks · 6 coins start Hold & Spin',
+  tagline: 'Feed the piggy banks · Blue, Yellow and Red bonuses',
   rows: 3,
-  lines: LINES_20,
-  betLevels: [1, 2, 3, 5, 10, 25, 50] as readonly number[],
+  lines: LINES_25,
+  /** 75/150/225/450/600 credits at 1¢. */
+  betLevels: [0.75, 1.5, 2.25, 4.5, 6] as readonly number[],
   symbols: PIGGY_SYMBOLS,
   reels: [
-    buildStrip({ BARN: 3, RIBBON: 4, CORN: 5, APPLE: 6, A: 7, K: 7, Q: 8, J: 8, T: 9, COIN: 8 }, [], 41),
-    buildStrip({ WILD: 3, BARN: 3, RIBBON: 4, CORN: 5, APPLE: 6, A: 7, K: 7, Q: 8, J: 8, T: 9, COIN: 8 }, [], 42),
-    buildStrip({ WILD: 3, BARN: 3, RIBBON: 4, CORN: 5, APPLE: 6, A: 7, K: 7, Q: 8, J: 8, T: 9, COIN: 8 }, [], 43),
-    buildStrip({ WILD: 3, BARN: 3, RIBBON: 4, CORN: 5, APPLE: 6, A: 7, K: 7, Q: 8, J: 8, T: 9, COIN: 8 }, [], 44),
-    buildStrip({ BARN: 3, RIBBON: 4, CORN: 5, APPLE: 6, A: 7, K: 7, Q: 8, J: 8, T: 9, COIN: 8 }, [], 45),
+    withMystery(buildStrip({ ...BASE }, [], 51), 3),
+    withMystery(buildStrip({ ...BASE, WILD: 4 }, [], 52), 3),
+    withMystery(buildStrip({ ...BASE, WILD: 4 }, [], 53), 3),
+    withMystery(buildStrip({ ...BASE, WILD: 4 }, [], 54), 3),
+    withMystery(buildStrip({ ...BASE }, [], 55), 3),
   ] as readonly (readonly string[])[],
-  trigger: 6,
-  respins: 3,
-  greenRespins: 5,
-  /** Chance an empty cell lands a coin on each respin. */
-  respinCoinChance: 0.035,
+  /** What every "?" becomes, by weight. */
+  mysteryWeights: { BANK: 6, BARS: 8, VAULT: 8, BAG: 9, A: 10, K: 10, Q: 11, J: 11, T: 11, WILD: 8 } as Record<string, number>,
+  /** Chance (per 10,000) that a "?" shows a coin in the base game, and the colour mix. */
+  coinChance: 1400,
+  colorWeights: { blue: 40, yellow: 30, red: 30 } as Record<CoinColor, number>,
+  /** Per coin, per 10,000: trigger the bank, else feed it. */
+  trigger: { blue: 380, yellow: 260, red: 260 } as Record<CoinColor, number>,
+  feed: { blue: 3000, yellow: 5500, red: 1050 } as Record<CoinColor, number>,
+  /** Per 10,000: another bank joins a triggered bonus. */
+  join: 3200,
+  /** Yellow bonus: chance a "?" shows a jackpot coin, and the colour mix. */
+  jackpotCoinChance: 1000,
+  jackpotWeights: [600, 250, 100, 35, 12, 3],
 };
 
-const DEFS = new Map(PIGGY_SYMBOLS.map((s) => [s.id, s]));
-
-/** [weight, coin] tables. Cash values are multiples of the total bet. */
-const BASE_COINS: [number, Coin][] = [
-  [300, { mult: 0.5 }],
-  [280, { mult: 1 }],
-  [140, { mult: 1.5 }],
-  [120, { mult: 2 }],
-  [70, { mult: 3 }],
-  [50, { mult: 5 }],
-  [25, { mult: 10 }],
-  [12, { mult: 25, jackpot: 'MINI' }],
-  [3, { mult: 75, jackpot: 'MINOR' }],
-];
-const BONUS_COINS: [number, Coin][] = [...BASE_COINS, [0.6, { mult: 250, jackpot: 'MAJOR' }]];
-const BLUE_JACKPOT: [number, Coin][] = [
-  [70, { mult: 25, jackpot: 'MINI' }],
-  [25, { mult: 75, jackpot: 'MINOR' }],
-  [5, { mult: 250, jackpot: 'MAJOR' }],
-];
-
-function pick<T>(rng: Rng, table: [number, T][]): T {
-  // Weights scaled to integers so any Rng gives exact odds.
-  const scaled = table.map(([w]) => Math.round(w * 10));
-  const total = scaled.reduce((a, b) => a + b, 0);
-  let r = rng.int(total);
-  for (let i = 0; i < table.length; i++) {
-    if ((r -= scaled[i]) < 0) return table[i][1];
-  }
-  return table[table.length - 1][1];
+export interface BankState {
+  blue: number;
+  /** Current jackpot values, multiples of the total bet. */
+  jackpots: number[];
+  /** How many low symbols are crossed out (0..5). */
+  reds: number;
 }
 
-const round2 = (x: number) => Math.round(x * 100) / 100;
+export const freshBank = (): BankState => ({ blue: BLUE_START, jackpots: [...JACKPOT_BASE], reds: 0 });
+
+export const crossedOut = (reds: number): string[] => RED_ORDER.slice(0, reds) as unknown as string[];
+
+export interface CoinEvent {
+  reel: number;
+  row: number;
+  color: CoinColor;
+  result: 'trigger' | 'feed' | 'none';
+}
+
+export interface JackpotCoin {
+  reel: number;
+  row: number;
+  jackpot: number;
+}
 
 export interface PiggyLineWin {
   line: number;
@@ -113,65 +150,56 @@ export interface PiggyLineWin {
   cells: [number, number][];
 }
 
+export interface BonusState {
+  features: Record<Feature, boolean>;
+  spinsLeft: number;
+  totalSpins: number;
+  totalBet: number;
+  /** Low symbols removed from the reels (Red). */
+  removed: string[];
+  reels: (readonly string[])[];
+  /** Yellow: jackpot coins collected toward each jackpot. */
+  counts: number[];
+  won: number;
+  jackpotsWon: { jackpot: number; amount: number }[];
+  done: boolean;
+}
+
 export interface PiggySpin {
+  free: boolean;
+  bet: number;
   stops: number[];
+  /** Raw window with "?" (grid[reel][row]). */
+  raw: string[][];
+  /** After the mystery reveal. */
   grid: string[][];
-  /** coins[reel][row] for COIN cells, otherwise null. */
-  coins: (Coin | null)[][];
+  mystery: string | null;
+  coins: CoinEvent[];
+  jackpotCoins: JackpotCoin[];
+  jackpotWins: { jackpot: number; amount: number }[];
   lineWins: PiggyLineWin[];
   lineWin: number;
-  coinCount: number;
-  /** Which bank each landed coin went into (-1: every bank already full). */
-  fed: { reel: number; row: number; pig: number }[];
-  triggered: boolean;
-  /** Meters after this spin (for the current bet level). */
-  meters: number[];
-}
-
-export interface BonusState {
-  /** board[reel*3 + row]. */
-  board: (Coin | null)[];
-  respinsLeft: number;
-  maxRespins: number;
-  totalBet: number;
-  powers: Record<Pig, boolean>;
-  /** Cell where the Blue bank placed its jackpot coin. */
-  blueCell: number | null;
-  done: boolean;
-  grand: boolean;
-  /** Final pay (credited when done). */
+  /** Everything this spin paid (lines + jackpots). */
   win: number;
-  respinCount: number;
+  /** Set when this base spin started a bonus. */
+  triggered: Record<Feature, boolean> | null;
+  bank: BankState;
 }
 
-export interface RespinResult {
-  landed: { cell: number; coin: Coin }[];
-  respinsLeft: number;
-  done: boolean;
-  grand: boolean;
-  win: number;
+function pick<K extends string | number>(rng: Rng, weights: [K, number][]): K {
+  const total = weights.reduce((a, [, w]) => a + w, 0);
+  let r = rng.int(total);
+  for (const [k, w] of weights) if ((r -= w) < 0) return k;
+  return weights[weights.length - 1][0];
 }
 
-/** Sum of a finished board in total-bet multiples. */
-export function boardValue(board: readonly (Coin | null)[], red: boolean): { mult: number; grand: boolean } {
-  let mult = 0;
-  let filled = 0;
-  for (const c of board) {
-    if (!c) continue;
-    filled++;
-    mult += c.jackpot ? c.mult : red ? c.mult * 2 : c.mult;
-  }
-  const grand = filled === board.length;
-  if (grand) mult += JACKPOTS.GRAND;
-  return { mult, grand };
-}
+const round2 = (x: number) => Math.round(x * 100) / 100;
 
 export class PiggyGame {
   phase: 'idle' | 'bonus' = 'idle';
   betIndex = 0;
   bonus: BonusState | null = null;
-  /** Bank meters per bet level, as casinos keep them. */
-  private meters = new Map<number, number[]>();
+  private banks = new Map<number, BankState>();
 
   constructor(private bankroll: Bankroll | null) {}
 
@@ -181,38 +209,59 @@ export class PiggyGame {
 
   changeBet(dir: 1 | -1): number {
     if (this.phase !== 'idle') return this.bet;
-    this.betIndex = Math.max(0, Math.min(PIGGY.betLevels.length - 1, this.betIndex + dir));
+    this.betIndex = (this.betIndex + dir + PIGGY.betLevels.length) % PIGGY.betLevels.length;
     return this.bet;
   }
 
-  metersFor(betIndex = this.betIndex): number[] {
-    let m = this.meters.get(betIndex);
-    if (!m) this.meters.set(betIndex, (m = [0, 0, 0]));
-    return m;
+  bankFor(betIndex = this.betIndex): BankState {
+    let b = this.banks.get(betIndex);
+    if (!b) this.banks.set(betIndex, (b = freshBank()));
+    return b;
   }
 
-  isFull(pig: number, betIndex = this.betIndex): boolean {
-    return this.metersFor(betIndex)[pig] >= PIG_CAPACITY[PIGS[pig]];
+  setBank(state: Partial<BankState>, betIndex = this.betIndex) {
+    Object.assign(this.bankFor(betIndex), state);
   }
 
-  /** A paid base-game spin. Starts the bonus when 6+ coins land. */
+  /** A machine as the last player left it: some banked spins, some growth, a few reds. */
+  randomizeBanks(rng: Rng) {
+    PIGGY.betLevels.forEach((_b, i) => {
+      const coins = rng.int(60);
+      const yellow = rng.int(40);
+      this.banks.set(i, {
+        blue: Math.min(BLUE_MAX, BLUE_START + Math.floor(coins * (0.3 + rng.int(70) / 100))),
+        jackpots: JACKPOT_BASE.map((b, j) => Math.min(JACKPOT_MAX[j], b + JACKPOT_GROWTH[j] * yellow)),
+        reds: rng.int(4),
+      });
+    });
+  }
+
+  /** A paid spin in the base game, or the next free spin in a bonus. */
   spin(rng: Rng, forcedStops?: number[]): PiggySpin {
-    if (this.phase !== 'idle') throw new Error('finish the bonus first');
-    const bet = this.bet;
-    if (this.bankroll) {
+    const free = this.phase === 'bonus';
+    const b = this.bonus;
+    if (free && (!b || b.done)) throw new Error('no bonus');
+    const bet = free ? b!.totalBet : this.bet;
+    if (!free && this.bankroll) {
       if (!this.bankroll.canAfford(bet)) throw new Error('Not enough chips');
       this.bankroll.debit(bet, 'bet', PIGGY.id);
       this.bankroll.countRound();
     }
-    const stops = forcedStops ?? PIGGY.reels.map((s) => rng.int(s.length));
-    const grid = PIGGY.reels.map((s, i) => windowAt(s, stops[i]));
-    const coins = grid.map((col) => col.map((s) => (s === 'COIN' ? pick(rng, BASE_COINS) : null)));
+    const reels = free ? b!.reels : PIGGY.reels;
+    const stops = forcedStops ?? reels.map((s) => rng.int(s.length));
+    const raw = reels.map((s, i) => windowAt(s, stops[i]));
+    const hasMystery = raw.some((col) => col.includes('MYSTERY'));
+    const removed = free ? b!.removed : [];
+    const mystery = hasMystery ? pick(rng, Object.entries(PIGGY.mysteryWeights).filter(([k]) => !removed.includes(k))) : null;
+    const grid = raw.map((col) => col.map((s) => (s === 'MYSTERY' ? mystery! : s)));
 
     const lineBet = bet / PIGGY.lines.length;
     const lineWins: PiggyLineWin[] = [];
     PIGGY.lines.forEach((rows, li) => {
-      const syms = rows.map((row, reel) => grid[reel][row]);
-      const r = evaluateLine(syms, DEFS);
+      const r = evaluateLine(
+        rows.map((row, reel) => grid[reel][row]),
+        DEFS,
+      );
       if (r) {
         lineWins.push({
           line: li,
@@ -224,116 +273,160 @@ export class PiggyGame {
       }
     });
     const lineWin = round2(lineWins.reduce((a, w) => a + w.amount, 0));
-    if (lineWin > 0 && this.bankroll) this.bankroll.credit(lineWin, 'win', PIGGY.id);
 
-    // Feed the banks.
-    const meters = this.metersFor();
-    const fed: PiggySpin['fed'] = [];
-    let coinCount = 0;
-    for (let reel = 0; reel < 5; reel++) {
-      for (let row = 0; row < 3; row++) {
-        if (!coins[reel][row]) continue;
-        coinCount++;
-        const open = [0, 1, 2].filter((p) => meters[p] < PIG_CAPACITY[PIGS[p]]);
-        const pig = open.length ? open[rng.int(open.length)] : -1;
-        if (pig >= 0) meters[pig]++;
-        fed.push({ reel, row, pig });
+    const bank = this.bankFor();
+    const coins: CoinEvent[] = [];
+    const jackpotCoins: JackpotCoin[] = [];
+    const jackpotWins: { jackpot: number; amount: number }[] = [];
+    const trig: Record<Feature, boolean> = { blue: false, yellow: false, red: false };
+
+    if (!free) {
+      // Coins on "?" symbols go to the banks.
+      raw.forEach((col, reel) =>
+        col.forEach((s, row) => {
+          if (s !== 'MYSTERY' || rng.int(10000) >= PIGGY.coinChance) return;
+          const color = pick(rng, Object.entries(PIGGY.colorWeights) as [CoinColor, number][]);
+          const roll = rng.int(10000);
+          let result: CoinEvent['result'] = 'none';
+          if (roll < PIGGY.trigger[color]) result = 'trigger';
+          else if (roll < PIGGY.trigger[color] + PIGGY.feed[color]) {
+            if (color === 'blue' && bank.blue < BLUE_MAX) bank.blue++, (result = 'feed');
+            else if (color === 'yellow') {
+              bank.jackpots = bank.jackpots.map((v, j) => Math.min(JACKPOT_MAX[j], round2(v + JACKPOT_GROWTH[j])));
+              result = 'feed';
+            } else if (color === 'red' && bank.reds < RED_ORDER.length) bank.reds++, (result = 'feed');
+          }
+          if (result === 'trigger') trig[color] = true;
+          coins.push({ reel, row, color, result });
+        }),
+      );
+      if (COLORS.some((c) => trig[c])) {
+        // The other banks often join in.
+        for (const c of COLORS) if (!trig[c] && rng.int(10000) < PIGGY.join) trig[c] = true;
       }
+    } else if (b!.features.yellow) {
+      // Yellow bonus: jackpot coins on "?" symbols.
+      raw.forEach((col, reel) =>
+        col.forEach((s, row) => {
+          if (s !== 'MYSTERY' || rng.int(10000) >= PIGGY.jackpotCoinChance) return;
+          const jackpot = pick(rng, PIGGY.jackpotWeights.map((w, j) => [j, w] as [number, number]));
+          jackpotCoins.push({ reel, row, jackpot });
+          b!.counts[jackpot]++;
+          if (b!.counts[jackpot] >= JACKPOT_NEED[jackpot]) {
+            const amount = round2(bank.jackpots[jackpot] * bet);
+            jackpotWins.push({ jackpot, amount });
+            b!.jackpotsWon.push({ jackpot, amount });
+            b!.counts[jackpot] = 0;
+            bank.jackpots[jackpot] = JACKPOT_BASE[jackpot];
+          }
+        }),
+      );
     }
 
-    const triggered = coinCount >= PIGGY.trigger;
-    if (triggered) this.startBonus(rng, coins, bet);
-    return { stops, grid, coins, lineWins, lineWin, coinCount, fed, triggered, meters: [...meters] };
+    const triggered = !free && COLORS.some((c) => trig[c]) ? trig : null;
+    const win = round2(lineWin + jackpotWins.reduce((a, w) => a + w.amount, 0));
+    if (win > 0 && this.bankroll) this.bankroll.credit(win, 'win', PIGGY.id);
+
+    if (free) {
+      b!.won = round2(b!.won + win);
+      b!.spinsLeft--;
+      if (b!.spinsLeft <= 0) this.endBonus();
+    } else if (triggered) {
+      this.startBonus(triggered, bet);
+    }
+
+    return { free, bet, stops, raw, grid, mystery, coins, jackpotCoins, jackpotWins, lineWins, lineWin, win, triggered, bank: { ...bank, jackpots: [...bank.jackpots] } };
   }
 
-  private startBonus(rng: Rng, coins: (Coin | null)[][], bet: number) {
-    const meters = this.metersFor();
-    const powers = { red: false, green: false, blue: false } as Record<Pig, boolean>;
-    PIGS.forEach((p, i) => {
-      if (meters[i] >= PIG_CAPACITY[p]) {
-        powers[p] = true;
-        meters[i] = 0; // the bank smashes
-      }
-    });
-    const board: (Coin | null)[] = [];
-    for (let reel = 0; reel < 5; reel++) for (let row = 0; row < 3; row++) board.push(coins[reel][row]);
-    let blueCell: number | null = null;
-    if (powers.blue) {
-      const empty = board.flatMap((c, i) => (c ? [] : [i]));
-      blueCell = empty[rng.int(empty.length)];
-      board[blueCell] = pick(rng, BLUE_JACKPOT);
-    }
-    const max = powers.green ? PIGGY.greenRespins : PIGGY.respins;
-    this.bonus = { board, respinsLeft: max, maxRespins: max, totalBet: bet, powers, blueCell, done: false, grand: false, win: 0, respinCount: 0 };
+  private startBonus(features: Record<Feature, boolean>, bet: number) {
+    const bank = this.bankFor();
+    const removed = features.red ? crossedOut(bank.reds) : [];
+    const spins = features.blue ? bank.blue : BONUS_SPINS;
+    this.bonus = {
+      features: { ...features },
+      spinsLeft: spins,
+      totalSpins: spins,
+      totalBet: bet,
+      removed,
+      reels: PIGGY.reels.map((s) => s.filter((x) => !removed.includes(x))),
+      counts: [0, 0, 0, 0, 0, 0],
+      won: 0,
+      jackpotsWon: [],
+      done: false,
+    };
     this.phase = 'bonus';
-    if (board.every(Boolean)) this.finishBonus();
   }
 
-  /** One Hold & Spin respin. Pays out when the bonus ends. */
-  respin(rng: Rng): RespinResult {
-    const b = this.bonus;
-    if (this.phase !== 'bonus' || !b || b.done) throw new Error('no bonus');
-    const landed: RespinResult['landed'] = [];
-    const chance = Math.round(PIGGY.respinCoinChance * 10000);
-    b.board.forEach((c, cell) => {
-      if (c) return;
-      if (rng.int(10000) < chance) {
-        const coin = pick(rng, BONUS_COINS);
-        b.board[cell] = coin;
-        landed.push({ cell, coin });
-      }
-    });
-    b.respinCount++;
-    b.respinsLeft = landed.length ? b.maxRespins : b.respinsLeft - 1;
-    if (b.respinsLeft === 0 || b.board.every(Boolean)) this.finishBonus();
-    return { landed, respinsLeft: b.respinsLeft, done: b.done, grand: b.grand, win: b.win };
-  }
-
-  private finishBonus() {
+  private endBonus() {
     const b = this.bonus!;
-    const { mult, grand } = boardValue(b.board, b.powers.red);
-    b.grand = grand;
-    b.win = round2(mult * b.totalBet);
+    const bank = this.bankFor();
+    if (b.features.blue) bank.blue = BLUE_START;
+    if (b.features.red) bank.reds = 0;
+    if (b.features.yellow) bank.jackpots = [...JACKPOT_BASE];
     b.done = true;
-    if (this.bankroll && b.win > 0) this.bankroll.credit(b.win, 'win', PIGGY.id);
   }
 
-  /** Back to the base game once the client has shown the bonus result. */
+  /** Back to the base game once the client has shown the bonus total. */
   closeBonus() {
     if (this.bonus?.done) {
       this.bonus = null;
       this.phase = 'idle';
     }
   }
-
-  /** Test/demo hook: sets a bank's meter. */
-  setMeter(pig: number, value: number, betIndex = this.betIndex) {
-    this.metersFor(betIndex)[pig] = value;
-  }
 }
 
-/** Monte Carlo RTP (no bankroll), used by tests and the tuning script. */
-export function simulatePiggy(rng: Rng, spins: number, betIndex = 0) {
+/** Monte Carlo from a given bank state. Plays `spins` paid spins (bonuses play out in full). */
+export function simulatePiggy(rng: Rng, spins: number, start: Partial<BankState> = {}) {
   const g = new PiggyGame(null);
-  g.betIndex = betIndex;
-  let staked = 0;
-  let line = 0;
-  let bonus = 0;
-  let bonuses = 0;
-  let grands = 0;
-  const powers = { red: 0, green: 0, blue: 0 };
+  g.setBank(start);
+  let staked = 0,
+    line = 0,
+    bonus = 0,
+    jackpots = 0,
+    bonuses = 0;
+  const combos: Record<string, number> = {};
   for (let i = 0; i < spins; i++) {
     staked += g.bet;
     const s = g.spin(rng);
-    line += s.lineWin;
-    if (s.triggered) {
+    line += s.win;
+    if (g.phase === 'bonus') {
       bonuses++;
-      for (const p of PIGS) if (g.bonus!.powers[p]) powers[p]++;
-      while (!g.bonus!.done) g.respin(rng);
-      bonus += g.bonus!.win;
-      if (g.bonus!.grand) grands++;
+      const key = COLORS.filter((c) => g.bonus!.features[c]).join('+');
+      combos[key] = (combos[key] ?? 0) + 1;
+      while (!g.bonus!.done) {
+        const f = g.spin(rng);
+        bonus += f.lineWin;
+        jackpots += f.win - f.lineWin;
+      }
       g.closeBonus();
     }
   }
-  return { rtp: (line + bonus) / staked, lineRtp: line / staked, bonusRtp: bonus / staked, bonusRate: bonuses / spins, grands, powers };
+  return { rtp: (line + bonus + jackpots) / staked, baseRtp: line / staked, bonusRtp: (bonus + jackpots) / staked, jackpotRtp: jackpots / staked, bonusRate: bonuses / spins, combos };
+}
+
+/**
+ * Advantage-play value: start with the Blue bank at `blue` and play until the
+ * first bonus that includes Blue ends (the bank resets then). Returns RTP over
+ * many such sessions.
+ */
+export function apValue(rng: Rng, blue: number, sessions: number, start: Partial<BankState> = {}) {
+  let staked = 0,
+    won = 0,
+    spins = 0;
+  for (let n = 0; n < sessions; n++) {
+    const g = new PiggyGame(null);
+    g.setBank({ ...start, blue });
+    for (let guard = 0; guard < 100000; guard++) {
+      staked += g.bet;
+      spins++;
+      won += g.spin(rng).win;
+      if (g.phase === 'bonus') {
+        const hadBlue = g.bonus!.features.blue;
+        while (!g.bonus!.done) won += g.spin(rng).win;
+        g.closeBonus();
+        if (hadBlue) break;
+      }
+    }
+  }
+  return { rtp: won / staked, avgSpins: spins / sessions };
 }

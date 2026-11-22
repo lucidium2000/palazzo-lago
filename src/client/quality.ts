@@ -27,6 +27,8 @@ export interface Quality {
   xrFramebufferScale: number;
   antialias: boolean;
   anisotropy: number;
+  /** Flat-screen post-processing: none, bloom only, or AO + bloom. */
+  post: 'none' | 'bloom' | 'full';
 }
 
 const TIERS: Record<TierName, Quality> = {
@@ -40,11 +42,12 @@ const TIERS: Record<TierName, Quality> = {
     crystals: 48,
     flowers: 900,
     people: 38,
-    rowMachines: 24,
+    rowMachines: 40,
     minPixelRatio: 1,
     xrFramebufferScale: 1.2,
     antialias: true,
     anisotropy: 4,
+    post: 'none',
   },
   quest2: {
     name: 'quest2',
@@ -56,11 +59,12 @@ const TIERS: Record<TierName, Quality> = {
     crystals: 24,
     flowers: 450,
     people: 28,
-    rowMachines: 17,
+    rowMachines: 32,
     minPixelRatio: 1,
     xrFramebufferScale: 1.0,
     antialias: true,
     anisotropy: 2,
+    post: 'none',
   },
   desktop: {
     name: 'desktop',
@@ -72,11 +76,12 @@ const TIERS: Record<TierName, Quality> = {
     crystals: 72,
     flowers: 1400,
     people: 48,
-    rowMachines: 24,
+    rowMachines: 40,
     minPixelRatio: 0.6,
     xrFramebufferScale: 1.0,
     antialias: true,
     anisotropy: 8,
+    post: 'full',
   },
   mobile: {
     name: 'mobile',
@@ -93,6 +98,7 @@ const TIERS: Record<TierName, Quality> = {
     xrFramebufferScale: 1.0,
     antialias: false,
     anisotropy: 2,
+    post: 'none',
   },
 };
 

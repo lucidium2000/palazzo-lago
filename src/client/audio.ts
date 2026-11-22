@@ -30,7 +30,9 @@ type SoundName =
   | 'sip'
   | 'door'
   | 'water'
-  | 'shaker';
+  | 'shaker'
+  | 'banjo'
+  | 'gulp';
 
 const rand = (() => {
   let s = 12345;
@@ -140,6 +142,30 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
     const l = lp(0.03);
     return synth(ctx, 0.5, (t) => l(rand()) * 3 * env(t, 0.05, 0.12) + Math.sin(2 * Math.PI * 70 * t) * 0.4 * env(t - 0.3 > 0 ? t - 0.3 : 0, 0.002, 0.06) * (t > 0.3 ? 1 : 0));
   })();
+  // A bright banjo-style roll (plucked strings, G major) for bonuses, and a cartoon gulp.
+  const pluck = (f: number, t: number) => {
+    if (t < 0) return 0;
+    const tw = f * (1 + 0.012 * Math.exp(-t * 40));
+    let v = 0;
+    for (let h = 1; h <= 6; h++) v += (Math.sin(2 * Math.PI * tw * h * t) / h) * Math.exp(-t * (3 + h * 2.2));
+    return v * Math.min(1, t * 900);
+  };
+  const G3 = 196,
+    B3 = 246.94,
+    D4 = 293.66,
+    G4 = 392,
+    B4 = 493.88,
+    D5 = 587.33,
+    G5b = 783.99;
+  const roll: [number, number][] = [
+    [G4, 0], [B4, 0.09], [D5, 0.18], [G3, 0.27], [G4, 0.36], [B4, 0.45], [D5, 0.54], [G5b, 0.63],
+    [D4, 0.72], [B4, 0.81], [D5, 0.9], [G5b, 0.99], [B3, 1.08], [D5, 1.17], [G5b, 1.26],
+  ];
+  const banjo = synth(ctx, 2.0, (t) => roll.reduce((acc, [f, at]) => acc + pluck(f, t - at), 0) * 0.16);
+  const gulp = synth(ctx, 0.28, (t) => {
+    const f = 260 + 900 * (t / 0.28) ** 1.5;
+    return Math.sin(2 * Math.PI * f * t) * 0.35 * env(t, 0.01, 0.08) + bell(1400, Math.max(0, t - 0.12), 0.08) * 0.12 * (t > 0.12 ? 1 : 0);
+  });
   const denied = synth(ctx, 0.25, (t) => (Math.sin(2 * Math.PI * 220 * t) + Math.sin(2 * Math.PI * 233 * t)) * 0.18 * env(t, 0.005, 0.1));
 
   // Casino room tone: a soft crowd murmur with distant chimes. Stereo, loops.
@@ -254,7 +280,7 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
 
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, ambience, denied,
-    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, pour, sip, door, water, shaker,
+    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, pour, sip, door, water, shaker, banjo, gulp,
   };
 }
 
