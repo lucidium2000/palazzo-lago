@@ -9,7 +9,7 @@ import type { World } from './world';
  * reaching for slot buttons, cheering, dealing, pouring, playing piano.
  */
 
-export type Role = 'wander' | 'slots' | 'watch' | 'croupier' | 'bartender' | 'patron' | 'pianist' | 'waiter';
+export type Role = 'wander' | 'slots' | 'watch' | 'croupier' | 'bartender' | 'patron' | 'pianist' | 'waiter' | 'buddy';
 
 export interface Look {
   dress: boolean;
@@ -156,7 +156,8 @@ export class Crowd {
     q: Quality,
     private world: World,
   ) {
-    this.max = q.name === 'quest2' ? 28 : q.name === 'quest3' ? 38 : 48;
+    // Three extra slots are always kept for your crew.
+    this.max = q.people + 3;
     scene.add(this.group);
     const cloth = new THREE.MeshStandardMaterial({ roughness: 0.75, envMapIntensity: 0.6 });
     const satin = new THREE.MeshStandardMaterial({ roughness: 0.35, envMapIntensity: 1.0 });
@@ -218,11 +219,12 @@ export class Crowd {
   }
 
   get capacity() {
-    return this.max;
+    return this.max - 3;
   }
 
   add(role: Role, look: Look, at: THREE.Vector3, yaw = 0): Person | null {
-    if (this.people.length >= this.max) return null;
+    const limit = role === 'buddy' ? this.max : this.max - 3;
+    if (this.people.length >= limit) return null;
     const p = new Person(role, look);
     p.pos.copy(at);
     p.yaw = p.homeYaw = yaw;
@@ -516,6 +518,17 @@ export class Crowd {
             fa = -1.55;
             roll = 0.35;
           }
+          break;
+        case 'buddy':
+          if (right && p.actionKind === 'sip') {
+            ua = -0.9 - act * 0.6;
+            fa = -1.4 - act * 0.6;
+            break;
+          }
+          if (walk > 0.1) break;
+          ua = right ? -0.12 : -0.15;
+          fa = right ? -0.35 : -1.25;
+          roll = right ? 0.1 : 0.32;
           break;
         case 'watch':
           if (!right) {

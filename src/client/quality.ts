@@ -18,6 +18,12 @@ export interface Quality {
   crystals: number;
   /** Glass flowers in the lobby ceiling. */
   flowers: number;
+  /** Guests and staff on the floor. */
+  people: number;
+  /** Extra slot machines in the rows along the east side. */
+  rowMachines: number;
+  /** Lowest render scale the adaptive resolution may drop to. */
+  minPixelRatio: number;
   xrFramebufferScale: number;
   antialias: boolean;
   anisotropy: number;
@@ -33,6 +39,9 @@ const TIERS: Record<TierName, Quality> = {
     pointLights: 2,
     crystals: 48,
     flowers: 900,
+    people: 38,
+    rowMachines: 24,
+    minPixelRatio: 1,
     xrFramebufferScale: 1.2,
     antialias: true,
     anisotropy: 4,
@@ -46,6 +55,9 @@ const TIERS: Record<TierName, Quality> = {
     pointLights: 0,
     crystals: 24,
     flowers: 450,
+    people: 28,
+    rowMachines: 17,
+    minPixelRatio: 1,
     xrFramebufferScale: 1.0,
     antialias: true,
     anisotropy: 2,
@@ -59,6 +71,9 @@ const TIERS: Record<TierName, Quality> = {
     pointLights: 6,
     crystals: 72,
     flowers: 1400,
+    people: 48,
+    rowMachines: 24,
+    minPixelRatio: 0.6,
     xrFramebufferScale: 1.0,
     antialias: true,
     anisotropy: 8,
@@ -67,13 +82,16 @@ const TIERS: Record<TierName, Quality> = {
     name: 'mobile',
     label: 'Mobile',
     texSize: 1024,
-    pixelRatio: Math.min(globalThis.devicePixelRatio ?? 1, 1.5),
+    pixelRatio: Math.min(globalThis.devicePixelRatio ?? 1, 1.25),
     shadows: false,
     pointLights: 0,
-    crystals: 24,
-    flowers: 400,
+    crystals: 16,
+    flowers: 320,
+    people: 22,
+    rowMachines: 10,
+    minPixelRatio: 0.55,
     xrFramebufferScale: 1.0,
-    antialias: true,
+    antialias: false,
     anisotropy: 2,
   },
 };

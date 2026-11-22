@@ -92,7 +92,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   scene.background = new THREE.Color(0x120c08);
   scene.environment = warmEnvironment(renderer);
   scene.environmentIntensity = 0.75;
-  const hemi = new THREE.HemisphereLight(0xffe4c0, 0x5a2a1c, 1.25);
+  const hemi = new THREE.HemisphereLight(0xffdcae, 0x4a2016, 1.0);
   scene.add(hemi);
   const key = new THREE.DirectionalLight(0xfff0d8, 1.4);
   key.position.set(-4, 12, 6);
@@ -152,8 +152,10 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   columnTex.wrapS = columnTex.wrapT = THREE.RepeatWrapping;
   columnTex.repeat.set(2, 3);
   const columnMat = new THREE.MeshStandardMaterial({ map: columnTex, roughness: 0.18, envMapIntensity: 1.1 });
-  const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xf1e3c6, roughness: 0.7, emissive: 0x3a2a14, emissiveIntensity: 0.6 });
-  const cofferGlow = new THREE.MeshBasicMaterial({ color: 0xffe2b0, toneMapped: true });
+  const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xe8d6b4, roughness: 0.7, emissive: 0x3a2410, emissiveIntensity: 0.45 });
+  const cofferGlow = new THREE.MeshBasicMaterial({ color: 0xffc878, toneMapped: true });
+  // Softly lit brass for the rails: the room glows a little at night.
+  const goldGlow = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3, emissive: 0xb07020, emissiveIntensity: 0.55 });
   const darkMarbleTex = toTexture(marble(256, 'dark', 4), { aniso });
   const darkMarble = new THREE.MeshStandardMaterial({ map: darkMarbleTex, roughness: 0.2 });
 
@@ -206,7 +208,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     const [wx, wz] = at(0.05);
     batch.add(box, woodMat, M(wx, 0.55, wz, ry, len, 1.1, 0.1));
     const [gx, gz] = at(0.11);
-    batch.add(box, gold, M(gx, 1.12, gz, ry, len, 0.05, 0.05));
+    batch.add(box, goldGlow, M(gx, 1.12, gz, ry, len, 0.05, 0.05));
     batch.add(box, gold, M(gx, 0.08, gz, ry, len, 0.16, 0.04));
     const [cx, cz] = at(0.12);
     batch.add(box, gold, M(cx, H - 0.25, cz, ry, len, 0.12, 0.2));
@@ -427,6 +429,14 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     root.add(m);
   };
   for (const [x, z] of columnSpots) blob(x, z, 1.8, 1.8);
+  // Warm uplight pools around the column bases (one merged additive draw).
+  const poolMat = new THREE.MeshBasicMaterial({ map: toTexture(radial(128, 'rgba(255,180,90,0.55)', 'rgba(255,140,60,0)')), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  for (const [x, z] of columnSpots) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), poolMat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, 0.01, z);
+    root.add(m);
+  }
   for (const [x, z] of planters) blob(x, z, 1.4, 1.4);
 
   // --- Signage ------------------------------------------------------------------

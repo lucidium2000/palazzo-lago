@@ -35,8 +35,23 @@ export class RouletteTable {
   private stacks = new Map<string, THREE.Group>();
   private ghost: THREE.Group;
   private dolly: THREE.Mesh;
-  private chip: ChipDenom = 5;
+  chip: ChipDenom = 5;
   private panel: CanvasPanel;
+
+  /** The floating 3D control panel is for VR; screens use the on-screen controls. */
+  setPanelVisible(v: boolean) {
+    this.panel.mesh.visible = v;
+  }
+
+  get canUndo() {
+    return this.game.phase === 'betting' && this.undoStack.length > 0;
+  }
+
+  selectChip(d: ChipDenom) {
+    this.chip = d;
+    this.ctx.sound.play('click', this.panel.mesh, { volume: 0.5 });
+    this.panel.redraw();
+  }
   private board: CanvasPanel;
   private tweens = new Tweens();
   private hoverSpot: string | null = null;
@@ -93,6 +108,9 @@ export class RouletteTable {
     // Player stands on the +Z side of the table, centred on the layout.
     const seat = new THREE.Vector3(0.0, 0, 0.95).add(position);
     this.viewpoint = { id: 'roulette', label: 'Roulette', position: seat, yaw: 0, pitch: -0.74, eye: 1.72, back: 0.32 };
+    // On a tall phone screen: a bird's-eye view down the table, wheel at the top.
+    this.group.updateMatrixWorld(true);
+    this.viewpoint.portrait = { at: new THREE.Vector3(-0.2, 0, 0).applyMatrix4(this.group.matrixWorld), yaw: this.group.rotation.y + Math.PI / 2, back: 0.42, eye: 2.75, pitch: -1.33 };
 
     ctx.bankroll.onChange(() => this.panel.redraw());
     addEventListener('keydown', (e) => this.onKey(e));
@@ -482,7 +500,7 @@ export class RouletteTable {
     this.panel.redraw();
   }
 
-  private undo() {
+  undo() {
     const last = this.undoStack.pop();
     if (!last) return;
     // Refund just the last chip: remove the spot and re-place what was there before.
@@ -494,7 +512,7 @@ export class RouletteTable {
     this.panel.redraw();
   }
 
-  private clear() {
+  clear() {
     this.game.clearBets();
     for (const id of [...this.stacks.keys()]) this.refreshStack(id);
     this.undoStack = [];
@@ -502,7 +520,7 @@ export class RouletteTable {
     this.panel.redraw();
   }
 
-  private rebet() {
+  rebet() {
     if (!this.game.rebet()) {
       this.ctx.hud.toast('Not enough chips to rebet', 'warn');
       return;
@@ -514,7 +532,7 @@ export class RouletteTable {
     this.panel.redraw();
   }
 
-  private double() {
+  double() {
     const bets = [...this.game.bets];
     for (const [id, v] of bets) this.bet(id, v, true);
     this.ctx.sound.play('chips', this.panel.mesh);
@@ -593,7 +611,7 @@ export class RouletteTable {
         { pos: w(0.35, -0.9), yaw },
         { pos: w(0.95, -0.85), yaw: yaw - 0.3 },
         { pos: w(1.55, -0.1), yaw: yaw - Math.PI / 2 },
-        { pos: w(-0.75, 0.98), yaw: yaw + Math.PI, seated: true },
+        { pos: w(-0.25, -0.92), yaw, seated: false },
       ],
     };
   }
@@ -653,7 +671,7 @@ export class RouletteTable {
     this.group.add(dynamic(rack));
   }
 
-  private startSpin() {
+  startSpin() {
     if (this.game.phase !== 'betting') return;
     if (this.game.bets.size === 0) {
       this.ctx.hud.toast('Place a bet first', 'warn');

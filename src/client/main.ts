@@ -20,6 +20,11 @@ import { WHEEL_CENTER } from './roulette/layout';
 import { RouletteTable } from './roulette/table';
 import { SlotMachineView } from './slots/machine';
 import { World } from './world';
+import { Crew } from './crew';
+import { Night } from './night';
+import { TouchControls } from './touch';
+import type { Control } from './hud';
+import { CHIP_COLORS, CHIP_DENOMS, chipLabel } from './textures';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
@@ -48,7 +53,7 @@ async function main() {
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = quality.shadows;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.xr.enabled = true;
@@ -138,11 +143,13 @@ async function main() {
       croupier.actionKind = 'reach';
       croupier.action = 1.2;
     }
-    if (near(roulette.group.position, 5)) sound.say('No more bets.');
+    if (near(roulette.group.position, 5)) croupierSays('No more bets.');
+    if (near(roulette.group.position, 4)) crew.react('spin', { chance: 0.35 });
   };
   roulette.onResult = (pocket, staked, returned) => {
     const call = `${pocketLabel(pocket) === '00' ? 'Double zero' : pocketLabel(pocket)}${pocketColor(pocket) === 'green' ? '' : ', ' + pocketColor(pocket)}.`;
-    if (near(roulette.group.position, 6)) sound.say(call);
+    if (near(roulette.group.position, 6)) croupierSays(call);
+    night.result('roulette', staked, returned, roulette.group.position);
     if (returned >= staked * 3 && returned > 0) {
       crowd.react(roulette.group.position, 3.5, 'cheer');
       sound.play('cheer', roulette.group, { volume: 0.8 });
@@ -173,6 +180,36 @@ async function main() {
       },
     });
   }
+  // Your crew for the night, and the shape of the night.
+  const crew = new Crew(crowd, world, player, hud, sound, randomLook);
+  const night = new Night(scene, hud, sound, crew, crowd, bankroll);
+  const croupierSays = (text: string) => {
+    hud.say('Croupier', text);
+    sound.say(text, { pitch: 0.9, rate: 0.95, voice: 0, interrupt: true });
+  };
+  machines.forEach((m) => {
+    m.onResult = (staked, won, feature) => {
+      night.result('slots', staked, won, m.group.position);
+      if (feature) {
+        night.complete('bonus');
+        crew.react('bonus', { force: true, cheer: true });
+      }
+    };
+    m.onPick = (_won, done, total) => {
+      if (done) night.result('slots', 0, total, m.group.position);
+    };
+  });
+  lounge.onOrder = () => crew.react('order', { chance: 0.7 });
+  lounge.onTip = () => {
+    night.complete('tip');
+    crew.react('tip', { force: true });
+  };
+  lounge.onRound = () => {
+    night.complete('round');
+    crew.react('round', { force: true });
+  };
+  setTimeout(() => crew.react('arrive', { force: true }), 2500);
+
   // Guests wandering the floor fill the rest of the crowd.
   const wanderers = crowd.capacity - crowd.people.length - 1;
   for (let i = 0; i < wanderers; i++) crowd.add('wander', randomLook(), crowd.randomNode());
@@ -239,13 +276,21 @@ async function main() {
 
   // --- Keyboard, entry screen, map --------------------------------------------------
   const enter = document.getElementById('enter')!;
-  const isTouch = matchMedia('(pointer: coarse)').matches;
+  const touch = new TouchControls(player);
+  const isTouch = touch.enabled;
+  // Once faded, remove the entry screen entirely so it can never catch a tap.
+  new MutationObserver(() => {
+    if (enter.classList.contains('done')) setTimeout(() => enter.classList.add('gone'), 450);
+  }).observe(enter, { attributes: true, attributeFilter: ['class'] });
   const stepInside = () => {
     enter.classList.add('done');
     player.lockPointer();
   };
   document.getElementById('enter-btn')!.addEventListener('click', stepInside);
-  if (isTouch) enter.classList.add('done');
+  if (isTouch) {
+    enter.classList.add('done');
+    setTimeout(() => hud.toast('Drag to look · left stick to walk · tap to play', 'info'), 1600);
+  }
   renderer.domElement.addEventListener('click', () => {
     // Clicking the room in free-cursor mode while standing re-captures the mouse.
     if (!player.seated && !player.pointerLocked && !player.inXR && enter.classList.contains('done') && !interaction.hoverLabel()) player.lockPointer();
@@ -269,6 +314,7 @@ async function main() {
   // --- Welcome and daily top-up -----------------------------------------------
   const today = new Date().toISOString().slice(0, 10);
   const bonus = bankroll.claimDailyBonus(today);
+  night.resetBaseline();
   setTimeout(() => {
     hud.toast(bonus ? `Welcome to Palazzo Lago · daily bonus ${money(bonus)}` : 'Welcome back to Palazzo Lago', 'win');
   }, 900);
@@ -289,6 +335,10 @@ async function main() {
   });
 
   // --- Sound -------------------------------------------------------------------
+  const musicBtn = document.getElementById('music')!;
+  musicBtn.addEventListener('click', () => {
+    musicBtn.textContent = sound.toggleMusic() ? 'Music on' : 'Music off';
+  });
   const soundBtn = document.getElementById('sound')!;
   soundBtn.addEventListener('click', () => {
     sound.setMuted(!sound.muted);
@@ -326,15 +376,93 @@ async function main() {
       setTimeout(() => {
         player.place(where);
         player.current = null;
+        crew.regroup();
       }, 120);
     });
   }
 
-  addEventListener('resize', () => {
+  // Portrait phones get a taller field of view so you still see the room, not a slice.
+  const fitCamera = () => {
     camera.aspect = innerWidth / innerHeight;
+    const hfov = 74;
+    const v = (2 * Math.atan(Math.tan((hfov * Math.PI) / 360) / camera.aspect) * 180) / Math.PI;
+    camera.fov = THREE.MathUtils.clamp(v, 58, 92);
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
-  });
+  };
+  addEventListener('resize', fitCamera);
+  fitCamera();
+
+  // Adaptive resolution: drop the render scale if the frame rate sags, raise it when there's room.
+  let pixelRatio = quality.pixelRatio;
+  let fpsFrames = 0,
+    fpsSince = performance.now(),
+    goodFor = 0;
+  const adapt = () => {
+    fpsFrames++;
+    const now = performance.now();
+    if (now - fpsSince < 1500) return;
+    const fps = (fpsFrames * 1000) / (now - fpsSince);
+    fpsFrames = 0;
+    fpsSince = now;
+    if (renderer.xr.isPresenting || document.hidden) return;
+    if (fps < 34 && pixelRatio > quality.minPixelRatio) {
+      pixelRatio = Math.max(quality.minPixelRatio, pixelRatio - 0.15);
+      renderer.setPixelRatio(pixelRatio);
+      goodFor = 0;
+    } else if (fps > 55 && pixelRatio < quality.pixelRatio && ++goodFor >= 3) {
+      pixelRatio = Math.min(quality.pixelRatio, pixelRatio + 0.1);
+      renderer.setPixelRatio(pixelRatio);
+      goodFor = 0;
+    }
+  };
+
+  // On-screen controls for the game you are at (all screens; essential on phones).
+  const rouletteControls = (): Control[] => {
+    const betting = roulette.game.phase === 'betting';
+    const has = roulette.game.bets.size > 0;
+    return [
+      ...CHIP_DENOMS.map((d) => ({
+        id: `chip${d}`,
+        label: chipLabel(d),
+        kind: 'chip' as const,
+        color: CHIP_COLORS[d],
+        active: roulette.chip === d,
+        onPress: () => roulette.selectChip(d),
+      })),
+      { id: 'undo', label: 'Undo', disabled: !roulette.canUndo, onPress: () => roulette.undo() },
+      { id: 'clear', label: 'Clear', disabled: !betting || !has, onPress: () => roulette.clear() },
+      { id: 'rebet', label: 'Rebet', disabled: !roulette.game.canRebet, onPress: () => roulette.rebet() },
+      { id: 'double', label: '×2', disabled: !betting || !has, onPress: () => roulette.double() },
+      {
+        id: 'spin',
+        label: betting ? 'SPIN' : '…',
+        sub: `bet ${money(roulette.game.totalBet)}`,
+        kind: 'primary',
+        disabled: !betting || !has,
+        onPress: () => roulette.startSpin(),
+      },
+    ];
+  };
+  const slotControls = (m: SlotMachineView): Control[] => {
+    const idle = m.mode !== 'spinning' && m.game.phase === 'idle';
+    return [
+      { id: 'info', label: 'Info', active: m.mode === 'info', disabled: m.mode === 'spinning' || m.mode === 'pick', onPress: () => m.toggleInfo() },
+      { id: 'bet-', label: '−', sub: 'bet', disabled: !idle, onPress: () => m.changeBet(-1) },
+      { id: 'betv', label: money(m.game.phase === 'freeSpins' ? m.game.freeSpinBet : m.game.bet), sub: 'per spin', disabled: true, onPress: () => {} },
+      { id: 'bet+', label: '+', sub: 'bet', disabled: !idle, onPress: () => m.changeBet(1) },
+      { id: 'max', label: 'Max', disabled: !idle, onPress: () => m.maxBet() },
+      {
+        id: 'spin',
+        label: m.mode === 'spinning' ? 'STOP' : m.game.phase === 'freeSpins' ? 'FREE' : 'SPIN',
+        sub: m.mode === 'pick' ? 'pick on screen' : m.game.phase === 'freeSpins' ? `${m.game.freeSpinsLeft} left` : '',
+        kind: 'primary',
+        disabled: m.mode === 'pick',
+        onPress: () => m.onSpinPressed(),
+      },
+    ];
+  };
+  let finaleSeen = false;
 
   // --- Frame loop --------------------------------------------------------------
   const timer = new THREE.Timer();
@@ -375,11 +503,29 @@ async function main() {
     crowd.update(dt, t, feet, head);
     casino.update(t, feet);
     hud.update(camera);
+    crew.update(dt);
+    night.update(dt);
+    adapt();
+
+    roulette.setPanelVisible(player.inXR);
+    // Game controls, the touch context button, and seated state for the layout.
+    document.body.classList.toggle('seated', !!player.seated);
+    if (!player.inXR) {
+      const station = isTouch ? player.seated?.id ?? null : hud.station;
+      const m = machines.find((mm) => mm.machine.id === station);
+      hud.setControls(station === 'roulette' ? rouletteControls() : m ? slotControls(m) : null);
+      if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());
+      else if (player.seated) touch.setAction('Stand', () => player.stand());
+      else {
+        const s = nearestSeat(1.8);
+        touch.setAction(s ? (s.vp.id === 'roulette' ? 'Sit' : 'Play') : null, s ? () => player.sit(s.vp) : null);
+      }
+    } else hud.setControls(null);
 
     // Croupier invites bets again after each spin.
     if (placeBetsTimer > 0) {
       placeBetsTimer -= dt;
-      if (placeBetsTimer <= 0 && near(roulette.group.position, 5)) sound.say('Place your bets, please.');
+      if (placeBetsTimer <= 0 && near(roulette.group.position, 5)) croupierSays('Place your bets, please.');
     }
     // Waiters stop and offer when they pass close by.
     const now = performance.now() / 1000;
@@ -396,6 +542,16 @@ async function main() {
     const outside = THREE.MathUtils.clamp((-14 - feet.z) / 2, 0, 1);
     const doorway = Math.max(outside, casino.doorsOpen() * 0.4);
     sound.setAmbience(1 - outside * 0.75);
+    // Music: lively on the floor, softer by the piano and outside.
+    const byPiano = THREE.MathUtils.clamp(1 - feet.distanceTo(lounge.piano.position) / 7, 0, 1);
+    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8));
+    if (outside > 0.5) {
+      if (!finaleSeen && casino.fountainLevel() > 0.8) {
+        finaleSeen = true;
+        night.complete('finale');
+        crew.react('finale', { force: true, cheer: true });
+      } else if (Math.random() < 0.002) crew.react('terrace', { chance: 0.6 });
+    }
     fountainVoice.setVolume((0.25 + casino.fountainLevel() * 0.9) * (0.25 + doorway * 0.75));
 
     renderer.render(scene, camera);
@@ -415,7 +571,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, roulette, machines, bankroll, hud, quality, crowd, world, lounge, hands, interaction };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, roulette, machines, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound };
 }
 
 main().catch((e) => {

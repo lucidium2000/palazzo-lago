@@ -210,9 +210,10 @@ button.primary {
 #loading .sub {
   color: #cbb991;
 }
-#loading.done {
+#loading.done,
+#loading.done * {
   opacity: 0;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 @media (max-width: 640px) {
   .bar {
@@ -284,9 +285,13 @@ button.primary {
   background: radial-gradient(rgba(20, 12, 6, 0.35), rgba(10, 6, 4, 0.8));
   transition: opacity 0.4s;
 }
-#enter.done {
+#enter.done,
+#enter.done * {
   opacity: 0;
-  pointer-events: none;
+  pointer-events: none !important;
+}
+#enter.gone {
+  display: none;
 }
 #enter .card {
   max-width: 520px;
@@ -313,4 +318,350 @@ button.primary {
 #enter .keys {
   font-size: 13px;
   color: #b9a77e;
+}
+
+/* ---------- On-screen game controls ---------- */
+#controls {
+  position: absolute;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: min(96vw, 760px);
+  padding: 10px 12px;
+  border-radius: 22px;
+  background: rgba(14, 10, 8, 0.78);
+  border: 1px solid rgba(216, 178, 90, 0.5);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+#controls.on {
+  display: flex;
+}
+.ctl {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 48px;
+  padding: 6px 14px;
+  line-height: 1.05;
+}
+.ctl small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.ctl.chip {
+  min-width: 46px;
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.ctl.chip.active {
+  transform: translateY(-6px) scale(1.12);
+  border-color: var(--gold-light);
+  box-shadow: 0 0 16px rgba(255, 220, 140, 0.8);
+}
+.ctl.primary {
+  background: linear-gradient(#fbe7a6, #c8973c);
+  color: #1a1410;
+  font-weight: 700;
+  font-size: 18px;
+  min-width: 110px;
+  min-height: 54px;
+}
+.ctl.primary:disabled {
+  opacity: 0.5;
+}
+
+/* ---------- Crew subtitles, big moments, goals ---------- */
+#subtitle {
+  position: absolute;
+  left: 50%;
+  bottom: 150px;
+  transform: translateX(-50%);
+  max-width: min(90vw, 620px);
+  padding: 8px 18px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff6e0;
+  font-size: 18px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+#subtitle.on {
+  opacity: 1;
+}
+#subtitle b {
+  color: var(--gold-light);
+  margin-right: 6px;
+}
+#banner {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+}
+#banner span {
+  display: block;
+  font-size: clamp(40px, 9vw, 92px);
+  font-style: italic;
+  font-weight: 700;
+  color: #ffe08a;
+  text-shadow: 0 0 24px rgba(255, 170, 40, 0.9), 0 4px 0 #6a3a08;
+  letter-spacing: 1px;
+}
+#banner small {
+  display: block;
+  font-size: clamp(16px, 3.5vw, 26px);
+  color: #fff3d0;
+  text-shadow: 0 2px 6px #000;
+}
+#banner.on {
+  animation: banner 3s ease-out forwards;
+}
+@keyframes banner {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(1);
+  }
+}
+#goals {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  top: 78px;
+  pointer-events: auto;
+  font-size: 14px;
+}
+#goals .head {
+  font-size: 13px;
+  padding: 4px 12px;
+}
+#goals ul {
+  display: none;
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid rgba(216, 178, 90, 0.5);
+}
+#goals.open ul {
+  display: block;
+}
+#goals li {
+  padding: 3px 0 3px 22px;
+  position: relative;
+  color: #ecdfc2;
+}
+#goals li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--gold);
+  border-radius: 3px;
+}
+#goals li.done {
+  color: #a99670;
+  text-decoration: line-through;
+}
+#goals li.done::before {
+  background: var(--gold);
+}
+
+/* ---------- Touch: joystick and context button ---------- */
+#touch {
+  display: none;
+}
+body.touch #touch {
+  display: block;
+}
+#stick {
+  position: absolute;
+  left: max(22px, env(safe-area-inset-left, 0px));
+  bottom: max(26px, env(safe-area-inset-bottom, 0px));
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: radial-gradient(rgba(255, 240, 200, 0.08), rgba(255, 240, 200, 0.16));
+  border: 1.5px solid rgba(216, 178, 90, 0.55);
+  pointer-events: auto;
+  touch-action: none;
+}
+#stick .knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: radial-gradient(#fbe7a6, #b8872c);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+#stick.on {
+  background: radial-gradient(rgba(255, 240, 200, 0.14), rgba(255, 240, 200, 0.26));
+}
+#action {
+  position: absolute;
+  right: max(22px, env(safe-area-inset-right, 0px));
+  bottom: max(40px, env(safe-area-inset-bottom, 0px));
+  min-width: 96px;
+  height: 96px;
+  border-radius: 48px;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(#fbe7a6, #c8973c);
+  color: #1a1410;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+/* On touch screens the game controls replace the joystick while seated. */
+body.touch.seated #stick {
+  display: none;
+}
+body.touch #controls {
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+}
+body.touch.seated #action {
+  bottom: auto;
+  top: 120px;
+  height: 56px;
+  min-width: 80px;
+  font-size: 14px;
+}
+body.touch #subtitle {
+  bottom: 180px;
+  font-size: 16px;
+}
+body.touch #prompt {
+  display: none !important;
+}
+#nav.open {
+  position: absolute;
+  bottom: auto;
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 520px);
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(14, 10, 8, 0.94);
+  border: 1.5px solid var(--gold);
+  pointer-events: auto;
+}
+#nav.open button {
+  flex: 1 1 40%;
+  min-height: 46px;
+}
+@media (max-width: 640px) {
+  #goals {
+    top: 64px;
+  }
+  .ctl {
+    min-width: 54px;
+    padding: 5px 10px;
+    font-size: 14px;
+  }
+  .ctl.chip {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    font-size: 11px;
+  }
+  .ctl.primary {
+    min-width: 92px;
+    font-size: 16px;
+  }
+  .brand .name {
+    font-size: 16px;
+  }
+}
+@media (max-height: 480px) {
+  /* Phone held sideways: one compact row of controls, small top bar. */
+  .bar.top {
+    padding-top: 6px;
+  }
+  .bar.top button {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+  #reset,
+  #help-btn {
+    display: none;
+  }
+  .brand .name {
+    font-size: 16px;
+  }
+  #controls {
+    flex-wrap: nowrap;
+    width: auto;
+    max-width: 96vw;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .ctl {
+    min-width: 46px;
+    min-height: 38px;
+    padding: 3px 9px;
+    font-size: 13px;
+  }
+  .ctl.chip {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    font-size: 10px;
+  }
+  .ctl.primary {
+    min-width: 84px;
+    min-height: 42px;
+    font-size: 15px;
+  }
+  #goals {
+    top: 54px;
+  }
+  #subtitle {
+    bottom: 96px;
+  }
+  body.touch #subtitle {
+    bottom: 110px;
+  }
+  #stick {
+    width: 110px;
+    height: 110px;
+  }
 }

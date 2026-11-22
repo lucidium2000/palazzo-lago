@@ -42,7 +42,12 @@ export class SlotMachineView {
   private cell: number;
   private reels: ReelAnim[];
   private time = 0;
-  private mode: Mode = 'idle';
+  mode: Mode = 'idle';
+  /** Called when the reels settle: (amount staked, amount won, feature triggered). */
+  onResult: ((staked: number, won: number, feature?: 'freeSpins' | 'pick') => void) | null = null;
+  /** Called for each pick-bonus tile revealed. */
+  onPick: ((won: number, done: boolean, total: number) => void) | null = null;
+  private lastStake = 0;
   private outcome: SpinOutcome | null = null;
   private pendingWin = 0;
   private shownWin = 0;
@@ -108,7 +113,7 @@ export class SlotMachineView {
     this.reelLoop = ctx.sound.loop('reelTick', this.screen.mesh);
 
     const vp = new THREE.Vector3(0, 0, 0.82).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).add(position);
-    this.viewpoint = { id: machine.id, label: machine.name, position: vp, yaw, pitch: -0.34, eye: 1.55, back: 0.32 };
+    this.viewpoint = { id: machine.id, label: machine.name, position: vp, yaw, pitch: -0.34, eye: 1.55, back: 0.32, portrait: { back: -0.12, eye: 1.3, pitch: -0.06 } };
     ctx.bankroll.onChange(() => this.deck.redraw());
     if (this.lever) dynamic(this.lever.parent!);
     bakeStatic(this.group, { shadows: ctx.quality.shadows });
@@ -373,19 +378,19 @@ export class SlotMachineView {
     d.redraw();
   }
 
-  private changeBet(dir: 1 | -1) {
+  changeBet(dir: 1 | -1) {
     this.game.changeBet(dir);
     this.ctx.sound.play('click', this.deck.mesh, { volume: 0.5 });
     this.deck.redraw();
   }
 
-  private maxBet() {
+  maxBet() {
     while (this.game.betIndex < this.machine.betLevels.length - 1) this.game.changeBet(1);
     this.ctx.sound.play('click', this.deck.mesh, { volume: 0.5 });
     this.deck.redraw();
   }
 
-  private toggleInfo() {
+  toggleInfo() {
     this.mode = this.mode === 'info' ? 'idle' : 'info';
     this.dirty = true;
     this.deck.redraw();
@@ -451,6 +456,7 @@ export class SlotMachineView {
       return;
     }
     const wasFree = this.game.phase === 'freeSpins';
+    this.lastStake = wasFree ? 0 : this.game.bet;
     const out = this.game.spin(this.ctx.rng);
     this.outcome = out;
     this.pendingWin = out.win;
@@ -504,6 +510,7 @@ export class SlotMachineView {
 
   private onAllStopped() {
     const out = this.outcome!;
+    this.onResult?.(this.lastStake, out.win, out.triggered);
     this.reelLoop.stop();
     this.mode = 'showing';
     this.winTimer = 0;
@@ -575,6 +582,7 @@ export class SlotMachineView {
     const i = this.pickTiles().findIndex((t) => x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h);
     if (i < 0 || st.revealed.includes(i)) return;
     const won = this.game.pick(i);
+    this.onPick?.(won, st.picksLeft === 0, st.won);
     this.pickRevealAt.set(i, this.time);
     this.ctx.sound.play(won >= st.totalBet * 20 ? 'winBig' : 'winSmall', this.screen.mesh);
     this.dirty = true;

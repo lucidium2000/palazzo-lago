@@ -9,6 +9,13 @@ played by guests, Bar Lago (order a drink, hold it, sip it), a grand piano with 
 and French doors onto a terrace over the lake fountains. About 40 guests and staff wander, play,
 cheer and look at you. Craps is on the floor as "opening soon".
 
+It plays like a night out with the guys: your crew (Rocco, Dev and Mikey) follow you around, hype your
+wins and razz your losses; there's a casino-floor groove, hot streaks, big-win celebrations with confetti,
+and six goals for the night (win at roulette, hit a slot bonus, buy the boys a round, tip the piano man,
+catch the fountain finale, finish up $1,000).
+
+Runs on desktop, phones (portrait or landscape) and Meta Quest.
+
 ## Run it
 
 ```bash
@@ -37,6 +44,7 @@ to force a quality tier.
 
 | | Desktop | VR |
 | --- | --- | --- |
+| Phone | Left thumb stick walks, drag anywhere to look, tap to play; the gold button sits/stands/sips; big on-screen chips and SPIN at a game | |
 | Move | Mouse look, WASD (Shift to hurry); Esc frees the cursor (then drag to look, click the floor to walk); M opens the map | Left stick walks, right stick snap-turns, point at the floor + trigger to teleport, wrist menu (left hand) |
 | Sit down | Walk up to a game and press E; walk away to stand | Just walk up |
 | Roulette | Pick a chip (or keys 1–7), click the layout; Space spin, Z undo, C clear, R rebet | Grab chips from your rack (grip) and drop them on the felt, or point and trigger |
@@ -63,6 +71,9 @@ src/client/     Three.js app
   hands.ts      VR controller/hand models and grabbing
   lounge.ts     Bar Lago, drinks, lounge seating, grand piano
   decor.ts      the slot rows played by guests
+  crew.ts       your three buddies: following, banter, reactions
+  night.ts      tonight's goals, hot streaks, big-win celebrations and confetti
+  touch.ts      phone joystick and context button
   merge.ts      static-mesh merging (keeps draw calls inside the Quest budget)
 tests/          vitest suites
 scripts/        RTP report and reel-strip tuner

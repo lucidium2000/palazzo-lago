@@ -57,6 +57,7 @@ export class SlotRows {
       this.cabinets.push(this.cab(11.05, -10 + k * 0.95, -Math.PI / 2, k + 3));
       this.cabinets.push(this.cab(11.75, -10 + k * 0.95, Math.PI / 2, k + 5));
     }
+    this.cabinets = this.cabinets.slice(0, ctx.quality.rowMachines);
     this.build();
   }
 

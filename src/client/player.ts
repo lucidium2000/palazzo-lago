@@ -22,6 +22,19 @@ export interface Viewpoint {
   eye: number;
   /** Desktop only: step back this far along the view for a wider shot. */
   back?: number;
+  /** A framing for tall portrait screens (phones): replaces back/eye/pitch, shifts sideways. */
+  portrait?: { back: number; eye: number; pitch: number; side?: number; at?: THREE.Vector3; yaw?: number };
+}
+
+/** On a portrait screen, use the viewpoint's portrait framing if it has one. */
+function framed(v: Viewpoint, aspect: number): Viewpoint {
+  if (aspect >= 0.85 || !v.portrait) return v;
+  const p = v.portrait;
+  const yaw = p.yaw ?? v.yaw;
+  const side = p.side ?? 0;
+  const base = p.at ?? v.position;
+  const pos = base.clone().add(new THREE.Vector3(Math.cos(yaw) * side, 0, -Math.sin(yaw) * side));
+  return { ...v, position: pos, yaw, back: p.back, eye: p.eye, pitch: p.pitch };
 }
 
 const desktopSpot = (v: Viewpoint) =>
@@ -50,6 +63,8 @@ export class Player {
   onArrive: ((v: Viewpoint) => void) | null = null;
   onStep: ((surface: Surface, run: boolean) => void) | null = null;
   onStand: (() => void) | null = null;
+  /** Analog walk input from a touch joystick: x right, y forward, each -1..1. */
+  readonly stick = new THREE.Vector2();
 
   constructor(
     readonly camera: THREE.PerspectiveCamera,
@@ -141,9 +156,10 @@ export class Player {
   }
 
   /** Jump straight to a viewpoint (start-up, VR travel). */
-  place(v: Viewpoint) {
+  place(v0: Viewpoint) {
+    const v = this.inXR ? v0 : framed(v0, this.camera.aspect);
     this.tween = null;
-    this.current = v;
+    this.current = v0;
     if (this.inXR) {
       this.teleportHeadTo(v.position, v.yaw);
     } else {
@@ -157,8 +173,9 @@ export class Player {
   }
 
   /** Glide to a viewpoint on desktop; instant in VR (comfort). */
-  travel(v: Viewpoint) {
-    if (this.inXR) return this.place(v);
+  travel(v0: Viewpoint) {
+    if (this.inXR) return this.place(v0);
+    const v = framed(v0, this.camera.aspect);
     const from: Viewpoint = {
       id: 'from',
       label: '',
@@ -172,14 +189,14 @@ export class Player {
     const to = { ...v, position: desktopSpot(v), yaw: from.yaw + dyaw };
     const dist = from.position.distanceTo(v.position);
     this.tween = { from, to, t: 0, dur: THREE.MathUtils.clamp(dist / 4, 0.6, 2.2) };
-    this.current = v;
+    this.current = v0;
   }
 
   /** Sit down at a game (desktop): framed view, free mouse cursor for betting. */
   sit(v: Viewpoint) {
     if (this.inXR) return;
     this.seated = v;
-    if (this.pointerLocked) document.exitPointerLock();
+    if (this.pointerLocked) document.exitPointerLock?.();
     this.travel(v);
   }
 
@@ -265,11 +282,18 @@ export class Player {
 
   private updateDesktop(dt: number) {
     const k = this.keys;
-    const f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
-    const s = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0);
+    const stickMag = this.stick.length();
+    let f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
+    let s = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0);
+    if (stickMag > 0.15) {
+      f += this.stick.y;
+      s += this.stick.x;
+      if (this.seated) this.stand();
+    }
     const turn = (k.has('ArrowLeft') ? 1 : 0) - (k.has('ArrowRight') ? 1 : 0);
-    const run = k.has('ShiftLeft') || k.has('ShiftRight');
-    const target = f || s ? (run ? RUN : WALK) : 0;
+    const run = k.has('ShiftLeft') || k.has('ShiftRight') || stickMag > 0.92;
+    const push = Math.min(1, Math.hypot(f, s));
+    const target = push > 0.05 ? (run ? RUN : WALK) * (stickMag > 0.15 ? Math.max(0.35, push) : 1) : 0;
     // Ease into and out of walking so starts and stops feel like a body, not a cursor.
     this.speedNow += (target - this.speedNow) * Math.min(1, dt * (target > this.speedNow ? 6 : 9));
     if (turn) {
@@ -284,7 +308,7 @@ export class Player {
       const fx = f / len,
         sx = s / len;
       // Keep moving in the last direction while easing out.
-      if (f || s) this.lastDir.set(-Math.sin(yaw) * fx + Math.cos(yaw) * sx, -Math.cos(yaw) * fx - Math.sin(yaw) * sx);
+      if (push > 0.05) this.lastDir.set(-Math.sin(yaw) * fx + Math.cos(yaw) * sx, -Math.cos(yaw) * fx - Math.sin(yaw) * sx);
       const dx = this.lastDir.x * this.speedNow * dt,
         dz = this.lastDir.y * this.speedNow * dt;
       const p = this.rig.position;

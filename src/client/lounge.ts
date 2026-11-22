@@ -136,6 +136,10 @@ export class Lounge {
   private sipCooldown = 0;
   private falling: { obj: THREE.Object3D; v: number; floor: number }[] = [];
   private raycaster = new THREE.Raycaster();
+  onOrder: (() => void) | null = null;
+  onTip: (() => void) | null = null;
+  onRound: (() => void) | null = null;
+  private roundPending = 0;
 
   static readonly COUNTER_X = -15.0;
   static readonly COUNTER_Z0 = 6.2;
@@ -276,6 +280,46 @@ export class Lounge {
       }
     }
 
+    // A little tent card on the bar: buy the boys a round.
+    const cardTex = (() => {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 160;
+      const g = c.getContext('2d')!;
+      g.fillStyle = '#f6eedc';
+      g.fillRect(0, 0, 256, 160);
+      g.strokeStyle = '#b8862c';
+      g.lineWidth = 6;
+      g.strokeRect(6, 6, 244, 148);
+      g.fillStyle = '#5a1a20';
+      g.textAlign = 'center';
+      g.font = 'italic bold 34px Georgia, serif';
+      g.fillText('Buy a Round', 128, 62);
+      g.font = '24px Georgia, serif';
+      g.fillText('for the table · $60', 128, 108);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    })();
+    const card = new THREE.Group();
+    const cardMat = new THREE.MeshStandardMaterial({ map: cardTex, roughness: 0.6, side: THREE.DoubleSide });
+    for (const s of [-1, 1]) {
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.1), cardMat);
+      face.rotation.set(s * 0.35, s > 0 ? Math.PI / 2 : -Math.PI / 2, 0);
+      face.rotation.order = 'YXZ';
+      face.rotation.set(-0.35 * s, Math.PI / 2, 0);
+      face.position.set(s * 0.017, 0.05, 0);
+      card.add(face);
+    }
+    card.position.set(x + 0.3, Lounge.TOP, zc + 1.0);
+    card.rotation.y = 0;
+    this.d.scene.add(card);
+    this.d.interaction.register({
+      object: card,
+      label: () => (this.roundPending > 0 ? 'A round is on its way…' : 'Buy the boys a round · $60'),
+      onSelect: () => this.buyRound(),
+    });
+
     // Ordering: point at / click the bar top.
     // A thin strip on the bar top (glasses standing on it stay clickable).
     const counterHit = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.03, len), new THREE.MeshBasicMaterial({ visible: false }));
@@ -305,6 +349,23 @@ export class Lounge {
     this.d.sound.play('shaker', new THREE.Vector3(-16, 1.2, zz), { volume: 0.7 });
     setTimeout(() => this.d.sound.play('pour', new THREE.Vector3(-15.4, 1.15, zz), { volume: 0.8 }), 1300);
     this.d.hud.toast(`“One ${MENU[this.menuIndex].name}, coming up.”`, 'info');
+    this.onOrder?.();
+  }
+
+  buyRound() {
+    if (this.roundPending > 0) return;
+    if (!this.d.bankroll.canAfford(60)) {
+      this.d.hud.toast('Not enough chips for a round', 'warn');
+      return;
+    }
+    this.d.bankroll.debit(60, 'bet', 'bar');
+    this.roundPending = 2.6;
+    if (this.bartender) {
+      this.bartender.actionKind = 'pour';
+      this.bartender.action = 2.6;
+    }
+    this.d.sound.play('shaker', new THREE.Vector3(-16, 1.2, this.bartenderZ), { volume: 0.7 });
+    this.d.hud.toast('“A round for the gentlemen, coming right up.”', 'info');
   }
 
   private serve(z: number) {
@@ -365,6 +426,11 @@ export class Lounge {
       if (this.desktopDrink) this.putDownDesktop();
       this.pickUpDesktop(drink);
     }
+  }
+
+  /** Sip the glass you are holding (phone button / F key). */
+  sipHeld() {
+    if (this.desktopDrink) this.sip(this.desktopDrink);
   }
 
   get holdingDrink() {
@@ -637,6 +703,7 @@ export class Lounge {
         this.d.bankroll.debit(5, 'bet', 'tip');
         this.d.sound.play('chip', tipZone, { volume: 0.7 });
         this.d.hud.toast('The pianist smiles and nods. “Grazie!”', 'info');
+        this.onTip?.();
         if (pianist) pianist.headYaw = 0.8;
       },
     });
@@ -644,6 +711,14 @@ export class Lounge {
 
   update(dt: number) {
     this.sipCooldown = Math.max(0, this.sipCooldown - dt);
+    if (this.roundPending > 0) {
+      this.roundPending -= dt;
+      if (this.roundPending <= 0) {
+        this.d.sound.play('clink', new THREE.Vector3(-14.7, 1.15, this.bartenderZ), { volume: 0.9 });
+        this.d.hud.toast('Round served. Cheers!', 'win');
+        this.onRound?.();
+      }
+    }
     if (this.pending) {
       this.pending.t -= dt;
       if (this.pending.t <= 0) {

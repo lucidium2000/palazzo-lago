@@ -7,6 +7,24 @@ import type { Viewpoint } from './player';
 
 export type ToastKind = 'info' | 'win' | 'warn';
 
+/** A button in the on-screen game controls (chips, SPIN, bet −/+ …). */
+export interface Control {
+  id: string;
+  label: string;
+  sub?: string;
+  kind?: 'chip' | 'primary' | 'plain';
+  color?: [string, string];
+  active?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}
+
+export interface Goal {
+  id: string;
+  label: string;
+  done: boolean;
+}
+
 export interface NavItem {
   id: string;
   label: string;
@@ -58,6 +76,73 @@ export class Hud {
       this.wrist.mesh.visible = false;
       this.vrToast.mesh.visible = false;
     });
+  }
+
+  private controlsEl = document.getElementById('controls')!;
+  private controlsSig = '';
+  private controlsFns = new Map<string, () => void>();
+  private subtitleEl = document.getElementById('subtitle')!;
+  private subtitleTimer = 0;
+  private bannerEl = document.getElementById('banner')!;
+  private bannerTimer = 0;
+  private goalsEl = document.getElementById('goals')!;
+  private goalsSig = '';
+
+  /** On-screen controls for the game you are at (re-rendered only when they change). */
+  setControls(list: Control[] | null) {
+    const sig = list ? JSON.stringify(list.map((c) => [c.id, c.label, c.sub, c.active, c.disabled])) : '';
+    for (const c of list ?? []) this.controlsFns.set(c.id, c.onPress);
+    if (sig === this.controlsSig) return;
+    this.controlsSig = sig;
+    this.controlsEl.innerHTML = '';
+    this.controlsEl.classList.toggle('on', !!list);
+    for (const c of list ?? []) {
+      const b = document.createElement('button');
+      b.className = `ctl ${c.kind ?? 'plain'}${c.active ? ' active' : ''}`;
+      b.disabled = !!c.disabled;
+      if (c.kind === 'chip' && c.color) {
+        b.style.background = `radial-gradient(circle, ${c.color[0]} 52%, ${c.color[1]} 54%, ${c.color[1]} 62%, ${c.color[0]} 64%)`;
+        b.style.color = c.color[1];
+      }
+      b.innerHTML = `<span>${c.label}</span>${c.sub ? `<small>${c.sub}</small>` : ''}`;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.controlsFns.get(c.id)?.();
+      });
+      this.controlsEl.appendChild(b);
+    }
+  }
+
+  /** A spoken line from a person, shown as a subtitle (and as a toast in VR). */
+  say(speaker: string, text: string) {
+    this.subtitleEl.innerHTML = `<b>${speaker}</b> ${text}`;
+    this.subtitleEl.classList.add('on');
+    clearTimeout(this.subtitleTimer);
+    this.subtitleTimer = window.setTimeout(() => this.subtitleEl.classList.remove('on'), 3800);
+    if (this.renderer.xr.isPresenting) this.vrMessage(`${speaker}: ${text}`, 'info');
+  }
+
+  /** The big moment: BIG WIN, ON FIRE, goal complete. */
+  banner(title: string, sub = '') {
+    this.bannerEl.innerHTML = `<span>${title}</span>${sub ? `<small>${sub}</small>` : ''}`;
+    this.bannerEl.classList.remove('on');
+    void this.bannerEl.offsetWidth;
+    this.bannerEl.classList.add('on');
+    clearTimeout(this.bannerTimer);
+    this.bannerTimer = window.setTimeout(() => this.bannerEl.classList.remove('on'), 3000);
+    if (this.renderer.xr.isPresenting) this.vrMessage(sub ? `${title} · ${sub}` : title, 'win');
+  }
+
+  setGoals(goals: Goal[]) {
+    const sig = goals.map((g) => g.id + (g.done ? 1 : 0)).join();
+    if (sig === this.goalsSig) return;
+    this.goalsSig = sig;
+    const done = goals.filter((g) => g.done).length;
+    this.goalsEl.innerHTML =
+      `<button class="head">Tonight · ${done}/${goals.length}</button><ul>` +
+      goals.map((g) => `<li class="${g.done ? 'done' : ''}">${g.label}</li>`).join('') +
+      '</ul>';
+    (this.goalsEl.querySelector('.head') as HTMLElement).onclick = () => this.goalsEl.classList.toggle('open');
   }
 
   private crosshair = document.getElementById('crosshair')!;
@@ -130,7 +215,10 @@ export class Hud {
     setTimeout(() => el.classList.add('out'), 2600);
     setTimeout(() => el.remove(), 3200);
 
-    // VR copy.
+    this.vrMessage(text, kind);
+  }
+
+  private vrMessage(text: string, kind: ToastKind) {
     const p = this.vrToast;
     const ctx = p.ctx;
     ctx.clearRect(0, 0, p.pxW, p.pxH);

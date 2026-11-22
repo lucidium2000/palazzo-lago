@@ -276,6 +276,7 @@ export class Sound {
       this.ensure();
       this.startAmbience();
       this.flushAmbient();
+      this.startMusic();
     };
     addEventListener('pointerdown', unlock);
     addEventListener('keydown', unlock);
@@ -382,24 +383,57 @@ export class Sound {
     return renderPiano(this.listener.context.sampleRate);
   }
 
-  /** A short spoken line (croupier calls). Uses the browser's speech voice when it has one. */
-  say(text: string, volume = 1) {
+  /**
+   * A spoken line (croupier calls, the crew's banter). Uses the browser's own
+   * speech voices; each speaker gets a distinct voice, pitch and pace.
+   */
+  say(text: string, opts: { pitch?: number; rate?: number; voice?: number; interrupt?: boolean; volume?: number } = {}) {
     if (this.muted) return;
     try {
       const synthApi = globalThis.speechSynthesis;
       if (!synthApi) return;
-      synthApi.cancel();
+      if (opts.interrupt) synthApi.cancel();
+      // Don't let a backlog build up: drop lines if two are already waiting.
+      if (synthApi.pending && !opts.interrupt) return;
       const u = new SpeechSynthesisUtterance(text);
-      const voices = synthApi.getVoices();
-      const pick = voices.find((v) => /en-GB/i.test(v.lang) && /male|daniel|george|arthur/i.test(v.name)) ?? voices.find((v) => /^en/i.test(v.lang));
-      if (pick) u.voice = pick;
-      u.rate = 0.95;
-      u.pitch = 0.9;
-      u.volume = Math.max(0, Math.min(1, volume));
+      const voices = synthApi.getVoices().filter((v) => /^en/i.test(v.lang));
+      if (voices.length) u.voice = voices[(opts.voice ?? 0) % voices.length];
+      u.rate = opts.rate ?? 1;
+      u.pitch = opts.pitch ?? 1;
+      u.volume = Math.max(0, Math.min(1, opts.volume ?? 1));
       synthApi.speak(u);
     } catch {
       /* no speech on this device */
     }
+  }
+
+  private music: THREE.Audio | null = null;
+  private musicLevel = 0.2;
+  musicOn = true;
+
+  /** Starts the casino-floor groove once audio is unlocked. */
+  startMusic() {
+    if (this.music) return;
+    const m = new THREE.Audio(this.listener);
+    this.music = m;
+    renderGroove(this.listener.context.sampleRate).then((buf) => {
+      m.setBuffer(buf);
+      m.setLoop(true);
+      m.setVolume(this.musicOn ? this.musicLevel : 0);
+      m.play();
+    });
+  }
+
+  /** Mixes the music for where you are (quieter by the piano and outside). */
+  setMusicLevel(level: number) {
+    this.musicLevel = level;
+    if (this.music && this.music.buffer) this.music.setVolume(this.musicOn ? level : 0);
+  }
+
+  toggleMusic(): boolean {
+    this.musicOn = !this.musicOn;
+    if (this.music && this.music.buffer) this.music.setVolume(this.musicOn ? this.musicLevel : 0);
+    return this.musicOn;
   }
 
   /** A looping positional sound whose volume/rate the caller drives (ball roll, reel spin). */
@@ -522,4 +556,124 @@ async function renderPiano(sampleRate: number): Promise<AudioBuffer> {
     for (let i = n; i < src.length; i++) dst[i - n] += src[i];
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Casino-floor groove: 8 bars of lounge house in A minor at 116 bpm.
+// ---------------------------------------------------------------------------
+
+async function renderGroove(sampleRate: number): Promise<AudioBuffer> {
+  const bpm = 116;
+  const beat = 60 / bpm;
+  const bars = 8;
+  const loopLen = bars * 4 * beat;
+  const ctx = new OfflineAudioContext(2, Math.ceil((loopLen + 1.5) * sampleRate), sampleRate);
+  const out = ctx.createGain();
+  out.gain.value = 0.55;
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -16;
+  comp.ratio.value = 4;
+  out.connect(comp).connect(ctx.destination);
+  // A short stereo echo for space.
+  const echo = ctx.createDelay(1);
+  echo.delayTime.value = beat * 0.75;
+  const fb = ctx.createGain();
+  fb.gain.value = 0.25;
+  const wet = ctx.createGain();
+  wet.gain.value = 0.22;
+  echo.connect(fb).connect(echo);
+  echo.connect(wet).connect(comp);
+
+  const noise = ctx.createBuffer(1, sampleRate, sampleRate);
+  const nd = noise.getChannelData(0);
+  let seed = 7;
+  for (let i = 0; i < nd.length; i++) nd[i] = ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+  const hit = (at: number, f: number, q: number, type: BiquadFilterType, len: number, vol: number, pan = 0) => {
+    const s = ctx.createBufferSource();
+    s.buffer = noise;
+    const flt = ctx.createBiquadFilter();
+    flt.type = type;
+    flt.frequency.value = f;
+    flt.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, at);
+    g.gain.exponentialRampToValueAtTime(0.0008, at + len);
+    const p = ctx.createStereoPanner();
+    p.pan.value = pan;
+    s.connect(flt).connect(g).connect(p).connect(out);
+    s.start(at, Math.random() * 0.5, len + 0.05);
+  };
+  const kick = (at: number) => {
+    const o = ctx.createOscillator();
+    o.frequency.setValueAtTime(140, at);
+    o.frequency.exponentialRampToValueAtTime(42, at + 0.12);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(1.0, at);
+    g.gain.exponentialRampToValueAtTime(0.001, at + 0.32);
+    o.connect(g).connect(out);
+    o.start(at);
+    o.stop(at + 0.35);
+  };
+  const tone = (at: number, f: number, len: number, vol: number, type: OscillatorType, cutoff: number, pan = 0, send = false) => {
+    for (const det of type === 'sawtooth' ? [-7, 7] : [0]) {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.value = f;
+      o.detune.value = det;
+      const flt = ctx.createBiquadFilter();
+      flt.type = 'lowpass';
+      flt.frequency.setValueAtTime(cutoff, at);
+      flt.frequency.exponentialRampToValueAtTime(Math.max(120, cutoff * 0.35), at + len);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(vol, at + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0008, at + len);
+      const p = ctx.createStereoPanner();
+      p.pan.value = pan;
+      o.connect(flt).connect(g).connect(p).connect(out);
+      if (send) p.connect(echo);
+      o.start(at);
+      o.stop(at + len + 0.05);
+    }
+  };
+  const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
+  // Am  F  C  G, two bars each.
+  const prog = [
+    { root: 45, chord: [57, 60, 64] },
+    { root: 41, chord: [57, 60, 65] },
+    { root: 48, chord: [55, 60, 64] },
+    { root: 43, chord: [55, 59, 62] },
+  ];
+  const hook = [76, 74, 72, 74, 76, 79, 76, 74];
+  for (let bar = 0; bar < bars; bar++) {
+    const t0 = bar * 4 * beat;
+    const c = prog[Math.floor(bar / 2) % prog.length];
+    for (let b = 0; b < 4; b++) {
+      const t = t0 + b * beat;
+      kick(t);
+      hit(t + beat / 2, 9000, 0.7, 'highpass', 0.05, 0.16, 0.3);
+      if (b % 2 === 1) hit(t, 1600, 1.2, 'bandpass', 0.18, 0.55, -0.1);
+      hit(t + beat * 0.75, 11000, 0.7, 'highpass', 0.03, 0.07, -0.3);
+    }
+    // Syncopated bass.
+    for (const [off, oct] of [[0, 0], [0.75, 0], [1.5, 12], [2.5, 0], [3.25, 0], [3.5, 12]] as const) {
+      tone(t0 + off * beat, hz(c.root + oct - 12), beat * 0.45, 0.42, 'sawtooth', 700);
+    }
+    // Off-beat chord stabs.
+    for (const off of [0.5, 1.5, 2.5, 3.0, 3.5]) {
+      for (const n of c.chord) tone(t0 + off * beat, hz(n), beat * 0.3, 0.06, 'sawtooth', 2600, (n % 3) * 0.2 - 0.2, true);
+    }
+    // A bell hook on the second half.
+    if (bar >= 4) hook.forEach((n, k) => tone(t0 + k * beat * 0.5, hz(n), beat * 0.6, 0.05, 'triangle', 6000, 0.25, true));
+  }
+  const rendered = await ctx.startRendering();
+  const n = Math.ceil(loopLen * sampleRate);
+  const buf = new AudioBuffer({ numberOfChannels: 2, length: n, sampleRate });
+  for (let ch = 0; ch < 2; ch++) {
+    const src = rendered.getChannelData(ch);
+    const dst = buf.getChannelData(ch);
+    dst.set(src.subarray(0, n));
+    for (let i = n; i < src.length; i++) dst[i - n] += src[i];
+  }
+  return buf;
 }

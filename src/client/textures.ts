@@ -12,8 +12,13 @@ export function canvas(w: number, h = w): [HTMLCanvasElement, CanvasRenderingCon
   return [c, c.getContext('2d')!];
 }
 
+const baseTextures = new WeakMap<HTMLCanvasElement, THREE.CanvasTexture>();
+
 export function toTexture(c: HTMLCanvasElement, opts: { repeat?: number; srgb?: boolean; aniso?: number } = {}) {
-  const t = new THREE.CanvasTexture(c);
+  // Textures made from the same canvas share one GPU upload (clone keeps the source).
+  const base = baseTextures.get(c);
+  const t = base ? (base.clone() as THREE.CanvasTexture) : new THREE.CanvasTexture(c);
+  if (!base) baseTextures.set(c, t);
   if (opts.srgb !== false) t.colorSpace = THREE.SRGBColorSpace;
   if (opts.repeat) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -71,7 +76,18 @@ function fbm(noise: ReturnType<typeof makeNoise>, x: number, y: number, base: nu
 }
 
 /** Cream or honey marble with soft veins. Tileable. */
+const memo = new Map<string, HTMLCanvasElement>();
+function cached(key: string, make: () => HTMLCanvasElement) {
+  let c = memo.get(key);
+  if (!c) memo.set(key, (c = make()));
+  return c;
+}
+
 export function marble(size: number, tone: 'cream' | 'honey' | 'dark', seed = 1): HTMLCanvasElement {
+  return cached(`marble-${size}-${tone}-${seed}`, () => marbleRaw(size, tone, seed));
+}
+
+function marbleRaw(size: number, tone: 'cream' | 'honey' | 'dark', seed = 1): HTMLCanvasElement {
   const [c, ctx] = canvas(size);
   const img = ctx.createImageData(size, size);
   const n = makeNoise(seed);
@@ -206,6 +222,10 @@ export function carpet(size: number): HTMLCanvasElement {
 
 /** Dark mahogany with grain, for table rails and cabinet trim. */
 export function wood(size: number): HTMLCanvasElement {
+  return cached(`wood-${size}`, () => woodRaw(size));
+}
+
+function woodRaw(size: number): HTMLCanvasElement {
   const [c, ctx] = canvas(size);
   const img = ctx.createImageData(size, size);
   const n = makeNoise(17);
@@ -229,6 +249,10 @@ export function wood(size: number): HTMLCanvasElement {
 
 /** Soft radial gradient, used for light glows and contact shadows. */
 export function radial(size: number, inner: string, outer: string): HTMLCanvasElement {
+  return cached(`radial-${size}-${inner}-${outer}`, () => radialRaw(size, inner, outer));
+}
+
+function radialRaw(size: number, inner: string, outer: string): HTMLCanvasElement {
   const [c, ctx] = canvas(size);
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   g.addColorStop(0, inner);
