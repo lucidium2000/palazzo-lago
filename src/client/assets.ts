@@ -28,6 +28,28 @@ export interface PeopleLib {
 
 const base = (p: string) => new URL(`assets/${p}`, document.baseURI).href;
 
+/**
+ * URL for a binary asset (.glb, .hdr). Some hosts (the claude.ai artifact
+ * viewer) won't serve those types, so the build also ships each one as
+ * base64 in `<file>.b64.json`; fall back to that and hand back a blob URL.
+ */
+async function binaryUrl(p: string): Promise<string> {
+  const direct = base(p);
+  try {
+    const r = await fetch(direct, { method: 'HEAD' });
+    if (r.ok && !(r.headers.get('content-type') ?? '').includes('text/html')) return direct;
+  } catch {
+    /* fall through */
+  }
+  const r = await fetch(base(`${p}.b64.json`));
+  if (!r.ok) return direct;
+  const b64: string = await r.json();
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([bytes]));
+}
+
 class Assets {
   private pbrSets = new Map<PbrName, PbrSet>();
   envHdr: THREE.DataTexture | null = null;
@@ -57,8 +79,8 @@ class Assets {
       }
     });
     jobs.push(
-      new RGBELoader()
-        .loadAsync(base('tex/ballroom.hdr'))
+      binaryUrl('tex/ballroom.hdr')
+        .then((u) => new RGBELoader().loadAsync(u))
         .then((t) => {
           t.mapping = THREE.EquirectangularReflectionMapping;
           this.envHdr = t;
@@ -125,8 +147,8 @@ class Assets {
     loader.setMeshoptDecoder(MeshoptDecoder);
     const kinds = ['male_suit', 'male_casual_2', 'male_beach', 'female_formal', 'female_suit', 'female_casual'];
     const [animGltf, ...gltfs] = await Promise.all([
-      loader.loadAsync(base('people/anims.glb')),
-      ...kinds.map((k) => loader.loadAsync(base(`people/${k}.glb`))),
+      binaryUrl('people/anims.glb').then((u) => loader.loadAsync(u)),
+      ...kinds.map((k) => binaryUrl(`people/${k}.glb`).then((u) => loader.loadAsync(u))),
     ]);
     const clips = new Map<string, THREE.AnimationClip>();
     for (const c of animGltf.animations) clips.set(c.name, c);
