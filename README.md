@@ -34,6 +34,12 @@ hands, and you can high five (open hands up high), fist bump (squeeze grips and 
 with a code keypad, character, voice, quick chat) and Menu (music, sound, help, reset chips, exit VR).
 Tables and machines are walk-up-and-play: stand at one and its controls appear; sitting is optional.
 
+**Beyond the casino:** a corridor off the east wall leads to the hotel elevator lobby. Call a car,
+step in and ride up to Suite 3201 (floor-to-ceiling windows on the Strip) or down to the night pool
+deck: lit pools, palms, cabanas, a pool bar and a DJ. The floor is alive: guests chat in circles with
+drinks in hand, friends walk together, people stop to talk and take photos, and they mostly mind their
+own business instead of staring at you.
+
 It plays like a night out with the guys: your crew (Rocco, Dev and Mikey) follow you around, hype your
 wins and razz your losses; there's a casino-floor groove, hot streaks, big-win celebrations with confetti,
 and six goals for the night (win at roulette, hit a slot bonus, buy the boys a round, tip the piano man,

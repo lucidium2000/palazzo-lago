@@ -159,8 +159,10 @@ export class SlotRows {
       this.world.addLocalBox(m, 0, -0.05, 0.7, 0.62);
       this.world.addLocalBox(m, 0, 0.78, 0.36, 0.36);
 
-      // About two thirds of the machines have someone playing.
-      if (i % 3 !== 1) {
+      // Some machines have someone playing (fewer on lighter devices, so the
+      // crowd budget also covers people mingling on the floor).
+      const occ = { desktop: 4, quest3: 3, quest2: 2, mobile: 2 }[this.ctx.quality.name] ?? 4;
+      if ((i * 7) % 10 < occ) {
         const seatPos = new THREE.Vector3(0, 0, 0.8).applyMatrix4(m.matrixWorld);
         const p = this.crowd.add('slots', randomLook(), seatPos, c.yaw + Math.PI);
         if (p) {

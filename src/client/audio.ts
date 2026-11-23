@@ -34,7 +34,9 @@ type SoundName =
   | 'banjo'
   | 'gulp'
   | 'tension'
-  | 'fanfare';
+  | 'fanfare'
+  | 'ding'
+  | 'liftHum';
 
 const rand = (() => {
   let s = 12345;
@@ -258,6 +260,10 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
       b = hp(0.85);
     return synth(ctx, 0.9, (t) => b(l(rand())) * 2.5 * env(t, 0.06, 0.25));
   })();
+  // Elevator arrival chime (two soft bell tones) and the low hum of a moving car.
+  const chime = (t: number, f: number) => (Math.sin(2 * Math.PI * f * t) * 0.5 + Math.sin(2 * Math.PI * f * 2.76 * t) * 0.12) * Math.exp(-t * 3.2) * Math.min(1, t * 400);
+  const ding = synth(ctx, 1.6, (t) => 0.35 * (chime(t, 1318.5) + (t > 0.32 ? chime(t - 0.32, 1046.5) : 0)));
+  const liftHum = synth(ctx, 2.0, (t) => 0.25 * (Math.sin(2 * Math.PI * 55 * t) * 0.6 + Math.sin(2 * Math.PI * 110 * t) * 0.25 + rand() * 0.08) * Math.min(1, t * 3, (2.0 - t) * 3));
   const clink = synth(ctx, 0.8, (t) => (Math.sin(2 * Math.PI * 3520 * t) * 0.3 + Math.sin(2 * Math.PI * 5270 * t) * 0.15 + Math.sin(2 * Math.PI * 2210 * t) * 0.1) * env(t, 0.0008, 0.18));
   const pour = (() => {
     const l = lp(0.12);
@@ -300,6 +306,7 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, ambience, denied,
     stepMarble, stepCarpet, stepStone, cheer, gasp, clink, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
+    ding, liftHum,
   };
 }
 

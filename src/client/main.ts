@@ -8,10 +8,13 @@ import { buildCasino, POSITIONS, registerHall, SLOTS_YAW } from './casino';
 import { preloadChips } from './chips';
 import { CrapsTable } from './craps/table';
 import { PostFX } from './post';
+import { AREA_NODES, buildAreas, registerAreas } from './areas';
 import { Session } from './net/session';
 import { setupLobby } from './net/lobby';
 import { connect, newCode, type Transport } from './net/transport';
 import { VrMenu } from './vrmenu';
+import { SelfBody } from './selfbody';
+import { FINGER, curlFingers } from './net/embody';
 import { bakeStatic } from './merge';
 import { buildBlackjack } from './pit';
 import { SlotRows } from './decor';
@@ -92,6 +95,7 @@ async function main() {
 
   const casino = buildCasino(scene, renderer, quality);
   registerHall(world, casino);
+  registerAreas(world);
   const sound = new Sound(scene, camera);
   const bankroll = loadBankroll();
   let saveTimer = 0;
@@ -104,6 +108,8 @@ async function main() {
 
   const ctx: GameContext = { scene, interaction, sound, bankroll, hud, rng: new CryptoRng(), quality };
   const crowd = new Crowd(scene, quality, world, assets.people);
+  // Beyond the casino floor: hotel corridor, elevator lobby, pool deck, Suite 3201.
+  const areas = buildAreas({ scene, quality, interaction, sound, player, world, toast: (t) => hud.toast(t, 'info') });
 
   // --- Games -------------------------------------------------------------------
   const roulette = new RouletteTable(ctx, POSITIONS.roulette);
@@ -146,6 +152,7 @@ async function main() {
 
   // Walking routes through the open floor; edges are found automatically.
   crowd.setGraph([
+    ...AREA_NODES,
     [0, 12], [-4.5, 11.8], [4.5, 11.8], [0, 8.6], [-3.6, 7.6], [3.6, 7.6],
     [6.6, 2], [4.8, -2.8], [0, -4.6], [-4.8, -2.8], [-6.6, 2], [-4.4, 7.0], [4.4, 7.0],
     [-11, -2.5], [-11.2, 4.5], [-4.5, -10.5], [-10.5, -11], [3.8, -11.2], [0, -12.4],
@@ -157,7 +164,8 @@ async function main() {
   // Croupier and the regulars around the roulette table.
   const spots = roulette.spots();
   const croupier = crowd.add('croupier', staffLook('dealer'), spots.croupier.pos, spots.croupier.yaw);
-  for (const w of spots.watchers) {
+  const light = quality.name === 'quest2' || quality.name === 'mobile';
+  for (const w of light ? spots.watchers.slice(0, 2) : spots.watchers) {
     const p = crowd.add(w.seated ? 'patron' : 'watch', randomLook(), w.pos, w.yaw);
     if (p && w.seated) p.seatY = 0.68;
   }
@@ -168,7 +176,7 @@ async function main() {
   const cs = craps.spots();
   const stickman = crowd.add('croupier', staffLook('dealer'), cs.stickman.pos, cs.stickman.yaw);
   const crapsDealers = [cs.boxman, ...cs.dealers].map((d) => crowd.add('croupier', staffLook('dealer'), d.pos, d.yaw));
-  for (const w of cs.players) crowd.add('watch', randomLook(), w.pos, w.yaw);
+  for (const w of light ? cs.players.slice(0, 3) : cs.players) crowd.add('watch', randomLook(), w.pos, w.yaw);
   // Blackjack tables in the pit, each with a dealer and a few players.
   for (const spec of [
     { x: -11.1, z: -4.4, yaw: 0, felt: '#1d5a3a', min: 25, max: 5000 },
@@ -179,7 +187,7 @@ async function main() {
     bakeStatic(t.group, { shadows: quality.shadows });
     world.addLocalBox(t.group, 0, 0.35, 2.3, 1.3);
     crowd.add('croupier', staffLook('dealer'), t.dealer.pos, t.dealer.yaw);
-    for (const k of [0, 2, 3, 5]) {
+    for (const k of quality.name === 'quest2' || quality.name === 'mobile' ? [1, 4] : [0, 2, 3, 5]) {
       const st = t.seats[k];
       const p = crowd.add('patron', randomLook(), st.pos, st.yaw);
       if (p) p.seatY = 0.72;
@@ -310,7 +318,34 @@ async function main() {
   };
   setTimeout(() => crew.react('arrive', { force: true }), 2500);
 
+  // A living floor: friends chatting in circles (drinks in hand), people snapping
+  // photos of the glass ceiling and the fountains, and pairs strolling together.
+  // Groups are added most-visible first, so smaller tiers keep the best ones.
+  const groups: [number, number, number, number][] = [
+    [-2.7, 9.7, 3, 0.7], // lobby, by the entrance
+    [-12.6, 10.6, 3, 1], // Bar Lago regulars
+    [3.1, 10.4, 2, 0.5],
+    [6.9, 0.4, 2, 0.5], // by the slots
+    [-5.4, -16.0, 3, 0.8], // terrace
+    [-3.9, 1.4, 2, 0.6], // edge of the pit
+    [5.8, -15.8, 2, 0.8],
+    [9.9, 9.3, 3, 0.6],
+    [-11.4, 4.6, 2, 0.7],
+    [4.2, -6.2, 3, 0.5],
+  ];
+  for (const [x, z, n, drinks] of groups) {
+    if (crowd.capacity - crowd.people.length < n + 7) break;
+    crowd.addGroup(x, z, n, { drinks });
+  }
+  const glass = new THREE.Vector3(0, 7, 2);
+  crowd.addPhotographer(new THREE.Vector3(1.3, 0, 3.4), glass);
+  crowd.addPhotographer(new THREE.Vector3(-0.4, 0, -14.8), new THREE.Vector3(0, 0, -40));
+  if (crowd.capacity - crowd.people.length > 10) crowd.addPhotographer(new THREE.Vector3(-1.6, 0, 1.2), glass);
+  const pairs = Math.max(1, Math.min(3, Math.floor((crowd.capacity - crowd.people.length - 3) / 4)));
+  for (let i = 0; i < pairs; i++) crowd.addPair(crowd.randomNode());
+
   // Guests wandering the floor fill the rest of the crowd.
+  areas.populate(crowd);
   const wanderers = crowd.capacity - crowd.people.length - 1;
   for (let i = 0; i < wanderers; i++) crowd.add('wander', randomLook(), crowd.randomNode());
 
@@ -348,6 +383,7 @@ async function main() {
     { id: 'bar', label: 'Bar Lago', viewpoint: bar },
     { id: 'terrace', label: 'Terrace', viewpoint: terrace },
     { id: 'craps', label: 'Craps', viewpoint: craps.viewpoint },
+    ...areas.nav,
   ];
   hud.setNav(nav);
   // Tables count as 'at the game' anywhere around them (walk up and play); machines when you stand at one.
@@ -358,7 +394,9 @@ async function main() {
     if (seat && !player.inXR) player.sit(seat.vp);
     else {
       if (player.seated) player.stand();
-      player.travel(item.viewpoint);
+      // Far places (the suite, up the tower) are a cut, not a glide through walls.
+      if (item.viewpoint.position.distanceTo(player.feet()) > 40) player.place(item.viewpoint);
+      else player.travel(item.viewpoint);
     }
   };
   player.place(lobby);
@@ -475,7 +513,9 @@ async function main() {
   });
   for (const b of chatForm.querySelectorAll('.quick button')) {
     b.addEventListener('click', () => {
-      session?.say(b.textContent ?? '');
+      const k = (b as HTMLElement).dataset.gesture;
+      if (k) session?.offer(k as 'highfive' | 'fistbump' | 'handshake' | 'wave');
+      else session?.say(b.textContent ?? '');
       closeChat();
     });
   }
@@ -503,13 +543,19 @@ async function main() {
       roulette,
       craps,
       listener: sound.listener,
-      hands: () => {
-        if (!player.inXR) return null;
-        const at = (side: 'left' | 'right') => {
-          const c = interaction.controller(side);
-          return c && c.userData.connected !== false ? c.getWorldPosition(new THREE.Vector3()) : null;
-        };
-        return { l: at('left'), r: at('right') };
+      hands: () => (player.inXR ? { l: hands.wrist('left'), r: hands.wrist('right') } : null),
+      grip: () => gripValues(),
+      knock: (at) => {
+        sound.play('chips', at, { volume: 0.6, rate: 0.5 });
+        sound.play('ballDrop', at, { volume: 0.9, rate: 0.35 });
+      },
+      pat: (at) => sound.play('chip', at, { volume: 0.6, rate: 0.45 }),
+      haptic: (side, strength, ms) => {
+        for (const { handedness, gamepad } of interaction.gamepads()) {
+          if (handedness !== side) continue;
+          const g = gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[]; vibrationActuator?: { playEffect(t: string, o: object): void } };
+          g.hapticActuators?.[0]?.pulse(strength, ms);
+        }
       },
       slap: (at) => {
         sound.play('ballDrop', at, { volume: 1, rate: 0.45 });
@@ -535,6 +581,7 @@ async function main() {
     (choice) => {
       enter.classList.add('done');
       me = { name: choice.name, avatar: choice.avatar };
+      selfBody.setAvatar(choice.avatar);
       if (!isTouch) lock();
       else setTimeout(() => hud.toast('Drag to look · left stick to walk · tap to play', 'info'), 1600);
       if (choice.net) startSession(choice.net, choice.name, choice.avatar);
@@ -542,6 +589,18 @@ async function main() {
     },
     { vr: vrCapable },
   );
+  // --- Your own body in VR ------------------------------------------------------
+  const selfBody = new SelfBody(scene);
+  selfBody.setAvatar(me.avatar);
+  const gripValues = () => {
+    const g = { l: 0, r: 0 };
+    for (const { handedness, gamepad } of interaction.gamepads()) {
+      const v = gamepad.buttons[1]?.value ?? 0;
+      if (handedness === 'left') g.l = v;
+      else if (handedness === 'right') g.r = v;
+    }
+    return g;
+  };
   // --- Everything in the screen menus, in VR (left wrist) ----------------------------------
   const vrMenu = new VrMenu(hud.wrist, {
     hud,
@@ -569,6 +628,7 @@ async function main() {
     avatar: () => me.avatar,
     setAvatar: (i) => {
       me.avatar = i;
+      selfBody.setAvatar(i);
       session?.setAvatar(i);
       try {
         localStorage.setItem('lago.avatar', String(i));
@@ -807,6 +867,7 @@ async function main() {
     since = performance.now();
   let first = true;
   const head = new THREE.Vector3();
+  let casinoThings: THREE.Object3D[] | null = null;
   renderer.setAnimationLoop(() => {
     timer.update();
     const dt = Math.min(timer.getDelta(), 0.05);
@@ -835,12 +896,43 @@ async function main() {
     roulette.update(dt);
     craps.update(dt);
     session?.update(dt);
+    {
+      const on = player.inXR;
+      if (on) {
+        const head = camera.getWorldPosition(new THREE.Vector3());
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
+        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, grip: gripValues(), speed: player.speed });
+      } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, grip: { l: 0, r: 0 }, speed: 0 });
+      hands.showControllers(!on);
+    }
     for (const m of machines) m.update(dt);
     piggy.update(dt);
     slotRows.update(t, feet);
     lounge.update(dt);
     crowd.update(dt, t, feet, head);
     casino.update(t, feet);
+    areas.update(dt, t, feet);
+    // Zone culling: only draw the parts of the resort you could possibly see from here.
+    if (!casinoThings) {
+      casinoThings = scene.children.filter(
+        (o) => o.type === 'Group' && !o.name && o !== player.rig && o !== crowd.group && o !== selfBody.root && Math.abs(o.position.x) < 18 && Math.abs(o.position.z) < 14,
+      );
+    }
+    {
+      const fx = feet.x;
+      const show = (name: string, v: boolean) => {
+        const g = scene.getObjectByName(name);
+        if (g && g.visible !== v) g.visible = v;
+      };
+      const inSuite = fx > 500;
+      const onDeck = fx > 21 && feet.z < -0.2 && !inSuite;
+      show('suite', inSuite);
+      show('pool', !inSuite && fx > 16);
+      show('hotel', !inSuite && fx > 4);
+      show('casino', !inSuite && !onDeck);
+      const inCasino = !inSuite && !onDeck;
+      for (const o of casinoThings) if (o.visible !== inCasino) o.visible = inCasino;
+    }
     hud.update(camera);
     crew.update(dt);
     night.update(dt);
@@ -884,12 +976,13 @@ async function main() {
       }
     }
     // Outside: the room tone fades and the fountains swell with the show.
-    const outside = THREE.MathUtils.clamp((-14 - feet.z) / 2, 0, 1);
+    // (Only the lakeside terrace counts here; the pool deck has its own party.)
+    const outside = Math.abs(feet.x) < 14 ? THREE.MathUtils.clamp((-14 - feet.z) / 2, 0, 1) : 0;
     const doorway = Math.max(outside, casino.doorsOpen() * 0.4);
     sound.setAmbience(1 - outside * 0.75);
     // Music: lively on the floor, softer by the piano and outside.
     const byPiano = THREE.MathUtils.clamp(1 - feet.distanceTo(lounge.piano.position) / 7, 0, 1);
-    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8));
+    sound.setMusicLevel(Math.max(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8), 0.45 * areas.musicLevel(feet)));
     if (outside > 0.5) {
       if (!finaleSeen && casino.fountainLevel() > 0.8) {
         finaleSeen = true;
@@ -919,7 +1012,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, curlFingers };
 }
 
 main().catch((e) => {

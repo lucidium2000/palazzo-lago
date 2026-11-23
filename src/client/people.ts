@@ -13,7 +13,15 @@ export const POSE = { sitThigh: 1.5, sitShin: -1.6, sitHips: 0.95, trayUpper: 0.
  * reaching for slot buttons, cheering, dealing, pouring, playing piano.
  */
 
-export type Role = 'wander' | 'slots' | 'watch' | 'croupier' | 'bartender' | 'patron' | 'pianist' | 'waiter' | 'buddy';
+export type Role = 'wander' | 'slots' | 'watch' | 'croupier' | 'bartender' | 'patron' | 'pianist' | 'waiter' | 'buddy' | 'chat' | 'pair';
+
+/** A conversation circle: members face the middle and take turns talking. */
+export interface Talk {
+  members: Person[];
+  speaker: number;
+  nextTurn: number;
+  laughUntil: number;
+}
 
 export interface Look {
   dress: boolean;
@@ -63,6 +71,30 @@ export class Person {
   animSkip = 0;
   animDt = 0;
   tray?: THREE.Object3D;
+  // --- Social life ------------------------------------------------------------
+  /** A conversation circle this person stands in. */
+  talk: Talk | null = null;
+  /** Walks beside this person (a couple / friends out together). */
+  follow: Person | null = null;
+  /** Briefly stopped to chat with someone met on the way. */
+  chatWith: Person | null = null;
+  chatT = 0;
+  chatCd = 0;
+  /** Something in hand. */
+  prop: 'none' | 'glass' | 'phone' = 'none';
+  /** Taking photos: looks up with the phone raised. */
+  photo = false;
+  /** 0..1: how animated their gestures are right now (talking). */
+  talking = 0;
+  laughT = 0;
+  sipT = 0;
+  nextSip = 4 + Math.random() * 10;
+  /** Some people are curious and glance at newcomers; most mind their own business. */
+  curious = Math.random() < 0.18;
+  glanceUntil = 0;
+  glanceCd = 3 + Math.random() * 15;
+  /** Hidden this frame (too far away on a headset). */
+  culled = false;
 
   constructor(
     readonly role: Role,
@@ -170,6 +202,13 @@ export class Crowd {
   private shadowMesh: THREE.InstancedMesh;
   private trays: THREE.InstancedMesh;
   readonly group = new THREE.Group();
+  /** Drinks and phones in hand (one draw each for everybody). */
+  private glasses: THREE.InstancedMesh;
+  private phones: THREE.InstancedMesh;
+  private talks: Talk[] = [];
+  /** On headsets and phones, people this far away aren't drawn. */
+  private cullDist: number;
+  private time = 0;
 
   constructor(
     scene: THREE.Scene,
@@ -237,6 +276,76 @@ export class Crowd {
     this.trays.count = 0;
     this.trays.raycast = () => {};
     this.group.add(this.trays);
+
+    // Cocktails and phones held by guests.
+    const tumbler = new THREE.CylinderGeometry(0.032, 0.026, 0.1, 10).translate(0, 0.05, 0);
+    const drink = new THREE.CylinderGeometry(0.028, 0.024, 0.06, 10).translate(0, 0.032, 0);
+    this.glasses = new THREE.InstancedMesh(
+      mergeAll([tumbler, drink.scale(0.98, 1, 0.98)]),
+      new THREE.MeshStandardMaterial({ color: 0xe8d2a8, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.85, envMapIntensity: 1.6 }),
+      this.max,
+    );
+    this.phones = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.075, 0.15, 0.009),
+      new THREE.MeshStandardMaterial({ color: 0x15161a, roughness: 0.25, metalness: 0.6, emissive: 0x6a8aff, emissiveIntensity: 0.15 }),
+      this.max,
+    );
+    for (const m of [this.glasses, this.phones]) {
+      m.frustumCulled = false;
+      m.count = 0;
+      m.raycast = () => {};
+      this.group.add(m);
+    }
+    this.cullDist = q.name === 'quest2' ? 14 : q.name === 'mobile' ? 14 : q.name === 'quest3' ? 16 : Infinity;
+  }
+
+  /**
+   * A conversation circle of `n` guests at a free spot near (x, z). Some hold
+   * drinks. Returns the members added (fewer if the floor there is crowded).
+   */
+  addGroup(x: number, z: number, n: number, opts: { drinks?: number } = {}): Person[] {
+    const members: Person[] = [];
+    const r = n <= 2 ? 0.48 : 0.62;
+    const a0 = rnd() * Math.PI * 2;
+    for (let k = 0; k < n; k++) {
+      const a = a0 + (k / n) * Math.PI * 2 + (rnd() - 0.5) * 0.3;
+      const px = x + Math.cos(a) * r,
+        pz = z + Math.sin(a) * r;
+      if (!this.world.isFree(px, pz, 0.22)) continue;
+      const yaw = Math.atan2(x - px, z - pz);
+      const p = this.add('chat', randomLook(), new THREE.Vector3(px, 0, pz), yaw);
+      if (!p) break;
+      if (rnd() < (opts.drinks ?? 0.5)) p.prop = 'glass';
+      members.push(p);
+    }
+    if (members.length >= 2) {
+      const t: Talk = { members, speaker: 0, nextTurn: 2 + rnd() * 3, laughUntil: 0 };
+      for (const m of members) m.talk = t;
+      this.talks.push(t);
+    }
+    return members;
+  }
+
+  /** Two friends (or a couple) strolling the floor together. */
+  addPair(at: THREE.Vector3): Person[] {
+    const lead = this.add('wander', randomLook(), at);
+    if (!lead) return [];
+    lead.speed = 0.75 + rnd() * 0.2;
+    const friend = this.add('pair', randomLook(), at.clone().add(new THREE.Vector3(0.6, 0, 0)));
+    if (!friend) return [lead];
+    friend.follow = lead;
+    if (rnd() < 0.4) friend.prop = 'glass';
+    return [lead, friend];
+  }
+
+  /** A guest snapping photos (of the glass ceiling, the fountains…), looking at `subject`. */
+  addPhotographer(at: THREE.Vector3, subject: THREE.Vector3): Person | null {
+    const yaw = Math.atan2(subject.x - at.x, subject.z - at.z);
+    const p = this.add('chat', randomLook(), at, yaw);
+    if (!p) return null;
+    p.prop = 'phone';
+    p.photo = true;
+    return p;
   }
 
   get capacity() {
@@ -366,16 +475,30 @@ export class Crowd {
   }
 
   update(dt: number, time: number, player: THREE.Vector3, playerHead: THREE.Vector3) {
+    this.time = time;
     let trayN = 0;
+    this.updateTalks(time);
+    let gi = 0,
+      ph = 0;
     this.people.forEach((p, i) => {
       p.onUpdate?.(p, dt);
       if (p.role === 'wander' || p.role === 'waiter') this.walk(p, dt, player);
+      else if (p.role === 'pair') this.walkBeside(p, dt);
       p.cheer = Math.max(0, p.cheer - dt);
       p.gaspT = Math.max(0, p.gaspT - dt);
+      p.laughT = Math.max(0, p.laughT - dt);
       if (p.action > 0) p.action = Math.max(0, p.action - dt);
       else p.actionKind = 'none';
+      // Drinks get sipped now and then.
+      if (p.prop === 'glass') {
+        p.sipT = Math.max(0, p.sipT - dt);
+        p.nextSip -= dt;
+        if (p.nextSip <= 0 && p.talking < 0.5) {
+          p.sipT = 1.6;
+          p.nextSip = 8 + Math.random() * 14;
+        }
+      }
 
-      // Turn the head toward the player when close; otherwise idle glances.
       if (p.driven) {
         if (p.rig) this.poseRig(p, i, dt, 0);
         else this.pose(p, i, time);
@@ -383,15 +506,32 @@ export class Crowd {
       }
       const toP = this.v.set(playerHead.x - p.pos.x, 0, playerHead.z - p.pos.z);
       const dist = toP.length();
-      let wantYaw = Math.sin(time * 0.3 + p.seed) * 0.35;
-      let wantPitch = p.role === 'slots' ? -0.15 : 0;
-      if (dist < 3.2 && p.role !== 'pianist') {
-        let rel = Math.atan2(toP.x, toP.z) - p.yaw;
-        rel = Math.atan2(Math.sin(rel), Math.cos(rel));
-        if (Math.abs(rel) < 1.7) {
-          wantYaw = THREE.MathUtils.clamp(rel, -1.1, 1.1);
-          wantPitch = THREE.MathUtils.clamp(Math.atan2(playerHead.y - (p.pos.y + 1.6), dist), -0.4, 0.4);
-        }
+      // Far away on a headset or phone: not drawn at all (the crowd still moves).
+      const cull = dist > this.cullDist && p.role !== 'buddy';
+      if (cull !== p.culled) {
+        p.culled = cull;
+        if (p.rig) p.rig.root.visible = !cull;
+      }
+      if (cull) {
+        this.shadowMesh.setMatrixAt(i, this.m.makeScale(0, 0, 0));
+        return;
+      }
+
+      // Where they look: what they're doing, not you. A curious few glance at
+      // you briefly when you come close in front of them; staff look up when
+      // you're at their game.
+      let [wantYaw, wantPitch] = this.activityGaze(p, time);
+      let rel = Math.atan2(toP.x, toP.z) - p.yaw;
+      rel = Math.atan2(Math.sin(rel), Math.cos(rel));
+      const staff = p.role === 'croupier' || p.role === 'bartender' || p.role === 'waiter';
+      p.glanceCd -= dt;
+      if (time > p.glanceUntil && p.glanceCd <= 0 && dist < 2.6 && Math.abs(rel) < 0.9 && (p.curious || staff) && p.role !== 'pianist' && !p.photo) {
+        p.glanceUntil = time + 0.9 + Math.random() * 1.3;
+        p.glanceCd = staff ? 6 + Math.random() * 6 : 14 + Math.random() * 20;
+      }
+      if (time < p.glanceUntil && dist < 3.5) {
+        wantYaw = THREE.MathUtils.clamp(rel, -1.0, 1.0);
+        wantPitch = THREE.MathUtils.clamp(Math.atan2(playerHead.y - (p.pos.y + (p.seated ? 1.2 : 1.6)), dist), -0.35, 0.35);
       }
       p.headYaw += (wantYaw - p.headYaw) * Math.min(1, dt * 3);
       p.headPitch += (wantPitch - p.headPitch) * Math.min(1, dt * 3);
@@ -400,20 +540,166 @@ export class Crowd {
       if (p.role === 'waiter' && trayN < this.trays.instanceMatrix.count) {
         this.trays.setMatrixAt(trayN++, this.trayMatrix);
       }
+      if (p.prop !== 'none' && p.rig) {
+        const m = this.propMatrix(p);
+        if (m) {
+          if (p.prop === 'glass') this.glasses.setMatrixAt(gi++, m);
+          else this.phones.setMatrixAt(ph++, m);
+        }
+      }
     });
     this.trays.count = trayN;
     this.trays.instanceMatrix.needsUpdate = trayN > 0;
+    this.glasses.count = gi;
+    this.glasses.instanceMatrix.needsUpdate = gi > 0;
+    this.phones.count = ph;
+    this.phones.instanceMatrix.needsUpdate = ph > 0;
     for (const part of Object.values(this.parts)) part.mesh.instanceMatrix.needsUpdate = true;
     this.shadowMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  /** Head direction (relative yaw, pitch) for whatever this person is busy with. */
+  private activityGaze(p: Person, time: number): [number, number] {
+    const idle = Math.sin(time * 0.3 + p.seed) * 0.3;
+    const at = (q: THREE.Vector3, dy = 0): [number, number] => {
+      let r = Math.atan2(q.x - p.pos.x, q.z - p.pos.z) - p.yaw;
+      r = Math.atan2(Math.sin(r), Math.cos(r));
+      return [THREE.MathUtils.clamp(r, -1.1, 1.1), dy];
+    };
+    if (p.photo) return [Math.sin(time * 0.4 + p.seed) * 0.25, 0.45];
+    if (p.talk) {
+      const t = p.talk;
+      const speaker = t.members[t.speaker];
+      if (speaker && speaker !== p) return at(speaker.pos, 0.02);
+      // The one talking looks around the circle.
+      const others = t.members.filter((m) => m !== p);
+      const o = others[Math.floor((time * 0.4 + p.seed) % others.length)] ?? others[0];
+      return o ? at(o.pos, 0.02) : [idle, 0];
+    }
+    if (p.chatWith) return at(p.chatWith.pos);
+    if (p.follow) {
+      // Chat with your friend as you walk: mostly ahead, sometimes at them.
+      return Math.sin(time * 0.5 + p.seed) > 0.4 ? at(p.follow.pos) : [idle * 0.5, -0.05];
+    }
+    if (p.role === 'slots') return [idle * 0.3, -0.15];
+    if (p.role === 'croupier') return [idle * 0.4, -0.3];
+    if (p.role === 'patron' || p.role === 'watch') return [idle * 0.6, -0.15];
+    return [idle, 0];
+  }
+
+  /** Conversations: turn taking, and the occasional shared laugh. */
+  private updateTalks(time: number) {
+    for (const t of this.talks) {
+      if (time > t.nextTurn) {
+        const n = t.members.length;
+        t.speaker = (t.speaker + 1 + Math.floor(Math.random() * (n - 1))) % n;
+        t.nextTurn = time + 2.5 + Math.random() * 4.5;
+        if (Math.random() < 0.28) {
+          t.laughUntil = time + 1.4;
+          for (const m of t.members) m.laughT = 1.2 + Math.random() * 0.4;
+        }
+      }
+      t.members.forEach((m, k) => {
+        const want = k === t.speaker && time > t.laughUntil ? 1 : 0;
+        m.talking += (want - m.talking) * 0.08;
+      });
+    }
+    // Two strangers-turned-friends stopped mid-walk.
+    for (const p of this.people) {
+      if (!p.chatWith) continue;
+      p.talking = 0.5 + 0.5 * Math.sin(time * 0.9 + p.seed);
+    }
+  }
+
+  /** Keeps a companion walking beside their friend (or waiting with them). */
+  private walkBeside(p: Person, dt: number) {
+    const lead = p.follow;
+    if (!lead) return;
+    const side = new THREE.Vector3(Math.cos(lead.yaw), 0, -Math.sin(lead.yaw)).multiplyScalar(lead.moving > 0.1 ? 0.62 : 0.75);
+    const tx = lead.pos.x + side.x - Math.sin(lead.yaw) * (lead.moving > 0.1 ? 0.05 : -0.1),
+      tz = lead.pos.z + side.z - Math.cos(lead.yaw) * (lead.moving > 0.1 ? 0.05 : -0.1);
+    const dx = tx - p.pos.x,
+      dz = tz - p.pos.z;
+    const d = Math.hypot(dx, dz);
+    if (d > 6) {
+      p.pos.set(tx, 0, tz);
+      return;
+    }
+    const want = d < 0.12 ? 0 : Math.min(2.2, lead.moving + d * 1.5);
+    p.moving += (want - p.moving) * Math.min(1, dt * 5);
+    if (p.moving > 0.02 && d > 0.02) {
+      const step = Math.min(d, p.moving * dt);
+      const nx = p.pos.x + (dx / d) * step,
+        nz = p.pos.z + (dz / d) * step;
+      if (this.world.isFree(nx, nz, 0.2) || !this.world.isFree(p.pos.x, p.pos.z, 0.2)) {
+        p.pos.x = nx;
+        p.pos.z = nz;
+      }
+      p.walkPhase += p.moving * dt * 5.2;
+    }
+    // Face where the pair is going; when stopped, turn a little toward the friend.
+    let ty = lead.yaw;
+    if (lead.moving < 0.1) ty = Math.atan2(lead.pos.x - p.pos.x, lead.pos.z - p.pos.z) * 0.5 + lead.yaw * 0.5;
+    let dy = ty - p.yaw;
+    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    p.yaw += dy * Math.min(1, dt * 4);
+    p.talking = lead.moving < 0.1 ? 0.6 + 0.4 * Math.sin(this.time * 0.7 + p.seed) : 0.15;
+  }
+
+  private propV = new THREE.Vector3();
+  private propQ = new THREE.Quaternion();
+  /** World matrix for the drink or phone in someone's right hand. */
+  private propMatrix(p: Person): THREE.Matrix4 | null {
+    const b = p.rig!.bones;
+    const wrist = b['WristR'] ?? b['HandR'];
+    if (!wrist) return null;
+    wrist.updateWorldMatrix(true, false);
+    const pos = this.propV.set(0, 0.07, 0.03).applyMatrix4(wrist.matrixWorld);
+    if (p.prop === 'glass') {
+      // Upright, tipped toward the mouth while sipping.
+      const tip = p.sipT > 0 ? Math.sin(Math.min(1, (1.6 - p.sipT) / 1.6) * Math.PI) * 0.9 : 0;
+      this.propQ.setFromEuler(this.e.set(-tip, p.yaw, 0, 'YXZ'));
+      return this.m.compose(pos.add(new THREE.Vector3(0, -0.02, 0)), this.propQ, this.s.set(1, 1, 1)).clone();
+    }
+    // Phone held up, screen toward the person.
+    this.propQ.setFromEuler(this.e.set(-0.25, p.yaw, 0, 'YXZ'));
+    return this.m.compose(pos, this.propQ, this.s.set(1, 1, 1)).clone();
   }
 
   private walk(p: Person, dt: number, player: THREE.Vector3) {
     if (this.nodes.length === 0) return;
     if (p.target === null) p.target = this.nearestNode(p.pos.x, p.pos.z);
+    p.chatCd -= dt;
     if (p.pause > 0) {
       p.pause -= dt;
       p.moving += (0 - p.moving) * Math.min(1, dt * 6);
+      if (p.chatWith) {
+        // Face the friend you bumped into.
+        let dy = Math.atan2(p.chatWith.pos.x - p.pos.x, p.chatWith.pos.z - p.pos.z) - p.yaw;
+        dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+        p.yaw += dy * Math.min(1, dt * 3);
+        if (p.pause <= 0) {
+          p.chatWith = null;
+          p.talking = 0;
+        }
+      }
       return;
+    }
+    // Passing someone you know? Stop for a quick chat now and then.
+    if (p.role === 'wander' && p.chatCd <= 0) {
+      p.chatCd = 2 + Math.random() * 2;
+      for (const o of this.people) {
+        if (o === p || o.role !== 'wander' || o.pause > 0 || o.chatCd > 0 || o.follow) continue;
+        if (Math.abs(o.pos.x - p.pos.x) > 1.4 || Math.abs(o.pos.z - p.pos.z) > 1.4) continue;
+        if (Math.random() < 0.25) {
+          const t = 4 + Math.random() * 5;
+          p.pause = o.pause = t;
+          p.chatWith = o;
+          o.chatWith = p;
+          p.chatCd = o.chatCd = 40 + Math.random() * 40;
+        } else p.chatCd = 15 + Math.random() * 15;
+        break;
+      }
     }
     const t = this.nodes[p.target];
     const dx = t.x - p.pos.x,
@@ -515,6 +801,40 @@ export class Crowd {
     if (p.role === 'waiter' && b['UpperArmR']) {
       b['UpperArmR'].rotateX(POSE.trayUpper);
       b['LowerArmR']?.rotateX(POSE.trayLower);
+    }
+    // Social overlays: talking hands, a drink or phone in hand, laughing.
+    if (!p.seated && walk + run < 0.5 && cheer < 0.3) {
+      const t = this.time + p.seed;
+      const still = 1 - Math.min(1, (walk + run) * 2);
+      if (p.talking > 0.05) {
+        // Hands that talk: the free hand (and both when no drink) move with the words.
+        const k = p.talking * still;
+        const gl = (0.35 + 0.3 * Math.sin(t * 3.1)) * k,
+          gr = (0.3 + 0.35 * Math.sin(t * 2.3 + 1.7)) * k;
+        b['UpperArmL']?.rotateX(gl * 0.9);
+        b['LowerArmL']?.rotateX(0.6 * k + gl * 0.8);
+        if (p.prop === 'none') {
+          b['UpperArmR']?.rotateX(gr * 0.9);
+          b['LowerArmR']?.rotateX(0.6 * k + gr * 0.8);
+        }
+        b.Head?.rotateX(Math.sin(t * 4.2) * 0.05 * k);
+      }
+      if (p.prop === 'glass') {
+        const sip = p.sipT > 0 ? Math.sin(Math.min(1, (1.6 - p.sipT) / 1.6) * Math.PI) : 0;
+        b['UpperArmR']?.rotateX((POSE.trayUpper * 0.45 + sip * 0.55) * still);
+        b['LowerArmR']?.rotateX((POSE.trayLower * 0.95 + sip * 0.75) * still);
+        if (sip > 0.1) b.Head?.rotateX(-sip * 0.18);
+      } else if (p.prop === 'phone') {
+        const up = p.photo ? 1 : 0.55;
+        b['UpperArmR']?.rotateX((0.9 + 0.5 * up) * still);
+        b['LowerArmR']?.rotateX((1.0 - 0.3 * up) * still);
+      }
+      if (p.laughT > 0) {
+        const l = Math.min(1, p.laughT * 2) * still;
+        rig.root.position.y += Math.abs(Math.sin(t * 14)) * 0.012 * l;
+        b.Head?.rotateX(-0.22 * l);
+        b['Spine']?.rotateX(-0.06 * l);
+      }
     }
     // Look at the player / glance around.
     b.Head?.rotateY(p.headYaw * 0.8);

@@ -1,0 +1,138 @@
+import * as THREE from 'three';
+import type { Sound } from '../audio';
+import type { Interaction } from '../interaction';
+import type { Crowd, Person } from '../people';
+import { randomLook, staffLook } from '../people';
+import type { Player, Viewpoint } from '../player';
+import type { Quality } from '../quality';
+import type { World } from '../world';
+import { Elevators, type LandingId } from './elevators';
+import { buildHotel, CORR, LOBBY, LOBBY_CARS, registerHotel } from './hotel';
+import { mats } from './kit';
+import { buildPool, DECK, LIFT, registerPool } from './pool';
+import { buildSuite, registerSuite, SUITE, SUITE_CAR } from './suite';
+
+/**
+ * Everything beyond the casino floor: the hotel corridor and elevator lobby,
+ * the night pool deck, and Suite 3201, joined by working elevators.
+ */
+
+/** Walking-graph nodes so guests stroll out to the lobby and the pool. */
+export const AREA_NODES: [number, number][] = [
+  [16.4, 6.5],
+  [21, 6.5],
+  [27, 6.5],
+  [32.5, 6.5],
+  [36, 2.0],
+  [36, -1.5],
+  [36, -9],
+  [29, -9],
+  [29, -20],
+  [32, -31],
+  [44, -30],
+  [54, -27],
+  [54, -16],
+  [44, -10],
+  [56, -6],
+];
+
+/** Collision and walkable floor for the new areas (call right after the hall is registered). */
+export function registerAreas(world: World) {
+  registerHotel(world);
+  registerPool(world);
+  registerSuite(world);
+}
+
+export interface Areas {
+  nav: { id: string; label: string; viewpoint: Viewpoint }[];
+  update(dt: number, t: number, feet: THREE.Vector3): void;
+  /** Party music near the DJ (0..1). */
+  musicLevel(feet: THREE.Vector3): number;
+  /** 0..1 how far outdoors you are (the pool deck), for ambience. */
+  outdoors(feet: THREE.Vector3): number;
+  /** Adds the pool crowd (call before the floor's wanderers fill the crowd). */
+  populate(crowd: Crowd): Person[];
+  where(feet: THREE.Vector3): 'casino' | 'hotel' | 'pool' | 'suite';
+  elevators: Elevators;
+}
+
+export function buildAreas(deps: {
+  scene: THREE.Scene;
+  quality: Quality;
+  interaction: Interaction;
+  sound: Sound;
+  player: Player;
+  world: World;
+  toast: (text: string) => void;
+}): Areas {
+  const { scene, quality: q } = deps;
+  const m = mats(q);
+  buildHotel(scene, q, m);
+  const pool = buildPool(scene, q, m);
+  buildSuite(scene, q, m);
+  const lifts = new Elevators(scene, q, m, deps.interaction, deps.sound, deps.player, deps.toast, [
+    { id: 'casino', doorX: LOBBY.x1, zs: LOBBY_CARS },
+    { id: 'pool', doorX: LIFT.doorX, zs: LIFT.zs },
+    { id: 'suite', doorX: SUITE_CAR.doorX, zs: [SUITE_CAR.z] },
+  ]);
+  lifts.registerWorld(deps.world);
+  lifts.onRide = (dest: LandingId) => {
+    if (dest === 'suite') deps.toast('Suite 3201');
+    if (dest === 'pool') deps.toast('Pool Deck');
+  };
+  // The pool's water and the party.
+  deps.sound.ambientAt('water', pool.anchor, { volume: 0.45, ref: 6, rolloff: 1.4 });
+
+  const vp = (id: string, label: string, x: number, z: number, yaw: number, pitch = 0): { id: string; label: string; viewpoint: Viewpoint } => ({
+    id,
+    label,
+    viewpoint: { id, label, position: new THREE.Vector3(x, 0, z), yaw, pitch, eye: 1.65 },
+  });
+  const nav = [
+    vp('elevators', 'Elevators', 33, 8.5, -Math.PI / 2 + 0.25),
+    vp('pool', 'Pool Deck', 36, -4.5, 0.05, -0.05),
+    vp('suite', 'Suite 3201', SUITE.x1 - 1.6, 1.2, Math.PI / 2 + 0.5, -0.05),
+  ];
+
+  const where = (f: THREE.Vector3): ReturnType<Areas['where']> => {
+    if (f.x > SUITE.x0 - 5) return 'suite';
+    if (f.z < LOBBY.z0 - 0.2 && f.x > DECK.x0 - 1) return 'pool';
+    if (f.x > CORR.x0 - 0.2) return 'hotel';
+    return 'casino';
+  };
+
+  return {
+    nav,
+    where,
+    elevators: lifts,
+    update(dt, t) {
+      lifts.update(dt);
+      pool.update(t);
+    },
+    musicLevel(f) {
+      if (where(f) !== 'pool') return 0;
+      const d = Math.hypot(f.x - 50, f.z + 31);
+      return THREE.MathUtils.clamp(1 - d / 30, 0.25, 1);
+    },
+    outdoors(f) {
+      return where(f) === 'pool' ? 1 : 0;
+    },
+    populate(crowd) {
+      const people: Person[] = [];
+      const bt = crowd.add('bartender', staffLook('bar'), pool.bartender.pos, pool.bartender.yaw);
+      if (bt) people.push(bt);
+      for (const s of pool.seats) {
+        const p = crowd.add('patron', randomLook(), s.pos, s.yaw);
+        if (!p) break;
+        p.seatY = s.seatY;
+        people.push(p);
+      }
+      for (const s of pool.stands) {
+        const p = crowd.add('watch', randomLook(), s.pos, s.yaw);
+        if (!p) break;
+        people.push(p);
+      }
+      return people;
+    },
+  };
+}

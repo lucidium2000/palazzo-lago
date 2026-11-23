@@ -225,8 +225,12 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   trim(0, D / 2, W, Math.PI);
   wallPanel(-W / 2, 0, D, Math.PI / 2);
   trim(-W / 2, 0, D, Math.PI / 2);
-  wallPanel(W / 2, 0, D, -Math.PI / 2);
-  trim(W / 2, 0, D, -Math.PI / 2);
+  // East wall, with the grand opening to the hotel tower (corridor z 4.6–8.4, 4.2 m high).
+  wallPanel(W / 2, (-D / 2 + 4.6) / 2, 4.6 + D / 2, -Math.PI / 2);
+  trim(W / 2, (-D / 2 + 4.6) / 2, 4.6 + D / 2, -Math.PI / 2);
+  wallPanel(W / 2, (8.4 + D / 2) / 2, D / 2 - 8.4, -Math.PI / 2);
+  trim(W / 2, (8.4 + D / 2) / 2, D / 2 - 8.4, -Math.PI / 2);
+  wallPanel(W / 2, 6.5, 3.8, -Math.PI / 2, 4.2, H);
 
   // North wall with five tall windows onto the lake.
   const windowsX = [-12, -6, 0, 6, 12];
@@ -284,7 +288,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     buildPilasters(
       [
         { from: [-W / 2, D / 2], to: [W / 2, D / 2], inward: [0, -1], every: 3, skip: (x) => Math.abs(x) < 3.2 },
-        { from: [W / 2, -D / 2], to: [W / 2, D / 2], inward: [-1, 0], every: 3.5 },
+        { from: [W / 2, -D / 2], to: [W / 2, D / 2], inward: [-1, 0], every: 3.5, skip: (_x, z) => z > 3.9 && z < 9.1 },
         { from: [-W / 2, -D / 2], to: [-W / 2, D / 2], inward: [1, 0], every: 3.5, skip: (_x, z) => z > 4.5 },
       ],
       H,

@@ -242,15 +242,19 @@ export class CrapsTable {
     bank.position.set(0, RAIL_Y - 0.03, -OUT.d / 2 + 0.07);
     g.add(bank);
     const COLORS = [0xf2f0ea, 0xc0262d, 0x1e7a3a, 0x1b1b1f, 0x6b2f8f];
-    const chipGeo = new THREE.CylinderGeometry(0.0195, 0.0195, 0.07, 16);
+    const bankChips = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0195, 0.0195, 0.07, 16), new THREE.MeshStandardMaterial({ roughness: 0.5 }), COLORS.length * 3);
+    const tmpB = new THREE.Object3D();
     COLORS.forEach((c, i) => {
       for (let j = 0; j < 3; j++) {
-        const s = new THREE.Mesh(chipGeo, new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 }));
-        s.rotation.z = Math.PI / 2;
-        s.position.set(-0.3 + i * 0.13 + j * 0.042, RAIL_Y - 0.003, -OUT.d / 2 + 0.07);
-        g.add(s);
+        tmpB.rotation.set(0, 0, Math.PI / 2);
+        tmpB.position.set(-0.3 + i * 0.13 + j * 0.042, RAIL_Y - 0.003, -OUT.d / 2 + 0.07);
+        tmpB.updateMatrix();
+        bankChips.setMatrixAt(i * 3 + j, tmpB.matrix);
+        bankChips.setColorAt(i * 3 + j, new THREE.Color(c));
       }
     });
+    bankChips.raycast = () => {};
+    g.add(bankChips);
 
     // Contact shadow on the carpet.
     const shadow = new THREE.Mesh(
@@ -264,15 +268,19 @@ export class CrapsTable {
   }
 
   private buildDice() {
-    const faces = [2, 5, 1, 6, 3, 4].map((n) => {
-      const [c, g] = canvas(128, 128);
+    // One texture atlas for all six faces (3 x 2 cells) so each die is a single draw.
+    const order = [2, 5, 1, 6, 3, 4]; // BoxGeometry faces: +x, -x, +y, -y, +z, -z
+    const [c, g] = canvas(384, 256);
+    order.forEach((n, i) => {
+      const ox = (i % 3) * 128,
+        oy = Math.floor(i / 3) * 128;
       g.fillStyle = '#b4101c';
-      g.fillRect(0, 0, 128, 128);
-      const grd = g.createRadialGradient(64, 64, 10, 64, 64, 90);
+      g.fillRect(ox, oy, 128, 128);
+      const grd = g.createRadialGradient(ox + 64, oy + 64, 10, ox + 64, oy + 64, 90);
       grd.addColorStop(0, 'rgba(255,90,90,0.35)');
       grd.addColorStop(1, 'rgba(0,0,0,0.15)');
       g.fillStyle = grd;
-      g.fillRect(0, 0, 128, 128);
+      g.fillRect(ox, oy, 128, 128);
       const o = 34;
       const pips: Record<number, [number, number][]> = {
         1: [[0, 0]],
@@ -285,14 +293,24 @@ export class CrapsTable {
       g.fillStyle = '#fbfaf4';
       for (const [x, y] of pips[n]) {
         g.beginPath();
-        g.arc(64 + x, 64 + y, 11, 0, Math.PI * 2);
+        g.arc(ox + 64 + x, oy + 64 + y, 11, 0, Math.PI * 2);
         g.fill();
       }
-      return new THREE.MeshPhysicalMaterial({ map: toTexture(c), roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.3 });
     });
+    const mat = new THREE.MeshPhysicalMaterial({ map: toTexture(c), roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.3 });
     const geo = new THREE.BoxGeometry(DIE, DIE, DIE);
+    const uv = geo.attributes.uv as THREE.BufferAttribute;
+    for (let f = 0; f < 6; f++) {
+      const cx = f % 3,
+        cy = Math.floor(f / 3);
+      for (let k = 0; k < 4; k++) {
+        const i = f * 4 + k;
+        uv.setXY(i, (cx + uv.getX(i)) / 3, 1 - (cy + 1 - uv.getY(i)) / 2);
+      }
+    }
+    geo.clearGroups();
     for (let i = 0; i < 2; i++) {
-      const body = new THREE.Mesh(geo, faces);
+      const body = new THREE.Mesh(geo, mat);
       body.castShadow = this.ctx.quality.shadows;
       body.raycast = () => {};
       body.position.copy(DICE_HOME).add(new THREE.Vector3(i * 0.03, FELT_Y, 0));
