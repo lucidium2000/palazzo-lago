@@ -64,7 +64,8 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   const deckTex = toTexture(travertine(1024));
   deckTex.wrapS = deckTex.wrapT = THREE.RepeatWrapping;
   deckTex.repeat.set(0.25, 0.25);
-  const deck = new THREE.MeshStandardMaterial({ map: deckTex, roughness: 0.75, emissive: 0x1c140e, emissiveIntensity: 0.6 });
+  // Travertine with a wet night sheen: it catches the pool glow and the string lights.
+  const deck = new THREE.MeshStandardMaterial({ map: deckTex, color: new THREE.Color(0.78, 0.74, 0.7), roughness: 0.38, metalness: 0.05, envMapIntensity: 0.7, emissive: 0x1c140e, emissiveIntensity: 0.6 });
   // The deck surface, with the pool and hot tub cut out (shape in x / −z).
   const shape = new THREE.Shape();
   shape.moveTo(DECK.x0, -DECK.z1);

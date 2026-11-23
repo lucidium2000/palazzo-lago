@@ -232,8 +232,46 @@ export class Lounge {
     });
     bottles.raycast = () => {};
     this.bar.add(bottles);
-    const sign = textSign('Bar Lago', { width: 2.4, px: 140 });
-    sign.position.set(wallX + 0.06, 2.95, zc);
+    // A backlit onyx feature wall rising behind the back bar, framed in gold.
+    {
+      const [oc, og] = (() => {
+        const cv = document.createElement('canvas');
+        cv.width = 1024;
+        cv.height = 384;
+        return [cv, cv.getContext('2d')!] as const;
+      })();
+      const grd = og.createLinearGradient(0, 0, 1024, 384);
+      grd.addColorStop(0, '#e9a64a');
+      grd.addColorStop(0.5, '#f6cf86');
+      grd.addColorStop(1, '#d98a36');
+      og.fillStyle = grd;
+      og.fillRect(0, 0, 1024, 384);
+      let sd = 9;
+      const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      for (let k = 0; k < 90; k++) {
+        og.strokeStyle = `rgba(${120 + rnd() * 60},${60 + rnd() * 40},20,${0.15 + rnd() * 0.3})`;
+        og.lineWidth = 1 + rnd() * 5;
+        og.beginPath();
+        let x = rnd() * 1024,
+          y = rnd() * 384;
+        og.moveTo(x, y);
+        for (let j = 0; j < 6; j++) {
+          x += (rnd() - 0.3) * 200;
+          y += (rnd() - 0.5) * 80;
+          og.quadraticCurveTo(x - 40, y + 30, x, y);
+        }
+        og.stroke();
+      }
+      const onyxTex = new THREE.CanvasTexture(oc);
+      onyxTex.colorSpace = THREE.SRGBColorSpace;
+      const onyx = add(new THREE.PlaneGeometry(len - 0.4, 2.0), new THREE.MeshBasicMaterial({ map: onyxTex, color: new THREE.Color(1.15, 1.05, 0.95) }), wallX + 0.04, 3.9, zc);
+      onyx.rotation.y = Math.PI / 2;
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3 });
+      for (const y of [2.88, 4.92]) add(new THREE.BoxGeometry(0.06, 0.06, len - 0.3), frameMat, wallX + 0.06, y, zc);
+      for (const z of [z0 + 0.15, z1 - 0.15]) add(new THREE.BoxGeometry(0.06, 2.1, 0.06), frameMat, wallX + 0.06, 3.9, z);
+    }
+    const sign = textSign('Bar Lago', { width: 2.4, px: 140, bg: 'rgba(24,14,8,0.82)' });
+    sign.position.set(wallX + 0.12, 3.9, zc);
     sign.rotation.y = Math.PI / 2;
     this.bar.add(sign);
 

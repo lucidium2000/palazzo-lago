@@ -40,6 +40,13 @@ deck: lit pools, palms, cabanas, a pool bar and a DJ. The floor is alive: guests
 drinks in hand, friends walk together, people stop to talk and take photos, and they mostly mind their
 own business instead of staring at you.
 
+**Hands and talk:** in VR your avatar's fingers follow your real ones: the Quest controllers'
+touch sensors (trigger touch and pull for the index finger, grip for the rest, thumb on the stick /
+buttons / thumb rest) or full hand tracking (25 joints per hand). Walk up to craps in VR and the
+stickman slides you the dice: grab them and throw at the far wall. Push the stick further to run;
+click it to sprint. Guests talk to each other (bubbles and voices nearby) and to you when you stop
+and look at them; answer with reply buttons (keys 1-3, or the floating panel in VR).
+
 It plays like a night out with the guys: your crew (Rocco, Dev and Mikey) follow you around, hype your
 wins and razz your losses; there's a casino-floor groove, hot streaks, big-win celebrations with confetti,
 and six goals for the night (win at roulette, hit a slot bonus, buy the boys a round, tip the piano man,

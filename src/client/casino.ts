@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import type { Quality } from './quality';
 import { carpet, damask, floorTile, lakeReflection, lakeView, marble, radial, toTexture, wood } from './textures';
 import { textSign } from './panel';
@@ -172,6 +173,9 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // Box UVs scaled per-face are not needed for these solids; textures are noisy enough.
 
   // --- Floor ----------------------------------------------------------------------
+  // Polished marble mirrors the room (desktop): a planar reflection at quarter resolution
+  // (soft, like real polished stone), faded by a mask so the carpets don't reflect.
+  if (q.name === 'desktop') root.add(marbleReflection(HALL.w, HALL.d));
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALL.w, HALL.d), floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = q.shadows;
@@ -488,10 +492,10 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // Casino: warm and glowing. Hotel corridors: warm, a touch dimmer. Outdoors (terrace,
   // pool deck): moonlit night with cool fill, the warmth coming from fixtures. Suite: lamps.
   const MOODS = {
-    casino: { hemi: 0.42, sky: new THREE.Color(0xffdcae), ground: new THREE.Color(0x3a1810), key: 0.8, keyC: new THREE.Color(0xffe6c4), env: 0.55 },
-    hotel: { hemi: 0.36, sky: new THREE.Color(0xffd8a8), ground: new THREE.Color(0x30160c), key: 0.35, keyC: new THREE.Color(0xffe0b8), env: 0.5 },
-    outside: { hemi: 0.2, sky: new THREE.Color(0x5a74a8), ground: new THREE.Color(0x1c140e), key: 0.38, keyC: new THREE.Color(0xa8bcff), env: 0.28 },
-    suite: { hemi: 0.2, sky: new THREE.Color(0xffd0a0), ground: new THREE.Color(0x1a100a), key: 0.12, keyC: new THREE.Color(0xffe0c0), env: 0.32 },
+    casino: { exp: 0.68, hemi: 0.42, sky: new THREE.Color(0xffdcae), ground: new THREE.Color(0x3a1810), key: 0.8, keyC: new THREE.Color(0xffe6c4), env: 0.55 },
+    hotel: { exp: 0.8, hemi: 0.36, sky: new THREE.Color(0xffd8a8), ground: new THREE.Color(0x30160c), key: 0.35, keyC: new THREE.Color(0xffe0b8), env: 0.5 },
+    outside: { exp: 0.95, hemi: 0.2, sky: new THREE.Color(0x5a74a8), ground: new THREE.Color(0x1c140e), key: 0.38, keyC: new THREE.Color(0xa8bcff), env: 0.28 },
+    suite: { exp: 0.9, hemi: 0.2, sky: new THREE.Color(0xffd0a0), ground: new THREE.Color(0x1a100a), key: 0.12, keyC: new THREE.Color(0xffe0c0), env: 0.32 },
   };
   let lastT = -1;
   const mood = (f: THREE.Vector3, t: number) => {
@@ -506,6 +510,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     key.intensity += (m.key - key.intensity) * k;
     key.color.lerp(m.keyC, k);
     scene.environmentIntensity += (m.env - scene.environmentIntensity) * k;
+    renderer.toneMappingExposure += (m.exp - renderer.toneMappingExposure) * k;
   };
 
   return {
@@ -524,6 +529,77 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
       }
     },
   };
+}
+
+/** A soft planar reflection over the marble (not the carpet patches). Desktop only. */
+function marbleReflection(w: number, d: number): THREE.Object3D {
+  const mask = document.createElement('canvas');
+  mask.width = 512;
+  mask.height = Math.round((512 * d) / w);
+  const g = mask.getContext('2d')!;
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, mask.width, mask.height);
+  g.fillStyle = '#000000';
+  const toPx = (x: number, z: number) => [((x + w / 2) / w) * mask.width, ((z + d / 2) / d) * mask.height];
+  for (const [cx, cz, cw, cd] of [[-7.5, -2.5, 9.3, 17.3], [9.6, 4.2, 8.3, 9.3]]) {
+    const [x0, y0] = toPx(cx - cw / 2, cz - cd / 2);
+    const [x1, y1] = toPx(cx + cw / 2, cz + cd / 2);
+    g.fillRect(x0, y0, x1 - x0, y1 - y0);
+  }
+  const maskTex = new THREE.CanvasTexture(mask);
+  const refl = new Reflector(new THREE.PlaneGeometry(w, d), {
+    textureWidth: 512,
+    textureHeight: Math.round((512 * d) / w),
+    clipBias: 0.003,
+    shader: {
+      name: 'MarbleReflection',
+      uniforms: { color: { value: null }, tDiffuse: { value: null }, textureMatrix: { value: null }, tMask: { value: maskTex } },
+      vertexShader: /* glsl */ `
+        uniform mat4 textureMatrix;
+        varying vec4 vUvR;
+        varying vec2 vUv;
+        varying vec3 vWorld;
+        void main() {
+          vUv = uv;
+          vUvR = textureMatrix * vec4(position, 1.0);
+          vec4 w = modelMatrix * vec4(position, 1.0);
+          vWorld = w.xyz;
+          gl_Position = projectionMatrix * viewMatrix * w;
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tMask;
+        varying vec4 vUvR;
+        varying vec2 vUv;
+        varying vec3 vWorld;
+        void main() {
+          vec3 base = texture2DProj(tDiffuse, vUvR).rgb;
+          // Cheap blur: a few taps around the projected coordinate.
+          vec2 p = vUvR.xy / vUvR.w;
+          vec3 b = base;
+          b += texture2D(tDiffuse, p + vec2(0.004, 0.0)).rgb;
+          b += texture2D(tDiffuse, p - vec2(0.004, 0.0)).rgb;
+          b += texture2D(tDiffuse, p + vec2(0.0, 0.006)).rgb;
+          b += texture2D(tDiffuse, p - vec2(0.0, 0.006)).rgb;
+          b /= 5.0;
+          float m = texture2D(tMask, vec2(vUv.x, 1.0 - vUv.y)).r;
+          vec3 v = normalize(cameraPosition - vWorld);
+          float fres = 0.12 + 0.5 * pow(1.0 - clamp(v.y, 0.0, 1.0), 3.0);
+          gl_FragColor = vec4(b, m * fres);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
+    },
+  });
+  const mat = refl.material as THREE.ShaderMaterial;
+  mat.transparent = true;
+  mat.depthWrite = false;
+  refl.rotation.x = -Math.PI / 2;
+  refl.position.y = 0.003;
+  refl.renderOrder = 1;
+  refl.raycast = () => {};
+  refl.userData.dynamic = true;
+  return refl;
 }
 
 /** Reflections from the real ballroom HDRI (Poly Haven, CC0), prefiltered for PBR. */
@@ -773,7 +849,7 @@ function fountainShow(): THREE.Group {
   jets.frustumCulled = false;
   g.add(jets);
   // Spray crowns at the top of each jet and mist hanging over the water at the base.
-  const puffTex = toTexture(radial(128, 'rgba(235,242,255,0.55)', 'rgba(220,232,255,0)'));
+  const puffTex = toTexture(radial(128, 'rgba(235,242,255,0.28)', 'rgba(220,232,255,0)'));
   const puffMat = new THREE.MeshBasicMaterial({ map: puffTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
   const puffGeo = mergeGeometries([new THREE.PlaneGeometry(1, 1), new THREE.PlaneGeometry(1, 1).rotateY(Math.PI / 2), new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2)])!;
   const crowns = new THREE.InstancedMesh(puffGeo, puffMat, count);
@@ -809,11 +885,11 @@ function fountainShow(): THREE.Group {
         jz = tmp.position.z;
       tmp.rotation.set(0, time * 0.3 + i, 0);
       tmp.position.set(jx + Math.sin(fan) * -top, top * Math.cos(fan) - 1, jz);
-      tmp.scale.setScalar(2 + h * 7 + Math.sin(time * 3 + i) * 0.5);
+      tmp.scale.set(1.2 + h * 2.6, 2 + h * 5, 1.2 + h * 2.6);
       tmp.updateMatrix();
       crowns.setMatrixAt(i, tmp.matrix);
       tmp.position.set(jx, 1.2, jz);
-      tmp.scale.set(5 + h * 6, 2 + h * 3, 5 + h * 6);
+      tmp.scale.set(3 + h * 4, 1 + h * 1.6, 3 + h * 4);
       tmp.updateMatrix();
       mists.setMatrixAt(i, tmp.matrix);
     }
