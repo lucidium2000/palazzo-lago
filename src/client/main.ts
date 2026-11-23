@@ -386,6 +386,25 @@ async function main() {
   // pointer, which would swallow every click (including Enter VR).
   const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
   const vrCapable = !!xr && (await xr.isSessionSupported('immersive-vr').catch(() => false));
+  // Embedded in another page (the claude.ai viewer frames it): browsers block VR and the
+  // microphone there unless the frame allows them. Offer to open the game on its own page.
+  const framed = (() => {
+    try {
+      return window.top !== window.self;
+    } catch {
+      return true;
+    }
+  })();
+  if (framed) {
+    const note = document.getElementById('frame-note')!;
+    const ua = navigator.userAgent;
+    const headset = /OculusBrowser|Quest|Pico|Vive/i.test(ua) || !!xr;
+    if (headset && !vrCapable) note.hidden = false;
+    document.getElementById('frame-open')!.addEventListener('click', () => {
+      const w = window.open(location.href, '_blank', 'noopener');
+      if (!w) hud.toast('Your browser blocked the new tab — open this page from its own link instead', 'warn');
+    });
+  }
   const lock = () => {
     if (!vrCapable) player.lockPointer();
   };

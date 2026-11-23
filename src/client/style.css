@@ -831,3 +831,20 @@ body.touch #prompt {
 #enter .modes button[hidden] {
   display: none;
 }
+#frame-note {
+  margin: 8px auto 4px;
+  max-width: 420px;
+  font-size: 14px;
+  color: #f0d79a;
+  background: rgba(60, 30, 10, 0.6);
+  border: 1px solid rgba(216, 178, 90, 0.5);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+#frame-note[hidden] {
+  display: none;
+}
+#frame-note button {
+  display: block;
+  margin: 8px auto 2px !important;
+}

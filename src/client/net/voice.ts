@@ -41,7 +41,7 @@ export class Voice {
   /** Asks for the microphone. Returns an error message, or null when voice is on. */
   async enable(): Promise<string | null> {
     if (this.enabled) return null;
-    if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') return 'Voice chat is not supported in this browser';
+    if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') return window.top !== window.self ? 'Voice chat is blocked inside this embedded window: open the casino on its own page (start screen) or from your own web host' : 'Voice chat is not supported in this browser';
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     } catch (e) {
