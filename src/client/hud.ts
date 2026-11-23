@@ -49,6 +49,10 @@ export class Hud {
   /** Draws the wrist menu (the VR menu takes this over). */
   wristBuilder: (() => void) | null = null;
   private wristAttached = false;
+  /** The wrist menu opens and closes with Y on the left Touch controller. */
+  private wristOpen = false;
+  private yWas = false;
+  private hinted = false;
   private nav: NavItem[] = [];
   onNavigate: ((item: NavItem) => void) | null = null;
 
@@ -75,6 +79,8 @@ export class Hud {
     this.wrist.mesh.visible = false;
     this.wrist.register(interaction);
     renderer.xr.addEventListener('sessionend', () => {
+      this.wristOpen = false;
+      this.hinted = false;
       this.wrist.mesh.visible = false;
       this.vrToast.mesh.visible = false;
     });
@@ -294,7 +300,22 @@ export class Hud {
         this.wristAttached = true;
       }
     }
-    if (this.wristAttached) this.wrist.mesh.visible = true;
+    // Y (left controller, xr-standard button 5) toggles the menu. With hand tracking
+    // there are no buttons, so the menu simply stays on the wrist.
+    const gp = this.interaction.gamepads().find((g) => g.handedness === 'left')?.gamepad;
+    const hasY = !!gp && gp.buttons.length > 5;
+    const y = !!gp?.buttons[5]?.pressed;
+    if (y && !this.yWas) {
+      this.wristOpen = !this.wristOpen;
+      if (this.wristOpen) this.wristBuilder?.();
+      (gp as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(0.4, 40);
+    }
+    this.yWas = y;
+    if (this.wristAttached) this.wrist.mesh.visible = this.wristOpen || !hasY;
+    if (this.wristAttached && hasY && !this.hinted) {
+      this.hinted = true;
+      this.vrMessage('Press Y on your left controller for the menu', 'info');
+    }
 
     const p = this.vrToast.mesh;
     camera.updateMatrixWorld(true);

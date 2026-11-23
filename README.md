@@ -29,7 +29,7 @@ with two tabs of one browser.
 **Being there together:** voice chat (Voice button, or Room on your VR wrist; V mutes) plays your
 friend's voice from their avatar. In VR their avatar's arms follow their real hands, their head
 follows where they look, and its mouth moves when they talk (from their mic level). Slap hands in
-VR for a high five. Every screen menu is also on your left wrist in VR: Go (map), Room (host, join
+VR for a high five. Every screen menu is also in VR: press **Y** on the left controller to open it on your left wrist: Go (map), Room (host, join
 with a code keypad, character, voice, quick chat) and Menu (music, sound, help, reset chips, exit VR).
 Tables and machines are walk-up-and-play: stand at one and its controls appear; sitting is optional.
 
