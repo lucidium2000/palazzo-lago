@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { lineTime, voiceArbiter } from './dialogue';
 import type { Sound } from './audio';
 import type { Hud } from './hud';
 import type { Crowd, Look, Person } from './people';
@@ -192,6 +193,8 @@ export class Crew {
       }
     }
     if (!opts.force && (this.cooldown > 0 || Math.random() > (opts.chance ?? 1))) return;
+    // Don't talk over a guest or the staff (forced lines still cut in, like friends do).
+    if (!opts.force && voiceArbiter.busy()) return;
     const lines = LINES[moment];
     let line = lines[Math.floor(Math.random() * lines.length)];
     if (line === this.lastLine) line = lines[(lines.indexOf(line) + 1) % lines.length];
@@ -202,6 +205,7 @@ export class Crew {
     this.idleIn = 35 + Math.random() * 30;
     this.hud.say(b.name, line);
     this.sound.say(line, { pitch: b.pitch, rate: b.rate, voice: b.voice, interrupt: opts.force });
+    voiceArbiter.claim(lineTime(line));
     b.person.headYaw = 0;
   }
 

@@ -396,36 +396,127 @@ export function damask(size: number): HTMLCanvasElement {
 /** Night view over a lake, seen through the big windows. */
 export function lakeView(w: number, h: number): HTMLCanvasElement {
   const [c, ctx] = canvas(w, h);
-  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.55);
-  sky.addColorStop(0, '#060a1c');
-  sky.addColorStop(1, '#27305a');
+  const H = h * 0.55; // horizon
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#03050f');
+  sky.addColorStop(0.55, '#0b1230');
+  sky.addColorStop(0.9, '#2a2a52');
+  sky.addColorStop(1, '#4a3550');
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, w, h * 0.55);
-  // Distant skyline.
+  ctx.fillRect(0, 0, w, H);
   let s = 3;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  for (let x = 0; x < w; ) {
-    const bw = 20 + rnd() * 60,
-      bh = 30 + rnd() * h * 0.28;
-    ctx.fillStyle = '#0d1126';
-    ctx.fillRect(x, h * 0.55 - bh, bw, bh);
-    for (let k = 0; k < bh / 9; k++) {
-      if (rnd() < 0.5) {
-        ctx.fillStyle = rnd() < 0.3 ? '#f7d18a' : '#e2a85a';
-        ctx.fillRect(x + 3 + rnd() * (bw - 6), h * 0.55 - bh + k * 9 + 3, 3, 2);
+  // Stars and a moon.
+  for (let k = 0; k < 260; k++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.2 + rnd() * 0.6})`;
+    ctx.fillRect(rnd() * w, rnd() * H * 0.6, 1 + (rnd() < 0.1 ? 1 : 0), 1);
+  }
+  const mx = w * 0.78,
+    my = H * 0.18;
+  const mg = ctx.createRadialGradient(mx, my, 4, mx, my, 70);
+  mg.addColorStop(0, 'rgba(255,250,235,1)');
+  mg.addColorStop(0.18, 'rgba(255,245,225,0.9)');
+  mg.addColorStop(0.3, 'rgba(200,210,255,0.15)');
+  mg.addColorStop(1, 'rgba(200,210,255,0)');
+  ctx.fillStyle = mg;
+  ctx.fillRect(mx - 70, my - 70, 140, 140);
+  // Light haze over the city.
+  const haze = ctx.createLinearGradient(0, H - h * 0.22, 0, H);
+  haze.addColorStop(0, 'rgba(255,170,100,0)');
+  haze.addColorStop(1, 'rgba(255,150,90,0.28)');
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, H - h * 0.22, w, h * 0.22);
+  // Two rows of towers: far (dim, hazy) then near (taller, brighter windows, neon crowns).
+  const towers: { x: number; bw: number; bh: number; neon: string | null }[] = [];
+  for (const row of [0, 1]) {
+    for (let x = rnd() * 20; x < w; ) {
+      const bw = (row ? 26 : 16) + rnd() * (row ? 70 : 40);
+      const bh = (row ? 40 : 30) + rnd() * h * (row ? 0.33 : 0.2) * (rnd() < 0.15 ? 1.6 : 1);
+      const top = H - bh;
+      ctx.fillStyle = row ? '#0a0d1e' : '#141a34';
+      ctx.fillRect(x, top, bw, bh);
+      // Window grid.
+      const lit = row ? 0.55 : 0.35;
+      for (let yy = top + 4; yy < H - 3; yy += row ? 7 : 6) {
+        for (let xx = x + 3; xx < x + bw - 3; xx += row ? 5 : 4) {
+          if (rnd() < lit) {
+            const warm = rnd();
+            ctx.fillStyle = warm < 0.55 ? `rgba(255,214,150,${row ? 0.9 : 0.5})` : warm < 0.85 ? `rgba(255,186,110,${row ? 0.8 : 0.45})` : `rgba(190,220,255,${row ? 0.7 : 0.4})`;
+            ctx.fillRect(xx, yy, row ? 2 : 1.5, row ? 3 : 2);
+          }
+        }
+      }
+      let neon: string | null = null;
+      if (row && rnd() < 0.3) {
+        neon = ['#ff3a8a', '#3ad0ff', '#ffb03a', '#b06aff', '#4aff9a'][Math.floor(rnd() * 5)];
+        ctx.fillStyle = neon;
+        ctx.shadowColor = neon;
+        ctx.shadowBlur = 14;
+        ctx.fillRect(x, top - 3, bw, 3);
+        if (rnd() < 0.5) {
+          ctx.beginPath();
+          ctx.moveTo(x + bw * 0.2, top - 3);
+          ctx.lineTo(x + bw / 2, top - 3 - bw * 0.9);
+          ctx.lineTo(x + bw * 0.8, top - 3);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+      }
+      towers.push({ x, bw, bh, neon });
+      x += bw + (row ? 6 + rnd() * 18 : 1 + rnd() * 6);
+    }
+  }
+  // The lake: dark water with long shimmering reflections of the lights.
+  const lake = ctx.createLinearGradient(0, H, 0, h);
+  lake.addColorStop(0, '#141a3a');
+  lake.addColorStop(1, '#03050f');
+  ctx.fillStyle = lake;
+  ctx.fillRect(0, H, w, h - H);
+  for (const t of towers) {
+    const col = t.neon ?? 'rgba(255,196,120,1)';
+    for (let k = 0; k < 3; k++) {
+      const x = t.x + rnd() * t.bw;
+      const len = (h - H) * (0.25 + rnd() * 0.6);
+      for (let y = H + 1; y < H + len; y += 2) {
+        const f = 1 - (y - H) / len;
+        ctx.globalAlpha = f * (t.neon ? 0.5 : 0.28) * (0.5 + 0.5 * rnd());
+        ctx.fillStyle = col;
+        const wob = Math.sin(y * 0.4 + x) * 2;
+        ctx.fillRect(x + wob - 1, y, 2 + rnd() * 3, 1);
       }
     }
-    x += bw + 2;
   }
-  const lake = ctx.createLinearGradient(0, h * 0.55, 0, h);
-  lake.addColorStop(0, '#152048');
-  lake.addColorStop(1, '#070b1d');
-  ctx.fillStyle = lake;
-  ctx.fillRect(0, h * 0.55, w, h * 0.45);
-  for (let k = 0; k < 400; k++) {
-    ctx.fillStyle = `rgba(255,${190 + rnd() * 50},120,${0.1 + rnd() * 0.25})`;
-    ctx.fillRect(rnd() * w, h * 0.56 + rnd() * h * 0.4, 8 + rnd() * 30, 1);
+  ctx.globalAlpha = 1;
+  // The moon's path on the water.
+  for (let y = H + 2; y < h; y += 2) {
+    const f = 1 - (y - H) / (h - H);
+    ctx.fillStyle = `rgba(230,235,255,${0.18 * f})`;
+    ctx.fillRect(mx - 6 - (1 - f) * 20 + Math.sin(y) * 4, y, 12 + (1 - f) * 40, 1);
   }
+  return c;
+}
+
+/** Reflections of the city lights on the lake surface (emissive map for the water plane). */
+export function lakeReflection(w: number, h: number): HTMLCanvasElement {
+  const [c, ctx] = canvas(w, h);
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, w, h);
+  let s = 11;
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  // v = 1 (top of the canvas) is the far shore: streaks start there and fade toward you.
+  for (let k = 0; k < 140; k++) {
+    const x = rnd() * w;
+    const neon = rnd() < 0.18;
+    const col = neon ? ['#ff3a8a', '#3ad0ff', '#ffb03a', '#b06aff'][Math.floor(rnd() * 4)] : rnd() < 0.7 ? '#ffc888' : '#ffe0b0';
+    const len = h * (0.15 + rnd() * 0.5);
+    for (let y = 0; y < len; y += 2) {
+      const f = 1 - y / len;
+      ctx.globalAlpha = f * f * (neon ? 0.55 : 0.35) * (0.4 + 0.6 * rnd());
+      ctx.fillStyle = col;
+      ctx.fillRect(x + Math.sin(y * 0.3 + x) * 3, y, 2 + rnd() * 4, 1.5);
+    }
+  }
+  ctx.globalAlpha = 1;
   return c;
 }
 

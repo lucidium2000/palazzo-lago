@@ -329,6 +329,7 @@ export class Player {
   }
 
   private lastDir = new THREE.Vector2();
+  private xrDir = new THREE.Vector2(0, -1);
 
   private updateXR(dt: number, interaction: Interaction) {
     let moveX = 0,
@@ -352,28 +353,37 @@ export class Player {
     } else if (Math.abs(turnX) < 0.3) {
       this.snapReady = true;
     }
-    // Smooth walking on the left stick, relative to where you look.
-    const mag = Math.hypot(moveX, moveY);
-    const dead = 0.18;
-    let speed = 0;
+    // Walking on the left stick, relative to where you look. Analog: a light push
+    // strolls, a firm push walks, all the way runs; click the stick in to sprint.
+    // Speed eases in and out so it never feels robotic.
+    const mag = Math.min(1, Math.hypot(moveX, moveY));
+    const dead = 0.15;
+    let sprint = false;
+    for (const { handedness, gamepad } of interaction.gamepads()) if (handedness === 'left' && gamepad.buttons[3]?.pressed) sprint = true;
+    let target = 0;
     if (mag > dead) {
+      const k = (mag - dead) / (1 - dead);
+      target = k < 0.8 ? 0.35 + (WALK - 0.35) * (k / 0.8) : WALK + (RUN - WALK) * ((k - 0.8) / 0.2);
+      if (sprint) target = RUN * 1.25;
       const yaw = this.headYaw();
-      const amt = ((mag - dead) / (1 - dead)) * (mag > 0.95 ? RUN * 0.75 : WALK);
-      const nx = moveX / mag,
-        ny = moveY / mag;
-      // Stick up (negative Y) walks forward.
+      const nx = moveX / Math.max(mag, 1e-4),
+        ny = moveY / Math.max(mag, 1e-4);
       const fwdX = -Math.sin(yaw),
         fwdZ = -Math.cos(yaw);
       const rightX = Math.cos(yaw),
         rightZ = -Math.sin(yaw);
-      const dirX = fwdX * -ny + rightX * nx;
-      const dirZ = fwdZ * -ny + rightZ * nx;
+      this.xrDir.set(fwdX * -ny + rightX * nx, fwdZ * -ny + rightZ * nx).normalize();
+    }
+    this.speedNow += (target - this.speedNow) * Math.min(1, dt * (target > this.speedNow ? 5 : 8));
+    let speed = 0;
+    if (this.speedNow > 0.03) {
       const head = this.headWorld();
-      const [hx, hz] = this.world.move(head.x, head.z, dirX * amt * dt, dirZ * amt * dt, RADIUS);
+      const [hx, hz] = this.world.move(head.x, head.z, this.xrDir.x * this.speedNow * dt, this.xrDir.y * this.speedNow * dt, RADIUS);
       this.rig.position.x += hx - head.x;
       this.rig.position.z += hz - head.z;
       speed = Math.hypot(hx - head.x, hz - head.z) / Math.max(dt, 1e-4);
-      this.step(speed * dt, mag > 0.95, new THREE.Vector3(hx, 0, hz));
+      if (speed < this.speedNow * 0.3) this.speedNow = speed; // walked into something
+      this.step(speed * dt, this.speedNow > WALK * 1.2, new THREE.Vector3(hx, 0, hz));
       this.current = null;
     }
     this.turnFlash = Math.max(0, this.turnFlash - dt);

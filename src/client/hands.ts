@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { controllerPose, handTrackPose, handTrackWrist, OPEN, type FingerPose } from './fingers';
 import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
 
@@ -33,17 +34,41 @@ export interface Grabbable {
 export class Hands {
   readonly hands: Hand[] = [];
   private models: THREE.Object3D[] = [];
+  private handModels: THREE.Object3D[] = [];
+  private handSpaces: THREE.Group[] = [];
   private stands: THREE.Object3D[] = [];
 
   /** Show or hide the plastic controller models (your avatar's own hands replace them). */
   showControllers(v: boolean) {
     for (const m of this.models) m.visible = v;
     for (const st of this.stands) if (!v) st.visible = false;
+    for (const m of this.handModels) m.visible = v;
+  }
+
+  /** The tracked-hand space for a side (when hand tracking is active). */
+  private handSpace(side: 'left' | 'right') {
+    const i = this.hands.findIndex((x) => x.ctrl.userData.handedness === side);
+    return i >= 0 ? this.handSpaces[i] : undefined;
+  }
+
+  /** Your finger pose for a side, from hand tracking or the controller's touch sensors. */
+  fingerPose(side: 'left' | 'right', gamepad: Gamepad | undefined): FingerPose {
+    const hs = this.handSpace(side);
+    const tracked = hs ? handTrackPose(hs as never) : null;
+    if (tracked) return tracked;
+    const h = this.hands.find((x) => x.ctrl.userData.handedness === side);
+    const pose = gamepad ? controllerPose(gamepad) : ([...OPEN] as FingerPose);
+    // Holding something: the hand closes around it.
+    if (h?.carried || h?.held) for (let i = 0; i < 5; i++) pose[i] = Math.max(pose[i], i === 0 ? 0.55 : 0.6);
+    return pose;
   }
 
   /** Where your wrist is for a hand ('left'/'right'): just behind the controller's grip. */
   wrist(side: 'left' | 'right'): THREE.Vector3 | null {
     const h = this.hands.find((x) => x.ctrl.userData.handedness === side);
+    const hs = this.handSpace(side);
+    const tw = hs ? handTrackWrist(hs as never) : null;
+    if (tw) return tw;
     if (!h || h.ctrl.userData.connected === false || !h.grip.visible) return null;
     h.grip.updateMatrixWorld(true);
     return new THREE.Vector3(0, -0.01, 0.07).applyMatrix4(h.grip.matrixWorld);
@@ -96,7 +121,10 @@ export class Hands {
       }, 1000);
       rig.add(grip);
       const handSpace = renderer.xr.getHand(i);
-      handSpace.add(handModels.createHandModel(handSpace, 'mesh'));
+      const hm = handModels.createHandModel(handSpace, 'mesh');
+      handSpace.add(hm);
+      this.handModels.push(hm);
+      this.handSpaces.push(handSpace);
       rig.add(handSpace);
       const ctrl = renderer.xr.getController(i);
       const hand: Hand = { index: i, grip, ctrl, held: null, carried: null, pos: new THREE.Vector3() };

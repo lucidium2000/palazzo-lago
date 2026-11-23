@@ -128,3 +128,29 @@ export function curlFingers(bones: Record<string, THREE.Object3D>, side: 'L' | '
   for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (const seg of [1, 2, 3]) bend(bones[`${f}${seg}${side}`], k * (seg === 1 ? 1.25 : 1.45));
   for (const seg of [1, 2, 3]) bend(bones[`Thumb${seg}${side}`], k * 0.6);
 }
+
+/** Thumb bend axis/sign (calibrated separately: the thumb sits rotated on the hand). */
+export const THUMB = { axis: 'z' as 'x' | 'y' | 'z', sign: { L: 1, R: -1 }, scale: 1 };
+
+/**
+ * Poses each finger on its own: [thumb, index, middle, ring, pinky] curls 0..1
+ * (see fingers.ts). Starts from each bone's rest pose every frame.
+ */
+export function setFingers(bones: Record<string, THREE.Object3D>, side: 'L' | 'R', pose: readonly number[]) {
+  const bend = (b: THREE.Object3D | undefined, axis: 'x' | 'y' | 'z', a: number) => {
+    if (!b) return;
+    const rest = (b.userData.rest ??= b.quaternion.clone()) as THREE.Quaternion;
+    b.quaternion.copy(rest);
+    if (a === 0) return;
+    if (axis === 'x') b.rotateX(a);
+    else if (axis === 'y') b.rotateY(a);
+    else b.rotateZ(a);
+  };
+  const names = ['Index', 'Middle', 'Ring', 'Pinky'];
+  names.forEach((f, i) => {
+    const c = THREE.MathUtils.clamp(pose[i + 1] ?? 0, 0, 1) * FINGER.sign[side];
+    for (const seg of [1, 2, 3]) bend(bones[`${f}${seg}${side}`], FINGER.axis, c * (seg === 1 ? 1.35 : 1.5));
+  });
+  const t = THREE.MathUtils.clamp(pose[0] ?? 0, 0, 1) * THUMB.sign[side] * THUMB.scale;
+  for (const seg of [1, 2, 3]) bend(bones[`Thumb${seg}${side}`], THUMB.axis, t * (seg === 1 ? 0.5 : 0.9));
+}

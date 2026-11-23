@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import type { Crowd, Person } from '../people';
 import { avatarLook } from './avatars';
 import { Voice } from './voice';
-import { curlFingers, makeMouth, reach, setOpen } from './embody';
+import { makeMouth, reach, setFingers, setOpen } from './embody';
+import { blendPose, OPEN, packPose, unpackPose, type FingerPose } from '../fingers';
 import type { Player } from '../player';
 import type { Hud } from '../hud';
 import type { RouletteTable } from '../roulette/table';
@@ -27,6 +28,8 @@ interface Remote {
   hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null };
   /** Grip squeeze shown on their hands (0..1). */
   fist: { l: number; r: number };
+  /** Their finger poses as displayed (smoothed). */
+  pose: { l: FingerPose; r: FingerPose };
   /** A gesture a screen player is offering (their avatar acts it out). */
   emote: { k: string; t0: number } | null;
   /** Hand-contact bookkeeping per my-hand/their-hand pair. */
@@ -64,6 +67,8 @@ export interface SessionDeps {
   hands?(): { l: THREE.Vector3 | null; r: THREE.Vector3 | null } | null;
   /** Grip squeeze per hand 0..1 (VR). */
   grip?(): { l: number; r: number };
+  /** Per-finger poses (VR controllers' touch sensors or hand tracking). */
+  fingers?(): { l: FingerPose; r: FingerPose };
   /** Buzz a controller (VR). */
   haptic?(side: 'left' | 'right', strength: number, ms: number): void;
   /** Called when the set of connected friends changes. */
@@ -192,12 +197,13 @@ export class Session {
     };
   }
 
-  private handState(): { lh?: number[] | null; rh?: number[] | null; lg?: number; rg?: number } {
+  private handState(): { lh?: number[] | null; rh?: number[] | null; lg?: number; rg?: number; lf?: string; rf?: string } {
     const h = this.d.hands?.();
     if (!h) return {};
     const r = (v: THREE.Vector3 | null) => (v ? v.toArray().map((x) => Math.round(x * 100) / 100) : null);
     const g = this.d.grip?.() ?? { l: 0, r: 0 };
-    return { lh: r(h.l), rh: r(h.r), lg: Math.round(g.l * 10) / 10, rg: Math.round(g.r * 10) / 10 };
+    const f = this.d.fingers?.();
+    return { lh: r(h.l), rh: r(h.r), lg: Math.round(g.l * 10) / 10, rg: Math.round(g.r * 10) / 10, ...(f ? { lf: packPose(f.l), rf: packPose(f.r) } : {}) };
   }
 
   private lastSent = '';
@@ -246,6 +252,7 @@ export class Session {
         bodyYaw: Number(s.yaw) || 0,
         hands: { l: null, r: null },
         fist: { l: 0, r: 0 },
+        pose: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose },
         emote: null,
         contact: new Map(),
         bubble: null,
@@ -401,8 +408,10 @@ export class Session {
           if (c) r.contact.delete(key);
           continue;
         }
-        const myFist = grip[ms] > 0.6,
-          theirFist = r.fist[ts] > 0.6;
+        const fp = this.d.fingers?.();
+        const curl = (q: FingerPose) => (q[2] + q[3] + q[4]) / 3;
+        const myFist = (fp ? curl(fp[ms]) : grip[ms]) > 0.6,
+          theirFist = Math.max(r.fist[ts], curl(r.pose[ts])) > 0.6;
         if (!c) {
           const entry = { t0: this.time, speed, done: false };
           r.contact.set(key, entry);
@@ -463,8 +472,8 @@ export class Session {
       const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.35).addScaledVector(left, 0.45 * dir);
       reach(upper, lower, end, target, pole, 1);
     }
-    curlFingers(b, 'L', r.fist.l);
-    curlFingers(b, 'R', r.fist.r);
+    setFingers(b, 'L', r.pose.l);
+    setFingers(b, 'R', r.pose.r);
   }
 
   private showBubble(r: Remote, text: string) {
@@ -540,6 +549,13 @@ export class Session {
       this.gestures(r, p, dt);
       r.fist.l += ((Number(s.lg) || 0) - r.fist.l) * Math.min(1, dt * 14);
       r.fist.r += ((Number(s.rg) || 0) - r.fist.r) * Math.min(1, dt * 14);
+      // Their fingers: the real per-finger pose when sent, else a fist from grip alone.
+      for (const side of ['l', 'r'] as const) {
+        const sent = unpackPose(side === 'l' ? s.lf : s.rf);
+        const g = r.fist[side];
+        const target = sent ?? ([0.1 + 0.8 * g, 0.1 + 0.85 * g, 0.15 + 0.85 * g, 0.15 + 0.85 * g, 0.15 + 0.8 * g] as FingerPose);
+        blendPose(r.pose[side], target, Math.min(1, dt * 16));
+      }
       const talkFlap = this.time < r.talkUntil ? 0.35 + 0.35 * Math.sin(this.time * 17) * Math.sin(this.time * 7.3) : 0;
       const want = Math.max((Number(s.mo) || 0) / 9, talkFlap);
       r.open += (want - r.open) * Math.min(1, dt * 20);

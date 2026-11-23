@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Quality } from '../quality';
 import type { World } from '../world';
-import { canvas, toTexture } from '../textures';
+import { canvas, radial, toTexture } from '../textures';
 import { Batch, haloQuad, M, plane, wallQuad, type Mats } from './kit';
 
 /**
@@ -165,6 +165,18 @@ export function buildSuite(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
     const l = new THREE.PointLight(0xffd6a8, 10, 14, 1.6);
     l.position.set(594, 2.8, 0);
     root.add(l);
+  }
+  // Lamp light: warm pools on the carpet under each lamp (the room is lamp-lit, not evenly bright).
+  {
+    const pt = toTexture(radial(128, 'rgba(255,200,130,0.5)', 'rgba(255,170,90,0)'));
+    const pm = new THREE.MeshBasicMaterial({ map: pt, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    for (const [x, z, r] of [[591.7, 4.9, 2.4], [594.7, 4.9, 2.4], [589.0, -5.0, 3.0], [595.5, -4.9, 3.0], [598.5, -5.0, 2.6], [594, 0, 5.5]] as const) {
+      const pool = new THREE.Mesh(new THREE.PlaneGeometry(r, r), pm);
+      pool.rotation.x = -Math.PI / 2;
+      pool.position.set(x, 0.02, z);
+      pool.raycast = () => {};
+      root.add(pool);
+    }
   }
   b.build(root, 'suite-static');
   return root;

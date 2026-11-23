@@ -8,13 +8,15 @@ import { buildCasino, POSITIONS, registerHall, SLOTS_YAW } from './casino';
 import { preloadChips } from './chips';
 import { CrapsTable } from './craps/table';
 import { PostFX } from './post';
+import { Dialogue, lineTime, voiceArbiter } from './dialogue';
 import { AREA_NODES, buildAreas, registerAreas } from './areas';
 import { Session } from './net/session';
 import { setupLobby } from './net/lobby';
 import { connect, newCode, type Transport } from './net/transport';
 import { VrMenu } from './vrmenu';
 import { SelfBody } from './selfbody';
-import { FINGER, curlFingers } from './net/embody';
+import { OPEN, type FingerPose } from './fingers';
+import { FINGER, THUMB, curlFingers, setFingers } from './net/embody';
 import { bakeStatic } from './merge';
 import { buildBlackjack } from './pit';
 import { SlotRows } from './decor';
@@ -271,15 +273,30 @@ async function main() {
   // Your crew for the night, and the shape of the night.
   const crew = new Crew(crowd, world, player, hud, sound, randomLook);
   const night = new Night(scene, hud, sound, crew, crowd, bankroll);
+  // Guests talk among themselves, and to you when you stop and look at them.
+  const startChips = bankroll.balance;
+  const dialogue = new Dialogue({
+    scene,
+    camera,
+    crowd,
+    sound,
+    hud,
+    interaction,
+    feet: () => player.feet(),
+    inXR: () => player.inXR,
+    ctx: () => ({ chips: bankroll.balance, up: bankroll.balance - startChips, drink: lounge.holdingDrink, name: me.name }),
+  });
   // Shout big wins to your friend in a two-player game.
   const nightResult = night.result.bind(night);
   night.result = (game, staked, returned, at) => {
     nightResult(game, staked, returned, at);
+    if (returned > 0 && returned >= Math.max(staked * 5, 100)) setTimeout(() => dialogue.overheard(at), 1800);
     if (session && returned > 0 && returned >= Math.max(staked * 10, 250)) session.bigWin(game === 'slots' ? 'the slots' : game, returned);
   };
   const croupierSays = (text: string) => {
     hud.say('Croupier', text);
     sound.say(text, { pitch: 0.9, rate: 0.95, voice: 0, interrupt: true });
+    voiceArbiter.claim(lineTime(text));
   };
   machines.forEach((m) => {
     m.onResult = (staked, won, feature) => {
@@ -545,6 +562,7 @@ async function main() {
       listener: sound.listener,
       hands: () => (player.inXR ? { l: hands.wrist('left'), r: hands.wrist('right') } : null),
       grip: () => gripValues(),
+      fingers: () => fingerPoses(),
       knock: (at) => {
         sound.play('chips', at, { volume: 0.6, rate: 0.5 });
         sound.play('ballDrop', at, { volume: 0.9, rate: 0.35 });
@@ -592,6 +610,10 @@ async function main() {
   // --- Your own body in VR ------------------------------------------------------
   const selfBody = new SelfBody(scene);
   selfBody.setAvatar(me.avatar);
+  const fingerPoses = () => {
+    const gp = (side: string) => interaction.gamepads().find((g) => g.handedness === side)?.gamepad;
+    return { l: hands.fingerPose('left', gp('left')), r: hands.fingerPose('right', gp('right')) };
+  };
   const gripValues = () => {
     const g = { l: 0, r: 0 };
     for (const { handedness, gamepad } of interaction.gamepads()) {
@@ -896,13 +918,15 @@ async function main() {
     roulette.update(dt);
     craps.update(dt);
     session?.update(dt);
+    // Walk up to craps in VR and the stickman slides you the dice.
+    if (player.inXR && hud.station === 'craps') craps.offerDice(feet);
     {
       const on = player.inXR;
       if (on) {
         const head = camera.getWorldPosition(new THREE.Vector3());
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
-        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, grip: gripValues(), speed: player.speed });
-      } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, grip: { l: 0, r: 0 }, speed: 0 });
+        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), speed: player.speed });
+      } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, poses: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose }, speed: 0 });
       hands.showControllers(!on);
     }
     for (const m of machines) m.update(dt);
@@ -935,6 +959,7 @@ async function main() {
     }
     hud.update(camera);
     crew.update(dt);
+    dialogue.update(dt);
     night.update(dt);
     adapt();
 
@@ -1012,7 +1037,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, curlFingers };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue };
 }
 
 main().catch((e) => {

@@ -21,6 +21,8 @@ export interface Talk {
   speaker: number;
   nextTurn: number;
   laughUntil: number;
+  /** A scripted line is being said: hold the turn until then. */
+  scriptUntil?: number;
 }
 
 export interface Look {
@@ -95,6 +97,10 @@ export class Person {
   glanceCd = 3 + Math.random() * 15;
   /** Hidden this frame (too far away on a headset). */
   culled = false;
+  /** Talking with you: looks at you until then. */
+  attendUntil = 0;
+  /** Saying a line (outside a circle): talking gestures until then. */
+  speakUntil = 0;
 
   constructor(
     readonly role: Role,
@@ -326,6 +332,29 @@ export class Crowd {
     return members;
   }
 
+  /** Conversation circles on the floor (the dialogue system scripts what they say). */
+  get conversations(): readonly Talk[] {
+    return this.talks;
+  }
+
+  get now() {
+    return this.time;
+  }
+
+  /** Makes `p` the one talking for `seconds` (gestures; in a circle, holds the turn). */
+  speak(p: Person, seconds: number) {
+    const t = p.talk;
+    if (t) {
+      const k = t.members.indexOf(p);
+      if (k >= 0) {
+        t.speaker = k;
+        t.scriptUntil = this.time + seconds;
+        t.nextTurn = this.time + seconds + 0.6;
+      }
+    }
+    p.speakUntil = this.time + seconds;
+  }
+
   /** Two friends (or a couple) strolling the floor together. */
   addPair(at: THREE.Vector3): Person[] {
     const lead = this.add('wander', randomLook(), at);
@@ -529,7 +558,10 @@ export class Crowd {
         p.glanceUntil = time + 0.9 + Math.random() * 1.3;
         p.glanceCd = staff ? 6 + Math.random() * 6 : 14 + Math.random() * 20;
       }
-      if (time < p.glanceUntil && dist < 3.5) {
+      if (time < p.attendUntil) {
+        wantYaw = THREE.MathUtils.clamp(rel, -1.25, 1.25);
+        wantPitch = THREE.MathUtils.clamp(Math.atan2(playerHead.y - (p.pos.y + (p.seated ? 1.2 : 1.6)), Math.max(dist, 0.3)), -0.4, 0.4);
+      } else if (time < p.glanceUntil && dist < 3.5) {
         wantYaw = THREE.MathUtils.clamp(rel, -1.0, 1.0);
         wantPitch = THREE.MathUtils.clamp(Math.atan2(playerHead.y - (p.pos.y + (p.seated ? 1.2 : 1.6)), dist), -0.35, 0.35);
       }
@@ -590,7 +622,7 @@ export class Crowd {
   /** Conversations: turn taking, and the occasional shared laugh. */
   private updateTalks(time: number) {
     for (const t of this.talks) {
-      if (time > t.nextTurn) {
+      if (time > t.nextTurn && time > (t.scriptUntil ?? 0)) {
         const n = t.members.length;
         t.speaker = (t.speaker + 1 + Math.floor(Math.random() * (n - 1))) % n;
         t.nextTurn = time + 2.5 + Math.random() * 4.5;
@@ -604,8 +636,12 @@ export class Crowd {
         m.talking += (want - m.talking) * 0.08;
       });
     }
-    // Two strangers-turned-friends stopped mid-walk.
+    // Two strangers-turned-friends stopped mid-walk, and anyone saying a line.
     for (const p of this.people) {
+      if (time < p.speakUntil && !p.talk) {
+        p.talking += (1 - p.talking) * 0.15;
+        continue;
+      }
       if (!p.chatWith) continue;
       p.talking = 0.5 + 0.5 * Math.sin(time * 0.9 + p.seed);
     }

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { textSign } from '../panel';
 import type { Quality } from '../quality';
 import type { World } from '../world';
-import { canvas, toTexture } from '../textures';
+import { canvas, radial, toTexture } from '../textures';
 import { Batch, M, nightSky, plane, type Mats } from './kit';
 import { flowers } from './hotel';
 
@@ -106,6 +106,15 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     [P.x + P.w / 2, P.z, 0.05, P.d],
   ]) b.box(tile, x, -0.7, z, w, 1.4, d);
   b.box(tile, P.x, -1.4, P.z, P.w, 0.05, P.d);
+  // The lit water throws turquoise light onto the deck around it.
+  {
+    const glowTex = toTexture(radial(128, 'rgba(60,200,230,0.45)', 'rgba(20,120,160,0)'));
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(POOL.w + 7, POOL.d + 7), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    glow.rotation.x = -Math.PI / 2;
+    glow.position.set(POOL.x, 0.015, POOL.z);
+    glow.raycast = () => {};
+    root.add(glow);
+  }
   const waterMat = waterMaterial();
   const water = new THREE.Mesh(new THREE.PlaneGeometry(P.w, P.d, 1, 1), waterMat);
   water.rotation.x = -Math.PI / 2;
@@ -385,10 +394,18 @@ function waterMaterial() {
         c += sin(p.y * 2.6 - time * 1.1 + sin(p.x * 1.3 - time * 0.7));
         c += sin((p.x + p.y) * 1.7 + time * 0.9);
         float caustic = pow(abs(sin(c * 1.4)), 6.0);
-        vec3 deep = vec3(0.02, 0.35, 0.55);
-        vec3 shallow = vec3(0.15, 0.85, 0.95);
-        vec3 col = mix(deep, shallow, 0.55 + 0.15 * sin(c)) + caustic * vec3(0.55, 0.85, 0.9);
-        gl_FragColor = vec4(col * 1.15, 1.0);
+        vec3 deep = vec3(0.02, 0.32, 0.52);
+        vec3 shallow = vec3(0.12, 0.78, 0.9);
+        vec3 body = mix(deep, shallow, 0.55 + 0.15 * sin(c)) + caustic * vec3(0.5, 0.8, 0.85);
+        // Ripple normal from the same wave field, then a Fresnel mix with the night sky.
+        vec3 n = normalize(vec3(cos(p.x * 2.1 + time * 1.3) * 0.08, 1.0, cos(p.y * 2.6 - time * 1.1) * 0.08));
+        vec3 v = normalize(cameraPosition - vW);
+        float fres = pow(1.0 - max(dot(n, v), 0.0), 4.0);
+        vec3 sky = mix(vec3(0.02, 0.03, 0.08), vec3(0.12, 0.1, 0.18), clamp(reflect(-v, n).y, 0.0, 1.0));
+        // Glints of the string lights and DJ beams dancing on the ripples.
+        float glint = pow(max(0.0, sin(p.x * 9.0 + time * 2.0) * sin(p.y * 11.0 - time * 1.7)), 24.0);
+        vec3 col = mix(body * 1.1, sky, fres * 0.85) + glint * vec3(1.0, 0.85, 0.6) * (0.3 + fres);
+        gl_FragColor = vec4(col, 1.0);
         #include <colorspace_fragment>
       }`,
   });

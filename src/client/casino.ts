@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Quality } from './quality';
-import { carpet, damask, floorTile, lakeView, marble, radial, toTexture, wood } from './textures';
+import { carpet, damask, floorTile, lakeReflection, lakeView, marble, radial, toTexture, wood } from './textures';
 import { textSign } from './panel';
 import { bakeStatic } from './merge';
 import { assets } from './assets';
@@ -94,9 +94,9 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   scene.background = new THREE.Color(0x120c08);
   scene.environment = assets.envHdr ? hdrEnvironment(renderer, assets.envHdr) : warmEnvironment(renderer);
   scene.environmentIntensity = 0.6;
-  const hemi = new THREE.HemisphereLight(0xffdcae, 0x3a1810, 0.5);
+  const hemi = new THREE.HemisphereLight(0xffdcae, 0x3a1810, 0.42);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xffe6c4, 0.9);
+  const key = new THREE.DirectionalLight(0xffe6c4, 0.8);
   key.position.set(-4, 12, 6);
   key.target.position.set(-2, 0, 0);
   scene.add(key, key.target);
@@ -405,6 +405,24 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     [-13, -1],
   ];
   root.add(chandeliers(chandelierSpots, q, gold));
+  // Warm light falling from each chandelier onto the floor below, and its soft reflection
+  // in the polished marble: what makes a casino floor glow instead of looking evenly lit.
+  {
+    const poolTex = toTexture(radial(128, 'rgba(255,196,120,0.42)', 'rgba(255,160,80,0)'));
+    const coreTex = toTexture(radial(64, 'rgba(255,236,200,0.55)', 'rgba(255,200,140,0)'));
+    const poolM = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    const coreM = new THREE.MeshBasicMaterial({ map: coreTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    for (const [x, z] of chandelierSpots) {
+      const pool = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6), poolM);
+      pool.rotation.x = -Math.PI / 2;
+      pool.position.set(x, 0.013, z);
+      root.add(pool);
+      const core = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), coreM);
+      core.rotation.x = -Math.PI / 2;
+      core.position.set(x, 0.014, z);
+      root.add(core);
+    }
+  }
 
   // --- Lake view and fountains beyond the windows -------------------------------------
   const lake = new THREE.Mesh(
@@ -413,9 +431,10 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   );
   lake.position.set(0, 10, -D / 2 - 70);
   root.add(lake);
+  const reflTex = toTexture(lakeReflection(1024, 512));
   const water = new THREE.Mesh(
     new THREE.PlaneGeometry(160, 70),
-    new THREE.MeshStandardMaterial({ color: 0x0a1230, roughness: 0.05, metalness: 0.2, envMapIntensity: 0.3 }),
+    new THREE.MeshStandardMaterial({ color: 0x050a1c, roughness: 0.08, metalness: 0.3, envMapIntensity: 0.25, emissive: 0xffffff, emissiveMap: reflTex, emissiveIntensity: 0.9 }),
   );
   water.rotation.x = -Math.PI / 2;
   water.position.set(0, LAKE_Y, -D / 2 - 35);
@@ -463,6 +482,30 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   void terraceParts;
   bakeStatic(root, { shadows: q.shadows });
 
+  // --- Mood: light the place you're in like it would be at night ----------------------------
+  // Casino: warm and glowing. Hotel corridors: warm, a touch dimmer. Outdoors (terrace,
+  // pool deck): moonlit night with cool fill, the warmth coming from fixtures. Suite: lamps.
+  const MOODS = {
+    casino: { hemi: 0.42, sky: new THREE.Color(0xffdcae), ground: new THREE.Color(0x3a1810), key: 0.8, keyC: new THREE.Color(0xffe6c4), env: 0.55 },
+    hotel: { hemi: 0.36, sky: new THREE.Color(0xffd8a8), ground: new THREE.Color(0x30160c), key: 0.35, keyC: new THREE.Color(0xffe0b8), env: 0.5 },
+    outside: { hemi: 0.2, sky: new THREE.Color(0x5a74a8), ground: new THREE.Color(0x1c140e), key: 0.38, keyC: new THREE.Color(0xa8bcff), env: 0.28 },
+    suite: { hemi: 0.2, sky: new THREE.Color(0xffd0a0), ground: new THREE.Color(0x1a100a), key: 0.12, keyC: new THREE.Color(0xffe0c0), env: 0.32 },
+  };
+  let lastT = -1;
+  const mood = (f: THREE.Vector3, t: number) => {
+    const zone = f.x > 500 ? 'suite' : f.x > 21 && f.z < -0.2 ? 'outside' : f.x > 17.5 ? 'hotel' : f.z < -14.2 ? 'outside' : 'casino';
+    const m = MOODS[zone];
+    const dt = lastT < 0 ? 1 : Math.min(0.1, t - lastT);
+    lastT = t;
+    const k = lastT < 0 ? 1 : Math.min(1, dt * 2.5);
+    hemi.intensity += (m.hemi - hemi.intensity) * k;
+    hemi.color.lerp(m.sky, k);
+    hemi.groundColor.lerp(m.ground, k);
+    key.intensity += (m.key - key.intensity) * k;
+    key.color.lerp(m.keyC, k);
+    scene.environmentIntensity += (m.env - scene.environmentIntensity) * k;
+  };
+
   return {
     root,
     floor,
@@ -473,7 +516,10 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     fountainAnchor: fountains,
     update(t: number, player?: THREE.Vector3) {
       (fountains.userData.update as (t: number) => void)(t);
-      if (player) doors.update(player);
+      if (player) {
+        doors.update(player);
+        mood(player, t);
+      }
     },
   };
 }

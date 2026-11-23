@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { assets, spawnCharacter } from './assets';
 import { AVATARS } from './net/avatars';
-import { curlFingers, reach } from './net/embody';
+import { reach, setFingers } from './net/embody';
+import { blendPose, OPEN, type FingerPose } from './fingers';
 
 /**
  * Your own body in VR: the character you picked, standing under your headset
@@ -13,7 +14,7 @@ export class SelfBody {
   private rig: ReturnType<typeof spawnCharacter> | null = null;
   private kind = '';
   private bodyYaw = 0;
-  private grip = { L: 0, R: 0 };
+  private shown: { L: FingerPose; R: FingerPose } = { L: [...OPEN] as FingerPose, R: [...OPEN] as FingerPose };
   private avatar = -1;
   readonly root = new THREE.Group();
 
@@ -47,7 +48,7 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; grip: { l: number; r: number }; speed: number }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; speed: number }) {
     this.root.visible = o.on && !!this.rig;
     const rig = this.rig;
     if (!o.on || !rig) return;
@@ -65,10 +66,14 @@ export class SelfBody {
     rig.root.position.set(o.head.x, o.floorY, o.head.z).addScaledVector(fwd, -0.17 * sc);
     rig.root.rotation.y = this.bodyYaw;
     const a = rig.actions;
-    const walk = THREE.MathUtils.clamp(o.speed / 1.2, 0, 1);
-    a.Idle_Neutral?.setEffectiveWeight(1 - walk);
+    // Walk and run blend with your real speed (strides match the ground you cover).
+    const run = THREE.MathUtils.clamp((o.speed - 1.8) / 0.8, 0, 1);
+    const walk = THREE.MathUtils.clamp(o.speed / 0.9, 0, 1) * (1 - run);
+    a.Idle_Neutral?.setEffectiveWeight(1 - walk - run);
     a.Walk?.setEffectiveWeight(walk);
-    if (a.Walk) a.Walk.timeScale = THREE.MathUtils.clamp(o.speed / 1.15, 0.5, 1.6);
+    a.Run?.setEffectiveWeight(run);
+    if (a.Walk) a.Walk.timeScale = THREE.MathUtils.clamp(o.speed / (1.15 * sc), 0.45, 1.6);
+    if (a.Run) a.Run.timeScale = THREE.MathUtils.clamp(o.speed / (3.2 * sc), 0.6, 1.5);
     rig.mixer.update(dt);
     const b = rig.bones;
     // Hide the head from the inside (collapse it), keep the neck.
@@ -85,8 +90,8 @@ export class SelfBody {
         const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.3).addScaledVector(left, 0.45 * dir);
         reach(upper, lower, end, target, pole, 1);
       }
-      this.grip[S] += (o.grip[side] - this.grip[S]) * Math.min(1, dt * 14);
-      curlFingers(b, S, this.grip[S]);
+      blendPose(this.shown[S], o.poses[side], Math.min(1, dt * 18));
+      setFingers(b, S, this.shown[S]);
     }
   }
 }

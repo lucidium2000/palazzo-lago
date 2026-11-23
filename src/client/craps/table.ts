@@ -76,6 +76,9 @@ export class CrapsTable {
   private last: RollResult | null = null;
   private puckMat: { on: THREE.Material; off: THREE.Material };
   private diceInHand = false;
+  /** Where the stickman leaves the dice for the shooter (table-local, on the felt by the rail). */
+  private diceHome = DICE_HOME.clone();
+  private offeredAt = -1e9;
 
   constructor(ctx: GameContext, position: THREE.Vector3, yaw = 0) {
     this.ctx = ctx;
@@ -492,8 +495,10 @@ export class CrapsTable {
         const l = this.group.worldToLocal(pos.clone());
         this.dice[0].position.copy(l).add(new THREE.Vector3(-0.012, 0, 0));
         this.dice[1].position.copy(l).add(new THREE.Vector3(0.012, 0, 0.004));
-        samples.push({ t: performance.now() / 1000, p: l });
-        while (samples.length > 8) samples.shift();
+        const now = performance.now() / 1000;
+        samples.push({ t: now, p: l });
+        // Keep only the last ~70 ms: the hand's speed as it lets go.
+        while (samples.length > 2 && now - samples[0].t > 0.07) samples.shift();
       },
       release: () => {
         this.diceInHand = false;
@@ -502,13 +507,15 @@ export class CrapsTable {
         if (!a || !b || b.t - a.t < 1e-3) return this.homeDice();
         const v = b.p.clone().sub(a.p).divideScalar(b.t - a.t);
         const from = b.p.clone().sub(new THREE.Vector3(0, FELT_Y, 0));
-        if (v.x > -1.2 || from.y < 0) {
-          this.ctx.hud.toast('Toss them down the table — the dice have to hit the back wall', 'warn');
-          return this.homeDice();
+        // The far end from where you stand is the back wall you throw at.
+        const dirX = from.x >= 0 ? -1 : 1;
+        if (v.x * dirX < 1.0 || from.y < -0.02) {
+          this.ctx.hud.toast('Toss them down the table — the dice have to hit the far wall', 'warn');
+          return this.homeDice(true);
         }
         // Give a soft throw enough to reach the pyramids; keep its direction and spin.
-        if (v.x > -3.2) v.multiplyScalar(-3.2 / v.x);
-        from.x = Math.min(from.x, HX - 0.05);
+        if (v.x * dirX < 3.2) v.multiplyScalar(3.2 / Math.abs(v.x));
+        from.x = THREE.MathUtils.clamp(from.x, -HX + 0.05, HX - 0.05);
         from.z = THREE.MathUtils.clamp(from.z, -HZ + 0.05, HZ - 0.05);
         from.y = Math.max(0.06, Math.min(0.5, from.y));
         this.throwDice(from, v);
@@ -777,10 +784,22 @@ export class CrapsTable {
     const returned = result.results.reduce((s, r) => s + r.returned, 0);
     this.ctx.hud.setPending('craps', returned);
     let plan: DicePlan | null = null;
+    // The simulation throws toward −x; a throw from the −x end toward +x runs mirrored.
+    const mirror = start.x < 0 && (!velocity || velocity.x > 0);
+    const m = (v: THREE.Vector3) => (mirror ? new THREE.Vector3(-v.x, v.y, v.z) : v);
     for (let i = 0; i < 8; i++) {
-      const p = simulateThrow({ bed: { hx: HX, hz: HZ }, seed: seed + i * 7919, from: start, velocity: i < 4 && velocity ? velocity : undefined });
+      const p = simulateThrow({ bed: { hx: HX, hz: HZ }, seed: seed + i * 7919, from: m(start), velocity: i < 4 && velocity ? m(velocity) : undefined });
       plan = p;
       if (p.hitBackWall) break;
+    }
+    if (mirror && plan) {
+      // Reflect across the table's middle: positions flip in x, rotations conjugate by the mirror.
+      for (const f of plan.frames)
+        for (const d of f) {
+          d.p.x = -d.p.x;
+          d.q.set(d.q.x, -d.q.y, -d.q.z, d.q.w);
+        }
+      plan.upLocal = [new THREE.Vector3(-plan.upLocal[0].x, plan.upLocal[0].y, plan.upLocal[0].z), new THREE.Vector3(-plan.upLocal[1].x, plan.upLocal[1].y, plan.upLocal[1].z)];
     }
     const fix = [faceFix(plan!.upLocal[0], result.dice[0]), faceFix(plan!.upLocal[1], result.dice[1])];
     this.roll = { plan: plan!, t: 0, result, hit: 0, fix };
@@ -864,9 +883,35 @@ export class CrapsTable {
     this.panel.redraw();
   }
 
+  /**
+   * Walk-up shooting (VR): the stickman slides the dice along the rail to
+   * whoever is standing at the table, ready to grab. `at` is your feet (world).
+   */
+  offerDice(at: THREE.Vector3) {
+    if (!this.canRoll || this.roll) return;
+    const l = this.group.worldToLocal(at.clone());
+    let x = THREE.MathUtils.clamp(l.x, -HX + 0.2, HX - 0.2),
+      z = HZ - 0.1;
+    if (Math.abs(l.x) > HX - 0.05 && l.z < HZ) {
+      // At one end of the table.
+      x = Math.sign(l.x) * (HX - 0.15);
+      z = THREE.MathUtils.clamp(l.z, -HZ + 0.2, HZ - 0.15);
+    }
+    const spot = new THREE.Vector3(x, DIE / 2, z);
+    if (spot.distanceTo(this.diceHome) < 0.35) return;
+    this.diceHome.copy(spot);
+    this.homeDice(true);
+    this.ctx.sound.play('chip', this.dice[0], { volume: 0.35, rate: 1.4 });
+    const now = performance.now() / 1000;
+    if (now - this.offeredAt > 25) {
+      this.offeredAt = now;
+      this.ctx.hud.toast('Your dice, shooter! Grab them (grip) and throw at the far wall', 'info');
+    }
+  }
+
   private homeDice(slide = false) {
     this.dice.forEach((d, i) => {
-      const to = DICE_HOME.clone().add(new THREE.Vector3(i * 0.03, FELT_Y, 0));
+      const to = this.diceHome.clone().add(new THREE.Vector3(i * 0.03, FELT_Y, 0));
       if (!slide) {
         d.position.copy(to);
         return;

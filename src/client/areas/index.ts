@@ -70,6 +70,19 @@ export function buildAreas(deps: {
   buildHotel(scene, q, m);
   const pool = buildPool(scene, q, m);
   buildSuite(scene, q, m);
+  // Night mood: the areas' materials carried a lot of self-lighting ("emissive fill") so
+  // they read without lamps; the hemisphere fill now does that per zone, so keep only
+  // the fixtures (bright emissives) glowing and let everything else sit in the dark.
+  for (const name of ['pool', 'suite', 'hotel']) {
+    scene.getObjectByName(name)?.traverse((o) => {
+      const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+      if (!mat || Array.isArray(mat) || !(mat as THREE.MeshStandardMaterial).isMeshStandardMaterial || mat.userData.dimmed) return;
+      const e = mat.emissive;
+      const lum = (e.r * 0.3 + e.g * 0.59 + e.b * 0.11) * mat.emissiveIntensity;
+      if (lum < 0.35 && !mat.emissiveMap) mat.emissiveIntensity *= name === 'hotel' ? 0.7 : 0.4;
+      mat.userData.dimmed = true;
+    });
+  }
   const lifts = new Elevators(scene, q, m, deps.interaction, deps.sound, deps.player, deps.toast, [
     { id: 'casino', doorX: LOBBY.x1, zs: LOBBY_CARS },
     { id: 'pool', doorX: LIFT.doorX, zs: LIFT.zs },

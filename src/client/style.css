@@ -848,3 +848,34 @@ body.touch #prompt {
   display: block;
   margin: 8px auto 2px !important;
 }
+
+/* ---------- Replies when someone talks to you ---------- */
+#replies {
+  position: absolute;
+  left: 50%;
+  bottom: 168px;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  width: min(92vw, 460px);
+}
+#replies.on {
+  display: flex;
+}
+#replies .reply {
+  pointer-events: auto;
+  width: 100%;
+  text-align: left;
+  font-size: 15px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: rgba(20, 14, 10, 0.92);
+}
+#replies .reply b {
+  display: inline-block;
+  min-width: 1.4em;
+  color: #fff3d0;
+}
