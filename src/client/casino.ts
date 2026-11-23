@@ -143,6 +143,8 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     clearcoat: q.name === 'desktop' ? 0.6 : 0,
     clearcoatRoughness: 0.08,
     envMapIntensity: 1.3,
+    // A touch darker than raw cream marble so light pools and reflections read.
+    color: new THREE.Color(0.82, 0.8, 0.77),
   });
   const carpetTex = toTexture(carpet(tex / 2), { aniso });
   carpetTex.wrapS = carpetTex.wrapT = THREE.RepeatWrapping;
@@ -770,6 +772,14 @@ function fountainShow(): THREE.Group {
   const jets = new THREE.InstancedMesh(jetGeo, mat, count);
   jets.frustumCulled = false;
   g.add(jets);
+  // Spray crowns at the top of each jet and mist hanging over the water at the base.
+  const puffTex = toTexture(radial(128, 'rgba(235,242,255,0.55)', 'rgba(220,232,255,0)'));
+  const puffMat = new THREE.MeshBasicMaterial({ map: puffTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+  const puffGeo = mergeGeometries([new THREE.PlaneGeometry(1, 1), new THREE.PlaneGeometry(1, 1).rotateY(Math.PI / 2), new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2)])!;
+  const crowns = new THREE.InstancedMesh(puffGeo, puffMat, count);
+  const mists = new THREE.InstancedMesh(puffGeo, puffMat, count);
+  crowns.frustumCulled = mists.frustumCulled = false;
+  g.add(crowns, mists);
   const tmp = new THREE.Object3D();
   g.userData.level = 0;
   g.userData.update = (time: number) => {
@@ -794,9 +804,23 @@ function fountainShow(): THREE.Group {
       tmp.scale.set(1.6 + h * 2.4, 4 + h * 26, 1.6 + h * 2.4);
       tmp.updateMatrix();
       jets.setMatrixAt(i, tmp.matrix);
+      const top = 4 + h * 26;
+      const jx = tmp.position.x,
+        jz = tmp.position.z;
+      tmp.rotation.set(0, time * 0.3 + i, 0);
+      tmp.position.set(jx + Math.sin(fan) * -top, top * Math.cos(fan) - 1, jz);
+      tmp.scale.setScalar(2 + h * 7 + Math.sin(time * 3 + i) * 0.5);
+      tmp.updateMatrix();
+      crowns.setMatrixAt(i, tmp.matrix);
+      tmp.position.set(jx, 1.2, jz);
+      tmp.scale.set(5 + h * 6, 2 + h * 3, 5 + h * 6);
+      tmp.updateMatrix();
+      mists.setMatrixAt(i, tmp.matrix);
     }
     g.userData.level = total / count;
     jets.instanceMatrix.needsUpdate = true;
+    crowns.instanceMatrix.needsUpdate = true;
+    mists.instanceMatrix.needsUpdate = true;
   };
   return g;
 }

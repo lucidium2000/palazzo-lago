@@ -346,8 +346,8 @@ export function damask(size: number): HTMLCanvasElement {
   const medallion = (x: number, y: number, s: number) => {
     g.save();
     g.translate(x, y);
-    g.fillStyle = 'rgba(160,118,60,0.32)';
-    g.strokeStyle = 'rgba(150,110,55,0.45)';
+    g.fillStyle = 'rgba(160,118,60,0.15)';
+    g.strokeStyle = 'rgba(150,110,55,0.22)';
     g.lineWidth = s * 0.03;
     for (const sx of [-1, 1]) {
       g.save();
@@ -368,7 +368,7 @@ export function damask(size: number): HTMLCanvasElement {
       }
       g.restore();
     }
-    g.fillStyle = 'rgba(120,85,40,0.35)';
+    g.fillStyle = 'rgba(120,85,40,0.16)';
     g.beginPath();
     g.ellipse(0, 0, s * 0.16, s * 0.24, 0, 0, Math.PI * 2);
     g.fill();

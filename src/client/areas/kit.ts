@@ -87,6 +87,8 @@ export function wallQuad(w: number, h: number, uvScale = 1): THREE.BufferGeometr
 }
 
 export interface Mats {
+  silk: THREE.Material;
+  marbleWall: THREE.Material;
   marble: THREE.MeshStandardMaterial;
   darkMarble: THREE.MeshStandardMaterial;
   walnut: THREE.MeshStandardMaterial;
@@ -120,6 +122,13 @@ export function mats(q: Quality): Mats {
     walnut: assets.material('walnut', { repeat: 0.6, rough: 0.55, fallback: () => new THREE.MeshStandardMaterial({ color: 0x4a2414, roughness: 0.45 }) }),
     gold: new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.28, envMapIntensity: 1.4 }),
     wall: new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.65, emissive: 0x2a1c0e, emissiveIntensity: 0.35 }),
+    silk: (() => {
+      const t = toTexture(silkWall(512));
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(1 / 1.2, 1 / 1.2);
+      return new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.55, sheen: 0.7, sheenRoughness: 0.4, sheenColor: new THREE.Color(0xfff0d8), emissive: 0x24180c, emissiveIntensity: 0.3 });
+    })(),
+    marbleWall: assets.material('marble', { repeat: 0.5, rough: 0.3, normal: 0.3, envIntensity: 1.2, fallback: () => new THREE.MeshStandardMaterial({ map: marbleTex, roughness: 0.2 }) }),
     cream: new THREE.MeshStandardMaterial({ color: 0xece0c4, roughness: 0.6, emissive: 0x3a2814, emissiveIntensity: 0.3 }),
     stone: new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.8, emissive: 0x2a1e12, emissiveIntensity: 0.25 }),
     glowWarm: new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffd9a0).multiplyScalar(1.6) }),
@@ -132,6 +141,28 @@ export function mats(q: Quality): Mats {
     halo: new THREE.MeshBasicMaterial({ map: toTexture(radial(128, 'rgba(255,210,140,0.6)', 'rgba(255,170,90,0)')), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }),
   };
   return cached;
+}
+
+/** Plain champagne silk wall covering with a fine slub (suites, quieter rooms). */
+function silkWall(size: number): HTMLCanvasElement {
+  const [c, g] = canvas(size);
+  g.fillStyle = '#d8c3a0';
+  g.fillRect(0, 0, size, size);
+  const img = g.getImageData(0, 0, size, size);
+  let s = 5;
+  for (let y = 0; y < size; y++) {
+    s = (s * 16807) % 2147483647;
+    const row = 0.95 + (s / 2147483647) * 0.08;
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      const f = row * (0.985 + 0.015 * Math.sin(x * 0.9));
+      img.data[i] *= f;
+      img.data[i + 1] *= f;
+      img.data[i + 2] *= f;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return c;
 }
 
 /** Warm limestone blocks for the building exteriors. */

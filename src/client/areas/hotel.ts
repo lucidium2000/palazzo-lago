@@ -113,7 +113,7 @@ export function buildHotel(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
       const mid = (a + c) / 2,
         len = c - a;
       const mtx = fixed === 'x' ? M(at, (y0 + y1) / 2, mid, ry) : M(mid, (y0 + y1) / 2, at, ry);
-      b.add(wallQuad(len, y1 - y0), m.wall, mtx);
+      b.add(wallQuad(len, y1 - y0), m.marbleWall, mtx);
       if (y0 === 0) {
         const inward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry);
         const px = fixed === 'x' ? at + inward.x * 0.05 : mid,
@@ -225,15 +225,60 @@ function glassMat() {
 export function flowers(b: Batch, m: Mats, x: number, y: number, z: number, r: number, n = 60) {
   let s = Math.floor(x * 31 + z * 17) || 7;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  const pal = [0xf4a3b5, 0xffd27a, 0xffffff, 0xd96a8a, 0xf2865a, 0xc8a0e8];
-  const leaf = m.glow(0x2f5a2a, 0.55);
-  b.add(new THREE.SphereGeometry(r * 0.85, 12, 8), leaf, M(x, y + r * 0.7, z));
+  const pal = [0xf4a3b5, 0xffd27a, 0xfff6ee, 0xd96a8a, 0xf2865a, 0xc8a0e8];
+  const mats = flowerMats();
+  // A dome of leaves, then many ruffled blooms nestled into it.
+  b.add(new THREE.SphereGeometry(r * 0.85, 14, 10), mats.leafBed, M(x, y + r * 0.7, z));
+  for (let i = 0; i < Math.round(n * 0.6); i++) {
+    const a = rnd() * Math.PI * 2,
+      e = Math.acos(rnd() * 0.95);
+    const p = new THREE.Vector3(Math.cos(a) * Math.sin(e), Math.cos(e), Math.sin(a) * Math.sin(e)).multiplyScalar(r * 0.92);
+    const leaf = new THREE.PlaneGeometry(r * 0.16, r * 0.32).rotateX(-0.6).rotateY(a);
+    b.add(leaf, mats.leaf, M(x + p.x, y + r * 0.7 + p.y * 0.9, z + p.z));
+  }
   for (let i = 0; i < n; i++) {
     const a = rnd() * Math.PI * 2,
       e = Math.acos(rnd() * 0.9);
-    const p = new THREE.Vector3(Math.cos(a) * Math.sin(e), Math.cos(e), Math.sin(a) * Math.sin(e)).multiplyScalar(r * 0.9);
-    b.add(new THREE.IcosahedronGeometry(r * (0.1 + rnd() * 0.06), 0), m.glow(pal[i % pal.length], 0.85), M(x + p.x, y + r * 0.7 + p.y * 0.9, z + p.z));
+    const dir = new THREE.Vector3(Math.cos(a) * Math.sin(e), Math.cos(e), Math.sin(a) * Math.sin(e));
+    const p = dir.clone().multiplyScalar(r * 0.92);
+    const g = bloomGeo().clone();
+    const sc = r * (0.11 + rnd() * 0.07);
+    g.scale(sc, sc, sc);
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir));
+    b.add(g, mats.petal(pal[i % pal.length]), M(x + p.x, y + r * 0.7 + p.y * 0.9, z + p.z));
   }
+}
+
+let _bloom: THREE.BufferGeometry | null = null;
+/** A ruffled cup of petals (unit size), opening upward. */
+function bloomGeo() {
+  if (_bloom) return _bloom;
+  const g = new THREE.LatheGeometry([[0, -0.2], [0.35, -0.15], [0.75, 0.15], [0.95, 0.5], [0.85, 0.65]].map(([r, y]) => new THREE.Vector2(r, y)), 12);
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const a = Math.atan2(pos.getZ(i), pos.getX(i));
+    const k = 1 + Math.sin(a * 5) * 0.12 * Math.max(0, pos.getY(i));
+    pos.setXYZ(i, pos.getX(i) * k, pos.getY(i) + Math.sin(a * 5 + 1) * 0.06, pos.getZ(i) * k);
+  }
+  g.computeVertexNormals();
+  _bloom = g;
+  return g;
+}
+
+let _fm: { leafBed: THREE.Material; leaf: THREE.Material; petal(c: number): THREE.Material } | null = null;
+function flowerMats() {
+  if (_fm) return _fm;
+  const petals = new Map<number, THREE.Material>();
+  _fm = {
+    leafBed: new THREE.MeshStandardMaterial({ color: 0x1f4022, roughness: 0.85, emissive: 0x0a1a0b, emissiveIntensity: 0.5 }),
+    leaf: new THREE.MeshStandardMaterial({ color: 0x2f6a34, roughness: 0.6, side: THREE.DoubleSide, emissive: 0x0c2a10, emissiveIntensity: 0.4 }),
+    petal(c: number) {
+      let mm = petals.get(c);
+      if (!mm) petals.set(c, (mm = new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, side: THREE.DoubleSide, emissive: c, emissiveIntensity: 0.12 })));
+      return mm;
+    },
+  };
+  return _fm;
 }
 
 /** Gilt ring chandelier with glass drops and a warm glow. */

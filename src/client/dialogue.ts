@@ -82,7 +82,7 @@ export class Dialogue {
     this.chips = document.createElement('div');
     this.chips.id = 'replies';
     document.getElementById('hud')?.appendChild(this.chips);
-    this.panel = new CanvasPanel(0.42, 840, 400);
+    this.panel = new CanvasPanel(0.56, 840, 400);
     this.panel.mesh.visible = false;
     (this.panel.mesh.material as THREE.MeshBasicMaterial).depthTest = false;
     this.panel.mesh.renderOrder = 900;
@@ -114,6 +114,8 @@ export class Dialogue {
   }
 
   update(dt: number) {
+    // The floating reply panel is for VR only; screens use the reply chips.
+    if (!this.d.inXR() && this.panel.mesh.visible) this.panel.mesh.visible = false;
     this.time += dt;
     const feet = this.d.feet();
     const on = this.d.enabled?.() ?? true;
@@ -410,8 +412,8 @@ export class Dialogue {
     const h = Math.min(100, (p.pxH - 80) / replies.length - 12);
     replies.forEach((r, i) => p.add({ id: `r${i}`, x: 30, y: 66 + i * (h + 12), w: p.pxW - 60, h, label: r.label, onPress: () => this.pick(r) }));
     p.redraw();
-    p.mesh.visible = this.d.inXR();
-    if (this.convo) this.placePanel(this.convo.npc);
+    p.mesh.visible = false;
+    if (this.convo && this.d.inXR()) this.placePanel(this.convo.npc);
   }
 
   private hideReplies() {
@@ -448,13 +450,13 @@ function bubbleSprite(text: string): THREE.Sprite {
   let cur = '';
   for (const w of words) {
     const t = cur ? cur + ' ' + w : w;
-    if (g.measureText(t).width > 520 && cur) {
+    if (g.measureText(t).width > 420 && cur) {
       lines.push(cur);
       cur = w;
     } else cur = t;
   }
   if (cur) lines.push(cur);
-  const w = Math.min(600, Math.ceil(Math.max(...lines.map((l) => g.measureText(l).width))) + 44);
+  const w = Math.min(500, Math.ceil(Math.max(...lines.map((l) => g.measureText(l).width))) + 44);
   const h = 22 + lines.length * 36 + 18;
   c.width = w;
   c.height = h + 16;
@@ -480,7 +482,7 @@ function bubbleSprite(text: string): THREE.Sprite {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, transparent: true }));
-  const scale = 0.0006;
+  const scale = 0.0024;
   s.scale.set(c.width * scale, c.height * scale, 1);
   s.center.set(0.5, 0);
   s.raycast = () => {};

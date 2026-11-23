@@ -82,8 +82,8 @@ export function buildSuite(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
   b.box(m.darkMarble, S.x0, 0.1, cz, 0.25, 0.2, d);
 
   // Solid walls: south (bedroom wall), east (entry with the elevator).
-  b.add(wallQuad(w, S.h), m.wall, M(cx, S.h / 2, S.z1, Math.PI));
-  const eastSeg = (z0: number, z1: number, y0: number, y1: number) => b.add(wallQuad(z1 - z0, y1 - y0), m.wall, M(S.x1, (y0 + y1) / 2, (z0 + z1) / 2, -Math.PI / 2));
+  b.add(wallQuad(w, S.h), m.silk, M(cx, S.h / 2, S.z1, Math.PI));
+  const eastSeg = (z0: number, z1: number, y0: number, y1: number) => b.add(wallQuad(z1 - z0, y1 - y0), m.silk, M(S.x1, (y0 + y1) / 2, (z0 + z1) / 2, -Math.PI / 2));
   eastSeg(S.z0, SUITE_CAR.z - 0.83, 0, S.h);
   eastSeg(SUITE_CAR.z + 0.83, S.z1, 0, S.h);
   eastSeg(SUITE_CAR.z - 0.83, SUITE_CAR.z + 0.83, 2.6, S.h);
@@ -162,8 +162,8 @@ export function buildSuite(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
   b.box(m.walnut, 599.5, 0.8, 0.8, 0.45, 0.05, 1.3);
   flowersSmall(b, m, 599.5, 0.83, 0.8);
   if (q.pointLights > 0) {
-    const l = new THREE.PointLight(0xffd6a8, 10, 14, 1.6);
-    l.position.set(594, 2.8, 0);
+    const l = new THREE.PointLight(0xffc890, 5, 12, 1.8);
+    l.position.set(594, 1.6, 0);
     root.add(l);
   }
   // Lamp light: warm pools on the carpet under each lamp (the room is lamp-lit, not evenly bright).

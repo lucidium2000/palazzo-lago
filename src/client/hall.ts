@@ -227,7 +227,7 @@ export function buildCeiling(spec: HallSpec, q: Quality, gold: THREE.Material): 
     metalness: 0.0,
     emissive: 0xffffff,
     emissiveMap: glowTex,
-    emissiveIntensity: 0.4,
+    emissiveIntensity: 0.3,
     side: THREE.BackSide,
   });
   const beamMat = new THREE.MeshStandardMaterial({ color: 0xecdcbb, roughness: 0.6 });
@@ -236,7 +236,7 @@ export function buildCeiling(spec: HallSpec, q: Quality, gold: THREE.Material): 
   flatTex.wrapS = flatTex.wrapT = THREE.RepeatWrapping;
   flatTex.repeat.set(W / 6, D / 7);
   flatTex.needsUpdate = true;
-  const flatMat = new THREE.MeshStandardMaterial({ map: flatTex, roughness: 0.6, emissive: 0x3a2814, emissiveIntensity: 0.5 });
+  const flatMat = new THREE.MeshStandardMaterial({ map: flatTex, roughness: 0.6, emissive: 0x3a2814, emissiveIntensity: 0.32 });
 
   const nearRotunda = (x0: number, x1: number, z0: number, z1: number) => {
     const cx = THREE.MathUtils.clamp(rotunda.x, x0, x1),
