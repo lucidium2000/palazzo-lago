@@ -32,6 +32,22 @@ export interface Grabbable {
 
 export class Hands {
   readonly hands: Hand[] = [];
+  private models: THREE.Object3D[] = [];
+  private stands: THREE.Object3D[] = [];
+
+  /** Show or hide the plastic controller models (your avatar's own hands replace them). */
+  showControllers(v: boolean) {
+    for (const m of this.models) m.visible = v;
+    for (const st of this.stands) if (!v) st.visible = false;
+  }
+
+  /** Where your wrist is for a hand ('left'/'right'): just behind the controller's grip. */
+  wrist(side: 'left' | 'right'): THREE.Vector3 | null {
+    const h = this.hands.find((x) => x.ctrl.userData.handedness === side);
+    if (!h || h.ctrl.userData.connected === false || !h.grip.visible) return null;
+    h.grip.updateMatrixWorld(true);
+    return new THREE.Vector3(0, -0.01, 0.07).applyMatrix4(h.grip.matrixWorld);
+  }
   private items: Grabbable[] = [];
   /** The headset position, for "bring the glass to your mouth". */
   head = new THREE.Vector3();
@@ -67,8 +83,10 @@ export class Hands {
       const grip = renderer.xr.getControllerGrip(i);
       const model = controllerModels.createControllerModel(grip);
       grip.add(model);
+      this.models.push(model);
       const stand = fallback();
       grip.add(stand);
+      this.stands.push(stand);
       // Hide the stand-in once the real model has loaded.
       const check = setInterval(() => {
         if (model.children.length > 0) {

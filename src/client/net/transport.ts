@@ -37,6 +37,9 @@ export interface PlayerState {
   rh?: number[] | null;
   /** Mouth openness 0..9 (from the mic). */
   mo?: number;
+  /** Grip squeeze per hand 0..1 (a fist when high). */
+  lg?: number;
+  rg?: number;
 }
 
 export interface NetEvent {

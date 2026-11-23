@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Crowd, Person } from '../people';
 import { avatarLook } from './avatars';
 import { Voice } from './voice';
-import { makeMouth, reach, setOpen } from './embody';
+import { curlFingers, makeMouth, reach, setOpen } from './embody';
 import type { Player } from '../player';
 import type { Hud } from '../hud';
 import type { RouletteTable } from '../roulette/table';
@@ -25,6 +25,12 @@ interface Remote {
   talkUntil: number;
   bodyYaw: number;
   hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null };
+  /** Grip squeeze shown on their hands (0..1). */
+  fist: { l: number; r: number };
+  /** A gesture a screen player is offering (their avatar acts it out). */
+  emote: { k: string; t0: number } | null;
+  /** Hand-contact bookkeeping per my-hand/their-hand pair. */
+  contact: Map<string, { t0: number; speed: number; done: boolean }>;
   bubble: THREE.Sprite | null;
   bubbleUntil: number;
   target: THREE.Vector3;
@@ -48,10 +54,18 @@ export interface SessionDeps {
   cheer(at: THREE.Vector3): void;
   /** A short slap/clap sound at a point (high fives). */
   slap?(at: THREE.Vector3): void;
+  /** Knuckles knocking (fist bump). */
+  knock?(at: THREE.Vector3): void;
+  /** A soft clasp (handshake). */
+  pat?(at: THREE.Vector3): void;
   /** The 3D audio listener (voice chat plays from the friend's avatar). */
   listener: THREE.AudioListener;
   /** Your real hands in VR (world positions), or null on a screen. */
   hands?(): { l: THREE.Vector3 | null; r: THREE.Vector3 | null } | null;
+  /** Grip squeeze per hand 0..1 (VR). */
+  grip?(): { l: number; r: number };
+  /** Buzz a controller (VR). */
+  haptic?(side: 'left' | 'right', strength: number, ms: number): void;
   /** Called when the set of connected friends changes. */
   onRoster(names: string[]): void;
 }
@@ -70,7 +84,9 @@ export class Session {
   private remotes = new Map<string, Remote>();
   private sendT = 0;
   private time = 0;
-  private hi5At = -10;
+  private gestAt = new Map<string, number>();
+  private offered: { k: string; t: number } | null = null;
+  private prevHands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null } = { l: null, r: null };
   readonly voice: Voice;
   /** Called when anything shown in menus changes (friends, voice). */
   onChange: (() => void) | null = null;
@@ -176,11 +192,12 @@ export class Session {
     };
   }
 
-  private handState(): { lh?: number[] | null; rh?: number[] | null } {
+  private handState(): { lh?: number[] | null; rh?: number[] | null; lg?: number; rg?: number } {
     const h = this.d.hands?.();
     if (!h) return {};
     const r = (v: THREE.Vector3 | null) => (v ? v.toArray().map((x) => Math.round(x * 100) / 100) : null);
-    return { lh: r(h.l), rh: r(h.r) };
+    const g = this.d.grip?.() ?? { l: 0, r: 0 };
+    return { lh: r(h.l), rh: r(h.r), lg: Math.round(g.l * 10) / 10, rg: Math.round(g.r * 10) / 10 };
   }
 
   private lastSent = '';
@@ -228,6 +245,9 @@ export class Session {
         talkUntil: 0,
         bodyYaw: Number(s.yaw) || 0,
         hands: { l: null, r: null },
+        fist: { l: 0, r: 0 },
+        emote: null,
+        contact: new Map(),
         bubble: null,
         bubbleUntil: 0,
         target: at.clone(),
@@ -298,12 +318,19 @@ export class Session {
           this.d.craps.applyRemoteRoll([dice[0], dice[1]], Number(d.seed), d.from as number[], (d.v as number[] | null) ?? null, (d.point as number | null) ?? null);
         }
         break;
-      case 'hi5':
-        if (this.time - this.hi5At > 1.5) {
-          this.hi5At = this.time;
-          if (r.person) this.d.slap?.(r.person.pos.clone().setY(1.6));
-          this.d.hud.toast(`High five with ${r.name}!`, 'win');
-          if (r.person) r.person.cheer = 1.2;
+      case 'gest':
+        this.celebrate(r, String(d.k), null, false);
+        break;
+      case 'emote':
+        if (r.person) {
+          const k = String(d.k);
+          if (k === 'wave') r.person.cheer = 1.6;
+          else r.emote = { k, t0: this.time };
+          // Both offered the same thing within a few seconds and close by: it happens.
+          if (this.offered && this.offered.k === k && this.time - this.offered.t < 4 && r.person.pos.distanceTo(this.d.player.feet()) < 2.6) {
+            this.offered = null;
+            this.celebrate(r, k, null, true);
+          }
         }
         break;
       case 'act':
@@ -319,6 +346,99 @@ export class Session {
         if (!this.host && r.state.host) this.d.craps.syncPoint((d.point as number | null) ?? null);
         break;
     }
+  }
+
+  /** Offer a gesture from a screen (no tracked hands): your avatar acts it out for your friend. */
+  offer(k: 'highfive' | 'fistbump' | 'handshake' | 'wave') {
+    this.offered = { k, t: this.time };
+    this.emit('emote', { k });
+    // If your friend is already offering the same, it happens now.
+    for (const r of this.remotes.values()) {
+      if (r.emote && r.emote.k === k && this.time - r.emote.t0 < 4 && r.person && r.person.pos.distanceTo(this.d.player.feet()) < 2.6) {
+        this.offered = null;
+        this.celebrate(r, k, null, true);
+        return;
+      }
+    }
+    const label = { highfive: 'a high five', fistbump: 'a fist bump', handshake: 'a handshake', wave: 'a wave' }[k];
+    this.d.hud.toast(k === 'wave' ? 'You wave' : `You offer ${label}`, 'info');
+  }
+
+  /** Real hand contact in VR: classify and celebrate high fives, fist bumps and handshakes. */
+  private gestures(r: Remote, p: Person, dt: number) {
+    // A screen player's offered gesture: their avatar holds the hand out (and VR players can meet it).
+    if (r.emote && !r.state.lh && !r.state.rh) {
+      const age = this.time - r.emote.t0;
+      if (age > 4) r.emote = null;
+      else {
+        const fwd = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
+        const right = new THREE.Vector3(-Math.cos(p.yaw), 0, Math.sin(p.yaw));
+        const female = (p.look.kind ?? '').startsWith('female');
+        const sc = p.look.height / (female ? 1.72 : 1.82);
+        const k = Math.min(1, age * 3);
+        const h = r.emote.k === 'highfive' ? 1.75 : r.emote.k === 'fistbump' ? 1.3 : 1.05;
+        const reachOut = r.emote.k === 'highfive' ? 0.3 : 0.45;
+        const t = p.pos.clone().setY(p.pos.y + h * sc).addScaledVector(fwd, reachOut * k).addScaledVector(right, 0.18);
+        if (r.emote.k === 'handshake') t.y += Math.sin(age * 14) * 0.03 * k;
+        r.hands.r = t;
+        r.fist.r = r.emote.k === 'fistbump' ? 1 : 0;
+      }
+    }
+    const mine = this.d.hands?.();
+    if (!mine) return;
+    const grip = this.d.grip?.() ?? { l: 0, r: 0 };
+    for (const ms of ['l', 'r'] as const) {
+      const a = mine[ms];
+      const prev = this.prevHands[ms];
+      const speed = a && prev ? a.distanceTo(prev) / Math.max(dt, 1e-3) : 0;
+      this.prevHands[ms] = a ? a.clone() : null;
+      if (!a) continue;
+      for (const ts of ['l', 'r'] as const) {
+        const b = r.hands[ts];
+        const key = ms + ts;
+        const c = r.contact.get(key);
+        if (!b || a.distanceTo(b) > 0.13) {
+          if (c) r.contact.delete(key);
+          continue;
+        }
+        const myFist = grip[ms] > 0.6,
+          theirFist = r.fist[ts] > 0.6;
+        if (!c) {
+          const entry = { t0: this.time, speed, done: false };
+          r.contact.set(key, entry);
+          if (myFist && theirFist && speed > 0.3) {
+            entry.done = true;
+            this.celebrate(r, 'fistbump', ms, true);
+          } else if (!myFist && !theirFist && a.y > 1.25 && speed > 0.35) {
+            entry.done = true;
+            this.celebrate(r, 'highfive', ms, true);
+          }
+        } else if (!c.done && this.time - c.t0 > 0.45 && a.y < 1.45 && a.y > 0.7) {
+          c.done = true;
+          this.celebrate(r, 'handshake', ms, true);
+        } else if (c && this.time - c.t0 > 0.45) {
+          // Shaking: a little buzz while hands are held.
+          if (Math.random() < 0.1) this.d.haptic?.(ms === 'l' ? 'left' : 'right', 0.15, 20);
+        }
+      }
+    }
+  }
+
+  /** A gesture landed: sound, buzz, toast, cheers. `mine` says whether we detected it (then tell them). */
+  private celebrate(r: Remote, k: string, hand: 'l' | 'r' | null, mine: boolean) {
+    if (this.time - (this.gestAt.get(k) ?? -10) < 1.5) return;
+    this.gestAt.set(k, this.time);
+    if (mine) this.emit('gest', { k });
+    const at = r.person ? r.person.pos.clone().setY(1.4) : this.d.player.feet().setY(1.4);
+    const names: Record<string, string> = { highfive: 'High five', fistbump: 'Fist bump', handshake: 'Handshake', wave: 'Wave' };
+    this.d.hud.toast(`${names[k] ?? 'Nice'} with ${r.name}!`, 'win');
+    if (k === 'highfive') this.d.slap?.(at);
+    else if (k === 'fistbump') this.d.knock?.(at);
+    else this.d.pat?.(at);
+    const side = hand === 'l' ? 'left' : 'right';
+    this.d.haptic?.(side, k === 'handshake' ? 0.5 : 1, k === 'handshake' ? 120 : 70);
+    if (r.person) r.person.cheer = k === 'handshake' ? 0.6 : 1.2;
+    if (k !== 'handshake') this.d.cheer(at);
   }
 
   /** After the avatar's animation: reach for the real hands, open the mouth. */
@@ -343,6 +463,8 @@ export class Session {
       const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.35).addScaledVector(left, 0.45 * dir);
       reach(upper, lower, end, target, pole, 1);
     }
+    curlFingers(b, 'L', r.fist.l);
+    curlFingers(b, 'R', r.fist.r);
   }
 
   private showBubble(r: Remote, text: string) {
@@ -415,19 +537,9 @@ export class Session {
           else r.hands[side]!.lerp(t, Math.min(1, dt * 18));
         } else r.hands[side] = null;
       }
-      // High five: your real hand meets theirs (both in VR).
-      const mine = this.d.hands?.();
-      if (mine && this.time - this.hi5At > 1.5) {
-        for (const a of [mine.l, mine.r]) for (const b of [r.hands.l, r.hands.r]) {
-          if (a && b && a.distanceTo(b) < 0.14 && a.y > 1.1) {
-            this.hi5At = this.time;
-            this.emit('hi5');
-            this.d.slap?.(a);
-            this.d.hud.toast(`High five with ${r.name}!`, 'win');
-            p.cheer = 1.2;
-          }
-        }
-      }
+      this.gestures(r, p, dt);
+      r.fist.l += ((Number(s.lg) || 0) - r.fist.l) * Math.min(1, dt * 14);
+      r.fist.r += ((Number(s.rg) || 0) - r.fist.r) * Math.min(1, dt * 14);
       const talkFlap = this.time < r.talkUntil ? 0.35 + 0.35 * Math.sin(this.time * 17) * Math.sin(this.time * 7.3) : 0;
       const want = Math.max((Number(s.mo) || 0) / 9, talkFlap);
       r.open += (want - r.open) * Math.min(1, dt * 20);

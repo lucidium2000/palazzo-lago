@@ -105,3 +105,26 @@ export function setOpen(mouth: THREE.Mesh, open: number) {
   const k = THREE.MathUtils.clamp(open, 0, 1);
   mouth.scale.set(base.x * (1 - k * 0.15), base.y * (1 + k * 3.2), base.z);
 }
+
+/** Finger bend axis in the finger bones' local frame (Quaternius rig), and its sign per side. */
+export const FINGER = { axis: 'x' as 'x' | 'y' | 'z', sign: { L: -1, R: -1 } };
+
+/**
+ * Curls a hand into a fist (amount 0 = open, 1 = closed). Applied on top of
+ * the animation pose, every frame.
+ */
+export function curlFingers(bones: Record<string, THREE.Object3D>, side: 'L' | 'R', amount: number) {
+  const k = THREE.MathUtils.clamp(amount, 0, 1) * FINGER.sign[side];
+  const bend = (b: THREE.Object3D | undefined, a: number) => {
+    if (!b) return;
+    // The clips don't animate fingers: start from the rest pose every frame (no build-up).
+    const rest = (b.userData.rest ??= b.quaternion.clone()) as THREE.Quaternion;
+    b.quaternion.copy(rest);
+    if (a === 0) return;
+    if (FINGER.axis === 'x') b.rotateX(a);
+    else if (FINGER.axis === 'y') b.rotateY(a);
+    else b.rotateZ(a);
+  };
+  for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (const seg of [1, 2, 3]) bend(bones[`${f}${seg}${side}`], k * (seg === 1 ? 1.25 : 1.45));
+  for (const seg of [1, 2, 3]) bend(bones[`Thumb${seg}${side}`], k * 0.6);
+}

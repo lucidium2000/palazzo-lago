@@ -112,6 +112,11 @@ export class Player {
     camera.add(this.vignette);
   }
 
+  /** Current walking speed (m/s), for the body's walk animation. */
+  get speed() {
+    return this.speedNow;
+  }
+
   get inXR() {
     return this.renderer.xr.isPresenting;
   }
