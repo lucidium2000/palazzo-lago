@@ -388,28 +388,50 @@ function wild(ctx: Ctx, s: number) {
 }
 
 /** The Mystery symbol: a gold coin-crate with an embossed "?". */
-function mystery(ctx: Ctx, s: number) {
-  const x = s * 0.1,
-    y = s * 0.1,
-    w = s * 0.8;
+/**
+ * The mystery symbol: a pair of lacquered double doors in a gold frame with a
+ * big "?" across the seam. After the reels stop the two halves swing open to
+ * reveal what's behind (a symbol, a wild, or a coloured coin).
+ */
+export function mystery(ctx: Ctx, s: number) {
+  const x = s * 0.07,
+    y = s * 0.07,
+    w = s * 0.86;
   shadow(ctx, s, 0.08, 0.03);
   ctx.beginPath();
-  ctx.roundRect(x, y, w, w, s * 0.12);
+  ctx.roundRect(x, y, w, w, s * 0.1);
   ctx.fillStyle = goldGrad(ctx, y, y + w);
   ctx.fill();
   noShadow(ctx);
-  ctx.lineWidth = s * 0.02;
+  ctx.lineWidth = s * 0.018;
   ctx.strokeStyle = '#6a3a04';
   ctx.stroke();
-  ctx.beginPath();
-  ctx.roundRect(x + s * 0.07, y + s * 0.07, w - s * 0.14, w - s * 0.14, s * 0.08);
-  const inner = ctx.createRadialGradient(s / 2, s * 0.42, s * 0.03, s / 2, s / 2, s * 0.4);
-  inner.addColorStop(0, '#a040e0');
-  inner.addColorStop(1, '#2a0848');
-  ctx.fillStyle = inner;
-  ctx.fill();
-  ctx.stroke();
-  ctx.font = `900 ${s * 0.55}px ${DISPLAY}`;
+  // Two door leaves.
+  const ix = x + s * 0.06,
+    iy = y + s * 0.06,
+    iw = w - s * 0.12;
+  for (const side of [0, 1]) {
+    const lx = ix + side * (iw / 2);
+    const g = ctx.createLinearGradient(lx, iy, lx + iw / 2, iy + iw);
+    g.addColorStop(0, '#8a2ad0');
+    g.addColorStop(0.55, '#4a0e88');
+    g.addColorStop(1, '#22053e');
+    ctx.fillStyle = g;
+    ctx.fillRect(lx, iy, iw / 2, iw);
+    // Raised panels.
+    ctx.strokeStyle = 'rgba(255,214,120,0.75)';
+    ctx.lineWidth = s * 0.012;
+    ctx.strokeRect(lx + s * 0.04, iy + s * 0.05, iw / 2 - s * 0.08, iw * 0.38);
+    ctx.strokeRect(lx + s * 0.04, iy + iw * 0.52, iw / 2 - s * 0.08, iw * 0.4);
+    // Handle by the seam.
+    ctx.beginPath();
+    ctx.arc(lx + (side ? s * 0.06 : iw / 2 - s * 0.06), iy + iw * 0.5, s * 0.022, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffe08a';
+    ctx.fill();
+  }
+  ctx.fillStyle = '#1a0230';
+  ctx.fillRect(s / 2 - s * 0.006, iy, s * 0.012, iw);
+  ctx.font = `900 ${s * 0.56}px ${DISPLAY}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineWidth = s * 0.05;
@@ -417,21 +439,10 @@ function mystery(ctx: Ctx, s: number) {
   ctx.strokeText('?', s / 2, s * 0.53);
   ctx.shadowColor = '#ffd040';
   ctx.shadowBlur = s * 0.1;
-  ctx.fillStyle = goldGrad(ctx, s * 0.28, s * 0.78);
+  ctx.fillStyle = goldGrad(ctx, s * 0.26, s * 0.8);
   ctx.fillText('?', s / 2, s * 0.53);
   noShadow(ctx);
-  gloss(ctx, s * 0.32, s * 0.22, s * 0.22, s * 0.06, -0.2, 0.6);
-  for (const [px, py] of [
-    [0.17, 0.17],
-    [0.83, 0.17],
-    [0.17, 0.83],
-    [0.83, 0.83],
-  ]) {
-    ctx.beginPath();
-    ctx.arc(s * px, s * py, s * 0.025, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff4c0';
-    ctx.fill();
-  }
+  gloss(ctx, s * 0.3, s * 0.2, s * 0.2, s * 0.05, -0.2, 0.55);
 }
 
 // ---------------------------------------------------------------------------

@@ -38,8 +38,12 @@ export const JACKPOT_NAMES = ['MINI', 'MINOR', 'MAXI', 'MAJOR', 'GRAND', 'MEGA']
 export type JackpotName = (typeof JACKPOT_NAMES)[number];
 /** Starting jackpot values, multiples of the total bet. */
 export const JACKPOT_BASE = [10, 25, 100, 250, 1000, 2500];
-/** Growth per yellow coin, multiples of the total bet. */
-export const JACKPOT_GROWTH = [0.2, 0.5, 2, 5, 25, 170];
+/**
+ * A yellow coin that doesn't trigger adds 0.25x–6.75x the bet (in 0.25 steps)
+ * to ONE of the Mini, Minor, Maxi or Major meters (Grand and Mega are fixed),
+ * as the real game's help screens describe.
+ */
+export const YELLOW_BOOST = { min: 0.25, max: 6.75, step: 0.25, meters: 4 };
 /** Jackpots stop growing here (Mega tops out at 12,500x the bet). */
 export const JACKPOT_MAX = [20, 50, 200, 500, 2500, 12500];
 /** Coins of a jackpot's colour needed to win it in the Yellow bonus. */
@@ -134,6 +138,8 @@ export interface CoinEvent {
   row: number;
   color: CoinColor;
   result: 'trigger' | 'feed' | 'none';
+  /** Yellow feeds: which jackpot meter grew, and by how much (x bet). */
+  boost?: { jackpot: number; amount: number };
 }
 
 export interface JackpotCoin {
@@ -228,9 +234,14 @@ export class PiggyGame {
     PIGGY.betLevels.forEach((_b, i) => {
       const coins = rng.int(60);
       const yellow = rng.int(40);
+      const jackpots = [...JACKPOT_BASE];
+      for (let k = 0; k < yellow; k++) {
+        const b = yellowBoost(rng);
+        jackpots[b.jackpot] = Math.min(JACKPOT_MAX[b.jackpot], round2(jackpots[b.jackpot] + b.amount));
+      }
       this.banks.set(i, {
         blue: Math.min(BLUE_MAX, BLUE_START + Math.floor(coins * (0.3 + rng.int(70) / 100))),
-        jackpots: JACKPOT_BASE.map((b, j) => Math.min(JACKPOT_MAX[j], b + JACKPOT_GROWTH[j] * yellow)),
+        jackpots,
         reds: rng.int(4),
       });
     });
@@ -288,16 +299,19 @@ export class PiggyGame {
           const color = pick(rng, Object.entries(PIGGY.colorWeights) as [CoinColor, number][]);
           const roll = rng.int(10000);
           let result: CoinEvent['result'] = 'none';
+          let boost: CoinEvent['boost'];
           if (roll < PIGGY.trigger[color]) result = 'trigger';
           else if (roll < PIGGY.trigger[color] + PIGGY.feed[color]) {
             if (color === 'blue' && bank.blue < BLUE_MAX) bank.blue++, (result = 'feed');
             else if (color === 'yellow') {
-              bank.jackpots = bank.jackpots.map((v, j) => Math.min(JACKPOT_MAX[j], round2(v + JACKPOT_GROWTH[j])));
+              boost = yellowBoost(rng);
+              const j = boost.jackpot;
+              bank.jackpots = bank.jackpots.map((v, k) => (k === j ? Math.min(JACKPOT_MAX[k], round2(v + boost!.amount)) : v));
               result = 'feed';
             } else if (color === 'red' && bank.reds < RED_ORDER.length) bank.reds++, (result = 'feed');
           }
           if (result === 'trigger') trig[color] = true;
-          coins.push({ reel, row, color, result });
+          coins.push(boost ? { reel, row, color, result, boost } : { reel, row, color, result });
         }),
       );
       if (COLORS.some((c) => trig[c])) {
@@ -429,4 +443,10 @@ export function apValue(rng: Rng, blue: number, sessions: number, start: Partial
     }
   }
   return { rtp: won / staked, avgSpins: spins / sessions };
+}
+
+/** One yellow-coin boost: a random lower jackpot meter and a random amount (x bet). */
+export function yellowBoost(rng: Rng): { jackpot: number; amount: number } {
+  const steps = Math.round((YELLOW_BOOST.max - YELLOW_BOOST.min) / YELLOW_BOOST.step) + 1;
+  return { jackpot: rng.int(YELLOW_BOOST.meters), amount: YELLOW_BOOST.min + rng.int(steps) * YELLOW_BOOST.step };
 }

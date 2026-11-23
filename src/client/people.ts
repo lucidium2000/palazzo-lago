@@ -53,6 +53,10 @@ export class Person {
   /** Invisible proxy used for clicks (waiters). */
   proxy?: THREE.Mesh;
   onUpdate?: (p: Person, dt: number) => void;
+  /** Driven by a real player over the network: no automatic head turning. */
+  driven = false;
+  /** Runs after the animation pose each frame (arms reaching for real hands, the mouth talking). */
+  onPose?: (p: Person) => void;
   /** The animated character (when the people assets loaded). */
   rig?: ReturnType<typeof spawnCharacter>;
   /** Animation clock skipping for far-away people. */
@@ -290,6 +294,20 @@ export class Crowd {
     return p;
   }
 
+  /** Swaps a person's character model (a friend changing their avatar). */
+  setLook(p: Person, look: Look) {
+    if (!this.lib || !p.rig) return;
+    this.group.remove(p.rig.root);
+    const rig = spawnCharacter(this.lib, look.kind ?? 'male_suit');
+    for (const [name, a] of Object.entries(rig.actions)) {
+      a.play();
+      a.setEffectiveWeight(name === 'Idle_Neutral' ? 1 : 0);
+    }
+    p.rig = rig;
+    (p as { look: Look }).look = look;
+    this.group.add(rig.root);
+  }
+
   /** Builds the walking graph: nodes in open floor, edges where the straight line is clear. */
   setGraph(points: [number, number][]) {
     this.nodes = points.map(([x, z]) => new THREE.Vector2(x, z));
@@ -358,6 +376,11 @@ export class Crowd {
       else p.actionKind = 'none';
 
       // Turn the head toward the player when close; otherwise idle glances.
+      if (p.driven) {
+        if (p.rig) this.poseRig(p, i, dt, 0);
+        else this.pose(p, i, time);
+        return;
+      }
       const toP = this.v.set(playerHead.x - p.pos.x, 0, playerHead.z - p.pos.z);
       const dist = toP.length();
       let wantYaw = Math.sin(time * 0.3 + p.seed) * 0.35;
@@ -496,6 +519,10 @@ export class Crowd {
     // Look at the player / glance around.
     b.Head?.rotateY(p.headYaw * 0.8);
     b.Head?.rotateX(-p.headPitch);
+    if (p.onPose) {
+      rig.root.updateMatrixWorld(true);
+      p.onPose(p);
+    }
     this.shadowAt(p, i, sc);
     if (p.proxy) p.proxy.position.set(p.pos.x, 1.0, p.pos.z);
   }

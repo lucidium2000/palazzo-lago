@@ -5,13 +5,13 @@ import {
   BLUE_START,
   COLORS,
   JACKPOT_BASE,
-  JACKPOT_GROWTH,
   JACKPOT_NAMES,
   JACKPOT_NEED,
   PIGGY,
   PiggyGame,
   RED_ORDER,
   type CoinColor,
+  type CoinEvent,
   type Feature,
   type PiggySpin,
 } from '../../rules/piggy';
@@ -22,7 +22,7 @@ import { CanvasPanel, GOLD_LIGHT, roundRect } from '../panel';
 import type { Viewpoint } from '../player';
 import { radial, toTexture } from '../textures';
 import { addCabinetDetails, GLOW } from './details';
-import { COIN_COLORS, colorCoin, PIG_PALETTE, piggyAtlas, pigPortrait } from './piggyArt';
+import { COIN_COLORS, colorCoin, mystery, PIG_PALETTE, piggyAtlas, pigPortrait } from './piggyArt';
 
 /**
  * Porkbelly Payday on a modern tall cabinet: a big portrait screen with the
@@ -51,6 +51,8 @@ const DECK_TILT = 0.3;
 const PIG_COLORS: Record<CoinColor, number> = { blue: 0x2a5ae8, yellow: 0xf8b818, red: 0xe81c2c };
 const PIG_X3: Record<CoinColor, number> = { blue: -0.27, yellow: 0, red: 0.27 };
 const STAGE_Y = 2.12;
+const DOOR_STAGGER = 0.13;
+const DOOR_OPEN = 0.32;
 const JP_COLORS = JACKPOT_NAMES.map((n) => COIN_COLORS[n][1]);
 const LOW_LABEL: Record<string, string> = { T: '10', J: 'J', Q: 'Q', K: 'K', A: 'A' };
 const hex = (c: number) => '#' + new THREE.Color(c).getHexString();
@@ -158,7 +160,11 @@ export class PiggyMachineView {
   private bulbOff = new THREE.Color(0x4a3518);
   private bulbPhase = -1;
   private led: THREE.MeshBasicMaterial;
-  private banner: { text: string; sub?: string; at: number; until: number; color: string } | null = null;
+  private banner: { text: string | (() => string); sub?: string | (() => string); at: number; until: number; color: string | (() => string); big?: boolean } | null = null;
+  /** Floating labels ("+$3.25 MINOR"). */
+  private floaters: { text: string; x: number; y: number; at: number; color: string }[] = [];
+  /** Mystery doors: when the first door starts opening. */
+  private doorsAt = 0;
   private freeTimer = 0;
   private bonusShownTotal = 0;
   private bonusCounted = false;
@@ -330,12 +336,19 @@ export class PiggyMachineView {
   /** How full each bank looks, 0..1. */
   private fullness(c: CoinColor): number {
     if (c === 'blue') return Math.min(1, (this.shown.blue - BLUE_START) / 40);
-    if (c === 'yellow') return Math.min(1, this.shown.boost / 100);
+    if (c === 'yellow') return Math.min(1, this.shown.boost / 60);
     return this.shown.red / RED_ORDER.length;
   }
 
   private boostOf(jackpots: number[]): number {
-    return Math.round(((jackpots[4] - JACKPOT_BASE[4]) / JACKPOT_BASE[4]) * 100);
+    // Growth of the four boostable meters (Mini–Major) over their base, in %.
+    let base = 0,
+      now = 0;
+    for (let j = 0; j < 4; j++) {
+      base += JACKPOT_BASE[j];
+      now += jackpots[j];
+    }
+    return Math.round(((now - base) / base) * 100);
   }
 
   private syncShown(snap = false) {
@@ -516,9 +529,17 @@ export class PiggyMachineView {
     this.reelLoop.stop();
     const out = this.out!;
     if (out.mystery) {
+      // A beat, then the "?" doors swing open reel by reel.
       this.mode = 'reveal';
-      this.revealAt = this.time + 0.6;
-      this.ctx.sound.play('bonus', this.screen.mesh, { volume: 0.25, rate: 1.6 });
+      this.doorsAt = this.time + 0.3;
+      this.revealAt = this.doorsAt + 4 * DOOR_STAGGER + DOOR_OPEN + 0.15;
+      for (let i = 0; i < 5; i++) {
+        if (!out.raw[i].includes('MYSTERY')) continue;
+        this.after(0.3 + i * DOOR_STAGGER, () => {
+          this.ctx.sound.play('reelStop', this.screen.mesh, { volume: 0.7, rate: 1.7 });
+          this.ctx.sound.play('chip', this.screen.mesh, { volume: 0.35, rate: 0.7 });
+        });
+      }
     } else this.afterReveal();
   }
 
@@ -531,11 +552,13 @@ export class PiggyMachineView {
       this.ctx.sound.play('reelStop', this.screen.mesh, { volume: 0.8, rate: 1.3 });
       out.raw.forEach((col, r) => col.forEach((s, row) => s === 'MYSTERY' && (this.cellFlash[r * 3 + row] = this.time)));
     }
+    let celebrateFor = 0;
     if (out.lineWin > 0) {
       const bet = out.bet;
       const big = out.lineWin >= bet * 10;
       this.ctx.sound.play(big ? 'winBig' : 'winSmall', this.screen.mesh);
-      if (big) this.shower(Math.min(120, 30 + out.lineWin / bet));
+      if (big && !out.free) celebrateFor = this.celebrateWin(out.lineWin, bet);
+      else if (big) this.shower(Math.min(120, 30 + out.lineWin / bet));
       this.tweens.add(Math.min(3, 0.6 + out.lineWin / bet / 8), (k) => {
         this.shownWin = Math.round(out.lineWin * k * 100) / 100;
       });
@@ -563,6 +586,8 @@ export class PiggyMachineView {
     out.coins.forEach((c, n) => {
       this.after(0.3 + 0.28 * n, () => {
         this.ctx.sound.play('chip', this.screen.mesh, { volume: 0.6, rate: 1.4 });
+        // Will it pop? A riser plays on the way up (every trigger, and now and then as a tease).
+        if (c.result === 'trigger' || Math.random() < 0.3) this.ctx.sound.play('tension', this.screen.mesh, { volume: 0.55 });
         const cx = REELS_X + c.reel * CELL + CELL / 2,
           cy = REELS_Y + c.row * CELL + CELL / 2;
         this.flicks.push({
@@ -573,7 +598,7 @@ export class PiggyMachineView {
           y1: PIG_Y - PIG_R * 0.7,
           t: 0,
           dur: 0.65,
-          done: () => this.coinArrived(c.color, c.result, out),
+          done: () => this.coinArrived(c, out),
         });
       });
     });
@@ -583,7 +608,7 @@ export class PiggyMachineView {
     this.pendingWin = 0;
     if (!out.free) {
       this.onResult?.(this.lastStake, out.win, out.triggered ? 'bonus' : undefined);
-      if (out.triggered) this.after(settle + 0.6, () => this.startIntro());
+      if (out.triggered) this.after(Math.max(settle + 0.6, celebrateFor), () => this.startIntro());
       else this.after(settle, () => this.syncShown());
     } else {
       const b = this.game.bonus!;
@@ -594,16 +619,24 @@ export class PiggyMachineView {
     this.deck.redraw();
   }
 
-  private coinArrived(c: CoinColor, result: 'trigger' | 'feed' | 'none', out: PiggySpin) {
+  private coinArrived(ev: CoinEvent, out: PiggySpin) {
+    const c = ev.color,
+      result = ev.result;
     const p2 = this.pig2[c];
     const p3 = this.pig3[c];
     p2.squash = 1;
     this.ctx.sound.play('gulp', this.screen.mesh, { volume: 0.7 });
     if (result === 'feed') {
       if (c === 'blue') this.shown.blue = Math.min(out.bank.blue, this.shown.blue + 1);
-      if (c === 'yellow') {
-        const step = Math.round((JACKPOT_GROWTH[4] / JACKPOT_BASE[4]) * 100);
-        this.shown.boost = Math.min(this.boostOf(out.bank.jackpots), this.shown.boost + step);
+      if (c === 'yellow' && ev.boost) {
+        let base = 0;
+        for (let j = 0; j < 4; j++) base += JACKPOT_BASE[j];
+        this.shown.boost = Math.min(this.boostOf(out.bank.jackpots), this.shown.boost + Math.max(1, Math.round((ev.boost.amount / base) * 100)));
+        // The boosted meter lights up on the ladder, with the amount floating off it.
+        const j = ev.boost.jackpot;
+        this.jpFlash[j] = this.time + 0.9;
+        this.floater(`+${money(ev.boost.amount * out.bet)}`, LADDER_X + 60, this.ladderY(j), JP_COLORS[j]);
+        this.ctx.sound.play('chip', this.screen.mesh, { volume: 0.7, rate: 1.2 + j * 0.15 });
       }
       if (c === 'red') this.shown.red = Math.min(out.bank.reds, this.shown.red + 1);
       p3.wobble = 1;
@@ -616,8 +649,50 @@ export class PiggyMachineView {
     this.dirty = true;
   }
 
-  private showBanner(text: string, sub: string | undefined, color: string, dur: number) {
-    this.banner = { text, sub, at: this.time, until: this.time + dur, color };
+  private showBanner(text: string | (() => string), sub: string | (() => string) | undefined, color: string | (() => string), dur: number, big = false) {
+    this.banner = { text, sub, at: this.time, until: this.time + dur, color, big };
+  }
+
+  /**
+   * BIG WIN → MEGA WIN → EPIC WIN: the amount counts up and the title steps up
+   * as it passes each tier (10x, 25x, 50x the bet), with bigger coin showers,
+   * a brass stinger and the 3D pigs dancing.
+   */
+  private celebrateWin(amount: number, bet: number): number {
+    const x = amount / bet;
+    if (x < 10) return 0;
+    const tiers: [number, string, string][] = [
+      [10, 'BIG WIN', '#ffd23a'],
+      [25, 'MEGA WIN', '#ff5ad0'],
+      [50, 'EPIC WIN', '#5ae8ff'],
+    ];
+    const dur = x >= 50 ? 6 : x >= 25 ? 4.6 : 3.2;
+    let shown = 0;
+    let tier = 0;
+    const title = () => tiers[tier][1];
+    const color = () => tiers[tier][2];
+    this.showBanner(title, () => money(shown), color, dur + 1.6, true);
+    this.ctx.sound.play('fanfare', this.screen.mesh, { volume: 0.9 });
+    this.shower(50);
+    for (const c of COLORS) this.pig3[c].party = dur;
+    this.tweens.add(dur, (k) => {
+      shown = Math.round(amount * easeOut(k) * 100) / 100;
+      const now = shown / bet;
+      while (tier < tiers.length - 1 && now >= tiers[tier + 1][0]) {
+        tier++;
+        this.banner && (this.banner.at = this.time);
+        this.ctx.sound.play('fanfare', this.screen.mesh, { volume: 1, rate: 1 + tier * 0.12 });
+        this.ctx.sound.play('winBig', this.screen.mesh, { volume: 0.8 });
+        this.shower(60 + tier * 40);
+        if (tier === 2) this.ctx.sound.play('cheer', this.screen.mesh, { volume: 0.9 });
+      }
+      if (Math.random() < 0.25) this.ctx.sound.play('chip', this.screen.mesh, { volume: 0.35, rate: 1.4 + Math.random() * 0.4 });
+    });
+    return dur + 1.6;
+  }
+
+  private floater(text: string, x: number, y: number, color: string) {
+    this.floaters.push({ text, x, y, at: this.time, color });
   }
 
   /** Coin shower particles over the screen. */
@@ -694,6 +769,7 @@ export class PiggyMachineView {
     this.ctx.sound.play(big ? 'winBig' : 'winSmall', this.screen.mesh);
     if (big) this.ctx.sound.play('banjo', this.screen.mesh, { volume: 0.7 });
     this.shower(Math.min(160, 30 + b.won / b.totalBet));
+    this.celebrateWin(b.won, b.totalBet);
     this.tweens.add(Math.min(4, 1.2 + b.won / b.totalBet / 30), (k) => {
       this.bonusShownTotal = Math.round(b.won * easeOut(k) * 100) / 100;
     }, () => {
@@ -882,12 +958,15 @@ export class PiggyMachineView {
         const row = j + 1;
         let flash = 0;
         let flipX = 1;
+        let doorK = -1;
         if (settled && row >= 0 && row <= 2) {
           id = revealed ? out.grid[i][row] : out.raw[i][row];
           flash = Math.max(0, 1 - (this.time - this.cellFlash[i * 3 + row]) * 2);
           if (this.mode === 'reveal' && out.raw[i][row] === 'MYSTERY') {
-            const k = 1 - (this.revealAt - this.time) / 0.6;
-            flipX = k > 0.5 ? Math.max(0.05, Math.abs(Math.cos(((k - 0.5) / 0.5) * Math.PI * 0.5))) : 1;
+            // Behind the opening doors: what the "?" turned into.
+            const k = Math.min(1, Math.max(0, (this.time - (this.doorsAt + i * DOOR_STAGGER)) / DOOR_OPEN));
+            doorK = k;
+            if (k > 0) id = out.grid[i][row];
           }
         }
         const grow = 1 + flash * 0.18;
@@ -902,8 +981,9 @@ export class PiggyMachineView {
         ctx.save();
         ctx.translate(x + CELL / 2, y + CELL / 2);
         ctx.scale(flipX, 1);
-        ctx.drawImage(src, this.atlas.index.get(id)! * CELL, 0, CELL, CELL, -sz / 2, -sz / 2, sz, sz);
+        if (doorK !== 0) ctx.drawImage(src, this.atlas.index.get(id)! * CELL, 0, CELL, CELL, -sz / 2, -sz / 2, sz, sz);
         ctx.restore();
+        if (doorK >= 0 && doorK < 1) this.drawDoors(ctx, x, y, doorK, out!.coins.some((c) => c.reel === i && c.row === row));
       }
       const sh = ctx.createLinearGradient(0, REELS_Y, 0, REELS_Y + ah);
       sh.addColorStop(0, 'rgba(0,0,0,0.5)');
@@ -953,6 +1033,65 @@ export class PiggyMachineView {
         ctx.shadowBlur = 0;
       }
     }
+  }
+
+  /** Centre y of a jackpot's row on the ladder (Mega on top). */
+  private ladderY(j: number) {
+    return REELS_Y - 6 + (5 - j) * (58 + 7.5) + 29;
+  }
+
+  /**
+   * A "?" door pair swinging open (k 0 → 1): each leaf narrows toward its hinge
+   * with a little perspective, light spills out of the gap, and a coin behind
+   * it glows in its colour.
+   */
+  private drawDoors(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, coin: boolean) {
+    const door = this.doorArt ?? (this.doorArt = this.makeDoorArt());
+    const e = easeOut(k);
+    if (k > 0) {
+      const glow = ctx.createRadialGradient(x + CELL / 2, y + CELL / 2, 4, x + CELL / 2, y + CELL / 2, CELL * 0.75);
+      const a = Math.sin(Math.min(1, k * 1.3) * Math.PI) * 0.8;
+      glow.addColorStop(0, coin ? `rgba(255,255,200,${a})` : `rgba(255,220,140,${a * 0.6})`);
+      glow.addColorStop(1, 'rgba(255,200,100,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - 10, y - 10, CELL + 20, CELL + 20);
+    }
+    const half = CELL / 2;
+    const leaf = Math.max(0.02, 1 - e);
+    for (const side of [0, 1]) {
+      const w = half * leaf;
+      const dx = side === 0 ? x : x + CELL - w;
+      const sx = side * (door.width / 2);
+      // Perspective: the opening edge grows a touch as it swings toward you.
+      const lift = e * 10;
+      ctx.save();
+      ctx.beginPath();
+      if (side === 0) {
+        ctx.moveTo(dx, y);
+        ctx.lineTo(dx + w, y - lift);
+        ctx.lineTo(dx + w, y + CELL + lift);
+        ctx.lineTo(dx, y + CELL);
+      } else {
+        ctx.moveTo(dx, y - lift);
+        ctx.lineTo(dx + w, y);
+        ctx.lineTo(dx + w, y + CELL);
+        ctx.lineTo(dx, y + CELL + lift);
+      }
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(door, sx, 0, door.width / 2, door.height, dx, y - lift, w, CELL + lift * 2);
+      ctx.fillStyle = `rgba(0,0,0,${e * 0.45})`;
+      ctx.fillRect(dx, y - lift, w, CELL + lift * 2);
+      ctx.restore();
+    }
+  }
+
+  private doorArt: HTMLCanvasElement | null = null;
+  private makeDoorArt(): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = c.height = CELL * 2;
+    mystery(c.getContext('2d')!, CELL * 2);
+    return c;
   }
 
   /** The six jackpots beside the reels, Mega on top. */
@@ -1105,6 +1244,17 @@ export class PiggyMachineView {
 
   private drawParticles() {
     const ctx = this.screen.ctx;
+    this.floaters = this.floaters.filter((f) => this.time - f.at < 1.6);
+    for (const f of this.floaters) {
+      const a = this.time - f.at;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (1.6 - a) * 2);
+      ctx.font = `900 ${34 + Math.min(1, a * 6) * 6}px ${DISPLAY}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      outlined(ctx, f.text, f.x - a * 30, f.y - a * 60, f.color, '#1a0410', 6, 260, f.color);
+      ctx.restore();
+    }
     for (const p of this.particles) {
       const s = 34;
       ctx.save();
@@ -1118,16 +1268,24 @@ export class PiggyMachineView {
 
   private drawBanner() {
     const ctx = this.screen.ctx;
-    const b = this.banner;
-    if (!b || this.time > b.until) return;
+    const b0 = this.banner;
+    if (!b0 || this.time > b0.until) return;
+    const val = (v: string | (() => string) | undefined) => (typeof v === 'function' ? v() : v);
+    const b = { ...b0, text: val(b0.text)!, sub: val(b0.sub), color: val(b0.color)! };
     const age = this.time - b.at;
     const pop = age < 0.25 ? easeOut(age / 0.25) * 1.15 : age < 0.4 ? 1.15 - ((age - 0.25) / 0.15) * 0.15 : 1;
     const fade = Math.min(1, (b.until - this.time) * 3);
     const cy = REELS_Y + 1.5 * CELL;
+    if (b.big) {
+      // Dim the game behind a BIG / MEGA / EPIC win.
+      ctx.fillStyle = `rgba(6,0,10,${0.45 * fade})`;
+      ctx.fillRect(0, 0, W, H);
+    }
     ctx.save();
     ctx.globalAlpha = fade;
     ctx.translate(W / 2, cy);
     ctx.scale(pop, pop);
+    if (b.big) ctx.rotate(Math.sin(this.time * 3) * 0.015);
     ctx.save();
     ctx.rotate(this.time * 0.6);
     for (let i = 0; i < 18; i++) {

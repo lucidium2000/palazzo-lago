@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import type { Crowd, Person } from '../people';
 import { avatarLook } from './avatars';
+import { Voice } from './voice';
+import { makeMouth, reach, setOpen } from './embody';
 import type { Player } from '../player';
 import type { Hud } from '../hud';
 import type { RouletteTable } from '../roulette/table';
@@ -18,6 +20,11 @@ interface Remote {
   person: Person | null;
   lastEvent: number;
   tag: THREE.Sprite;
+  mouth: THREE.Mesh | null;
+  open: number;
+  talkUntil: number;
+  bodyYaw: number;
+  hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null };
   bubble: THREE.Sprite | null;
   bubbleUntil: number;
   target: THREE.Vector3;
@@ -39,6 +46,12 @@ export interface SessionDeps {
   craps: CrapsTable;
   /** Plays a reaction at a world position (cheer). */
   cheer(at: THREE.Vector3): void;
+  /** A short slap/clap sound at a point (high fives). */
+  slap?(at: THREE.Vector3): void;
+  /** The 3D audio listener (voice chat plays from the friend's avatar). */
+  listener: THREE.AudioListener;
+  /** Your real hands in VR (world positions), or null on a screen. */
+  hands?(): { l: THREE.Vector3 | null; r: THREE.Vector3 | null } | null;
   /** Called when the set of connected friends changes. */
   onRoster(names: string[]): void;
 }
@@ -57,10 +70,19 @@ export class Session {
   private remotes = new Map<string, Remote>();
   private sendT = 0;
   private time = 0;
+  private hi5At = -10;
+  readonly voice: Voice;
+  /** Called when anything shown in menus changes (friends, voice). */
+  onChange: (() => void) | null = null;
 
   constructor(private d: SessionDeps) {
     this.code = d.transport.code;
     this.host = d.host;
+    this.voice = new Voice((k, data) => this.emit(k, data), d.listener, d.scene, d.host);
+    this.voice.onChange = () => {
+      this.flush();
+      this.onChange?.();
+    };
     d.transport.onRemote((id, w) => this.receive(id, w));
     // Shared tables.
     d.roulette.net = {
@@ -73,7 +95,14 @@ export class Session {
       request: (t) => this.emit('croll?', t),
       announce: (r) => this.emit('croll', r),
     };
-    d.bankroll.onChange(() => this.flush());
+    // On a screen there are no tracked hands: reaching for chips or the spin
+    // button shows as a reach on your avatar (any bet takes chips).
+    let last = d.bankroll.balance;
+    d.bankroll.onChange(() => {
+      if (d.bankroll.balance < last - 0.001) this.emit('act', { k: 'reach' });
+      last = d.bankroll.balance;
+      this.flush();
+    });
   }
 
   get friends(): string[] {
@@ -99,7 +128,25 @@ export class Session {
     this.emit('big', { g: game, a: Math.round(amount * 100) / 100 });
   }
 
+  /** Switch voice chat on (asks for the microphone). Returns an error message or null. */
+  async enableVoice(): Promise<string | null> {
+    const err = await this.voice.enable();
+    if (!err) for (const r of this.remotes.values()) this.voice.sync(r.id, !!r.state.v);
+    return err;
+  }
+
+  /** Change your character (your friend sees it change). */
+  setAvatar(i: number) {
+    this.d.avatar = i;
+    this.flush();
+  }
+
+  get avatar() {
+    return this.d.avatar;
+  }
+
   leave() {
+    this.voice.disable();
     this.d.transport.leave();
     for (const r of this.remotes.values()) this.drop(r);
     this.remotes.clear();
@@ -122,13 +169,29 @@ export class Session {
       moving: 0,
       seat: p.seated?.id ?? null,
       chips: Math.round(this.d.bankroll.balance),
+      v: this.voice?.enabled ?? false,
+      hh: Math.round((p.camera.getWorldPosition(new THREE.Vector3()).y - p.rig.position.y) * 100) / 100,
+      mo: this.voice?.enabled ? Math.round(this.voice.level() * 9) : 0,
+      ...this.handState(),
     };
+  }
+
+  private handState(): { lh?: number[] | null; rh?: number[] | null } {
+    const h = this.d.hands?.();
+    if (!h) return {};
+    const r = (v: THREE.Vector3 | null) => (v ? v.toArray().map((x) => Math.round(x * 100) / 100) : null);
+    return { lh: r(h.l), rh: r(h.r) };
   }
 
   private lastSent = '';
   private flush() {
-    const w: Wire = { s: this.state(), e: this.events };
-    const sig = JSON.stringify(w);
+    const w: Wire = { s: this.state(), e: [...this.events] };
+    let sig = JSON.stringify(w);
+    // The claude.ai room carries at most 4 KiB per player: drop the oldest events if needed.
+    while (sig.length > 3600 && w.e.length > 1) {
+      w.e.shift();
+      sig = JSON.stringify(w);
+    }
     if (sig === this.lastSent) return;
     this.lastSent = sig;
     this.d.transport.publish(w);
@@ -139,9 +202,11 @@ export class Session {
     if (!w) {
       if (r) {
         this.d.hud.toast(`${r.name} left the casino`, 'info');
+        this.voice.drop(r.id);
         this.drop(r);
         this.remotes.delete(id);
         this.d.onRoster(this.friends);
+        this.onChange?.();
       }
       return;
     }
@@ -158,6 +223,11 @@ export class Session {
         // Ignore events sent before we arrived, except table state we need now.
         lastEvent: w.e.length ? Math.max(...w.e.map((e) => e.n)) : 0,
         tag: nameTag(name),
+        mouth: null,
+        open: 0,
+        talkUntil: 0,
+        bodyYaw: Number(s.yaw) || 0,
+        hands: { l: null, r: null },
         bubble: null,
         bubbleUntil: 0,
         target: at.clone(),
@@ -165,11 +235,18 @@ export class Session {
       };
       this.d.scene.add(r.tag);
       this.remotes.set(id, r);
+      if (person) {
+        const rr = r;
+        person.driven = true;
+        person.onPose = (pp) => this.embody(rr, pp);
+      }
       this.d.hud.toast(`${name} ${s.host ? 'is hosting' : 'joined'} · room LAGO-${this.code}`, 'win');
       this.d.onRoster(this.friends);
       // Tell a newcomer where the craps puck is.
       if (this.host) this.emit('csync', { point: this.d.craps.game.point });
     }
+    if (r.person && w.s.look !== r.state.look) this.d.crowd.setLook(r.person, avatarLook(Math.floor(Number(w.s.look) || 0)));
+    if (!!w.s.v !== !!r.state.v || (w.s.v && this.voice.enabled)) this.voice.sync(r.id, !!w.s.v);
     r.state = w.s;
     r.target.set(Number(w.s.x) || 0, 0, Number(w.s.z) || 0);
     for (const e of w.e) {
@@ -187,6 +264,7 @@ export class Session {
         if (!t) return;
         this.d.hud.say(r.name, t);
         this.showBubble(r, t);
+        r.talkUntil = this.time + Math.min(3.5, 0.6 + t.length * 0.055);
         break;
       }
       case 'big':
@@ -220,9 +298,50 @@ export class Session {
           this.d.craps.applyRemoteRoll([dice[0], dice[1]], Number(d.seed), d.from as number[], (d.v as number[] | null) ?? null, (d.point as number | null) ?? null);
         }
         break;
+      case 'hi5':
+        if (this.time - this.hi5At > 1.5) {
+          this.hi5At = this.time;
+          if (r.person) this.d.slap?.(r.person.pos.clone().setY(1.6));
+          this.d.hud.toast(`High five with ${r.name}!`, 'win');
+          if (r.person) r.person.cheer = 1.2;
+        }
+        break;
+      case 'act':
+        if (r.person && d.k === 'reach' && !r.state.lh && !r.state.rh) {
+          r.person.actionKind = 'reach';
+          r.person.action = 0.9;
+        }
+        break;
+      case 'vsig':
+        void this.voice.signal(r.id, null, d as never);
+        break;
       case 'csync':
         if (!this.host && r.state.host) this.d.craps.syncPoint((d.point as number | null) ?? null);
         break;
+    }
+  }
+
+  /** After the avatar's animation: reach for the real hands, open the mouth. */
+  private embody(r: Remote, p: Person) {
+    const rig = p.rig;
+    if (!rig) return;
+    const b = rig.bones;
+    const female = (p.look.kind ?? '').startsWith('female');
+    const sc = p.look.height / (female ? 1.72 : 1.82);
+    if (!r.mouth && b.Head) r.mouth = makeMouth(b.Head, rig.root, p.yaw, sc, rig.mesh);
+    if (r.mouth) setOpen(r.mouth, r.open);
+    const fwd = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
+    const left = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
+    for (const [side, dir] of [['l', 1], ['r', -1]] as const) {
+      const target = r.hands[side];
+      const S = side === 'l' ? 'L' : 'R';
+      const upper = b[`UpperArm${S}`],
+        lower = b[`LowerArm${S}`],
+        end = b[`Wrist${S}`] ?? b[`Hand${S}`];
+      if (!target || !upper || !lower || !end) continue;
+      const shoulder = upper.getWorldPosition(new THREE.Vector3());
+      const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.35).addScaledVector(left, 0.45 * dir);
+      reach(upper, lower, end, target, pole, 1);
     }
   }
 
@@ -251,7 +370,8 @@ export class Session {
     // Publish my state ~10 times a second when it changes (events go at once).
     this.sendT -= dt;
     if (this.sendT <= 0) {
-      this.sendT = 0.1;
+      // Faster while your hands are tracked or you're talking, so motion and lips look live.
+      this.sendT = this.d.hands?.() || (this.voice.enabled && this.voice.level() > 0.05) ? 0.05 : 0.1;
       this.flush();
     }
     for (const r of this.remotes.values()) {
@@ -273,12 +393,46 @@ export class Session {
       p.walkPhase += p.moving * dt * 5.2;
       p.seated = seated;
       p.seatY = s.seat === 'roulette' ? 0.66 : 0.62;
-      let dy = s.yaw - p.yaw;
+      // The body follows where they look only when they turn far or walk; the head does the rest.
+      const headYaw = Number(s.yaw) || 0;
+      let diff = Math.atan2(Math.sin(headYaw - r.bodyYaw), Math.cos(headYaw - r.bodyYaw));
+      if (Math.abs(diff) > 0.75 || p.moving > 0.3 || seated) {
+        r.bodyYaw += diff * Math.min(1, dt * (p.moving > 0.3 ? 8 : 4));
+        diff = Math.atan2(Math.sin(headYaw - r.bodyYaw), Math.cos(headYaw - r.bodyYaw));
+      }
+      let dy = r.bodyYaw - p.yaw;
       dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-      p.yaw += dy * Math.min(1, dt * 8);
+      p.yaw += dy * Math.min(1, dt * 10);
       p.homeYaw = p.yaw;
-      p.headPitch = THREE.MathUtils.clamp(-s.pitch, -0.5, 0.5);
+      p.headYaw += (THREE.MathUtils.clamp(diff / 0.8, -1.3, 1.3) - p.headYaw) * Math.min(1, dt * 12);
+      p.headPitch += (THREE.MathUtils.clamp(-s.pitch, -0.6, 0.6) - p.headPitch) * Math.min(1, dt * 12);
+      // Smooth the hands and the mouth between network updates.
+      for (const side of ['l', 'r'] as const) {
+        const arr = side === 'l' ? s.lh : s.rh;
+        if (Array.isArray(arr) && arr.length === 3) {
+          const t = new THREE.Vector3(arr[0], arr[1], arr[2]);
+          if (!r.hands[side] || r.hands[side]!.distanceTo(t) > 1.5) r.hands[side] = t;
+          else r.hands[side]!.lerp(t, Math.min(1, dt * 18));
+        } else r.hands[side] = null;
+      }
+      // High five: your real hand meets theirs (both in VR).
+      const mine = this.d.hands?.();
+      if (mine && this.time - this.hi5At > 1.5) {
+        for (const a of [mine.l, mine.r]) for (const b of [r.hands.l, r.hands.r]) {
+          if (a && b && a.distanceTo(b) < 0.14 && a.y > 1.1) {
+            this.hi5At = this.time;
+            this.emit('hi5');
+            this.d.slap?.(a);
+            this.d.hud.toast(`High five with ${r.name}!`, 'win');
+            p.cheer = 1.2;
+          }
+        }
+      }
+      const talkFlap = this.time < r.talkUntil ? 0.35 + 0.35 * Math.sin(this.time * 17) * Math.sin(this.time * 7.3) : 0;
+      const want = Math.max((Number(s.mo) || 0) / 9, talkFlap);
+      r.open += (want - r.open) * Math.min(1, dt * 20);
       const top = p.pos.y + (seated ? 1.45 : 2.0);
+      this.voice.update(r.id, new THREE.Vector3(p.pos.x, top - 0.25, p.pos.z));
       r.tag.position.set(p.pos.x, top + 0.12, p.pos.z);
       if (r.bubble) {
         r.bubble.position.set(p.pos.x, top + 0.42, p.pos.z);

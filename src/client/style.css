@@ -417,16 +417,25 @@ button.primary {
 #net-status.err {
   color: #ff9a8a;
 }
-#room-pill {
+#room-bar {
   position: absolute;
   top: 64px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+#room-bar button {
   font-size: 14px;
   padding: 6px 14px;
   pointer-events: auto;
+  white-space: nowrap;
 }
-#room-pill[hidden],
+#voice-btn.live {
+  background: rgba(40, 110, 50, 0.9);
+}
+#room-bar button[hidden],
 #chat[hidden] {
   display: none;
 }
@@ -818,4 +827,7 @@ body.touch #prompt {
   #enter .name {
     font-size: 30px;
   }
+}
+#enter .modes button[hidden] {
+  display: none;
 }

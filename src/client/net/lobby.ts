@@ -6,6 +6,8 @@ export interface LobbyChoice {
   avatar: number;
   /** Set for a two-player game. */
   net: { transport: Transport; host: boolean } | null;
+  /** Go straight into the headset. */
+  vr?: boolean;
 }
 
 const store = {
@@ -30,7 +32,7 @@ const store = {
  * play solo, host a two-player room (shows a code to send a friend), or
  * join a friend's room by code. Calls `onStart` when the player steps in.
  */
-export function setupLobby(onStart: (c: LobbyChoice) => void) {
+export function setupLobby(onStart: (c: LobbyChoice) => void, opts: { vr?: boolean } = {}) {
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const nameInput = $<HTMLInputElement>('player-name');
   const label = $('av-label');
@@ -84,10 +86,17 @@ export function setupLobby(onStart: (c: LobbyChoice) => void) {
     status.innerHTML = html;
     status.classList.toggle('err', err);
   };
-  const start = () => {
+  const start = (vr = false) => {
     preview.dispose();
-    onStart({ name: name(), avatar, net });
+    onStart({ name: name(), avatar, net, vr });
   };
+  const vrBtn = $<HTMLButtonElement>('vr-start');
+  if (opts.vr) {
+    vrBtn.hidden = false;
+    vrBtn.addEventListener('click', () => {
+      if (!busy) start(true);
+    });
+  }
 
   soloBtn.addEventListener('click', () => {
     if (busy) return;

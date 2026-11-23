@@ -6,7 +6,7 @@ import {
   BLUE_START,
   BONUS_SPINS,
   JACKPOT_BASE,
-  JACKPOT_GROWTH,
+  YELLOW_BOOST,
   JACKPOT_NEED,
   LINES_25,
   PIGGY,
@@ -85,7 +85,14 @@ describe('Porkbelly Payday', () => {
         expect(s.coins[0].result).toBe('feed');
         const b = g.bankFor();
         if (color === 'blue') expect(b.blue).toBe(BLUE_START + 1);
-        if (color === 'yellow') b.jackpots.forEach((v, j) => expect(v).toBeCloseTo(JACKPOT_BASE[j] + JACKPOT_GROWTH[j], 6));
+        if (color === 'yellow') {
+          // Exactly one of Mini/Minor/Maxi/Major grew, by 0.25x–6.75x the bet; Grand and Mega stay put.
+          const boost = s.coins[0].boost!;
+          expect(boost.jackpot).toBeLessThan(YELLOW_BOOST.meters);
+          expect(boost.amount).toBeGreaterThanOrEqual(0.25);
+          expect(boost.amount).toBeLessThanOrEqual(6.75);
+          b.jackpots.forEach((v, j) => expect(v).toBeCloseTo(JACKPOT_BASE[j] + (j === boost.jackpot ? boost.amount : 0), 6));
+        }
         if (color === 'red') expect(b.reds).toBe(1);
         break;
       }

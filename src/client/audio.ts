@@ -32,7 +32,9 @@ type SoundName =
   | 'water'
   | 'shaker'
   | 'banjo'
-  | 'gulp';
+  | 'gulp'
+  | 'tension'
+  | 'fanfare';
 
 const rand = (() => {
   let s = 12345;
@@ -166,6 +168,23 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
     const f = 260 + 900 * (t / 0.28) ** 1.5;
     return Math.sin(2 * Math.PI * f * t) * 0.35 * env(t, 0.01, 0.08) + bell(1400, Math.max(0, t - 0.12), 0.08) * 0.12 * (t > 0.12 ? 1 : 0);
   });
+  // Rising tremolo riser while a coin flies to a pig (will it pop?).
+  const tension = synth(ctx, 0.9, (t) => {
+    const f = 330 * Math.pow(2, t / 0.9);
+    const trem = 0.6 + 0.4 * Math.sin(2 * Math.PI * 14 * t);
+    return (Math.sin(2 * Math.PI * f * t) + 0.5 * Math.sin(2 * Math.PI * f * 1.5 * t)) * 0.16 * trem * Math.min(1, t * 8) * Math.min(1, (0.9 - t) * 10);
+  });
+  // A cheeky brass-band stinger for BIG / MEGA / EPIC wins.
+  const brass = (f: number, t: number, len: number) => {
+    if (t < 0 || t > len) return 0;
+    let v = 0;
+    for (let h = 1; h <= 7; h++) v += Math.sin(2 * Math.PI * f * h * t + h) / (h * 0.9);
+    return v * Math.min(1, t * 40) * Math.min(1, (len - t) * 12) * (1 + 0.04 * Math.sin(2 * Math.PI * 6 * t));
+  };
+  const fanfareNotes: [number, number, number][] = [
+    [392, 0, 0.14], [392, 0.16, 0.14], [392, 0.32, 0.14], [523.25, 0.48, 0.9], [659.25, 0.48, 0.9], [783.99, 0.48, 0.9],
+  ];
+  const fanfare = synth(ctx, 1.5, (t) => fanfareNotes.reduce((a, [f, at, len]) => a + brass(f, t - at, len), 0) * 0.07);
   const denied = synth(ctx, 0.25, (t) => (Math.sin(2 * Math.PI * 220 * t) + Math.sin(2 * Math.PI * 233 * t)) * 0.18 * env(t, 0.005, 0.1));
 
   // Casino room tone: a soft crowd murmur with distant chimes. Stereo, loops.
@@ -280,7 +299,7 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
 
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, ambience, denied,
-    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, pour, sip, door, water, shaker, banjo, gulp,
+    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
   };
 }
 

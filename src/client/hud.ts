@@ -45,7 +45,9 @@ export class Hud {
   private navEl: HTMLElement;
   private vrToast: CanvasPanel;
   private vrToastUntil = 0;
-  private wrist: CanvasPanel;
+  readonly wrist: CanvasPanel;
+  /** Draws the wrist menu (the VR menu takes this over). */
+  wristBuilder: (() => void) | null = null;
   private wristAttached = false;
   private nav: NavItem[] = [];
   onNavigate: ((item: NavItem) => void) | null = null;
@@ -69,7 +71,7 @@ export class Hud {
     this.vrToast.mesh.renderOrder = 1000;
     scene.add(this.vrToast.mesh);
 
-    this.wrist = new CanvasPanel(0.2, 600, 720);
+    this.wrist = new CanvasPanel(0.22, 600, 900);
     this.wrist.mesh.visible = false;
     this.wrist.register(interaction);
     renderer.xr.addEventListener('sessionend', () => {
@@ -195,6 +197,14 @@ export class Hud {
     this.renderBalance();
   }
 
+  balanceShown() {
+    return this.shownBalance();
+  }
+
+  get navItems() {
+    return this.nav;
+  }
+
   private shownBalance() {
     let p = 0;
     for (const v of this.pending.values()) p += v;
@@ -203,7 +213,8 @@ export class Hud {
 
   private renderBalance() {
     this.balanceEl.textContent = money(this.shownBalance());
-    this.wrist?.redraw();
+    if (this.wristBuilder) this.wristBuilder();
+    else this.wrist?.redraw();
   }
 
   toast(text: string, kind: ToastKind = 'info') {
@@ -238,6 +249,7 @@ export class Hud {
   }
 
   private buildWrist() {
+    if (this.wristBuilder) return this.wristBuilder();
     const w = this.wrist;
     w.buttons.length = 0;
     w.background = (ctx) => {
@@ -277,7 +289,7 @@ export class Hud {
       const left = this.interaction.controller('left');
       if (left) {
         left.add(this.wrist.mesh);
-        this.wrist.mesh.position.set(0, 0.07, 0.04);
+        this.wrist.mesh.position.set(0, 0.1, 0.05);
         this.wrist.mesh.rotation.set(-1.0, 0, 0);
         this.wristAttached = true;
       }

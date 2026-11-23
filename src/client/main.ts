@@ -10,6 +10,8 @@ import { CrapsTable } from './craps/table';
 import { PostFX } from './post';
 import { Session } from './net/session';
 import { setupLobby } from './net/lobby';
+import { connect, newCode, type Transport } from './net/transport';
+import { VrMenu } from './vrmenu';
 import { bakeStatic } from './merge';
 import { buildBlackjack } from './pit';
 import { SlotRows } from './decor';
@@ -348,7 +350,8 @@ async function main() {
     { id: 'craps', label: 'Craps', viewpoint: craps.viewpoint },
   ];
   hud.setNav(nav);
-  const seatable = [{ vp: roulette.viewpoint, label: 'Sit at roulette' }, { vp: craps.viewpoint, label: 'Shoot dice' }, ...machines.map((m) => ({ vp: m.viewpoint, label: `Play ${m.machine.name}` })), { vp: piggy.viewpoint, label: `Play ${piggy.machine.name}` }];
+  // Tables count as 'at the game' anywhere around them (walk up and play); machines when you stand at one.
+  const seatable: { vp: Viewpoint; label: string; center?: THREE.Vector3; reach?: number }[] = [{ vp: roulette.viewpoint, label: 'Sit at roulette', center: roulette.group.position.clone().add(new THREE.Vector3(0.2, 0, 0.1)), reach: 2.6 }, { vp: craps.viewpoint, label: 'Shoot dice', center: craps.group.position.clone(), reach: 2.9 }, ...machines.map((m) => ({ vp: m.viewpoint, label: `Play ${m.machine.name}` })), { vp: piggy.viewpoint, label: `Play ${piggy.machine.name}` }];
   hud.onNavigate = (item) => {
     if (!item.viewpoint) return;
     const seat = seatable.find((s) => s.vp === item.viewpoint);
@@ -365,9 +368,10 @@ async function main() {
   const nearestSeat = (r: number) => {
     const f = player.feet();
     let best: (typeof seatable)[number] | null = null,
-      bd = r;
+      bd = 1;
     for (const s of seatable) {
-      const d = s.vp.position.distanceTo(f);
+      // Distance as a fraction of how close you need to be (tables are big).
+      const d = (s.center ? s.center.distanceTo(f) : s.vp.position.distanceTo(f)) / (s.reach ?? r);
       if (d < bd) {
         bd = d;
         best = s;
@@ -378,6 +382,13 @@ async function main() {
 
   // --- Keyboard, entry screen, map --------------------------------------------------
   const enter = document.getElementById('enter')!;
+  // A headset browser (Quest) can run immersive VR: there we never grab the mouse
+  // pointer, which would swallow every click (including Enter VR).
+  const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
+  const vrCapable = !!xr && (await xr.isSessionSupported('immersive-vr').catch(() => false));
+  const lock = () => {
+    if (!vrCapable) player.lockPointer();
+  };
   const touch = new TouchControls(player);
   const isTouch = touch.enabled;
   // Once faded, remove the entry screen entirely so it can never catch a tap.
@@ -397,9 +408,33 @@ async function main() {
   const roomPill = document.getElementById('room-pill') as HTMLButtonElement;
   const chatForm = document.getElementById('chat') as HTMLFormElement;
   const chatInput = document.getElementById('chat-input') as HTMLInputElement;
+  const voiceBtn = document.getElementById('voice-btn') as HTMLButtonElement;
+  const showVoice = () => {
+    const v = session?.voice;
+    voiceBtn.hidden = !session;
+    if (!v) return;
+    voiceBtn.textContent = !v.enabled ? 'Voice off' : v.muted ? 'Muted (V)' : v.connectedCount ? 'Voice live (V)' : 'Voice on…';
+    voiceBtn.classList.toggle('live', v.enabled && !v.muted);
+  };
+  const toggleVoice = async () => {
+    const s = session;
+    if (!s) return;
+    if (!s.voice.enabled) {
+      voiceBtn.textContent = 'Allow the mic…';
+      const err = await s.enableVoice();
+      if (err) hud.toast(err, 'warn');
+      else hud.toast('Voice chat on · V to mute', 'win');
+    } else s.voice.setMuted(!s.voice.muted);
+    showVoice();
+  };
+  voiceBtn.addEventListener('click', () => void toggleVoice());
+  addEventListener('keydown', (e) => {
+    if (e.code === 'KeyV' && session?.voice.enabled && !player.inXR) session.voice.setMuted(!session.voice.muted);
+  });
   const showRoom = (friends: string[]) => {
     if (!session) return;
     roomPill.hidden = false;
+    showVoice();
     roomPill.textContent = `Room LAGO-${session.code} · ${friends.length ? 'with ' + friends.join(', ') : 'waiting for your friend'} · Chat`;
   };
   const openChat = () => {
@@ -434,37 +469,107 @@ async function main() {
       openChat();
     }
   });
-  setupLobby((choice) => {
-    enter.classList.add('done');
-    if (!isTouch) player.lockPointer();
-    else setTimeout(() => hud.toast('Drag to look · left stick to walk · tap to play', 'info'), 1600);
-    if (choice.net) {
-      session = new Session({
-        transport: choice.net.transport,
-        host: choice.net.host,
-        name: choice.name,
-        avatar: choice.avatar,
-        crowd,
-        player,
-        hud,
-        scene,
-        bankroll,
-        roulette,
-        craps,
-        cheer: (at) => {
-          crowd.react(at, 3, 'cheer');
-          sound.play('cheer', at, { volume: 0.7 });
-        },
-        onRoster: (f) => showRoom(f),
-      });
-      showRoom([]);
-      hud.toast(choice.net.host ? `Room LAGO-${session.code} is open · press T to chat` : `Joined room LAGO-${session.code}`, 'win');
-      (window as unknown as { casino: Record<string, unknown> }).casino.session = session;
-    }
+  const startSession = (net: { transport: Transport; host: boolean }, name: string, avatar: number) => {
+    session?.leave();
+    session = new Session({
+      transport: net.transport,
+      host: net.host,
+      name,
+      avatar,
+      crowd,
+      player,
+      hud,
+      scene,
+      bankroll,
+      roulette,
+      craps,
+      listener: sound.listener,
+      hands: () => {
+        if (!player.inXR) return null;
+        const at = (side: 'left' | 'right') => {
+          const c = interaction.controller(side);
+          return c && c.userData.connected !== false ? c.getWorldPosition(new THREE.Vector3()) : null;
+        };
+        return { l: at('left'), r: at('right') };
+      },
+      slap: (at) => {
+        sound.play('ballDrop', at, { volume: 1, rate: 0.45 });
+        sound.play('chip', at, { volume: 0.8, rate: 0.6 });
+      },
+      cheer: (at) => {
+        crowd.react(at, 3, 'cheer');
+        sound.play('cheer', at, { volume: 0.7 });
+      },
+      onRoster: (f) => showRoom(f),
+    });
+    session.onChange = () => {
+      showRoom(session?.friends ?? []);
+      vrMenu.redraw();
+    };
+    showRoom([]);
+    hud.toast(net.host ? `Room LAGO-${session.code} is open · press T to chat` : `Joined room LAGO-${session.code}`, 'win');
+    (window as unknown as { casino: Record<string, unknown> }).casino.session = session;
+    vrMenu.redraw();
+  };
+  let me = { name: 'Guest', avatar: 0 };
+  setupLobby(
+    (choice) => {
+      enter.classList.add('done');
+      me = { name: choice.name, avatar: choice.avatar };
+      if (!isTouch) lock();
+      else setTimeout(() => hud.toast('Drag to look · left stick to walk · tap to play', 'info'), 1600);
+      if (choice.net) startSession(choice.net, choice.name, choice.avatar);
+      if (choice.vr) void enterVR();
+    },
+    { vr: vrCapable },
+  );
+  // --- Everything in the screen menus, in VR (left wrist) ----------------------------------
+  const vrMenu = new VrMenu(hud.wrist, {
+    hud,
+    interaction,
+    scene,
+    camera,
+    nav: () => hud.navItems,
+    navigate: (item) => hud.onNavigate?.(item),
+    session: () => session,
+    host: async () => {
+      const code = newCode();
+      startSession({ transport: await connect(code, true), host: true }, me.name, me.avatar);
+    },
+    join: async (code) => {
+      startSession({ transport: await connect(code, false), host: false }, me.name, me.avatar);
+    },
+    leaveRoom: () => {
+      session?.leave();
+      session = null;
+      roomPill.hidden = true;
+      voiceBtn.hidden = true;
+      chatForm.hidden = true;
+      hud.toast('You left the room', 'info');
+    },
+    avatar: () => me.avatar,
+    setAvatar: (i) => {
+      me.avatar = i;
+      session?.setAvatar(i);
+      try {
+        localStorage.setItem('lago.avatar', String(i));
+      } catch {
+        /* private mode */
+      }
+    },
+    toggleMusic: () => document.getElementById('music')!.click(),
+    toggleSound: () => document.getElementById('sound')!.click(),
+    musicOn: () => document.getElementById('music')!.textContent === 'Music on',
+    soundOn: () => !sound.muted,
+    resetChips: () => document.getElementById('reset')!.click(),
+    exitVR: () => void xrSession?.end(),
+    helpText: () => [...document.querySelectorAll('#help .card p')].map((p) => p.textContent ?? ''),
   });
+  vrMenu.redraw();
+  renderer.xr.addEventListener('sessionend', () => vrMenu.close());
   renderer.domElement.addEventListener('click', () => {
     // Clicking the room in free-cursor mode while standing re-captures the mouse.
-    if (!player.seated && !player.pointerLocked && !player.inXR && enter.classList.contains('done') && !interaction.hoverLabel()) player.lockPointer();
+    if (!player.seated && !player.pointerLocked && !player.inXR && enter.classList.contains('done') && !interaction.hoverLabel()) lock();
   });
   const mapBtn = document.getElementById('map-btn')!;
   mapBtn.addEventListener('click', () => hud.toggleMap());
@@ -473,7 +578,7 @@ async function main() {
     if (e.code === 'KeyE' && !player.inXR) {
       if (player.seated) {
         player.stand();
-        player.lockPointer();
+        lock();
       } else {
         const s = nearestSeat(1.8);
         if (s) player.sit(s.vp);
@@ -526,30 +631,35 @@ async function main() {
 
   // --- VR -------------------------------------------------------------------
   const vrBtn = document.getElementById('vr') as HTMLButtonElement;
-  const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
-  if (xr && (await xr.isSessionSupported('immersive-vr').catch(() => false))) {
-    vrBtn.hidden = false;
-    let session: XRSession | null = null;
-    vrBtn.addEventListener('click', async () => {
-      if (session) return session.end();
-      enter.classList.add('done');
-      session = await xr.requestSession('immersive-vr', {
-        optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'],
-      });
-      session.addEventListener('end', () => {
-        session = null;
-        vrBtn.textContent = 'Enter VR';
-      });
-      await renderer.xr.setSession(session);
-      vrBtn.textContent = 'Exit VR';
-      // Head pose is known after the first XR frame; then put the player where they were.
-      const where: Viewpoint = { ...lobby, position: player.feet(), yaw: player.rig.rotation.y };
-      setTimeout(() => {
-        player.place(where);
-        player.current = null;
-        crew.regroup();
-      }, 120);
+  let xrSession: XRSession | null = null;
+  async function enterVR() {
+    if (!xr || !vrCapable) return;
+    if (xrSession) return xrSession.end();
+    enter.classList.add('done');
+    if (document.pointerLockElement) document.exitPointerLock();
+    try {
+      xrSession = await xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] });
+    } catch (e) {
+      hud.toast(`Couldn't start VR: ${(e as Error).message}`, 'warn');
+      return;
+    }
+    xrSession.addEventListener('end', () => {
+      xrSession = null;
+      vrBtn.textContent = 'Enter VR';
     });
+    await renderer.xr.setSession(xrSession);
+    vrBtn.textContent = 'Exit VR';
+    // Head pose is known after the first XR frame; then put the player where they were.
+    const where: Viewpoint = { ...lobby, position: player.feet(), yaw: player.rig.rotation.y };
+    setTimeout(() => {
+      player.place(where);
+      player.current = null;
+      crew.regroup();
+    }, 120);
+  }
+  if (vrCapable) {
+    vrBtn.hidden = false;
+    vrBtn.addEventListener('click', () => void enterVR());
   }
 
   // Portrait phones get a taller field of view so you still see the room, not a slice.
@@ -722,7 +832,8 @@ async function main() {
     // Game controls, the touch context button, and seated state for the layout.
     document.body.classList.toggle('seated', !!player.seated);
     if (!player.inXR) {
-      const station = isTouch ? player.seated?.id ?? null : hud.station;
+      // Walk up and play: the game's controls show as soon as you're at it, sitting or not.
+      const station = hud.station;
       const m = machines.find((mm) => mm.machine.id === station);
       hud.setControls(station === 'roulette' ? rouletteControls() : station === 'craps' ? crapsControls() : m ? slotControls(m) : station === piggy.machine.id ? piggyControls(piggy) : null);
       if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());

@@ -26,6 +26,13 @@ the artifact's live room (your friend needs access to the artifact); anywhere el
 browsers directly over WebRTC (PeerJS's free public broker introduces them). Add `?net=local` to test
 with two tabs of one browser.
 
+**Being there together:** voice chat (Voice button, or Room on your VR wrist; V mutes) plays your
+friend's voice from their avatar. In VR their avatar's arms follow their real hands, their head
+follows where they look, and its mouth moves when they talk (from their mic level). Slap hands in
+VR for a high five. Every screen menu is also on your left wrist in VR: Go (map), Room (host, join
+with a code keypad, character, voice, quick chat) and Menu (music, sound, help, reset chips, exit VR).
+Tables and machines are walk-up-and-play: stand at one and its controls appear; sitting is optional.
+
 It plays like a night out with the guys: your crew (Rocco, Dev and Mikey) follow you around, hype your
 wins and razz your losses; there's a casino-floor groove, hot streaks, big-win celebrations with confetti,
 and six goals for the night (win at roulette, hit a slot bonus, buy the boys a round, tip the piano man,

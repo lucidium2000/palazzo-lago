@@ -28,6 +28,15 @@ export interface PlayerState {
   /** Viewpoint id when sitting/playing at a game. */
   seat: string | null;
   chips: number;
+  /** Voice chat switched on. */
+  v?: boolean;
+  /** Head height above the floor (VR), metres. */
+  hh?: number;
+  /** Real hand positions in VR (world, metres), when tracked. */
+  lh?: number[] | null;
+  rh?: number[] | null;
+  /** Mouth openness 0..9 (from the mic). */
+  mo?: number;
 }
 
 export interface NetEvent {
