@@ -17,6 +17,15 @@ odds, Place bets (9:5, 7:5, 7:6), a Field paying double on 2 and triple on 12, B
 the one-roll props, $10 table minimum. The dice are thrown with real rigid-body physics (19 mm cubes
 off the felt and the rubber pyramids on the back wall); in VR you pick them up and throw them yourself.
 
+**Two players:** pick a character on the start screen (cycle through them or hit Random), then play
+solo, **host** a room (you get a code like `LAGO-7K2F`) or **join** a friend's room with their code. You
+see each other on the floor with name tags and chat bubbles (press T), big wins are announced, and
+roulette and craps are shared tables: the host's machine spins and rolls for both of you, either player
+can call the spin or shoot the dice, and each bets their own chips. On the claude.ai link the game uses
+the artifact's live room (your friend needs access to the artifact); anywhere else it connects the two
+browsers directly over WebRTC (PeerJS's free public broker introduces them). Add `?net=local` to test
+with two tabs of one browser.
+
 It plays like a night out with the guys: your crew (Rocco, Dev and Mikey) follow you around, hype your
 wins and razz your losses; there's a casino-floor groove, hot streaks, big-win celebrations with confetti,
 and six goals for the night (win at roulette, hit a slot bonus, buy the boys a round, tip the piano man,

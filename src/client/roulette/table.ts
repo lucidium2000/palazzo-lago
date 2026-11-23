@@ -680,26 +680,65 @@ export class RouletteTable {
     this.group.add(dynamic(rack));
   }
 
+  /**
+   * Shared-table hooks (two-player games). The host's machine decides every
+   * spin; a guest's SPIN asks the host to spin.
+   */
+  net: { role: 'host' | 'guest'; request(): void; announce(s: { pocket: Pocket; seed: number; rotor: number }): void } | null = null;
+
   startSpin() {
     if (this.game.phase !== 'betting') return;
-    if (this.game.bets.size === 0) {
+    const shared = !!this.net;
+    if (this.game.bets.size === 0 && !shared) {
       this.ctx.hud.toast('Place a bet first', 'warn');
+      return;
+    }
+    const problem = this.game.minimumProblem();
+    if (problem) {
+      this.ctx.hud.toast(problem, 'warn');
+      this.ctx.sound.play('denied', this.panel.mesh, { volume: 0.6 });
+      return;
+    }
+    if (this.net?.role === 'guest') {
+      this.net.request();
+      this.ctx.hud.toast('“Spinning for you, sir.”', 'info');
       return;
     }
     let target: Pocket;
     try {
-      target = this.game.spin(this.ctx.rng);
+      target = this.game.spin(this.ctx.rng, { allowEmpty: shared });
     } catch (e) {
       if (!(e instanceof BetRejected)) throw e;
       this.ctx.hud.toast(e.message, 'warn');
       this.ctx.sound.play('denied', this.panel.mesh, { volume: 0.6 });
       return;
     }
+    const seed = (Math.random() * 2 ** 31) | 0;
+    const rotor = 2.0 + Math.random() * 0.8;
+    this.net?.announce({ pocket: target, seed, rotor });
+    this.beginSpin(target, seed, rotor);
+  }
+
+  /** A spin decided by the host's machine arrives (guest side). */
+  applyRemoteSpin(pocket: Pocket, seed: number, rotor: number) {
+    if (this.game.phase !== 'betting') return;
+    try {
+      this.game.spinTo(pocket, { allowEmpty: true });
+    } catch {
+      // Our own bets are below the table minimum: they come back and we watch.
+      this.game.clearBets();
+      for (const id of [...this.stacks.keys()]) this.refreshStack(id);
+      this.ctx.hud.toast('Your bets were under the minimum and came back to you', 'warn');
+      this.game.spinTo(pocket, { allowEmpty: true });
+    }
+    this.beginSpin(pocket, seed, rotor);
+  }
+
+  private beginSpin(target: Pocket, seed: number, rotorSpeed: number) {
     this.onSpin?.();
     // The dealer spins the rotor up and launches the ball against it; the
     // motion is simulated in advance and turned so it ends in the chosen pocket.
-    const rotorSpeed = 2.0 + Math.random() * 0.8;
-    const plan = simulateSpin({ rotorSpeed, seed: (Math.random() * 2 ** 31) | 0 });
+    const plan = simulateSpin({ rotorSpeed, seed });
     const aim = aimFor(plan, WHEEL_ORDER.indexOf(target));
     this.spin = { t: 0, target, plan, aim, rotor0: this.rotorAngle, hit: 0 };
     this.rotorSpeed = rotorSpeed;
@@ -726,7 +765,7 @@ export class RouletteTable {
       this.ctx.hud.toast(`${label} · You win ${money(result.totalReturned)}`, 'win');
       this.ctx.sound.play(result.totalReturned >= result.totalStaked * 10 ? 'winBig' : 'winSmall', this.wheelGroup);
     } else {
-      this.ctx.hud.toast(`${label} · Better luck next spin`, 'info');
+      this.ctx.hud.toast(result.totalStaked > 0 ? `${label} · Better luck next spin` : label, 'info');
     }
 
     // Dolly on the winning number.

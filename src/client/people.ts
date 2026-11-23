@@ -174,7 +174,7 @@ export class Crowd {
     private lib: PeopleLib | null = null,
   ) {
     // Three extra slots are always kept for your crew.
-    this.max = q.people + 3;
+    this.max = q.people + 4; // 3 crew + 1 remote player reserved
     scene.add(this.group);
     const cloth = new THREE.MeshStandardMaterial({ roughness: 0.75, envMapIntensity: 0.6 });
     const satin = new THREE.MeshStandardMaterial({ roughness: 0.35, envMapIntensity: 1.0 });
@@ -236,11 +236,11 @@ export class Crowd {
   }
 
   get capacity() {
-    return this.max - 3;
+    return this.max - 4;
   }
 
   add(role: Role, look: Look, at: THREE.Vector3, yaw = 0): Person | null {
-    const limit = role === 'buddy' ? this.max : this.max - 3;
+    const limit = role === 'buddy' ? this.max : this.max - 4;
     if (this.people.length >= limit) return null;
     const p = new Person(role, look);
     p.pos.copy(at);

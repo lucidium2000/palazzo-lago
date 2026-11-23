@@ -8,6 +8,8 @@ import { buildCasino, POSITIONS, registerHall, SLOTS_YAW } from './casino';
 import { preloadChips } from './chips';
 import { CrapsTable } from './craps/table';
 import { PostFX } from './post';
+import { Session } from './net/session';
+import { setupLobby } from './net/lobby';
 import { bakeStatic } from './merge';
 import { buildBlackjack } from './pit';
 import { SlotRows } from './decor';
@@ -259,6 +261,12 @@ async function main() {
   // Your crew for the night, and the shape of the night.
   const crew = new Crew(crowd, world, player, hud, sound, randomLook);
   const night = new Night(scene, hud, sound, crew, crowd, bankroll);
+  // Shout big wins to your friend in a two-player game.
+  const nightResult = night.result.bind(night);
+  night.result = (game, staked, returned, at) => {
+    nightResult(game, staked, returned, at);
+    if (session && returned > 0 && returned >= Math.max(staked * 10, 250)) session.bigWin(game === 'slots' ? 'the slots' : game, returned);
+  };
   const croupierSays = (text: string) => {
     hud.say('Croupier', text);
     sound.say(text, { pitch: 0.9, rate: 0.95, voice: 0, interrupt: true });
@@ -376,15 +384,84 @@ async function main() {
   new MutationObserver(() => {
     if (enter.classList.contains('done')) setTimeout(() => enter.classList.add('gone'), 450);
   }).observe(enter, { attributes: true, attributeFilter: ['class'] });
-  const stepInside = () => {
-    enter.classList.add('done');
-    player.lockPointer();
+  // Typing in a text box (name, room code, chat) must not walk, sit or bet.
+  addEventListener(
+    'keydown',
+    (e) => {
+      if (e.target instanceof HTMLInputElement) e.stopImmediatePropagation();
+    },
+    true,
+  );
+  // --- Start screen: solo, host a two-player room, or join one --------------------------
+  let session: Session | null = null;
+  const roomPill = document.getElementById('room-pill') as HTMLButtonElement;
+  const chatForm = document.getElementById('chat') as HTMLFormElement;
+  const chatInput = document.getElementById('chat-input') as HTMLInputElement;
+  const showRoom = (friends: string[]) => {
+    if (!session) return;
+    roomPill.hidden = false;
+    roomPill.textContent = `Room LAGO-${session.code} · ${friends.length ? 'with ' + friends.join(', ') : 'waiting for your friend'} · Chat`;
   };
-  document.getElementById('enter-btn')!.addEventListener('click', stepInside);
-  if (isTouch) {
-    enter.classList.add('done');
-    setTimeout(() => hud.toast('Drag to look · left stick to walk · tap to play', 'info'), 1600);
+  const openChat = () => {
+    if (!session) return;
+    chatForm.hidden = false;
+    if (document.pointerLockElement) document.exitPointerLock();
+    chatInput.focus();
+  };
+  const closeChat = () => {
+    chatForm.hidden = true;
+    chatInput.blur();
+  };
+  roomPill.addEventListener('click', () => (chatForm.hidden ? openChat() : closeChat()));
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    session?.say(chatInput.value);
+    chatInput.value = '';
+    closeChat();
+  });
+  for (const b of chatForm.querySelectorAll('.quick button')) {
+    b.addEventListener('click', () => {
+      session?.say(b.textContent ?? '');
+      closeChat();
+    });
   }
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeChat();
+  });
+  addEventListener('keydown', (e) => {
+    if (e.code === 'KeyT' && session && chatForm.hidden && !player.inXR) {
+      e.preventDefault();
+      openChat();
+    }
+  });
+  setupLobby((choice) => {
+    enter.classList.add('done');
+    if (!isTouch) player.lockPointer();
+    else setTimeout(() => hud.toast('Drag to look · left stick to walk · tap to play', 'info'), 1600);
+    if (choice.net) {
+      session = new Session({
+        transport: choice.net.transport,
+        host: choice.net.host,
+        name: choice.name,
+        avatar: choice.avatar,
+        crowd,
+        player,
+        hud,
+        scene,
+        bankroll,
+        roulette,
+        craps,
+        cheer: (at) => {
+          crowd.react(at, 3, 'cheer');
+          sound.play('cheer', at, { volume: 0.7 });
+        },
+        onRoster: (f) => showRoom(f),
+      });
+      showRoom([]);
+      hud.toast(choice.net.host ? `Room LAGO-${session.code} is open · press T to chat` : `Joined room LAGO-${session.code}`, 'win');
+      (window as unknown as { casino: Record<string, unknown> }).casino.session = session;
+    }
+  });
   renderer.domElement.addEventListener('click', () => {
     // Clicking the room in free-cursor mode while standing re-captures the mouse.
     if (!player.seated && !player.pointerLocked && !player.inXR && enter.classList.contains('done') && !interaction.hoverLabel()) player.lockPointer();
@@ -628,6 +705,7 @@ async function main() {
 
     roulette.update(dt);
     craps.update(dt);
+    session?.update(dt);
     for (const m of machines) m.update(dt);
     piggy.update(dt);
     slotRows.update(t, feet);

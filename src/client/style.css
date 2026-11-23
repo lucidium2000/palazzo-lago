@@ -319,6 +319,147 @@ button.primary {
   font-size: 13px;
   color: #b9a77e;
 }
+#enter .card {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+#enter .intro {
+  margin: 6px 0 10px;
+}
+#enter .avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+#av-canvas {
+  width: 170px;
+  height: 230px;
+  border-radius: 16px;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 210, 140, 0.25), rgba(0, 0, 0, 0) 70%);
+}
+#enter button.arrow {
+  font-size: 30px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  line-height: 1;
+}
+#enter .av-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 2px 0 10px;
+  color: var(--gold-light);
+  font-style: italic;
+  font-size: 18px;
+}
+#enter button.small {
+  font-size: 14px;
+  padding: 5px 14px;
+  margin: 0;
+}
+#enter input {
+  font: inherit;
+  font-size: 17px;
+  width: min(100%, 300px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(216, 178, 90, 0.7);
+  background: rgba(0, 0, 0, 0.45);
+  color: #f6ead0;
+  text-align: center;
+}
+#enter .modes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+#enter .modes button {
+  margin: 0;
+  font-size: 16px;
+  padding: 10px 18px;
+}
+#join-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+}
+#join-row[hidden] {
+  display: none;
+}
+#join-row input {
+  width: 220px;
+  text-transform: uppercase;
+}
+#join-row button {
+  margin: 0;
+}
+#net-status {
+  min-height: 1.4em;
+  margin: 10px 0 4px;
+  color: #f0d79a;
+}
+#net-status .code {
+  display: block;
+  font-size: 34px;
+  letter-spacing: 0.12em;
+  color: #fff3d0;
+  font-weight: bold;
+  margin: 4px 0;
+}
+#net-status.err {
+  color: #ff9a8a;
+}
+#room-pill {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  padding: 6px 14px;
+  pointer-events: auto;
+}
+#room-pill[hidden],
+#chat[hidden] {
+  display: none;
+}
+#chat {
+  position: absolute;
+  left: 50%;
+  bottom: 120px;
+  transform: translateX(-50%);
+  width: min(92vw, 560px);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#chat .quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+#chat .quick button {
+  font-size: 13px;
+  padding: 5px 10px;
+}
+#chat input {
+  font: inherit;
+  font-size: 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(216, 178, 90, 0.8);
+  background: rgba(14, 10, 8, 0.9);
+  color: #f6ead0;
+}
 
 /* ---------- On-screen game controls ---------- */
 #controls {
@@ -663,5 +804,18 @@ body.touch #prompt {
   #stick {
     width: 110px;
     height: 110px;
+  }
+}
+@media (max-height: 720px) {
+  #av-canvas {
+    width: 130px;
+    height: 170px;
+  }
+  #enter .intro,
+  #enter .keys {
+    display: none;
+  }
+  #enter .name {
+    font-size: 30px;
   }
 }

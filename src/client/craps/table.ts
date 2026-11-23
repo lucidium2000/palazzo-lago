@@ -690,6 +690,16 @@ export class CrapsTable {
   // ---------------------------------------------------------------------------
 
   /** Throws the dice (from the shooter's hand, or with a VR throw's own start and velocity). */
+  /**
+   * Shared-table hooks (two-player games). The host's machine rolls every
+   * pair of dice; a guest's throw asks the host to roll for them.
+   */
+  net: {
+    role: 'host' | 'guest';
+    request(t: { from: number[] | null; v: number[] | null }): void;
+    announce(r: { dice: [number, number]; seed: number; from: number[]; v: number[] | null; point: number | null }): void;
+  } | null = null;
+
   throwDice(from?: THREE.Vector3, velocity?: THREE.Vector3) {
     if (!this.canRoll && !(from && this.phase === 'betting')) return;
     const g = this.game;
@@ -699,28 +709,60 @@ export class CrapsTable {
       this.homeDice();
       return;
     }
-    let result: RollResult;
-    try {
-      result = g.roll(this.ctx.rng);
-    } catch (e) {
-      if (!(e instanceof CrapsBetRejected)) throw e;
-      this.ctx.hud.toast(e.message, 'warn');
+    const problem = g.minimumProblem();
+    if (problem) {
+      this.ctx.hud.toast(problem, 'warn');
       this.ctx.sound.play('denied', this.panel.mesh, { volume: 0.6 });
       this.homeDice();
       return;
     }
+    if (this.net?.role === 'guest') {
+      this.net.request({ from: from ? from.toArray() : null, v: velocity ? velocity.toArray() : null });
+      this.homeDice();
+      this.ctx.hud.toast('Dice are out!', 'info');
+      return;
+    }
+    this.hostRoll(from ?? null, velocity ?? null);
+  }
+
+  /** Host: roll for anyone at the table (own throw, or a guest's request). */
+  hostRoll(from: THREE.Vector3 | null, velocity: THREE.Vector3 | null) {
+    if (this.phase !== 'betting') return;
+    const dice: [number, number] = [this.ctx.rng.int(6) + 1, this.ctx.rng.int(6) + 1];
+    const seed = (Math.random() * 2 ** 31) | 0;
+    const start = from ?? new THREE.Vector3(SHOOTER.x + 0.05, 0.28, HZ - 0.12);
+    this.net?.announce({ dice, seed, from: start.toArray(), v: velocity ? velocity.toArray() : null, point: this.game.point });
+    this.beginRoll(dice, seed, start, velocity);
+  }
+
+  /** Guest: a roll decided by the host's machine arrives. */
+  applyRemoteRoll(dice: [number, number], seed: number, from: number[], v: number[] | null, point: number | null) {
+    if (this.phase !== 'betting') return;
+    // Follow the host's puck (we may have joined mid-hand).
+    if (this.game.point !== point) {
+      this.game.point = point;
+      this.placePucks(true);
+    }
+    this.beginRoll(dice, seed, new THREE.Vector3().fromArray(from), v ? new THREE.Vector3().fromArray(v) : null);
+  }
+
+  /** The puck as the host has it (sent when a friend joins). */
+  syncPoint(point: number | null) {
+    if (this.phase !== 'betting' || this.game.point === point) return;
+    this.game.point = point;
+    this.placePucks(true);
+    this.panel.redraw();
+  }
+
+  private beginRoll(dice: [number, number], seed: number, start: THREE.Vector3, velocity: THREE.Vector3 | null) {
+    const result = this.game.resolve(dice);
     const returned = result.results.reduce((s, r) => s + r.returned, 0);
     this.ctx.hud.setPending('craps', returned);
-
-    const start = from ?? new THREE.Vector3(SHOOTER.x + 0.05, 0.28, HZ - 0.12);
     let plan: DicePlan | null = null;
     for (let i = 0; i < 8; i++) {
-      const p = simulateThrow({ bed: { hx: HX, hz: HZ }, seed: (Math.random() * 2 ** 31) | 0, from: start, velocity: i < 4 ? velocity : undefined });
-      if (p.hitBackWall) {
-        plan = p;
-        break;
-      }
+      const p = simulateThrow({ bed: { hx: HX, hz: HZ }, seed: seed + i * 7919, from: start, velocity: i < 4 && velocity ? velocity : undefined });
       plan = p;
+      if (p.hitBackWall) break;
     }
     const fix = [faceFix(plan!.upLocal[0], result.dice[0]), faceFix(plan!.upLocal[1], result.dice[1])];
     this.roll = { plan: plan!, t: 0, result, hit: 0, fix };

@@ -256,14 +256,28 @@ export class RouletteGame {
     return null;
   }
 
-  spin(rng: Rng): Pocket {
+  spin(rng: Rng, opts: { allowEmpty?: boolean } = {}): Pocket {
+    this.check(opts);
+    return this.spinTo(WHEEL_ORDER[rng.int(POCKET_COUNT)], opts);
+  }
+
+  /**
+   * Closes betting on a pocket decided elsewhere (a shared table, where the
+   * host's machine spins). With `allowEmpty` the wheel spins even if this
+   * player has nothing on the layout.
+   */
+  spinTo(pocket: Pocket, opts: { allowEmpty?: boolean } = {}): Pocket {
+    this.check(opts);
+    this.phase = 'spinning';
+    this.pending = pocket;
+    return pocket;
+  }
+
+  private check(opts: { allowEmpty?: boolean }) {
     if (this.phase !== 'betting') throw new BetRejected('Already spinning');
-    if (this.bets.size === 0) throw new BetRejected('Place a bet first');
+    if (this.bets.size === 0 && !opts.allowEmpty) throw new BetRejected('Place a bet first');
     const problem = this.minimumProblem();
     if (problem) throw new BetRejected(problem);
-    this.phase = 'spinning';
-    this.pending = WHEEL_ORDER[rng.int(POCKET_COUNT)];
-    return this.pending;
   }
 
   settle(): SpinResult {
@@ -281,8 +295,10 @@ export class RouletteGame {
       totalReturned += returned;
     }
     if (totalReturned > 0) this.bankroll.credit(totalReturned, 'win', 'roulette');
-    this.bankroll.countRound();
-    this.lastBets = new Map(this.bets);
+    if (this.bets.size > 0) {
+      this.bankroll.countRound();
+      this.lastBets = new Map(this.bets);
+    }
     this.bets.clear();
     this.history.unshift(pocket);
     this.history.length = Math.min(this.history.length, 20);
