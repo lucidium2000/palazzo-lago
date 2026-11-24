@@ -9,6 +9,7 @@ import {
   JACKPOT_NEED,
   PIGGY,
   PiggyGame,
+  piggyLineWins,
   RED_ORDER,
   type CoinColor,
   type CoinEvent,
@@ -23,6 +24,7 @@ import type { Viewpoint } from '../player';
 import { radial, toTexture } from '../textures';
 import { addCabinetDetails, GLOW } from './details';
 import { COIN_COLORS, colorCoin, mystery, PIG_PALETTE, piggyAtlas, pigPortrait } from './piggyArt';
+import type { PiggyRemoteSpin } from '../net/mirrorCodec';
 
 /**
  * Porkbelly Payday on a modern tall cabinet: a big portrait screen with the
@@ -172,6 +174,10 @@ export class PiggyMachineView {
   private jpFlash: number[] = new Array(6).fill(-10);
   private lastFeatures: Feature[] = [];
   private infoPage = 0;
+  /** A spin your friend made on this machine, played here for show (their name), or null. */
+  private remote: string | null = null;
+  /** Every spin you make here, paid or free (two-player games show it on your friend's screen). */
+  onSpin: ((out: PiggySpin, removed: string[]) => void) | null = null;
 
   constructor(
     private ctx: GameContext,
@@ -465,6 +471,8 @@ export class PiggyMachineView {
   }
 
   onSpinPressed() {
+    // Your own play always wins over a friend's spin being shown here.
+    if (this.remote) this.endRemote();
     if (this.mode === 'spinning') return this.slamStop();
     if (this.mode === 'bonusEnd') return this.collect();
     if (this.mode === 'info') {
@@ -489,14 +497,77 @@ export class PiggyMachineView {
       this.ctx.sound.play('denied', this.deck.mesh);
       return;
     }
+    if (this.remote) this.endRemote();
     const strips = free && this.game.bonus ? this.game.bonus.reels : PIGGY.reels;
+    const removed = free && this.game.bonus ? [...this.game.bonus.removed] : [];
     this.lastStake = free ? 0 : this.game.bet;
     const out = this.game.spin(this.ctx.rng, forcedStops);
+    this.onSpin?.(out, removed);
     this.out = out;
     this.pendingWin = out.win;
     this.ctx.hud.setPending(PIGGY.id, out.win);
     this.shownWin = 0;
     this.mode = 'spinning';
+    this.scheduleReels(out, strips, free);
+  }
+
+  /** Are you using this machine: mid-spin, in a bonus or reading the rules? */
+  get busy(): boolean {
+    return (this.mode !== 'idle' && this.mode !== 'showing' && !this.remote) || this.game.phase !== 'idle';
+  }
+
+  /**
+   * Shows a spin your friend made on their Porkbelly: same stops, mystery
+   * reveal, coins flicking into the pigs, wins and bonus banners, all for show.
+   * Your banks, bonus, credits and HUD stay as they are. Returns false if
+   * you're busy at the machine yourself.
+   */
+  showRemoteSpin(spin: PiggyRemoteSpin, who: string): boolean {
+    if (this.busy) return false;
+    const raw = spin.strips.map((st, i) => windowAt3(st, spin.stops[i]));
+    const grid = raw.map((col) => col.map((x) => (x === 'MYSTERY' ? (spin.mystery ?? x) : x)));
+    if (grid.some((col) => col.includes('MYSTERY'))) return false;
+    const lineWins = piggyLineWins(grid, spin.bet);
+    const lineWin = Math.round(lineWins.reduce((a, w) => a + w.amount, 0) * 100) / 100;
+    const win = Math.round((lineWin + spin.jackpotWins.reduce((a, w) => a + w.amount, 0)) * 100) / 100;
+    // Coins "feed" up to your own bank levels, so your pigs' meters don't move.
+    const mine = this.game.bankFor();
+    this.out = {
+      free: spin.free,
+      bet: spin.bet,
+      stops: spin.stops,
+      raw,
+      grid,
+      mystery: spin.mystery,
+      coins: spin.coins,
+      jackpotCoins: spin.jackpotCoins,
+      jackpotWins: spin.jackpotWins,
+      lineWins,
+      lineWin,
+      win,
+      triggered: spin.triggered,
+      bank: { ...mine, jackpots: [...mine.jackpots] },
+    };
+    this.remote = who;
+    this.banner = null;
+    this.shownWin = 0;
+    this.mode = 'spinning';
+    this.scheduleReels(this.out, spin.strips, spin.free);
+    return true;
+  }
+
+  private endRemote() {
+    this.remote = null;
+    if (this.mode === 'spinning' || this.mode === 'reveal') {
+      for (const r of this.reels) r.stopped = true;
+      this.reelLoop.stop();
+      this.mode = 'idle';
+    }
+    this.banner = null;
+    this.syncShown();
+  }
+
+  private scheduleReels(out: PiggySpin, strips: readonly (readonly string[])[], free: boolean) {
     let t = free ? 0.55 : 0.7;
     this.reels.forEach((r, i) => {
       const len = strips[i].length;
@@ -578,7 +649,7 @@ export class PiggyMachineView {
         this.ctx.sound.play('winBig', this.screen.mesh);
         this.shower(40 + w.jackpot * 25, JACKPOT_NAMES[w.jackpot]);
         if (w.jackpot >= 3) this.ctx.sound.play('cheer', this.screen.mesh, { volume: 0.8 });
-        this.ctx.hud.toast(`${JACKPOT_NAMES[w.jackpot]} jackpot · ${money(w.amount)}`, 'win');
+        if (!this.remote) this.ctx.hud.toast(`${JACKPOT_NAMES[w.jackpot]} jackpot · ${money(w.amount)}`, 'win');
       });
     }
 
@@ -604,6 +675,22 @@ export class PiggyMachineView {
     });
 
     const settle = 0.3 + 0.28 * out.coins.length + (out.coins.length ? 0.9 : 0.2);
+    if (this.remote) {
+      // A friend's spin: show the bonus they hit, then put your own pigs back.
+      const who = this.remote;
+      if (out.triggered) {
+        const feats = COLORS.filter((c) => out.triggered![c]);
+        this.after(settle + 0.6, () => {
+          if (this.remote !== who) return;
+          this.showBanner(`${who.toUpperCase()} HIT THE BONUS!`, feats.map((f) => f.toUpperCase()).join(' + '), feats.length > 1 ? '#ffd86b' : hex(PIG_COLORS[feats[0]]), 3.2);
+          this.ctx.sound.play('banjo', this.screen.mesh, { volume: 0.7 });
+          this.shower(30 * feats.length);
+        });
+      }
+      this.after(settle, () => this.syncShown());
+      this.deck.redraw();
+      return;
+    }
     this.ctx.hud.setPending(PIGGY.id, 0);
     this.pendingWin = 0;
     if (!out.free) {
@@ -1161,7 +1248,7 @@ export class PiggyMachineView {
     const value = inBonus ? (this.mode === 'bonusEnd' ? this.bonusShownTotal : b!.won) : this.shownWin;
     ctx.font = `900 22px ${DISPLAY}`;
     ctx.fillStyle = GOLD_LIGHT;
-    ctx.fillText(inBonus ? 'BONUS WIN' : 'WIN', W / 2, y0 + 22);
+    ctx.fillText(inBonus ? 'BONUS WIN' : this.remote ? `${this.remote.toUpperCase()}'S ${this.out?.free ? 'FREE SPIN' : 'WIN'}` : 'WIN', W / 2, y0 + 22, W - 120);
     ctx.font = `900 ${this.mode === 'bonusEnd' ? 64 : 58}px ${DISPLAY}`;
     const winText = value > 0 ? money(value) : this.mode === 'spinning' ? 'GOOD LUCK!' : inBonus ? '$0' : 'PLAY NOW';
     outlined(ctx, winText, W / 2, y0 + 68, value > 0 ? '#ffd86b' : 'rgba(255,240,220,0.55)', '#2a0610', 8, W - 120, value > 0 ? '#ffb030' : undefined);
@@ -1688,4 +1775,10 @@ function blurred(src: HTMLCanvasElement): HTMLCanvasElement {
   for (let i = -5; i <= 5; i++) ctx.drawImage(src, 0, i * (src.height / 26));
   ctx.globalAlpha = 1;
   return c;
+}
+
+/** The three visible symbols of a strip at a stop (row 1 on the stop). */
+function windowAt3(strip: readonly string[], stop: number): string[] {
+  const n = strip.length;
+  return [strip[(stop - 1 + n) % n], strip[stop], strip[(stop + 1) % n]];
 }

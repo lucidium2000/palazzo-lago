@@ -11,6 +11,7 @@ import { PostFX } from './post';
 import { Dialogue, voiceArbiter } from './dialogue';
 import { AREA_NODES, buildAreas, registerAreas } from './areas';
 import { Session } from './net/session';
+import { Mirror } from './net/mirror';
 import { setupLobby } from './net/lobby';
 import { connect, newCode, type Transport } from './net/transport';
 import { VrMenu } from './vrmenu';
@@ -501,6 +502,8 @@ async function main() {
   );
   // --- Start screen: solo, host a two-player room, or join one --------------------------
   let session: Session | null = null;
+  /** Your friend's chips and slot spins shown on your screen (two-player rooms). */
+  let mirror: Mirror | null = null;
   const roomPill = document.getElementById('room-pill') as HTMLButtonElement;
   const chatForm = document.getElementById('chat') as HTMLFormElement;
   const chatInput = document.getElementById('chat-input') as HTMLInputElement;
@@ -569,6 +572,8 @@ async function main() {
   });
   let drinkSync: DrinkSync | null = null;
   const startSession = (net: { transport: Transport; host: boolean }, name: string, avatar: number) => {
+    mirror?.dispose();
+    mirror = null;
     session?.leave();
     session = new Session({
       transport: net.transport,
@@ -619,6 +624,17 @@ async function main() {
       showRoom(session?.friends ?? []);
       vrMenu.redraw();
     };
+    mirror = new Mirror({
+      session,
+      roulette,
+      craps,
+      machines,
+      piggy,
+      hud,
+      shadows: quality.shadows,
+      chip: (at) => sound.play('chip', at, { volume: 0.5, rate: 0.95 + Math.random() * 0.1 }),
+    });
+    (window as unknown as { casino: Record<string, unknown> }).casino.mirror = mirror;
     showRoom([]);
     hud.toast(net.host ? `Room LAGO-${session.code} is open · press T to chat` : `Joined room LAGO-${session.code}`, 'win');
     (window as unknown as { casino: Record<string, unknown> }).casino.session = session;
@@ -679,6 +695,8 @@ async function main() {
       startSession({ transport: await connect(code, false), host: false }, me.name, me.avatar);
     },
     leaveRoom: () => {
+      mirror?.dispose();
+      mirror = null;
       session?.leave();
       session = null;
       drinkSync?.dispose();
@@ -981,6 +999,7 @@ async function main() {
     craps.update(dt);
     session?.update(dt);
     drinkSync?.update();
+    mirror?.update(dt);
     // Walk up to craps in VR and the stickman slides you the dice.
     if (player.inXR && hud.station === 'craps') craps.offerDice(feet);
     {

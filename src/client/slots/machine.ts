@@ -1,7 +1,7 @@
 import { assets } from '../assets';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { SlotGame, symbolMap, type Machine, type SpinOutcome } from '../../rules/slots';
+import { outcomeForStops, SlotGame, symbolMap, type Machine, type SpinOutcome } from '../../rules/slots';
 import { money, Tweens, type GameContext } from '../game';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from '../panel';
 import type { Viewpoint } from '../player';
@@ -68,6 +68,11 @@ export class SlotMachineView {
   private dirty = true;
   private wasFeature = false;
   private featureTotal = 0;
+  /** A spin your friend made on this machine, played here for show (their name), or null. */
+  private remote: string | null = null;
+  private remoteBet = 0;
+  /** Every spin you make here (two-player games show it on your friend's screen). */
+  onSpin: ((s: { stops: number[]; bet: number; mult: number }) => void) | null = null;
 
   constructor(
     private ctx: GameContext,
@@ -446,6 +451,8 @@ export class SlotMachineView {
   }
 
   onSpinPressed() {
+    // Your own play always wins over a friend's spin being shown here.
+    if (this.remote) this.endRemote();
     if (this.mode === 'spinning') return this.slamStop();
     if (this.mode === 'pick') return;
     this.startSpin();
@@ -462,9 +469,13 @@ export class SlotMachineView {
       this.ctx.sound.play('denied', this.deck.mesh);
       return;
     }
+    if (this.remote) this.endRemote();
     const wasFree = this.game.phase === 'freeSpins';
     this.lastStake = wasFree ? 0 : this.game.bet;
+    const bet = wasFree ? this.game.freeSpinBet : this.game.bet;
     const out = this.game.spin(this.ctx.rng);
+    const mult = wasFree && this.machine.type === 'video' && this.machine.feature.type === 'freeSpins' ? this.machine.feature.multiplier : 1;
+    this.onSpin?.({ stops: [...out.stops], bet, mult });
     this.outcome = out;
     this.pendingWin = out.win;
     if (out.triggered === 'pick' && this.game.pickState) this.pendingWin = out.win;
@@ -472,7 +483,43 @@ export class SlotMachineView {
     this.shownWin = 0;
     this.mode = 'spinning';
     if (!wasFree && this.game.phase !== 'freeSpins') this.featureTotal = 0;
+    this.scheduleReels(out);
+  }
 
+  /** Is someone (you) using this machine right now: mid-spin, bonus, free spins or the paytable? */
+  get busy(): boolean {
+    return (this.mode !== 'idle' && this.mode !== 'showing' && !this.remote) || this.game.phase !== 'idle';
+  }
+
+  /**
+   * Shows a spin your friend made on their copy of this machine: the reels spin
+   * to the same stops and the win (or bonus) is presented, without touching your
+   * game, your credits or the HUD. Returns false if you're busy at it yourself.
+   */
+  showRemoteSpin(stops: number[], bet: number, mult: number, who: string): boolean {
+    if (this.busy) return false;
+    if (stops.length !== this.machine.reels.length) return false;
+    const out = outcomeForStops(this.machine, stops, bet, mult);
+    this.remote = who;
+    this.remoteBet = bet;
+    this.outcome = out;
+    this.shownWin = 0;
+    this.mode = 'spinning';
+    this.scheduleReels(out);
+    return true;
+  }
+
+  private endRemote() {
+    this.remote = null;
+    if (this.mode === 'spinning') {
+      for (const r of this.reels) r.stopped = true;
+      this.reelLoop.stop();
+      this.mode = 'idle';
+    }
+    this.dirty = true;
+  }
+
+  private scheduleReels(out: SpinOutcome) {
     // Stop times, with anticipation when a feature is one symbol away.
     const defs = symbolMap(this.machine);
     const featureKind = this.machine.type === 'video' ? (this.machine.feature.type === 'freeSpins' ? 'scatter' : 'bonus') : null;
@@ -517,6 +564,7 @@ export class SlotMachineView {
 
   private onAllStopped() {
     const out = this.outcome!;
+    if (this.remote) return this.remoteStopped(out);
     this.onResult?.(this.lastStake, out.win, out.triggered);
     this.reelLoop.stop();
     this.mode = 'showing';
@@ -554,6 +602,22 @@ export class SlotMachineView {
     this.wasFeature = this.game.phase === 'freeSpins';
     this.dirty = true;
     this.deck.redraw();
+  }
+
+  /** A friend's spin landed: lights, sounds and the win meter, nothing else. */
+  private remoteStopped(out: SpinOutcome) {
+    this.reelLoop.stop();
+    this.mode = 'showing';
+    this.winTimer = 0;
+    if (out.win > 0) {
+      this.ctx.sound.play(out.win >= this.remoteBet * 15 ? 'winBig' : 'winSmall', this.screen.mesh, { volume: 0.7 });
+      this.tweens.add(Math.min(2.5, 0.6 + out.win / 200), (k) => {
+        this.shownWin = Math.round(out.win * k * 100) / 100;
+        this.dirty = true;
+      });
+    }
+    if (out.triggered) this.ctx.sound.play('bonus', this.screen.mesh, { volume: 0.7 });
+    this.dirty = true;
   }
 
   // ---------------------------------------------------------------------------
@@ -713,7 +777,11 @@ export class SlotMachineView {
     // Top and bottom bands.
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (this.game.phase === 'freeSpins' || (this.outcome?.triggered === 'freeSpins' && this.mode === 'showing')) {
+    if (this.remote) {
+      const t = this.outcome?.triggered;
+      const done = this.mode === 'showing';
+      this.banner(done && t === 'freeSpins' ? `${this.remote} won FREE SPINS!` : done && t === 'pick' ? `${this.remote} hit the BONUS!` : `${this.remote}'s spin`, 34, 30);
+    } else if (this.game.phase === 'freeSpins' || (this.outcome?.triggered === 'freeSpins' && this.mode === 'showing')) {
       this.banner(`FREE SPINS · ${this.game.freeSpinsLeft} left · wins x2 · ${money(this.featureTotal)}`, 34, 32);
     } else if (this.machine.type === 'video') {
       ctx.fillStyle = 'rgba(255,240,200,0.75)';

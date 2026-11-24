@@ -12,7 +12,7 @@ import { DIE, faceFix, poseAt, simulateThrow, type DicePlan, type DieFrame } fro
 import { anchorPx, BED, crapsFelt, localToPx, pxToLocal, puckPx, regionAt } from './felt';
 
 /** A 12-ft Strip craps table: felt 72 cm up, rail 98 cm, 26 cm deep tub. */
-const FELT_Y = 0.72;
+export const FELT_Y = 0.72;
 const RAIL_Y = 0.98;
 const OUT = { w: 3.66, d: 1.62 };
 const HX = BED.w / 2;
