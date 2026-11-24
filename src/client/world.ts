@@ -34,6 +34,8 @@ export class World {
   private circles: Circle[] = [];
   private boxes: Box[] = [];
   private surfaces: { rect: Rect; surface: Surface }[] = [];
+  private grounds: { rect: Rect; height: (x: number, z: number) => number }[] = [];
+  private waters: { rect: Rect; y: number }[] = [];
 
   addWalkable(x0: number, x1: number, z0: number, z1: number) {
     this.walk.push({ x0, x1, z0, z1 });
@@ -54,6 +56,34 @@ export class World {
     const p = new THREE.Vector3(cx, 0, cz).applyMatrix4(obj.matrixWorld);
     const yaw = new THREE.Euler().setFromQuaternion(obj.getWorldQuaternion(new THREE.Quaternion()), 'YXZ').y;
     this.addBox(p.x, p.z, w, d, yaw);
+  }
+
+  /**
+   * A region whose floor isn't at y = 0 (a pool basin, steps): `height(x, z)`
+   * gives the floor height inside the rect. Later regions win.
+   */
+  addGround(x0: number, x1: number, z0: number, z1: number, height: (x: number, z: number) => number) {
+    this.grounds.push({ rect: { x0, x1, z0, z1 }, height });
+  }
+
+  /** Water with its surface at `y` over a rect (swimmable). */
+  addWater(x0: number, x1: number, z0: number, z1: number, y: number) {
+    this.waters.push({ rect: { x0, x1, z0, z1 }, y });
+  }
+
+  /** Floor height under (x, z). */
+  groundAt(x: number, z: number): number {
+    for (let i = this.grounds.length - 1; i >= 0; i--) {
+      const { rect, height } = this.grounds[i];
+      if (x >= rect.x0 && x <= rect.x1 && z >= rect.z0 && z <= rect.z1) return height(x, z);
+    }
+    return 0;
+  }
+
+  /** Water surface height over (x, z), or null when dry. */
+  waterAt(x: number, z: number): number | null {
+    for (const w of this.waters) if (x >= w.rect.x0 && x <= w.rect.x1 && z >= w.rect.z0 && z <= w.rect.z1) return w.y;
+    return null;
   }
 
   addSurface(surface: Surface, x0: number, x1: number, z0: number, z1: number) {

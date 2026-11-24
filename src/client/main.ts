@@ -15,6 +15,7 @@ import { setupLobby } from './net/lobby';
 import { connect, newCode, type Transport } from './net/transport';
 import { VrMenu } from './vrmenu';
 import { SelfBody } from './selfbody';
+import { SwimFX } from './areas/swim';
 import { OPEN, type FingerPose } from './fingers';
 import { FINGER, THUMB, curlFingers, setFingers } from './net/embody';
 import { bakeStatic } from './merge';
@@ -325,6 +326,16 @@ async function main() {
     }
   };
   lounge.onOrder = () => crew.react('order', { chance: 0.7 });
+  // A few drinks in, the crew notices.
+  lounge.onTipsy = (stage) => {
+    const line = ['', 'Easy there, champ!', "Somebody's feeling good tonight!", 'Okay, water next. I mean it.'][stage];
+    if (!line) return;
+    hud.say(crew.buddies[stage % Math.max(1, crew.buddies.length)]?.name ?? 'Your crew', line);
+    if (!voiceArbiter.busy()) {
+      voiceArbiter.claim(lineTime(line));
+      sound.say(line, { pitch: 0.95, rate: 1.05, voice: 1 });
+    }
+  };
   lounge.onTip = () => {
     night.complete('tip');
     crew.react('tip', { force: true });
@@ -404,7 +415,7 @@ async function main() {
   ];
   hud.setNav(nav);
   // Tables count as 'at the game' anywhere around them (walk up and play); machines when you stand at one.
-  const seatable: { vp: Viewpoint; label: string; center?: THREE.Vector3; reach?: number }[] = [{ vp: roulette.viewpoint, label: 'Sit at roulette', center: roulette.group.position.clone().add(new THREE.Vector3(0.2, 0, 0.1)), reach: 2.6 }, { vp: craps.viewpoint, label: 'Shoot dice', center: craps.group.position.clone(), reach: 2.9 }, ...machines.map((m) => ({ vp: m.viewpoint, label: `Play ${m.machine.name}` })), { vp: piggy.viewpoint, label: `Play ${piggy.machine.name}` }];
+  const seatable: { vp: Viewpoint; label: string; center?: THREE.Vector3; reach?: number }[] = [{ vp: roulette.viewpoint, label: 'Sit at roulette', center: roulette.group.position.clone().add(new THREE.Vector3(0.2, 0, 0.1)), reach: 2.6 }, { vp: craps.viewpoint, label: 'Shoot dice', center: craps.group.position.clone(), reach: 2.9 }, ...machines.map((m) => ({ vp: m.viewpoint, label: `Play ${m.machine.name}` })), { vp: piggy.viewpoint, label: `Play ${piggy.machine.name}` }, ...lounge.seats.map((vp) => ({ vp, label: 'Sit at the bar' }))];
   hud.onNavigate = (item) => {
     if (!item.viewpoint) return;
     const seat = seatable.find((s) => s.vp === item.viewpoint);
@@ -585,6 +596,10 @@ async function main() {
       },
       onRoster: (f) => showRoom(f),
     });
+    session.onCheers = (at, name) => {
+      lounge.cheers(at, undefined, true);
+      hud.toast(`Cheers with ${name}!`, 'win');
+    };
     session.onChange = () => {
       showRoom(session?.friends ?? []);
       vrMenu.redraw();
@@ -595,6 +610,10 @@ async function main() {
     vrMenu.redraw();
   };
   let me = { name: 'Guest', avatar: 0 };
+  // Clink glasses with your friend: if they're close, they hear it and see it too.
+  lounge.onCheers = () => {
+    if (session?.friendNear(2.5)) session.emit('cheers');
+  };
   setupLobby(
     (choice) => {
       enter.classList.add('done');
@@ -724,6 +743,18 @@ async function main() {
   const help = document.getElementById('help')!;
   document.getElementById('help-btn')!.addEventListener('click', () => help.classList.toggle('open'));
   help.addEventListener('click', () => help.classList.remove('open'));
+  // Jumping and the pool: splashes, strokes, landings, the underwater look.
+  const swim = new SwimFX(scene, camera, sound.listener);
+  player.jumpAllowed = () => !hud.station && (document.getElementById('chat') as HTMLElement | null)?.hidden !== false;
+  player.onSplash = (at, k) => {
+    sound.play('splash', at, { volume: 0.5 + k * 0.6, rate: 1.1 - k * 0.25 });
+    swim.splash(at, k);
+  };
+  player.onStroke = (at) => {
+    sound.play('swim', at, { volume: 0.55, rate: 0.85 + Math.random() * 0.3 });
+    swim.ripple(at, 0.45);
+  };
+  player.onLand = (at, k) => sound.play('land', at, { volume: 0.3 + k * 0.5 });
   player.onStep = (surface, run) => {
     const name = surface === 'carpet' ? 'stepCarpet' : surface === 'stone' ? 'stepStone' : 'stepMarble';
     sound.playLocal(name, (surface === 'carpet' ? 0.45 : 0.3) * (run ? 1.2 : 1), 0.9 + Math.random() * 0.2);
@@ -925,7 +956,7 @@ async function main() {
       if (on) {
         const head = camera.getWorldPosition(new THREE.Vector3());
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
-        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), speed: player.speed });
+        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), aims: { l: hands.handAim('left'), r: hands.handAim('right') }, speed: player.speed });
       } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, poses: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose }, speed: 0 });
       hands.showControllers(!on);
     }
@@ -936,6 +967,7 @@ async function main() {
     crowd.update(dt, t, feet, head);
     casino.update(t, feet);
     areas.update(dt, t, feet);
+    swim.update(dt, player.underwater);
     // Zone culling: only draw the parts of the resort you could possibly see from here.
     if (!casinoThings) {
       casinoThings = scene.children.filter(
@@ -978,6 +1010,7 @@ async function main() {
         const s = nearestSeat(1.8);
         touch.setAction(s ? (s.vp.id === 'roulette' ? 'Sit' : 'Play') : null, s ? () => player.sit(s.vp) : null);
       }
+      touch.setJump(!player.seated && !hud.station);
     } else hud.setControls(null);
 
     // Croupier invites bets again after each spin.
@@ -1037,7 +1070,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody };
 }
 
 main().catch((e) => {

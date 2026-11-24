@@ -11,6 +11,7 @@ export class TouchControls {
   private knob: HTMLElement;
   private action: HTMLButtonElement;
   private actionFn: (() => void) | null = null;
+  private jumpBtn: HTMLButtonElement;
   private active: number | null = null;
   private center = { x: 0, y: 0 };
   readonly enabled: boolean;
@@ -21,6 +22,7 @@ export class TouchControls {
     this.base = document.getElementById('stick')!;
     this.knob = this.base.querySelector('.knob') as HTMLElement;
     this.action = document.getElementById('action') as HTMLButtonElement;
+    this.jumpBtn = document.getElementById('jump') as HTMLButtonElement;
     document.body.classList.toggle('touch', this.enabled);
     if (!this.enabled) return;
 
@@ -64,6 +66,11 @@ export class TouchControls {
       e.stopPropagation();
       this.actionFn?.();
     });
+    this.jumpBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.player.jump();
+    });
   }
 
   /** Shows the context button with a label, or hides it. */
@@ -76,6 +83,12 @@ export class TouchControls {
     }
     if (this.action.textContent !== label) this.action.textContent = label;
     this.action.hidden = false;
+  }
+
+  /** Shows the Jump button (on foot, away from a game's controls). */
+  setJump(v: boolean) {
+    if (!this.enabled) return;
+    if (this.jumpBtn.hidden === v) this.jumpBtn.hidden = !v;
   }
 
   setVisible(v: boolean) {

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Quality } from './quality';
 import type { World } from './world';
 import { spawnCharacter, type PeopleLib } from './assets';
+import { reach } from './net/embody';
 
 // Bone offsets for poses the clips don't have (tuned against the Quaternius rig).
 export const POSE = { sitThigh: 1.5, sitShin: -1.6, sitHips: 0.95, trayUpper: 0.9, trayLower: 1.2, trayAxis: 'x' as 'x' | 'z' };
@@ -790,7 +791,7 @@ export class Crowd {
     const rig = p.rig!;
     const female = (p.look.kind ?? '').startsWith('female');
     const sc = p.look.height / (female ? 1.72 : 1.82);
-    rig.root.position.set(p.pos.x, 0, p.pos.z);
+    rig.root.position.set(p.pos.x, p.pos.y, p.pos.z);
     rig.root.rotation.y = p.yaw;
     rig.root.scale.setScalar(sc);
     // Far away people animate at a third of the rate (saves CPU on Quest and phones).
@@ -827,11 +828,47 @@ export class Crowd {
 
     const b = rig.bones;
     if (p.seated) {
-      // Sit: lower the body onto the seat, thighs forward, shins down.
+      // Sit: lower the hips onto the seat, then place the legs with IK (thighs along
+      // the seat, knees forward, feet on the floor or the stool's footrest). IK works
+      // for every character model, whatever its leg bones' local axes.
       rig.root.position.y = p.seatY - POSE.sitHips * sc;
+      rig.root.updateMatrixWorld(true);
+      const fwd = this.v.set(Math.sin(p.yaw), 0, Math.cos(p.yaw)).clone();
+      const left = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
+      for (const [s, dir] of [['L', 1], ['R', -1]] as const) {
+        const upper = b[`UpperLeg${s}`],
+          lower = b[`LowerLeg${s}`],
+          foot = b[`Foot${s}`];
+        if (!upper || !lower || !foot) continue;
+        // The clips don't move a root-parented foot: start from its standing spot each frame.
+        const rest = (foot.userData.restPos ??= foot.position.clone()) as THREE.Vector3;
+        foot.position.copy(rest);
+        foot.updateMatrixWorld(true);
+        const hip = upper.getWorldPosition(new THREE.Vector3());
+        const knee = lower.getWorldPosition(new THREE.Vector3());
+        const ankle = foot.getWorldPosition(new THREE.Vector3());
+        const thigh = hip.distanceTo(knee),
+          shin = knee.distanceTo(ankle);
+        // Knee straight ahead of the hip (a touch apart), shin hanging down to the floor.
+        const kneeAt = hip.clone().addScaledVector(fwd, thigh * 0.96).addScaledVector(left, 0.04 * dir);
+        const footY = Math.max(p.pos.y + 0.09, kneeAt.y - shin * 0.98);
+        const drop = Math.min(shin * 0.98, kneeAt.y - footY);
+        const ahead = Math.sqrt(Math.max(0, shin * shin * 0.96 - drop * drop));
+        const target = new THREE.Vector3(kneeAt.x, footY, kneeAt.z).addScaledVector(fwd, ahead + 0.03);
+        const pole = hip.clone().addScaledVector(fwd, 1).add(new THREE.Vector3(0, 0.25, 0));
+        const end = reach(upper, lower, foot, target, pole, 1);
+        if (end && foot.parent && foot.parent !== lower) {
+          // Foot bone hangs off the root: carry it to the shin's end, flat on the floor.
+          foot.parent.updateWorldMatrix(true, false);
+          foot.position.copy(foot.parent.worldToLocal(end));
+          foot.updateMatrixWorld(true);
+        }
+      }
+    } else {
+      // A rig that sat before (pooled rigs) gets its feet back under it.
       for (const s of ['L', 'R']) {
-        b[`UpperLeg${s}`]?.rotateX(POSE.sitThigh);
-        b[`LowerLeg${s}`]?.rotateX(POSE.sitShin);
+        const f = b[`Foot${s}`], r = f?.userData.restPos as THREE.Vector3 | undefined;
+        if (f && r && !f.position.equals(r)) f.position.copy(r);
       }
     }
     if (p.role === 'waiter' && b['UpperArmR']) {
@@ -884,7 +921,7 @@ export class Crowd {
   }
 
   private shadowAt(p: Person, i: number, sc: number) {
-    this.v.set(p.pos.x, 0.015, p.pos.z);
+    this.v.set(p.pos.x, p.pos.y + 0.015, p.pos.z);
     this.shadowMesh.setMatrixAt(i, this.m.compose(this.v, this.q.identity(), this.s.set(sc, 1, sc)));
   }
 
@@ -1047,7 +1084,7 @@ export class Crowd {
     }
 
     // Contact shadow.
-    this.v.set(p.pos.x, 0.015, p.pos.z);
+    this.v.set(p.pos.x, p.pos.y + 0.015, p.pos.z);
     this.shadowMesh.setMatrixAt(i, this.m.compose(this.v, this.q.identity(), this.s.set(sc, 1, sc)));
     if (p.proxy) {
       p.proxy.position.set(p.pos.x, 1.0, p.pos.z);

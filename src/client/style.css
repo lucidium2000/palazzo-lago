@@ -697,6 +697,22 @@ body.touch #touch {
   color: #1a1410;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
+#jump {
+  position: absolute;
+  right: max(34px, env(safe-area-inset-right, 0px));
+  bottom: calc(max(40px, env(safe-area-inset-bottom, 0px)) + 112px);
+  width: 72px;
+  height: 72px;
+  border-radius: 36px;
+  font-size: 15px;
+  font-weight: 700;
+  background: rgba(20, 14, 10, 0.72);
+  color: #fbe7a6;
+  border: 2px solid #c8973c;
+}
+#jump[hidden] {
+  display: none;
+}
 /* On touch screens the game controls replace the joystick while seated. */
 body.touch.seated #stick {
   display: none;

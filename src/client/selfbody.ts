@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { assets, spawnCharacter } from './assets';
 import { AVATARS } from './net/avatars';
-import { reach, setFingers } from './net/embody';
+import { orientHand, reach, setFingers } from './net/embody';
 import { blendPose, OPEN, type FingerPose } from './fingers';
 
 /**
@@ -48,7 +48,7 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; speed: number }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; aims?: { l: { fwd: THREE.Vector3; palm: THREE.Vector3 } | null; r: { fwd: THREE.Vector3; palm: THREE.Vector3 } | null }; speed: number }) {
     this.root.visible = o.on && !!this.rig;
     const rig = this.rig;
     if (!o.on || !rig) return;
@@ -63,7 +63,7 @@ export class SelfBody {
     if (Math.abs(diff) > 0.6 || o.speed > 0.2) this.bodyYaw += diff * Math.min(1, dt * (o.speed > 0.2 ? 8 : 3));
     const fwd = new THREE.Vector3(Math.sin(this.bodyYaw), 0, Math.cos(this.bodyYaw));
     // Neck under the eyes, set back a little so the chest doesn't fill your view.
-    rig.root.position.set(o.head.x, o.floorY, o.head.z).addScaledVector(fwd, -0.17 * sc);
+    rig.root.position.set(o.head.x, o.floorY, o.head.z).addScaledVector(fwd, -0.09 * sc);
     rig.root.rotation.y = this.bodyYaw;
     const a = rig.actions;
     // Walk and run blend with your real speed (strides match the ground you cover).
@@ -89,6 +89,8 @@ export class SelfBody {
         const shoulder = upper.getWorldPosition(new THREE.Vector3());
         const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.3).addScaledVector(left, 0.45 * dir);
         reach(upper, lower, end, target, pole, 1);
+        const aim = o.aims?.[side];
+        if (aim) orientHand(b, S, aim.fwd, aim.palm);
       }
       blendPose(this.shown[S], o.poses[side], Math.min(1, dt * 18));
       setFingers(b, S, this.shown[S]);

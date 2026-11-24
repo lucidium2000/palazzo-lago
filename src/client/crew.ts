@@ -115,6 +115,7 @@ export class Crew {
   regroup() {
     for (const b of this.buddies) {
       const t = this.slotTarget(b);
+      if (this.world.groundAt(t.x, t.z) < -0.05) continue;
       b.person.pos.copy(t);
     }
   }
@@ -150,9 +151,11 @@ export class Crew {
     const dx = target.x - p.pos.x,
       dz = target.z - p.pos.z;
     const d = Math.hypot(dx, dz);
+    // The crew stays dry: they wait on the deck while you're in the pool.
+    const dry = (x: number, z: number) => this.world.groundAt(x, z) > -0.05;
     if (d > 12) {
       // You jumped across the room: they catch up off-screen.
-      p.pos.copy(target);
+      if (dry(target.x, target.z)) p.pos.copy(target);
       return;
     }
     const want = d < 0.35 ? 0 : Math.min(2.6, 0.9 + d * 0.6);
@@ -160,6 +163,10 @@ export class Crew {
     if (p.moving > 0.02 && d > 0.05) {
       const step = Math.min(d, p.moving * dt);
       const [nx, nz] = this.world.move(p.pos.x, p.pos.z, (dx / d) * step, (dz / d) * step, 0.24);
+      if (!dry(nx, nz) && dry(p.pos.x, p.pos.z)) {
+        p.moving = 0;
+        return;
+      }
       p.pos.x = nx;
       p.pos.z = nz;
       p.walkPhase += p.moving * dt * 5.2;

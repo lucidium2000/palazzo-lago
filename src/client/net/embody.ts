@@ -23,7 +23,7 @@ function rotateWorld(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector
     bone.parent.getWorldQuaternion(_qp);
     _qw.premultiply(_qp.invert());
   }
-  bone.quaternion.copy(_qw);
+  bone.quaternion.copy(_qw).normalize();
   bone.updateMatrixWorld(true);
 }
 
@@ -32,11 +32,18 @@ function rotateWorld(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector
  * with the elbow pushed toward `pole` (a world point: below, behind and to the
  * side of the shoulder, as real elbows go). Blends by `weight` (0..1).
  */
-export function reach(upper: THREE.Object3D, lower: THREE.Object3D, end: THREE.Object3D, target: THREE.Vector3, pole: THREE.Vector3, weight = 1) {
+export function reach(upper: THREE.Object3D, lower: THREE.Object3D, end: THREE.Object3D, target: THREE.Vector3, pole: THREE.Vector3, weight = 1): THREE.Vector3 | undefined {
   if (weight <= 0) return;
   const S = upper.getWorldPosition(new THREE.Vector3());
   const E = lower.getWorldPosition(new THREE.Vector3());
   const W = end.getWorldPosition(new THREE.Vector3());
+  // Some rigs hang the foot off the root (an IK target), not off the shin: then
+  // follow the shin's end point in the lower bone's frame, and return where it
+  // ends up so the caller can move the end bone there.
+  let attached = false;
+  for (let o = end.parent; o; o = o.parent) if (o === lower) { attached = true; break; }
+  lower.updateWorldMatrix(true, false);
+  const endLocal = attached ? null : lower.worldToLocal(W.clone());
   const a = S.distanceTo(E),
     b = E.distanceTo(W);
   const T = W.clone().lerp(target, weight);
@@ -52,8 +59,9 @@ export function reach(upper: THREE.Object3D, lower: THREE.Object3D, end: THREE.O
   const E2 = S.clone().addScaledVector(dir, a * cosA).addScaledVector(perp, a * sinA);
   rotateWorld(upper, E.clone().sub(S), E2.clone().sub(S));
   const E3 = lower.getWorldPosition(new THREE.Vector3());
-  const W3 = end.getWorldPosition(new THREE.Vector3());
+  const W3 = endLocal ? lower.localToWorld(endLocal.clone()) : end.getWorldPosition(new THREE.Vector3());
   rotateWorld(lower, W3.clone().sub(E3), T.clone().sub(E3));
+  return endLocal ? lower.localToWorld(endLocal.clone()) : end.getWorldPosition(new THREE.Vector3());
 }
 
 /**
@@ -118,7 +126,7 @@ export function curlFingers(bones: Record<string, THREE.Object3D>, side: 'L' | '
   const bend = (b: THREE.Object3D | undefined, a: number) => {
     if (!b) return;
     // The clips don't animate fingers: start from the rest pose every frame (no build-up).
-    const rest = (b.userData.rest ??= b.quaternion.clone()) as THREE.Quaternion;
+    const rest = (b.userData.rest ??= b.quaternion.clone().normalize()) as THREE.Quaternion;
     b.quaternion.copy(rest);
     if (a === 0) return;
     if (FINGER.axis === 'x') b.rotateX(a);
@@ -139,7 +147,7 @@ export const THUMB = { axis: 'z' as 'x' | 'y' | 'z', sign: { L: 1, R: -1 }, scal
 export function setFingers(bones: Record<string, THREE.Object3D>, side: 'L' | 'R', pose: readonly number[]) {
   const bend = (b: THREE.Object3D | undefined, axis: 'x' | 'y' | 'z', a: number) => {
     if (!b) return;
-    const rest = (b.userData.rest ??= b.quaternion.clone()) as THREE.Quaternion;
+    const rest = (b.userData.rest ??= b.quaternion.clone().normalize()) as THREE.Quaternion;
     b.quaternion.copy(rest);
     if (a === 0) return;
     if (axis === 'x') b.rotateX(a);
@@ -149,8 +157,58 @@ export function setFingers(bones: Record<string, THREE.Object3D>, side: 'L' | 'R
   const names = ['Index', 'Middle', 'Ring', 'Pinky'];
   names.forEach((f, i) => {
     const c = THREE.MathUtils.clamp(pose[i + 1] ?? 0, 0, 1) * FINGER.sign[side];
-    for (const seg of [1, 2, 3]) bend(bones[`${f}${seg}${side}`], FINGER.axis, c * (seg === 1 ? 1.35 : 1.5));
+    for (const seg of [1, 2, 3]) bend(bones[`${f}${seg}${side}`], FINGER.axis, c * (seg === 1 ? 1.15 : seg === 2 ? 1.3 : 0.85));
   });
   const t = THREE.MathUtils.clamp(pose[0] ?? 0, 0, 1) * THUMB.sign[side] * THUMB.scale;
-  for (const seg of [1, 2, 3]) bend(bones[`Thumb${seg}${side}`], THUMB.axis, t * (seg === 1 ? 0.5 : 0.9));
+  for (const seg of [1, 2, 3]) bend(bones[`Thumb${seg}${side}`], THUMB.axis, t * (seg === 1 ? 0.35 : 0.6));
+}
+
+/**
+ * Turns a hand (the Wrist bone) so the fingers point along `fwd` and the palm
+ * faces `palm` (world directions). Measured from the hand's own bones, so it
+ * works for every character model. `PALM.sign` flips the palm normal per side.
+ */
+export const PALM = { sign: { L: 1, R: -1 } };
+const _m1 = new THREE.Matrix4();
+const _m2 = new THREE.Matrix4();
+const _qa = new THREE.Quaternion();
+const _qb = new THREE.Quaternion();
+const _qw2 = new THREE.Quaternion();
+const _qp2 = new THREE.Quaternion();
+
+export function handFrame(bones: Record<string, THREE.Object3D>, side: 'L' | 'R'): { fwd: THREE.Vector3; palm: THREE.Vector3 } | null {
+  const w = bones[`Wrist${side}`],
+    m = bones[`Middle1${side}`],
+    i = bones[`Index1${side}`],
+    p = bones[`Pinky1${side}`];
+  if (!w || !m || !i || !p) return null;
+  const W = w.getWorldPosition(new THREE.Vector3());
+  const fwd = m.getWorldPosition(new THREE.Vector3()).sub(W).normalize();
+  const across = i.getWorldPosition(new THREE.Vector3()).sub(p.getWorldPosition(new THREE.Vector3()));
+  const palm = new THREE.Vector3().crossVectors(fwd, across).normalize().multiplyScalar(PALM.sign[side]);
+  return { fwd, palm };
+}
+
+export function orientHand(bones: Record<string, THREE.Object3D>, side: 'L' | 'R', fwd: THREE.Vector3, palm: THREE.Vector3, weight = 1) {
+  const wrist = bones[`Wrist${side}`];
+  const cur = handFrame(bones, side);
+  if (!wrist || !cur) return;
+  const basis = (f: THREE.Vector3, n: THREE.Vector3, out: THREE.Matrix4) => {
+    const z = f.clone().normalize();
+    const x = n.clone().addScaledVector(z, -n.dot(z)).normalize();
+    const y = new THREE.Vector3().crossVectors(z, x);
+    return out.makeBasis(x, y, z);
+  };
+  _qa.setFromRotationMatrix(basis(fwd, palm, _m1));
+  _qb.setFromRotationMatrix(basis(cur.fwd, cur.palm, _m2));
+  const delta = _qa.multiply(_qb.invert());
+  if (weight < 1) delta.slerp(new THREE.Quaternion(), 1 - weight);
+  wrist.getWorldQuaternion(_qw2);
+  _qw2.premultiply(delta);
+  if (wrist.parent) {
+    wrist.parent.getWorldQuaternion(_qp2);
+    _qw2.premultiply(_qp2.invert());
+  }
+  wrist.quaternion.copy(_qw2).normalize();
+  wrist.updateMatrixWorld(true);
 }

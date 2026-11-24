@@ -93,6 +93,8 @@ export class Session {
   private offered: { k: string; t: number } | null = null;
   private prevHands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null } = { l: null, r: null };
   readonly voice: Voice;
+  /** Your friend clinked glasses with you (position, their name). */
+  onCheers: ((at: THREE.Vector3, name: string) => void) | null = null;
   /** Called when anything shown in menus changes (friends, voice). */
   onChange: (() => void) | null = null;
 
@@ -156,6 +158,12 @@ export class Session {
     return err;
   }
 
+  /** Is a friend standing within `r` metres of you? */
+  friendNear(r: number): boolean {
+    for (const x of this.remotes.values()) if (x.person && x.person.pos.distanceTo(this.d.player.feet()) < r) return true;
+    return false;
+  }
+
   /** Change your character (your friend sees it change). */
   setAvatar(i: number) {
     this.d.avatar = i;
@@ -184,6 +192,7 @@ export class Session {
       host: this.host,
       look: this.d.avatar,
       x: Math.round(f.x * 100) / 100,
+      y: Math.round(f.y * 100) / 100,
       z: Math.round(f.z * 100) / 100,
       yaw: Math.round(Math.atan2(dir.x, dir.z) * 100) / 100,
       pitch: Math.round(Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1)) * 100) / 100,
@@ -275,7 +284,7 @@ export class Session {
     if (r.person && w.s.look !== r.state.look) this.d.crowd.setLook(r.person, avatarLook(Math.floor(Number(w.s.look) || 0)));
     if (!!w.s.v !== !!r.state.v || (w.s.v && this.voice.enabled)) this.voice.sync(r.id, !!w.s.v);
     r.state = w.s;
-    r.target.set(Number(w.s.x) || 0, 0, Number(w.s.z) || 0);
+    r.target.set(Number(w.s.x) || 0, Number(w.s.y) || 0, Number(w.s.z) || 0);
     for (const e of w.e) {
       if (e.n <= r.lastEvent) continue;
       r.lastEvent = e.n;
@@ -339,6 +348,9 @@ export class Session {
             this.celebrate(r, k, null, true);
           }
         }
+        break;
+      case 'cheers':
+        if (r.person && r.person.pos.distanceTo(this.d.player.feet()) < 3) this.onCheers?.(r.person.pos.clone().setY(r.person.pos.y + 1.3), r.name);
         break;
       case 'act':
         if (r.person && d.k === 'reach' && !r.state.lh && !r.state.rh) {
@@ -518,6 +530,8 @@ export class Session {
         const k = Math.min(1, dt * 8);
         p.pos.x += dx * k;
         p.pos.z += dz * k;
+        // Height (jumping, wading, swimming) follows quickly.
+        p.pos.y += (r.target.y - p.pos.y) * Math.min(1, dt * 12);
       }
       const speed = seated ? 0 : Math.min(3, dist / 0.12);
       p.moving += (speed - p.moving) * Math.min(1, dt * 6);

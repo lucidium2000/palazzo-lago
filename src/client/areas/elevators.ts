@@ -319,9 +319,8 @@ export class Elevators {
     }
     if (this.shake > 0 && this.ride) {
       this.player.rig.position.y = Math.sin(this.time * 47) * this.shake;
-    } else if (this.player.rig.position.y !== 0 && !this.player.inXR) {
-      this.player.rig.position.y = 0;
     }
+    // (Otherwise the player sets the rig's height itself each frame: feet on the ground, in the pool, mid-jump.)
   }
 
   /** Sealed in: move to the identical car at the destination, then open up. */

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { controllerPose, handTrackPose, handTrackWrist, OPEN, type FingerPose } from './fingers';
+import { PALM } from './net/embody';
 import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
 
@@ -61,6 +62,36 @@ export class Hands {
     // Holding something: the hand closes around it.
     if (h?.carried || h?.held) for (let i = 0; i < 5; i++) pose[i] = Math.max(pose[i], i === 0 ? 0.55 : 0.6);
     return pose;
+  }
+
+  /**
+   * Which way your real hand points and faces (world): from hand-tracking joints when
+   * tracked, else from the controller grip (you hold it like a stick: knuckles run
+   * along the handle, palm wrapped around it).
+   */
+  handAim(side: 'left' | 'right'): { fwd: THREE.Vector3; palm: THREE.Vector3 } | null {
+    const S = side === 'left' ? 'L' : 'R';
+    const sign = PALM.sign[S];
+    const hs = this.handSpace(side) as (THREE.Object3D & { joints?: Record<string, THREE.Object3D> }) | undefined;
+    const j = hs?.joints;
+    const P = (n: string) => (j?.[n]?.visible ? j[n].getWorldPosition(new THREE.Vector3()) : null);
+    const wr = P('wrist'),
+      mid = P('middle-finger-phalanx-proximal'),
+      idx = P('index-finger-phalanx-proximal'),
+      pin = P('pinky-finger-phalanx-proximal');
+    if (wr && mid && idx && pin) {
+      const fwd = mid.sub(wr).normalize();
+      const across = idx.sub(pin);
+      return { fwd, palm: new THREE.Vector3().crossVectors(fwd, across).normalize().multiplyScalar(sign) };
+    }
+    const h = this.hands.find((x) => x.ctrl.userData.handedness === side);
+    if (!h || h.ctrl.userData.connected === false || !h.grip.visible) return null;
+    const q = h.grip.getWorldQuaternion(new THREE.Quaternion());
+    const across = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+    const palm = new THREE.Vector3(side === 'left' ? 1 : -1, 0, 0).applyQuaternion(q);
+    // Knuckles forward of the wrist, perpendicular to the handle (see handFrame in embody.ts).
+    const fwd = new THREE.Vector3().crossVectors(across, palm).normalize().multiplyScalar(sign);
+    return { fwd, palm };
   }
 
   /** Where your wrist is for a hand ('left'/'right'): just behind the controller's grip. */

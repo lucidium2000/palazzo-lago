@@ -134,6 +134,12 @@ export function buildAreas(deps: {
       const people: Person[] = [];
       const bt = crowd.add('bartender', staffLook('bar'), pool.bartender.pos, pool.bartender.yaw);
       if (bt) people.push(bt);
+      // Guests standing chest-deep in the shallow end, chatting.
+      for (const s of pool.swimmers) {
+        const p = crowd.add('watch', randomLook(), s.pos, s.yaw);
+        if (!p) break;
+        people.push(p);
+      }
       for (const s of pool.seats) {
         const p = crowd.add('patron', randomLook(), s.pos, s.yaw);
         if (!p) break;

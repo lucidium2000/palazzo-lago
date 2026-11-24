@@ -36,7 +36,10 @@ type SoundName =
   | 'tension'
   | 'fanfare'
   | 'ding'
-  | 'liftHum';
+  | 'liftHum'
+  | 'splash'
+  | 'swim'
+  | 'land';
 
 const rand = (() => {
   let s = 12345;
@@ -263,6 +266,25 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
   // Elevator arrival chime (two soft bell tones) and the low hum of a moving car.
   const chime = (t: number, f: number) => (Math.sin(2 * Math.PI * f * t) * 0.5 + Math.sin(2 * Math.PI * f * 2.76 * t) * 0.12) * Math.exp(-t * 3.2) * Math.min(1, t * 400);
   const ding = synth(ctx, 1.6, (t) => 0.35 * (chime(t, 1318.5) + (t > 0.32 ? chime(t - 0.32, 1046.5) : 0)));
+  // Water: a big splash (body entering), a stroke (moving through water), and a landing thud.
+  const splash = (() => {
+    const f = lp(0.35),
+      f2 = hp(0.97);
+    return synth(ctx, 1.3, (t) => {
+      const body = f(rand() * 2 - 1) * Math.exp(-t * 5) * 1.4;
+      const fizz = f2(rand() * 2 - 1) * Math.exp(-t * 2.2) * (0.35 + 0.25 * Math.sin(t * 60)) * Math.min(1, t * 20);
+      const plop = Math.sin(2 * Math.PI * (90 - 40 * t) * t) * Math.exp(-t * 14) * 0.6;
+      return (body + fizz + plop) * 0.8;
+    });
+  })();
+  const swim = (() => {
+    const f = lp(0.12);
+    return synth(ctx, 0.6, (t) => f(rand() * 2 - 1) * Math.sin(Math.PI * Math.min(1, t / 0.6)) * 1.6);
+  })();
+  const land = (() => {
+    const f = lp(0.08);
+    return synth(ctx, 0.35, (t) => (f(rand() * 2 - 1) * 2.2 + Math.sin(2 * Math.PI * 70 * t) * 0.5) * Math.exp(-t * 18));
+  })();
   const liftHum = synth(ctx, 2.0, (t) => 0.25 * (Math.sin(2 * Math.PI * 55 * t) * 0.6 + Math.sin(2 * Math.PI * 110 * t) * 0.25 + rand() * 0.08) * Math.min(1, t * 3, (2.0 - t) * 3));
   const clink = synth(ctx, 0.8, (t) => (Math.sin(2 * Math.PI * 3520 * t) * 0.3 + Math.sin(2 * Math.PI * 5270 * t) * 0.15 + Math.sin(2 * Math.PI * 2210 * t) * 0.1) * env(t, 0.0008, 0.18));
   const pour = (() => {
@@ -306,7 +328,7 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, ambience, denied,
     stepMarble, stepCarpet, stepStone, cheer, gasp, clink, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
-    ding, liftHum,
+    ding, liftHum, splash, swim, land,
   };
 }
 

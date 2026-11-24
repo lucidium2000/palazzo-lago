@@ -21,6 +21,8 @@ export interface PlayerState {
   look: number;
   x: number;
   z: number;
+  /** Feet height (0 on the casino floor; lower in the pool, higher mid-jump). */
+  y?: number;
   /** Body facing (person convention: atan2(dx, dz) of the walking direction). */
   yaw: number;
   pitch: number;

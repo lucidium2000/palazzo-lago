@@ -20,10 +20,26 @@ export const BAR = { x: 28.5, z: -26, r: 2.1 };
 export const DJ = { x: 50, z: -32.5 };
 export const LIFT = { doorX: 48, zs: [-7.6, -5.0] };
 
+/** Water surface height, and the pool's floor: wide steps in the shallow end, ~1.1 m deep, sloping to ~2 m. */
+export const WATER_Y = -0.12;
+export const STEPS = { x0: 32, z0: -21.5, z1: -18.5, tread: 0.5, rise: 0.3, n: 3 };
+export const LADDER = { x: 50, z: -20 };
+export function poolFloor(x: number, z: number): number {
+  const P = POOL;
+  const lx = x - (P.x - P.w / 2);
+  if (lx < STEPS.tread * STEPS.n && z >= STEPS.z0 && z <= STEPS.z1) return -STEPS.rise * (Math.floor(lx / STEPS.tread) + 1) - 0.02;
+  const shallow = -1.22,
+    deep = -2.12;
+  const k = THREE.MathUtils.clamp((lx - 9) / 4, 0, 1);
+  return shallow + (deep - shallow) * k * k * (3 - 2 * k);
+}
+
 export function registerPool(world: World) {
   world.addWalkable(DECK.x0 + 0.4, DECK.x1 - 0.4, DECK.z0 + 0.5, DECK.z1 - 0.2);
   world.addSurface('stone', DECK.x0, DECK.x1, DECK.z0, DECK.z1);
-  world.addBox(POOL.x, POOL.z, POOL.w + 0.3, POOL.d + 0.3);
+  // The pool is open: walk in down the steps, jump in, swim, climb out.
+  world.addGround(POOL.x - POOL.w / 2, POOL.x + POOL.w / 2, POOL.z - POOL.d / 2, POOL.z + POOL.d / 2, poolFloor);
+  world.addWater(POOL.x - POOL.w / 2, POOL.x + POOL.w / 2, POOL.z - POOL.d / 2, POOL.z + POOL.d / 2, WATER_Y);
   world.addCircle(TUB.x, TUB.z, TUB.r + 0.2);
   world.addCircle(BAR.x, BAR.z, BAR.r + 0.15);
   world.addBox(DJ.x, DJ.z - 0.4, 6, 2.2);
@@ -43,6 +59,8 @@ export interface PoolArea {
   /** Where people can be (for the crowd). */
   seats: { pos: THREE.Vector3; yaw: number; seatY: number }[];
   stands: { pos: THREE.Vector3; yaw: number }[];
+  /** People standing in the water (pos.y is their feet, on the pool floor). */
+  swimmers: { pos: THREE.Vector3; yaw: number }[];
   bartender: { pos: THREE.Vector3; yaw: number };
 }
 
@@ -100,13 +118,53 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     [P.x - P.w / 2 - 0.2, P.z, 0.4, P.d],
     [P.x + P.w / 2 + 0.2, P.z, 0.4, P.d],
   ]) b.box(coping, x, 0.04, z, w, 0.08, d);
+  // Basin walls down to the deep end's floor.
   for (const [x, z, w, d] of [
     [P.x, P.z - P.d / 2, P.w, 0.05],
     [P.x, P.z + P.d / 2, P.w, 0.05],
     [P.x - P.w / 2, P.z, 0.05, P.d],
     [P.x + P.w / 2, P.z, 0.05, P.d],
-  ]) b.box(tile, x, -0.7, z, w, 1.4, d);
-  b.box(tile, P.x, -1.4, P.z, P.w, 0.05, P.d);
+  ]) b.box(tile, x, -1.07, z, w, 2.14, d);
+  // Floor following the depth profile (shallow end, a smooth slope, the deep end).
+  {
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2aa0c8, roughness: 0.4, emissive: 0x0c7fa8, emissiveIntensity: 0.9 });
+    const fg = new THREE.PlaneGeometry(P.w, P.d, 36, 1);
+    fg.rotateX(-Math.PI / 2);
+    const fp = fg.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < fp.count; i++) fp.setY(i, poolFloor(P.x + fp.getX(i), P.z + fp.getZ(i)) - 0.0);
+    fg.computeVertexNormals();
+    b.add(fg, floorMat, M(P.x, 0, P.z));
+    // Lane lines on the floor.
+    const line = new THREE.MeshStandardMaterial({ color: 0x0a3c5a, roughness: 0.5 });
+    for (const z of [P.z - 2.2, P.z + 2.2]) {
+      const lg = new THREE.PlaneGeometry(P.w - 4, 0.18, 36, 1);
+      lg.rotateX(-Math.PI / 2);
+      const lp = lg.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i < lp.count; i++) lp.setY(i, poolFloor(P.x + 1 + lp.getX(i), z) + 0.01);
+      b.add(lg, line, M(P.x + 1, 0, z));
+    }
+    // Wide entry steps in the shallow end, with a bright nosing on each tread.
+    const nosing = new THREE.MeshStandardMaterial({ color: 0xf0f4f8, roughness: 0.4, emissive: 0x6a8a9a, emissiveIntensity: 0.6 });
+    for (let k = 0; k < STEPS.n; k++) {
+      const top = -STEPS.rise * (k + 1) - 0.02;
+      const x0 = P.x - P.w / 2 + k * STEPS.tread;
+      const depth = top - -1.22;
+      b.box(tile, x0 + STEPS.tread / 2, top + depth / 2 - (top - -1.22) - 0.0, (STEPS.z0 + STEPS.z1) / 2, STEPS.tread, Math.max(0.05, -(-1.22 - top)), STEPS.z1 - STEPS.z0);
+      b.box(nosing, x0 + STEPS.tread - 0.04, top + 0.005, (STEPS.z0 + STEPS.z1) / 2, 0.08, 0.02, STEPS.z1 - STEPS.z0);
+    }
+    // A chrome ladder in the deep end.
+    const chrome = new THREE.MeshStandardMaterial({ color: 0xdfe6ee, metalness: 1, roughness: 0.15 });
+    for (const dz of [-0.28, 0.28]) {
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(LADDER.x - 0.12, -1.6, LADDER.z + dz),
+        new THREE.Vector3(LADDER.x - 0.12, 0.2, LADDER.z + dz),
+        new THREE.Vector3(LADDER.x + 0.1, 0.75, LADDER.z + dz),
+        new THREE.Vector3(LADDER.x + 0.45, 0.05, LADDER.z + dz),
+      ]);
+      b.add(new THREE.TubeGeometry(curve, 24, 0.022, 8, false), chrome, M(0, 0, 0));
+    }
+    for (let k = 0; k < 4; k++) b.box(chrome, LADDER.x - 0.1, -0.25 - k * 0.32, LADDER.z, 0.06, 0.03, 0.56);
+  }
   // The lit water throws turquoise light onto the deck around it.
   {
     const glowTex = toTexture(radial(128, 'rgba(60,200,230,0.45)', 'rgba(20,120,160,0)'));
@@ -119,7 +177,8 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   const waterMat = waterMaterial();
   const water = new THREE.Mesh(new THREE.PlaneGeometry(P.w, P.d, 1, 1), waterMat);
   water.rotation.x = -Math.PI / 2;
-  water.position.set(P.x, -0.12, P.z);
+  water.position.set(P.x, WATER_Y, P.z);
+  water.renderOrder = 2;
   water.raycast = () => {};
   root.add(water);
   // Hot tub.
@@ -361,9 +420,17 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   }
   stands.push({ pos: new THREE.Vector3(P.x - 6, 0, P.z + P.d / 2 + 1.0), yaw: Math.PI }, { pos: new THREE.Vector3(P.x - 5.3, 0, P.z + P.d / 2 + 1.0), yaw: Math.PI * 0.8 });
 
+  // A few guests standing in the shallow end, water at their chests.
+  const swimmers: PoolArea['swimmers'] = [
+    { pos: new THREE.Vector3(P.x - 4.2, -1.22, P.z + 2.4), yaw: Math.PI * 0.75 },
+    { pos: new THREE.Vector3(P.x - 3.3, -1.22, P.z + 1.6), yaw: -Math.PI * 0.6 },
+    { pos: new THREE.Vector3(P.x - 4.6, -1.22, P.z + 1.2), yaw: Math.PI * 0.35 },
+  ];
+
   return {
     root,
     anchor,
+    swimmers,
     seats: [...stools.slice(0, 5), ...seats, ...loungerSeats],
     stands,
     bartender: { pos: new THREE.Vector3(BAR.x + 1.15, 0, BAR.z), yaw: Math.PI / 2 },
@@ -381,6 +448,9 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
 /** Cheap animated pool water: lit from below, with moving caustic ripples. */
 function waterMaterial() {
   return new THREE.ShaderMaterial({
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
     uniforms: { time: { value: 0 } },
     vertexShader: /* glsl */ `
       varying vec3 vW;
@@ -406,7 +476,9 @@ function waterMaterial() {
         // Glints of the string lights and DJ beams dancing on the ripples.
         float glint = pow(max(0.0, sin(p.x * 9.0 + time * 2.0) * sin(p.y * 11.0 - time * 1.7)), 24.0);
         vec3 col = mix(body * 1.1, sky, fres * 0.85) + glint * vec3(1.0, 0.85, 0.6) * (0.3 + fres);
-        gl_FragColor = vec4(col, 1.0);
+        // Seen from below (you're underwater): a bright, rippling ceiling of light.
+        if (cameraPosition.y < vW.y) col = vec3(0.3, 0.75, 0.85) + caustic * vec3(0.6, 0.9, 1.0);
+        gl_FragColor = vec4(col, cameraPosition.y < vW.y ? 0.92 : 0.86);
         #include <colorspace_fragment>
       }`,
   });
