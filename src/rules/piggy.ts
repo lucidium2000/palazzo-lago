@@ -201,6 +201,28 @@ function pick<K extends string | number>(rng: Rng, weights: [K, number][]): K {
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
 
+/** Pays the 25 lines of a revealed 5x3 window (grid[reel][row]) for a total bet. */
+export function piggyLineWins(grid: string[][], bet: number): PiggyLineWin[] {
+  const lineBet = bet / PIGGY.lines.length;
+  const lineWins: PiggyLineWin[] = [];
+  PIGGY.lines.forEach((rows, li) => {
+    const r = evaluateLine(
+      rows.map((row, reel) => grid[reel][row]),
+      DEFS,
+    );
+    if (r) {
+      lineWins.push({
+        line: li,
+        symbol: r.symbol,
+        count: r.count,
+        amount: round2(r.pays * lineBet),
+        cells: rows.slice(0, r.count).map((row, reel) => [reel, row] as [number, number]),
+      });
+    }
+  });
+  return lineWins;
+}
+
 export class PiggyGame {
   phase: 'idle' | 'bonus' = 'idle';
   betIndex = 0;
@@ -266,23 +288,7 @@ export class PiggyGame {
     const mystery = hasMystery ? pick(rng, Object.entries(PIGGY.mysteryWeights).filter(([k]) => !removed.includes(k))) : null;
     const grid = raw.map((col) => col.map((s) => (s === 'MYSTERY' ? mystery! : s)));
 
-    const lineBet = bet / PIGGY.lines.length;
-    const lineWins: PiggyLineWin[] = [];
-    PIGGY.lines.forEach((rows, li) => {
-      const r = evaluateLine(
-        rows.map((row, reel) => grid[reel][row]),
-        DEFS,
-      );
-      if (r) {
-        lineWins.push({
-          line: li,
-          symbol: r.symbol,
-          count: r.count,
-          amount: round2(r.pays * lineBet),
-          cells: rows.slice(0, r.count).map((row, reel) => [reel, row] as [number, number]),
-        });
-      }
-    });
+    const lineWins = piggyLineWins(grid, bet);
     const lineWin = round2(lineWins.reduce((a, w) => a + w.amount, 0));
 
     const bank = this.bankFor();

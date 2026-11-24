@@ -18,7 +18,7 @@ import { CHIP_DENOMS, chipFace, radial, toTexture, wood, type ChipDenom } from '
 import { aimFor, sampleAt, simulateSpin, type SpinPlan } from './ballsim';
 import { describeSpot, FELT, FELT_SIZE, feltTexture, spotAnchor, spotAt, WHEEL_CENTER } from './layout';
 
-const TOP = 0.8; // felt height
+export const TOP = 0.8; // felt height
 const POCKETS = WHEEL_ORDER.length;
 const SECTOR = (Math.PI * 2) / POCKETS;
 const R = { bowl: 0.43, track: 0.372, pocket: 0.218, numbersIn: 0.248, numbersOut: 0.288 };
