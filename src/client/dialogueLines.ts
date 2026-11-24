@@ -86,14 +86,13 @@ export interface Node {
   replies?: Reply[];
 }
 
-const money = (n: number) => '$' + Math.round(Math.abs(n)).toLocaleString('en-US');
 
 export type Audience = 'guest' | 'pool' | 'bar' | 'croupier' | 'bartender' | 'waiter' | 'dealer-craps' | 'dealer-roulette';
 
 export const OPENERS: Record<Audience, Node[]> = {
   guest: [
     {
-      say: (c) => (c.up > 300 ? `You look like you're on a heater. ${money(c.up)} up?` : c.up < -300 ? "Rough night at the tables? Happens to all of us." : 'Hey there! Having a good night?'),
+      say: (c) => (c.up > 300 ? "You look like you're on a heater. Up big tonight?" : c.up < -300 ? "Rough night at the tables? Happens to all of us." : 'Hey there! Having a good night?'),
       replies: [
         { label: 'Best night ever!', next: { say: "That's what I like to hear. Where's the action?", replies: [{ label: 'Craps table is hot', end: "Then that's where I'm headed. Good luck!" }, { label: 'Try the piggy slots', end: "The pigs? Alright, I'll give it a shot!" }] } },
         { label: "I'm down a bit", next: { say: "Take a break, get a drink, come back fresh. Works for me every time.", replies: [{ label: 'Good advice', end: 'Hang in there. The night is young!' }, { label: 'One more hand', end: 'Ha! Famous last words. Good luck!' }] } },

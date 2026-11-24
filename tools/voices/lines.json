@@ -1,0 +1,7352 @@
+[
+ {
+  "id": "0524db75",
+  "voice": "af_bella",
+  "text": "Lager on tap, fresh off the tap.",
+  "speed": 1
+ },
+ {
+  "id": "108825ec",
+  "voice": "af_bella",
+  "text": "My friend! What are we having?",
+  "speed": 1
+ },
+ {
+  "id": "1fee6b63",
+  "voice": "af_bella",
+  "text": "Scotch on the rocks. Good choice.",
+  "speed": 1
+ },
+ {
+  "id": "3312ce76",
+  "voice": "af_bella",
+  "text": "Coming right up. You'll like this one.",
+  "speed": 1
+ },
+ {
+  "id": "4b63d082",
+  "voice": "af_bella",
+  "text": "Bourbon, neat. Good choice.",
+  "speed": 1
+ },
+ {
+  "id": "4e594622",
+  "voice": "af_bella",
+  "text": "Good to see you again, my friend. The usual, or something new?",
+  "speed": 1
+ },
+ {
+  "id": "62c1317c",
+  "voice": "af_bella",
+  "text": "You are a gentleman. Thank you!",
+  "speed": 1
+ },
+ {
+  "id": "6b69dab5",
+  "voice": "af_bella",
+  "text": "Negroni, coming right up.",
+  "speed": 1
+ },
+ {
+  "id": "6e4586b6",
+  "voice": "af_bella",
+  "text": "One Dry Martini, shaken. Coming up.",
+  "speed": 1
+ },
+ {
+  "id": "7260e6c2",
+  "voice": "af_bella",
+  "text": "Tequila shot. Good choice.",
+  "speed": 1
+ },
+ {
+  "id": "7718be32",
+  "voice": "af_bella",
+  "text": "Hazy IPA, fresh off the tap.",
+  "speed": 1
+ },
+ {
+  "id": "7e105efc",
+  "voice": "af_bella",
+  "text": "No rush. I'm here all night.",
+  "speed": 1
+ },
+ {
+  "id": "80344d2e",
+  "voice": "af_bella",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "9899873a",
+  "voice": "af_bella",
+  "text": "Lago Spritz, coming right up.",
+  "speed": 1
+ },
+ {
+  "id": "a87ec4a2",
+  "voice": "af_bella",
+  "text": "Good choice. One sec.",
+  "speed": 1
+ },
+ {
+  "id": "b1218fdf",
+  "voice": "af_bella",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "b4fb52b4",
+  "voice": "af_bella",
+  "text": "Shirley Temple. Good choice.",
+  "speed": 1
+ },
+ {
+  "id": "ba6e2a15",
+  "voice": "af_bella",
+  "text": "Evening! What can I get you?",
+  "speed": 1
+ },
+ {
+  "id": "bcf55891",
+  "voice": "af_bella",
+  "text": "One Lemon Drop shot, shaken. Coming up.",
+  "speed": 1
+ },
+ {
+  "id": "bfa1b36d",
+  "voice": "af_bella",
+  "text": "One Espresso Martini, shaken. Coming up.",
+  "speed": 1
+ },
+ {
+  "id": "c6eca0d9",
+  "voice": "af_bella",
+  "text": "Hey, appreciate you! Next one is on the fast track.",
+  "speed": 1
+ },
+ {
+  "id": "eaf7e7e6",
+  "voice": "af_bella",
+  "text": "The old fashioned with a twist, and our espresso martini. Both go fast.",
+  "speed": 1
+ },
+ {
+  "id": "ef2e732e",
+  "voice": "af_bella",
+  "text": "Virgin Mojito, coming right up.",
+  "speed": 1
+ },
+ {
+  "id": "f6f1c3bf",
+  "voice": "af_bella",
+  "text": "Champagne. Good choice.",
+  "speed": 1
+ },
+ {
+  "id": "fb5fcdb5",
+  "voice": "af_bella",
+  "text": "Classic. Coming up.",
+  "speed": 1
+ },
+ {
+  "id": "04ab2d2f",
+  "voice": "af_heart",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "09018823",
+  "voice": "af_heart",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "0d2e92e7",
+  "voice": "af_heart",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "0d3acbfb",
+  "voice": "af_heart",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "161a32a6",
+  "voice": "af_heart",
+  "text": "Is Mike still asleep?",
+  "speed": 1
+ },
+ {
+  "id": "1e00932d",
+  "voice": "af_heart",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "1f6b1b25",
+  "voice": "af_heart",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "22aa242c",
+  "voice": "af_heart",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "2534c318",
+  "voice": "af_heart",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "2a34ec5b",
+  "voice": "af_heart",
+  "text": "The one who hit seventeen twice?",
+  "speed": 1
+ },
+ {
+  "id": "2dbc8d45",
+  "voice": "af_heart",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "334ccd46",
+  "voice": "af_heart",
+  "text": "We're on thirty two. The view of the Strip is insane.",
+  "speed": 1
+ },
+ {
+  "id": "33821ca6",
+  "voice": "af_heart",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "367ecfeb",
+  "voice": "af_heart",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "3a96ae88",
+  "voice": "af_heart",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "4115029e",
+  "voice": "af_heart",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "4b02395f",
+  "voice": "af_heart",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "4d50b370",
+  "voice": "af_heart",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "4ef23121",
+  "voice": "af_heart",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "504a6c23",
+  "voice": "af_heart",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "52ad19e5",
+  "voice": "af_heart",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "5697a7a5",
+  "voice": "af_heart",
+  "text": "I'm betting seventeen next.",
+  "speed": 1
+ },
+ {
+  "id": "5e2334a5",
+  "voice": "af_heart",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "60cc27c1",
+  "voice": "af_heart",
+  "text": "How are you doing tonight?",
+  "speed": 1
+ },
+ {
+  "id": "687af98b",
+  "voice": "af_heart",
+  "text": "Cashing in. Again.",
+  "speed": 1
+ },
+ {
+  "id": "7187d5e0",
+  "voice": "af_heart",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "718c11ce",
+  "voice": "af_heart",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "72738896",
+  "voice": "af_heart",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "7a1d8ddb",
+  "voice": "af_heart",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "8559a5a5",
+  "voice": "af_heart",
+  "text": "He never knows when to stop.",
+  "speed": 1
+ },
+ {
+  "id": "8d0118ce",
+  "voice": "af_heart",
+  "text": "Happy anniversary, by the way.",
+  "speed": 1
+ },
+ {
+  "id": "8d7844fd",
+  "voice": "af_heart",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "921d4fd2",
+  "voice": "af_heart",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "96c1f9a9",
+  "voice": "af_heart",
+  "text": "Fair.",
+  "speed": 1
+ },
+ {
+  "id": "9cfbb1c8",
+  "voice": "af_heart",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "a06fc02a",
+  "voice": "af_heart",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "a242a377",
+  "voice": "af_heart",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "a285fb46",
+  "voice": "af_heart",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "a2f08f4b",
+  "voice": "af_heart",
+  "text": "What time is the show?",
+  "speed": 1
+ },
+ {
+  "id": "a51ec040",
+  "voice": "af_heart",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "a8531eb3",
+  "voice": "af_heart",
+  "text": "It's working.",
+  "speed": 1
+ },
+ {
+  "id": "a9651406",
+  "voice": "af_heart",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "aa3b8e53",
+  "voice": "af_heart",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "aeb9ecfd",
+  "voice": "af_heart",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "b2cfaab2",
+  "voice": "af_heart",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "b4de0897",
+  "voice": "af_heart",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "bb997fc0",
+  "voice": "af_heart",
+  "text": "So, down a hundred.",
+  "speed": 1
+ },
+ {
+  "id": "bd663d4f",
+  "voice": "af_heart",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "c095cbbb",
+  "voice": "af_heart",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "c0b9aa9d",
+  "voice": "af_heart",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "c3411e62",
+  "voice": "af_heart",
+  "text": "Excuse me, which way to the cashier?",
+  "speed": 1
+ },
+ {
+  "id": "c4c2fdd2",
+  "voice": "af_heart",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "c59be0ec",
+  "voice": "af_heart",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "c63b7f3c",
+  "voice": "af_heart",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "ca7dd95e",
+  "voice": "af_heart",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "caca6866",
+  "voice": "af_heart",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "d0039e59",
+  "voice": "af_heart",
+  "text": "The magician. My cousin saw it, said it's unreal.",
+  "speed": 1
+ },
+ {
+  "id": "d045c236",
+  "voice": "af_heart",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "d663c6d4",
+  "voice": "af_heart",
+  "text": "You love casinos.",
+  "speed": 1
+ },
+ {
+  "id": "db194a71",
+  "voice": "af_heart",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "dbdeb9b0",
+  "voice": "af_heart",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "dc9fb4c0",
+  "voice": "af_heart",
+  "text": "This carpet is wild.",
+  "speed": 1
+ },
+ {
+  "id": "e237dff2",
+  "voice": "af_heart",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "e696ff1f",
+  "voice": "af_heart",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "e96b82b5",
+  "voice": "af_heart",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "f23ed2f9",
+  "voice": "af_heart",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "f4558432",
+  "voice": "af_heart",
+  "text": "Or two.",
+  "speed": 1
+ },
+ {
+  "id": "fb9d61f2",
+  "voice": "af_heart",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "0338248a",
+  "voice": "af_jessica",
+  "text": "Three times! Straight up!",
+  "speed": 1
+ },
+ {
+  "id": "07581cb9",
+  "voice": "af_jessica",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "0850442b",
+  "voice": "af_jessica",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "0a2feb96",
+  "voice": "af_jessica",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "0a649ed0",
+  "voice": "af_jessica",
+  "text": "A very nice parking lot.",
+  "speed": 1
+ },
+ {
+  "id": "0bd6f0e5",
+  "voice": "af_jessica",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "12a10ad5",
+  "voice": "af_jessica",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "17c64161",
+  "voice": "af_jessica",
+  "text": "Have you been up to the suites?",
+  "speed": 1
+ },
+ {
+  "id": "18529e2f",
+  "voice": "af_jessica",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "22e02108",
+  "voice": "af_jessica",
+  "text": "Again?",
+  "speed": 1
+ },
+ {
+  "id": "26ec1276",
+  "voice": "af_jessica",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "2dc5f286",
+  "voice": "af_jessica",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "35c43cc0",
+  "voice": "af_jessica",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "3d217524",
+  "voice": "af_jessica",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "3daa58dc",
+  "voice": "af_jessica",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "410e40bf",
+  "voice": "af_jessica",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "4155287f",
+  "voice": "af_jessica",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "424aacc6",
+  "voice": "af_jessica",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "43b9a24c",
+  "voice": "af_jessica",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "4935a4fc",
+  "voice": "af_jessica",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "49b9fb68",
+  "voice": "af_jessica",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "49e29cf6",
+  "voice": "af_jessica",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "4a5350e2",
+  "voice": "af_jessica",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "51f35856",
+  "voice": "af_jessica",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "531bd18c",
+  "voice": "af_jessica",
+  "text": "That's the point, honey.",
+  "speed": 1
+ },
+ {
+  "id": "539db3cd",
+  "voice": "af_jessica",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "56fc8216",
+  "voice": "af_jessica",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "62c7aa3b",
+  "voice": "af_jessica",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "669daed2",
+  "voice": "af_jessica",
+  "text": "When's the next one?",
+  "speed": 1
+ },
+ {
+  "id": "708c76b8",
+  "voice": "af_jessica",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "71cec01d",
+  "voice": "af_jessica",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "721efe84",
+  "voice": "af_jessica",
+  "text": "Let's finish these first.",
+  "speed": 1
+ },
+ {
+  "id": "7a6882ac",
+  "voice": "af_jessica",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "7d4b6f3d",
+  "voice": "af_jessica",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "80e74b1e",
+  "voice": "af_jessica",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "831c7708",
+  "voice": "af_jessica",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "8aa27373",
+  "voice": "af_jessica",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "998670c3",
+  "voice": "af_jessica",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "9b0a7f87",
+  "voice": "af_jessica",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "9bdfeaad",
+  "voice": "af_jessica",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "9d7e7f34",
+  "voice": "af_jessica",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "9e8cdf54",
+  "voice": "af_jessica",
+  "text": "Did you see that guy at roulette?",
+  "speed": 1
+ },
+ {
+  "id": "a101db0c",
+  "voice": "af_jessica",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "a764c09b",
+  "voice": "af_jessica",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "a8934b07",
+  "voice": "af_jessica",
+  "text": "Bachelor party's at the pool later.",
+  "speed": 1
+ },
+ {
+  "id": "a89c3e67",
+  "voice": "af_jessica",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "a9b81468",
+  "voice": "af_jessica",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "ad5d6fd0",
+  "voice": "af_jessica",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "b000b6d9",
+  "voice": "af_jessica",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "b1062a75",
+  "voice": "af_jessica",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "b651f401",
+  "voice": "af_jessica",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "b93f0036",
+  "voice": "af_jessica",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "beb4d735",
+  "voice": "af_jessica",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "c82ce5ac",
+  "voice": "af_jessica",
+  "text": "You just don't know when to stop.",
+  "speed": 1
+ },
+ {
+  "id": "d2480958",
+  "voice": "af_jessica",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "dc308b10",
+  "voice": "af_jessica",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "e2efb765",
+  "voice": "af_jessica",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "e41bbff1",
+  "voice": "af_jessica",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "e7e5bcf3",
+  "voice": "af_jessica",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "eadfe941",
+  "voice": "af_jessica",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "f083d42a",
+  "voice": "af_jessica",
+  "text": "Which bar? There are five.",
+  "speed": 1
+ },
+ {
+  "id": "f0efffd7",
+  "voice": "af_jessica",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "f6bbce8f",
+  "voice": "af_jessica",
+  "text": "Are we doing the water show or the magician?",
+  "speed": 1
+ },
+ {
+  "id": "f9d9813d",
+  "voice": "af_jessica",
+  "text": "Sure you are.",
+  "speed": 1
+ },
+ {
+  "id": "005001d0",
+  "voice": "af_kore",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "00e834a0",
+  "voice": "af_kore",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "0ad62631",
+  "voice": "af_kore",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "0b08ff54",
+  "voice": "af_kore",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "0b7085ac",
+  "voice": "af_kore",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "0cd24659",
+  "voice": "af_kore",
+  "text": "A free drink.",
+  "speed": 1
+ },
+ {
+  "id": "1229077f",
+  "voice": "af_kore",
+  "text": "You said that an hour ago.",
+  "speed": 1
+ },
+ {
+  "id": "122fdb30",
+  "voice": "af_kore",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "1da4573c",
+  "voice": "af_kore",
+  "text": "This is my lucky shirt.",
+  "speed": 1
+ },
+ {
+  "id": "2110702c",
+  "voice": "af_kore",
+  "text": "The tall one.",
+  "speed": 1
+ },
+ {
+  "id": "23aba927",
+  "voice": "af_kore",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "23c42cb6",
+  "voice": "af_kore",
+  "text": "That's a system?",
+  "speed": 1
+ },
+ {
+  "id": "24b9cb86",
+  "voice": "af_kore",
+  "text": "Don't look, but I think that's a basketball player by the bar.",
+  "speed": 1
+ },
+ {
+  "id": "3b0cf81a",
+  "voice": "af_kore",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "45c3ddf0",
+  "voice": "af_kore",
+  "text": "Fancy. Are we dressing up?",
+  "speed": 1
+ },
+ {
+  "id": "4cc0264e",
+  "voice": "af_kore",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "543f1ed8",
+  "voice": "af_kore",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "5b97cc0b",
+  "voice": "af_kore",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "5cd227db",
+  "voice": "af_kore",
+  "text": "What's your system for craps?",
+  "speed": 1
+ },
+ {
+  "id": "5e7e2c15",
+  "voice": "af_kore",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "63e695d4",
+  "voice": "af_kore",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "648727e5",
+  "voice": "af_kore",
+  "text": "So is an oven.",
+  "speed": 1
+ },
+ {
+  "id": "660d9932",
+  "voice": "af_kore",
+  "text": "It's a hundred and four outside.",
+  "speed": 1
+ },
+ {
+  "id": "69261b99",
+  "voice": "af_kore",
+  "text": "Steakhouse or the buffet?",
+  "speed": 1
+ },
+ {
+  "id": "6f076eca",
+  "voice": "af_kore",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "6f8e8bb3",
+  "voice": "af_kore",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "7d690c5e",
+  "voice": "af_kore",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "86437836",
+  "voice": "af_kore",
+  "text": "Hey! Fancy seeing you here.",
+  "speed": 1
+ },
+ {
+  "id": "87178aa0",
+  "voice": "af_kore",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "8855b116",
+  "voice": "af_kore",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "8f224bdf",
+  "voice": "af_kore",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "8f91a789",
+  "voice": "af_kore",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "96074e3f",
+  "voice": "af_kore",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "97aa918e",
+  "voice": "af_kore",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "9a492035",
+  "voice": "af_kore",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "9e2aa729",
+  "voice": "af_kore",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "a0dcf753",
+  "voice": "af_kore",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "a3b8faa0",
+  "voice": "af_kore",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "a4353959",
+  "voice": "af_kore",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "ad131957",
+  "voice": "af_kore",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "ae2147d4",
+  "voice": "af_kore",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "aef827b6",
+  "voice": "af_kore",
+  "text": "You said that last year.",
+  "speed": 1
+ },
+ {
+  "id": "ba99867e",
+  "voice": "af_kore",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "bf5483d5",
+  "voice": "af_kore",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "c2677592",
+  "voice": "af_kore",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "c4c6cc87",
+  "voice": "af_kore",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "c607ca58",
+  "voice": "af_kore",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "c8d92631",
+  "voice": "af_kore",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "d9b4d547",
+  "voice": "af_kore",
+  "text": "Don't ask.",
+  "speed": 1
+ },
+ {
+  "id": "dae33975",
+  "voice": "af_kore",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "dccf6560",
+  "voice": "af_kore",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "e038f1f2",
+  "voice": "af_kore",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "e0f8b753",
+  "voice": "af_kore",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "e1d77c8e",
+  "voice": "af_kore",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "e6810773",
+  "voice": "af_kore",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "e6d172ea",
+  "voice": "af_kore",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "e7387fd9",
+  "voice": "af_kore",
+  "text": "Past the slots, on the left.",
+  "speed": 1
+ },
+ {
+  "id": "ec1f77a9",
+  "voice": "af_kore",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "ef27fc5e",
+  "voice": "af_kore",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "f20f210f",
+  "voice": "af_kore",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "f5cae237",
+  "voice": "af_kore",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "f67e04f2",
+  "voice": "af_kore",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "f91cc423",
+  "voice": "af_kore",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "fbb52618",
+  "voice": "af_kore",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "fc3a19fd",
+  "voice": "af_kore",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "fc8270fb",
+  "voice": "af_kore",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "0531a634",
+  "voice": "af_nicole",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "0881ae91",
+  "voice": "af_nicole",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "1c00c679",
+  "voice": "af_nicole",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "2035a695",
+  "voice": "af_nicole",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "227e598f",
+  "voice": "af_nicole",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "25067591",
+  "voice": "af_nicole",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "277e6198",
+  "voice": "af_nicole",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "283303ff",
+  "voice": "af_nicole",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "28a889bc",
+  "voice": "af_nicole",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "2973be30",
+  "voice": "af_nicole",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "2ba73edc",
+  "voice": "af_nicole",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "300e7d1b",
+  "voice": "af_nicole",
+  "text": "The pool party's going till two.",
+  "speed": 1
+ },
+ {
+  "id": "3100a90b",
+  "voice": "af_nicole",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "32211a02",
+  "voice": "af_nicole",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "332412ad",
+  "voice": "af_nicole",
+  "text": "A stomach ache from the buffet.",
+  "speed": 1
+ },
+ {
+  "id": "345a2ccc",
+  "voice": "af_nicole",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "38cd1ee0",
+  "voice": "af_nicole",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "39a0822d",
+  "voice": "af_nicole",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "3f707a41",
+  "voice": "af_nicole",
+  "text": "They're all tall.",
+  "speed": 1
+ },
+ {
+  "id": "40c6be23",
+  "voice": "af_nicole",
+  "text": "Dry heat, though.",
+  "speed": 1
+ },
+ {
+  "id": "4683cb50",
+  "voice": "af_nicole",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "46a801f2",
+  "voice": "af_nicole",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "48a24178",
+  "voice": "af_nicole",
+  "text": "The bartender made me something with gold flakes in it.",
+  "speed": 1
+ },
+ {
+  "id": "4a1d0b11",
+  "voice": "af_nicole",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "4ad0dbe7",
+  "voice": "af_nicole",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "5a52767a",
+  "voice": "af_nicole",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "5e48f47d",
+  "voice": "af_nicole",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "62fd6b5f",
+  "voice": "af_nicole",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "64e2d600",
+  "voice": "af_nicole",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "6baaa903",
+  "voice": "af_nicole",
+  "text": "Two hours ago.",
+  "speed": 1
+ },
+ {
+  "id": "6fc222ff",
+  "voice": "af_nicole",
+  "text": "Which one?",
+  "speed": 1
+ },
+ {
+  "id": "71cb65d9",
+  "voice": "af_nicole",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "733712ac",
+  "voice": "af_nicole",
+  "text": "Buffet. Crab legs.",
+  "speed": 1
+ },
+ {
+  "id": "768fd81c",
+  "voice": "af_nicole",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "78e810b5",
+  "voice": "af_nicole",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "7a896a46",
+  "voice": "af_nicole",
+  "text": "Small world. You winning?",
+  "speed": 1
+ },
+ {
+  "id": "7bc09f8f",
+  "voice": "af_nicole",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "7e0e0079",
+  "voice": "af_nicole",
+  "text": "Last year it was a waiter.",
+  "speed": 1
+ },
+ {
+  "id": "82602013",
+  "voice": "af_nicole",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "87879e6e",
+  "voice": "af_nicole",
+  "text": "Pass line, take the odds, pray.",
+  "speed": 1
+ },
+ {
+  "id": "88eac842",
+  "voice": "af_nicole",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "8d3e044b",
+  "voice": "af_nicole",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "9181a711",
+  "voice": "af_nicole",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "9aa81e5d",
+  "voice": "af_nicole",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "9c41a154",
+  "voice": "af_nicole",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "9ca62449",
+  "voice": "af_nicole",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "9fa12b18",
+  "voice": "af_nicole",
+  "text": "Dallas. First time here?",
+  "speed": 1
+ },
+ {
+  "id": "a77b20a9",
+  "voice": "af_nicole",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "a7af73a8",
+  "voice": "af_nicole",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "ab726ae6",
+  "voice": "af_nicole",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "b23cb4a9",
+  "voice": "af_nicole",
+  "text": "It was twenty six dollars.",
+  "speed": 1
+ },
+ {
+  "id": "b7af2afa",
+  "voice": "af_nicole",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "bf6b591f",
+  "voice": "af_nicole",
+  "text": "It's Vegas. Everything's open.",
+  "speed": 1
+ },
+ {
+  "id": "c07d9fb1",
+  "voice": "af_nicole",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "c59bf1e4",
+  "voice": "af_nicole",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "c812515c",
+  "voice": "af_nicole",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "c835e3c5",
+  "voice": "af_nicole",
+  "text": "She started it.",
+  "speed": 1
+ },
+ {
+  "id": "cae7a2ca",
+  "voice": "af_nicole",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "cf53755a",
+  "voice": "af_nicole",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "d1ed72e3",
+  "voice": "af_nicole",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "d36479d2",
+  "voice": "af_nicole",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "d71d5d8a",
+  "voice": "af_nicole",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "dd210516",
+  "voice": "af_nicole",
+  "text": "I hit a slot bonus on the piggy machine.",
+  "speed": 1
+ },
+ {
+  "id": "e27be64a",
+  "voice": "af_nicole",
+  "text": "Forty dollars.",
+  "speed": 1
+ },
+ {
+  "id": "e41f04aa",
+  "voice": "af_nicole",
+  "text": "Where are you guys from?",
+  "speed": 1
+ },
+ {
+  "id": "e8cb5bcf",
+  "voice": "af_nicole",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "f1b43aab",
+  "voice": "af_nicole",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "f5160873",
+  "voice": "af_nicole",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "f6429bf0",
+  "voice": "af_nicole",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "fbc582f9",
+  "voice": "af_nicole",
+  "text": "It's worked for thirty years.",
+  "speed": 1
+ },
+ {
+  "id": "0456b67e",
+  "voice": "af_nova",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "052fee06",
+  "voice": "af_nova",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "070edb9b",
+  "voice": "af_nova",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "07184f2c",
+  "voice": "af_nova",
+  "text": "Third. Can't stay away.",
+  "speed": 1
+ },
+ {
+  "id": "14f4cbf7",
+  "voice": "af_nova",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "17228fff",
+  "voice": "af_nova",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "1746887e",
+  "voice": "af_nova",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "1c3bda0c",
+  "voice": "af_nova",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "1d034267",
+  "voice": "af_nova",
+  "text": "Text the group, we're at the bar.",
+  "speed": 1
+ },
+ {
+  "id": "1efb5519",
+  "voice": "af_nova",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "26b5d62e",
+  "voice": "af_nova",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "2827b6ef",
+  "voice": "af_nova",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "308c03e2",
+  "voice": "af_nova",
+  "text": "The one with the piano.",
+  "speed": 1
+ },
+ {
+  "id": "39ec1e7d",
+  "voice": "af_nova",
+  "text": "How much?",
+  "speed": 1
+ },
+ {
+  "id": "3b3db55c",
+  "voice": "af_nova",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "3f864c57",
+  "voice": "af_nova",
+  "text": "At night? Is the pool even open?",
+  "speed": 1
+ },
+ {
+  "id": "44d93427",
+  "voice": "af_nova",
+  "text": "I'm cutting myself off after this one.",
+  "speed": 1
+ },
+ {
+  "id": "4efb8777",
+  "voice": "af_nova",
+  "text": "Chicago. You?",
+  "speed": 1
+ },
+ {
+  "id": "554af34f",
+  "voice": "af_nova",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "58e78e34",
+  "voice": "af_nova",
+  "text": "So, no.",
+  "speed": 1
+ },
+ {
+  "id": "5b84d905",
+  "voice": "af_nova",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "62cc9866",
+  "voice": "af_nova",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "630ac2c6",
+  "voice": "af_nova",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "6fad6bc5",
+  "voice": "af_nova",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "78023339",
+  "voice": "af_nova",
+  "text": "Every fifteen minutes, I think.",
+  "speed": 1
+ },
+ {
+  "id": "7904ec50",
+  "voice": "af_nova",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "7a3f6bfb",
+  "voice": "af_nova",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "7a7b0ecd",
+  "voice": "af_nova",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "7c0b9368",
+  "voice": "af_nova",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "7c2b9ad6",
+  "voice": "af_nova",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "7d3b9a8c",
+  "voice": "af_nova",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "808cbbc7",
+  "voice": "af_nova",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "817005f8",
+  "voice": "af_nova",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "942906c3",
+  "voice": "af_nova",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "9e9bbee5",
+  "voice": "af_nova",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "9f19cf72",
+  "voice": "af_nova",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "9f859812",
+  "voice": "af_nova",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "a091f43f",
+  "voice": "af_nova",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "a1f6fabd",
+  "voice": "af_nova",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "a5e12bdb",
+  "voice": "af_nova",
+  "text": "Was it good?",
+  "speed": 1
+ },
+ {
+  "id": "a648fb1d",
+  "voice": "af_nova",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "a9abd276",
+  "voice": "af_nova",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "aa3888e5",
+  "voice": "af_nova",
+  "text": "We should go out on the terrace for the fountains.",
+  "speed": 1
+ },
+ {
+  "id": "aba3fac4",
+  "voice": "af_nova",
+  "text": "Living large!",
+  "speed": 1
+ },
+ {
+  "id": "acabc8e8",
+  "voice": "af_nova",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "b0610641",
+  "voice": "af_nova",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "b5cbeb1b",
+  "voice": "af_nova",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "b65117fe",
+  "voice": "af_nova",
+  "text": "Steakhouse. I'm not fighting a grandma for crab legs again.",
+  "speed": 1
+ },
+ {
+  "id": "b9735c51",
+  "voice": "af_nova",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "b9f4351d",
+  "voice": "af_nova",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "c2c927a6",
+  "voice": "af_nova",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "c6627155",
+  "voice": "af_nova",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "c94967d2",
+  "voice": "af_nova",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "cf510b99",
+  "voice": "af_nova",
+  "text": "I'm telling you, the dealer at table four is cold.",
+  "speed": 1
+ },
+ {
+  "id": "d3c40985",
+  "voice": "af_nova",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "d6c9e180",
+  "voice": "af_nova",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "d750c0b2",
+  "voice": "af_nova",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "de474710",
+  "voice": "af_nova",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "dff14f0a",
+  "voice": "af_nova",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "e80697cb",
+  "voice": "af_nova",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "ebf9ad68",
+  "voice": "af_nova",
+  "text": "These drinks are strong.",
+  "speed": 1
+ },
+ {
+  "id": "f550cb03",
+  "voice": "af_nova",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "f61e0bd7",
+  "voice": "af_nova",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "f63acc33",
+  "voice": "af_nova",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "f722b6a0",
+  "voice": "af_nova",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "f9e30ed2",
+  "voice": "af_nova",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "0725c1f5",
+  "voice": "af_river",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "07df8c7c",
+  "voice": "af_river",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "08a36f31",
+  "voice": "af_river",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "09fab131",
+  "voice": "af_river",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "0ff6816f",
+  "voice": "af_river",
+  "text": "Thanks!",
+  "speed": 1
+ },
+ {
+  "id": "13e080cd",
+  "voice": "af_river",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "14361efa",
+  "voice": "af_river",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "1a2247ac",
+  "voice": "af_river",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "220f9cab",
+  "voice": "af_river",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "2720b9ea",
+  "voice": "af_river",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "282424c1",
+  "voice": "af_river",
+  "text": "Okay, one more hand and then dinner.",
+  "speed": 1
+ },
+ {
+  "id": "2a638431",
+  "voice": "af_river",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "2b0c5f39",
+  "voice": "af_river",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "2b1c2225",
+  "voice": "af_river",
+  "text": "Sold out. We'll find something better.",
+  "speed": 1
+ },
+ {
+  "id": "34fcb2de",
+  "voice": "af_river",
+  "text": "I bought earplugs.",
+  "speed": 1
+ },
+ {
+  "id": "3c43b2c7",
+  "voice": "af_river",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "3dbcf1b4",
+  "voice": "af_river",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "3f28d239",
+  "voice": "af_river",
+  "text": "A very famous-looking waiter.",
+  "speed": 1
+ },
+ {
+  "id": "3f356d5c",
+  "voice": "af_river",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "41204862",
+  "voice": "af_river",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "414a9e67",
+  "voice": "af_river",
+  "text": "Best weekend in years.",
+  "speed": 1
+ },
+ {
+  "id": "43194387",
+  "voice": "af_river",
+  "text": "Thanks, it's rented.",
+  "speed": 1
+ },
+ {
+  "id": "4acc631a",
+  "voice": "af_river",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "4b7884f1",
+  "voice": "af_river",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "4b9c1dc8",
+  "voice": "af_river",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "4cac03cb",
+  "voice": "af_river",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "52d74570",
+  "voice": "af_river",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "57aebd32",
+  "voice": "af_river",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "5c5b87c3",
+  "voice": "af_river",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "5eefaa20",
+  "voice": "af_river",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "624bb1a2",
+  "voice": "af_river",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "6275dd7c",
+  "voice": "af_river",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "637d05d9",
+  "voice": "af_river",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "696d18b8",
+  "voice": "af_river",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "6c67f4d2",
+  "voice": "af_river",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "6e233cb3",
+  "voice": "af_river",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "7339f66f",
+  "voice": "af_river",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "779b1489",
+  "voice": "af_river",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "7a2ed6d3",
+  "voice": "af_river",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "822be4dd",
+  "voice": "af_river",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "839404da",
+  "voice": "af_river",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "86f7a990",
+  "voice": "af_river",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "89d2748b",
+  "voice": "af_river",
+  "text": "I booked the tasting menu for nine.",
+  "speed": 1
+ },
+ {
+  "id": "8d4a7fb3",
+  "voice": "af_river",
+  "text": "Penny slot? On what bet?",
+  "speed": 1
+ },
+ {
+  "id": "8d84e250",
+  "voice": "af_river",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "95775418",
+  "voice": "af_river",
+  "text": "Have you seen the bathrooms?",
+  "speed": 1
+ },
+ {
+  "id": "958003ce",
+  "voice": "af_river",
+  "text": "I swear I saw a famous chef at the steakhouse.",
+  "speed": 1
+ },
+ {
+  "id": "97a78744",
+  "voice": "af_river",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "991dcfaf",
+  "voice": "af_river",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "9e629586",
+  "voice": "af_river",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "b9cd3aef",
+  "voice": "af_river",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "bab73b0d",
+  "voice": "af_river",
+  "text": "Winners all around.",
+  "speed": 1
+ },
+ {
+  "id": "c27c68e9",
+  "voice": "af_river",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "cacb3e51",
+  "voice": "af_river",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "d0986d61",
+  "voice": "af_river",
+  "text": "Where is that machine?",
+  "speed": 1
+ },
+ {
+  "id": "d2cfbce1",
+  "voice": "af_river",
+  "text": "What did everyone win today?",
+  "speed": 1
+ },
+ {
+  "id": "d5196080",
+  "voice": "af_river",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "d5241d6b",
+  "voice": "af_river",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "d7853855",
+  "voice": "af_river",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "db3f8f94",
+  "voice": "af_river",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "dc83a5b0",
+  "voice": "af_river",
+  "text": "It's midnight.",
+  "speed": 1
+ },
+ {
+  "id": "e889ffdf",
+  "voice": "af_river",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "f226017c",
+  "voice": "af_river",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "f27b236a",
+  "voice": "af_river",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "f4d2c069",
+  "voice": "af_river",
+  "text": "You are already dressed up.",
+  "speed": 1
+ },
+ {
+  "id": "f55a3f3f",
+  "voice": "af_river",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "f859513d",
+  "voice": "af_river",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "ffa8dfc2",
+  "voice": "af_river",
+  "text": "Then I'm due!",
+  "speed": 1
+ },
+ {
+  "id": "000fa8dc",
+  "voice": "af_sarah",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "0bb0c215",
+  "voice": "af_sarah",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "0c4ce526",
+  "voice": "af_sarah",
+  "text": "In Vegas, there's always something better.",
+  "speed": 1
+ },
+ {
+  "id": "0cb684bd",
+  "voice": "af_sarah",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "12b8548b",
+  "voice": "af_sarah",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "1423847a",
+  "voice": "af_sarah",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "15c85acd",
+  "voice": "af_sarah",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "1896d377",
+  "voice": "af_sarah",
+  "text": "I split tens.",
+  "speed": 1
+ },
+ {
+  "id": "1a1c77d1",
+  "voice": "af_sarah",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "211fa9d4",
+  "voice": "af_sarah",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "2744a7ac",
+  "voice": "af_sarah",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "297b3c04",
+  "voice": "af_sarah",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "2ad7377d",
+  "voice": "af_sarah",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "3545938f",
+  "voice": "af_sarah",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "357f24de",
+  "voice": "af_sarah",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "363d0577",
+  "voice": "af_sarah",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "36de43a4",
+  "voice": "af_sarah",
+  "text": "Did you get tickets for the concert?",
+  "speed": 1
+ },
+ {
+  "id": "3963c247",
+  "voice": "af_sarah",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "3f830c1b",
+  "voice": "af_sarah",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "42da30a3",
+  "voice": "af_sarah",
+  "text": "Lost both.",
+  "speed": 1
+ },
+ {
+  "id": "46289391",
+  "voice": "af_sarah",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "4f215096",
+  "voice": "af_sarah",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "51f44fe1",
+  "voice": "af_sarah",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "575ce231",
+  "voice": "af_sarah",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "62ddeb12",
+  "voice": "af_sarah",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "6326fd65",
+  "voice": "af_sarah",
+  "text": "Exactly. The night's just starting.",
+  "speed": 1
+ },
+ {
+  "id": "6906c5b2",
+  "voice": "af_sarah",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "6d428dbc",
+  "voice": "af_sarah",
+  "text": "Through the hotel lobby, past the elevators.",
+  "speed": 1
+ },
+ {
+  "id": "6da10292",
+  "voice": "af_sarah",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "707a83e0",
+  "voice": "af_sarah",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "7994492b",
+  "voice": "af_sarah",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "7accc5dd",
+  "voice": "af_sarah",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "7b4f7fe3",
+  "voice": "af_sarah",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "7c9f2aea",
+  "voice": "af_sarah",
+  "text": "Max bet. Six bucks a spin.",
+  "speed": 1
+ },
+ {
+  "id": "7e4a0d11",
+  "voice": "af_sarah",
+  "text": "I just watched a lady win twelve grand on a penny slot.",
+  "speed": 1
+ },
+ {
+  "id": "8a74d1be",
+  "voice": "af_sarah",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "9095adbd",
+  "voice": "af_sarah",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "9511734d",
+  "voice": "af_sarah",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "963088ac",
+  "voice": "af_sarah",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "97f4c399",
+  "voice": "af_sarah",
+  "text": "Very carefully.",
+  "speed": 1
+ },
+ {
+  "id": "99b7b502",
+  "voice": "af_sarah",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "99fd58d0",
+  "voice": "af_sarah",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "9f7a10c8",
+  "voice": "af_sarah",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "a07c38b3",
+  "voice": "af_sarah",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "a49ca474",
+  "voice": "af_sarah",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "a4e38cd1",
+  "voice": "af_sarah",
+  "text": "The one with the fat pigs?",
+  "speed": 1
+ },
+ {
+  "id": "a95e5393",
+  "voice": "af_sarah",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "af2dedc7",
+  "voice": "af_sarah",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "b1532e06",
+  "voice": "af_sarah",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "b1e76798",
+  "voice": "af_sarah",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "b89a05e2",
+  "voice": "af_sarah",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "b8bfe78b",
+  "voice": "af_sarah",
+  "text": "Nice jacket.",
+  "speed": 1
+ },
+ {
+  "id": "bb01595e",
+  "voice": "af_sarah",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "c52b2e78",
+  "voice": "af_sarah",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "c999d230",
+  "voice": "af_sarah",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "cdb93b6d",
+  "voice": "af_sarah",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "d0404431",
+  "voice": "af_sarah",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "d0440200",
+  "voice": "af_sarah",
+  "text": "We passed the budget yesterday.",
+  "speed": 1
+ },
+ {
+  "id": "d3617030",
+  "voice": "af_sarah",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "e603fbc7",
+  "voice": "af_sarah",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "e9395c5b",
+  "voice": "af_sarah",
+  "text": "Hand blown, every flower.",
+  "speed": 1
+ },
+ {
+  "id": "ea2aea71",
+  "voice": "af_sarah",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "f2a5d00d",
+  "voice": "af_sarah",
+  "text": "Even with my snoring?",
+  "speed": 1
+ },
+ {
+  "id": "f612e09e",
+  "voice": "af_sarah",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "f77554fd",
+  "voice": "af_sarah",
+  "text": "I need coffee.",
+  "speed": 1
+ },
+ {
+  "id": "faf5bc8e",
+  "voice": "af_sarah",
+  "text": "Are you having fun?",
+  "speed": 1
+ },
+ {
+  "id": "fc77c03e",
+  "voice": "af_sarah",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "0016f199",
+  "voice": "am_echo",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "0493a6cf",
+  "voice": "am_echo",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "0619425e",
+  "voice": "am_echo",
+  "text": "The one with the piano.",
+  "speed": 1
+ },
+ {
+  "id": "06d5a1ea",
+  "voice": "am_echo",
+  "text": "I just watched a lady win twelve grand on a penny slot.",
+  "speed": 1
+ },
+ {
+  "id": "0c607012",
+  "voice": "am_echo",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "0f696959",
+  "voice": "am_echo",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "1486f9a1",
+  "voice": "am_echo",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "15e77529",
+  "voice": "am_echo",
+  "text": "Through the hotel lobby, past the elevators.",
+  "speed": 1
+ },
+ {
+  "id": "182a2c72",
+  "voice": "am_echo",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "189150f1",
+  "voice": "am_echo",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "198c7588",
+  "voice": "am_echo",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "1c00117c",
+  "voice": "am_echo",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "1ddeef6a",
+  "voice": "am_echo",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "1ff1fd1b",
+  "voice": "am_echo",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "2451791a",
+  "voice": "am_echo",
+  "text": "Very carefully.",
+  "speed": 1
+ },
+ {
+  "id": "2796c521",
+  "voice": "am_echo",
+  "text": "We should go out on the terrace for the fountains.",
+  "speed": 1
+ },
+ {
+  "id": "2c4adf34",
+  "voice": "am_echo",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "334bc200",
+  "voice": "am_echo",
+  "text": "Hand blown, every flower.",
+  "speed": 1
+ },
+ {
+  "id": "33cc0d0b",
+  "voice": "am_echo",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "3b240f1f",
+  "voice": "am_echo",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "3c8c2caf",
+  "voice": "am_echo",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "40b2acab",
+  "voice": "am_echo",
+  "text": "Text the group, we're at the bar.",
+  "speed": 1
+ },
+ {
+  "id": "469ab60a",
+  "voice": "am_echo",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "52e336da",
+  "voice": "am_echo",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "56f65ce6",
+  "voice": "am_echo",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "570a588b",
+  "voice": "am_echo",
+  "text": "In Vegas, there's always something better.",
+  "speed": 1
+ },
+ {
+  "id": "59e18c8a",
+  "voice": "am_echo",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "5bc7be2b",
+  "voice": "am_echo",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "5d2a9343",
+  "voice": "am_echo",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "60cc0a1e",
+  "voice": "am_echo",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "637bc8ce",
+  "voice": "am_echo",
+  "text": "Nice jacket.",
+  "speed": 1
+ },
+ {
+  "id": "64d1786a",
+  "voice": "am_echo",
+  "text": "Exactly. The night's just starting.",
+  "speed": 1
+ },
+ {
+  "id": "6873cfaa",
+  "voice": "am_echo",
+  "text": "Steakhouse. I'm not fighting a grandma for crab legs again.",
+  "speed": 1
+ },
+ {
+  "id": "6dbf29c2",
+  "voice": "am_echo",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "6f2baacc",
+  "voice": "am_echo",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "73c76f14",
+  "voice": "am_echo",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "73e76e8e",
+  "voice": "am_echo",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "76a1fd48",
+  "voice": "am_echo",
+  "text": "Living large!",
+  "speed": 1
+ },
+ {
+  "id": "78296bf7",
+  "voice": "am_echo",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "79a0f89c",
+  "voice": "am_echo",
+  "text": "I need coffee.",
+  "speed": 1
+ },
+ {
+  "id": "818b62c8",
+  "voice": "am_echo",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "8911d255",
+  "voice": "am_echo",
+  "text": "Are you having fun?",
+  "speed": 1
+ },
+ {
+  "id": "89999d23",
+  "voice": "am_echo",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "8de09efd",
+  "voice": "am_echo",
+  "text": "Did you get tickets for the concert?",
+  "speed": 1
+ },
+ {
+  "id": "8fa5ce34",
+  "voice": "am_echo",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "92b6ef8e",
+  "voice": "am_echo",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "96e23388",
+  "voice": "am_echo",
+  "text": "So, no.",
+  "speed": 1
+ },
+ {
+  "id": "9b82f71d",
+  "voice": "am_echo",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "9fea22e9",
+  "voice": "am_echo",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "a2477583",
+  "voice": "am_echo",
+  "text": "We passed the budget yesterday.",
+  "speed": 1
+ },
+ {
+  "id": "a398d88a",
+  "voice": "am_echo",
+  "text": "Lost both.",
+  "speed": 1
+ },
+ {
+  "id": "aa630a87",
+  "voice": "am_echo",
+  "text": "Max bet. Six bucks a spin.",
+  "speed": 1
+ },
+ {
+  "id": "ab1b62bb",
+  "voice": "am_echo",
+  "text": "At night? Is the pool even open?",
+  "speed": 1
+ },
+ {
+  "id": "afbb102d",
+  "voice": "am_echo",
+  "text": "I'm telling you, the dealer at table four is cold.",
+  "speed": 1
+ },
+ {
+  "id": "b27769a4",
+  "voice": "am_echo",
+  "text": "I split tens.",
+  "speed": 1
+ },
+ {
+  "id": "b3767651",
+  "voice": "am_echo",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "ba7aaacb",
+  "voice": "am_echo",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "bc5e768e",
+  "voice": "am_echo",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "bdc946a4",
+  "voice": "am_echo",
+  "text": "These drinks are strong.",
+  "speed": 1
+ },
+ {
+  "id": "c23fa24a",
+  "voice": "am_echo",
+  "text": "Even with my snoring?",
+  "speed": 1
+ },
+ {
+  "id": "c7452a7f",
+  "voice": "am_echo",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "c88b598d",
+  "voice": "am_echo",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "cae7f4c3",
+  "voice": "am_echo",
+  "text": "Chicago. You?",
+  "speed": 1
+ },
+ {
+  "id": "cd7a6d2f",
+  "voice": "am_echo",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "cd9bb947",
+  "voice": "am_echo",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "d99ce15c",
+  "voice": "am_echo",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "dc4ba931",
+  "voice": "am_echo",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "dc84cd05",
+  "voice": "am_echo",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "dda3358e",
+  "voice": "am_echo",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "de2d54a1",
+  "voice": "am_echo",
+  "text": "How much?",
+  "speed": 1
+ },
+ {
+  "id": "e40e11c1",
+  "voice": "am_echo",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "e4234ef3",
+  "voice": "am_echo",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "e5a2ceb5",
+  "voice": "am_echo",
+  "text": "Every fifteen minutes, I think.",
+  "speed": 1
+ },
+ {
+  "id": "e6a7c21c",
+  "voice": "am_echo",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "e7ff7fa2",
+  "voice": "am_echo",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "eed52090",
+  "voice": "am_echo",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "ef580220",
+  "voice": "am_echo",
+  "text": "Third. Can't stay away.",
+  "speed": 1
+ },
+ {
+  "id": "f23a9919",
+  "voice": "am_echo",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "f30e9a2a",
+  "voice": "am_echo",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "f4a271bb",
+  "voice": "am_echo",
+  "text": "I'm cutting myself off after this one.",
+  "speed": 1
+ },
+ {
+  "id": "fb04d097",
+  "voice": "am_echo",
+  "text": "Was it good?",
+  "speed": 1
+ },
+ {
+  "id": "fe7bb3d8",
+  "voice": "am_echo",
+  "text": "The one with the fat pigs?",
+  "speed": 1
+ },
+ {
+  "id": "010d5140",
+  "voice": "am_eric",
+  "text": "Checking boxes tonight!",
+  "speed": 1.05
+ },
+ {
+  "id": "0147832c",
+  "voice": "am_eric",
+  "text": "Look at this ceiling. Who even builds this?",
+  "speed": 1.05
+ },
+ {
+  "id": "0a997cde",
+  "voice": "am_eric",
+  "text": "Come on, come on!",
+  "speed": 1.05
+ },
+ {
+  "id": "0b6c7d98",
+  "voice": "am_eric",
+  "text": "That's alright, next one.",
+  "speed": 1.05
+ },
+ {
+  "id": "102dae1c",
+  "voice": "am_eric",
+  "text": "Here we go, here we go!",
+  "speed": 1.05
+ },
+ {
+  "id": "130192ea",
+  "voice": "am_eric",
+  "text": "Alright boys. Vegas, baby!",
+  "speed": 1.05
+ },
+ {
+  "id": "139c094f",
+  "voice": "am_eric",
+  "text": "Let's gooo!",
+  "speed": 1.05
+ },
+ {
+  "id": "148bbfdd",
+  "voice": "am_eric",
+  "text": "This place is unreal.",
+  "speed": 1.05
+ },
+ {
+  "id": "17d538c4",
+  "voice": "am_eric",
+  "text": "The house got lucky.",
+  "speed": 1.05
+ },
+ {
+  "id": "1bc19635",
+  "voice": "am_eric",
+  "text": "Whoa!",
+  "speed": 1.05
+ },
+ {
+  "id": "29a71fd2",
+  "voice": "am_eric",
+  "text": "Let it ride!",
+  "speed": 1.05
+ },
+ {
+  "id": "2f3cc61c",
+  "voice": "am_eric",
+  "text": "Oh it's happening!",
+  "speed": 1.05
+ },
+ {
+  "id": "2f66c4b8",
+  "voice": "am_eric",
+  "text": "Legendary night, boys. Legendary.",
+  "speed": 1.05
+ },
+ {
+  "id": "34e48e79",
+  "voice": "am_eric",
+  "text": "Look at us go.",
+  "speed": 1.05
+ },
+ {
+  "id": "3614b975",
+  "voice": "am_eric",
+  "text": "Okay, deep breath. We go again.",
+  "speed": 1.05
+ },
+ {
+  "id": "3cc8f1ef",
+  "voice": "am_eric",
+  "text": "No way! No way!",
+  "speed": 1.05
+ },
+ {
+  "id": "3dd693ac",
+  "voice": "am_eric",
+  "text": "Big money, big money!",
+  "speed": 1.05
+ },
+ {
+  "id": "491bb434",
+  "voice": "am_eric",
+  "text": "Salute!",
+  "speed": 1.05
+ },
+ {
+  "id": "4be9d36b",
+  "voice": "am_eric",
+  "text": "Easy money.",
+  "speed": 1.05
+ },
+ {
+  "id": "5081e230",
+  "voice": "am_eric",
+  "text": "Three in a row! Who is this guy?",
+  "speed": 1.05
+ },
+ {
+  "id": "542add93",
+  "voice": "am_eric",
+  "text": "Classy move.",
+  "speed": 1.05
+ },
+ {
+  "id": "5660d7ee",
+  "voice": "am_eric",
+  "text": "Red is due. I can feel it.",
+  "speed": 1.05
+ },
+ {
+  "id": "5878bd3c",
+  "voice": "am_eric",
+  "text": "Somebody's gonna hit big tonight. Might as well be us.",
+  "speed": 1.05
+ },
+ {
+  "id": "5a893ff6",
+  "voice": "am_eric",
+  "text": "Now that's a friend!",
+  "speed": 1.05
+ },
+ {
+  "id": "5be41f5c",
+  "voice": "am_eric",
+  "text": "Now that's a view.",
+  "speed": 1.05
+ },
+ {
+  "id": "5c29e77b",
+  "voice": "am_eric",
+  "text": "Shake it off.",
+  "speed": 1.05
+ },
+ {
+  "id": "6429f715",
+  "voice": "am_eric",
+  "text": "There it is!",
+  "speed": 1.05
+ },
+ {
+  "id": "64bf000a",
+  "voice": "am_eric",
+  "text": "First stop: the tables. Let's make some money.",
+  "speed": 1.05
+ },
+ {
+  "id": "68e14c0a",
+  "voice": "am_eric",
+  "text": "Okay, water next. I mean it.",
+  "speed": 1.05
+ },
+ {
+  "id": "6d9ca804",
+  "voice": "am_eric",
+  "text": "Ooh, fancy.",
+  "speed": 1.05
+ },
+ {
+  "id": "6fbc7783",
+  "voice": "am_eric",
+  "text": "This is the best spot in Vegas.",
+  "speed": 1.05
+ },
+ {
+  "id": "71840b79",
+  "voice": "am_eric",
+  "text": "Wait for the finale. Trust me.",
+  "speed": 1.05
+ },
+ {
+  "id": "72354b15",
+  "voice": "am_eric",
+  "text": "Nobody's gonna believe this back home.",
+  "speed": 1.05
+ },
+ {
+  "id": "7329bb47",
+  "voice": "am_eric",
+  "text": "That's insane!",
+  "speed": 1.05
+ },
+ {
+  "id": "74b6dc4d",
+  "voice": "am_eric",
+  "text": "Have you seen the fountains? We gotta go out on the terrace.",
+  "speed": 1.05
+ },
+ {
+  "id": "76a1abe4",
+  "voice": "am_eric",
+  "text": "Run it back.",
+  "speed": 1.05
+ },
+ {
+  "id": "7d887dc8",
+  "voice": "am_eric",
+  "text": "Roulette's calling your name, I'm telling you.",
+  "speed": 1.05
+ },
+ {
+  "id": "82b2bdff",
+  "voice": "am_eric",
+  "text": "Big tipper over here.",
+  "speed": 1.05
+ },
+ {
+  "id": "8a718070",
+  "voice": "am_eric",
+  "text": "Somebody's feeling good tonight!",
+  "speed": 1.05
+ },
+ {
+  "id": "97bac8f3",
+  "voice": "am_eric",
+  "text": "That's what I'm talking about!",
+  "speed": 1.05
+ },
+ {
+  "id": "9e7c066b",
+  "voice": "am_eric",
+  "text": "Nice!",
+  "speed": 1.05
+ },
+ {
+  "id": "a1e5eccc",
+  "voice": "am_eric",
+  "text": "Ka-ching!",
+  "speed": 1.05
+ },
+ {
+  "id": "a77da685",
+  "voice": "am_eric",
+  "text": "Don't touch him, he's on fire!",
+  "speed": 1.05
+ },
+ {
+  "id": "a879e84b",
+  "voice": "am_eric",
+  "text": "You're a legend!",
+  "speed": 1.05
+ },
+ {
+  "id": "ad2435d0",
+  "voice": "am_eric",
+  "text": "Here we go!",
+  "speed": 1.05
+ },
+ {
+  "id": "b606304e",
+  "voice": "am_eric",
+  "text": "Drinks are on you tonight!",
+  "speed": 1.05
+ },
+ {
+  "id": "bac8cc39",
+  "voice": "am_eric",
+  "text": "That one hurt to watch.",
+  "speed": 1.05
+ },
+ {
+  "id": "c30844cb",
+  "voice": "am_eric",
+  "text": "Make it a double!",
+  "speed": 1.05
+ },
+ {
+  "id": "c5217314",
+  "voice": "am_eric",
+  "text": "We should hit the bar at some point.",
+  "speed": 1.05
+ },
+ {
+  "id": "c54a3b0a",
+  "voice": "am_eric",
+  "text": "To the best night ever!",
+  "speed": 1.05
+ },
+ {
+  "id": "c71f0f07",
+  "voice": "am_eric",
+  "text": "Easy there, champ!",
+  "speed": 1.05
+ },
+ {
+  "id": "c7e1917b",
+  "voice": "am_eric",
+  "text": "Bonus round!",
+  "speed": 1.05
+ },
+ {
+  "id": "ca758a05",
+  "voice": "am_eric",
+  "text": "Okay, that was worth the trip.",
+  "speed": 1.05
+ },
+ {
+  "id": "d3416348",
+  "voice": "am_eric",
+  "text": "Ouch.",
+  "speed": 1.05
+ },
+ {
+  "id": "d858a548",
+  "voice": "am_eric",
+  "text": "I've got a good feeling about tonight.",
+  "speed": 1.05
+ },
+ {
+  "id": "e134656a",
+  "voice": "am_eric",
+  "text": "That piano guy is smooth.",
+  "speed": 1.05
+ },
+ {
+  "id": "e31f1145",
+  "voice": "am_eric",
+  "text": "Oof. Brutal.",
+  "speed": 1.05
+ },
+ {
+  "id": "e7045066",
+  "voice": "am_eric",
+  "text": "He's heating up!",
+  "speed": 1.05
+ },
+ {
+  "id": "ee998ebf",
+  "voice": "am_eric",
+  "text": "Somebody call my mom!",
+  "speed": 1.05
+ },
+ {
+  "id": "f178ee61",
+  "voice": "am_eric",
+  "text": "Cheers to that.",
+  "speed": 1.05
+ },
+ {
+  "id": "f4c4369a",
+  "voice": "am_eric",
+  "text": "Cheers, brother!",
+  "speed": 1.05
+ },
+ {
+  "id": "f6e12bde",
+  "voice": "am_eric",
+  "text": "He's gonna play our song now.",
+  "speed": 1.05
+ },
+ {
+  "id": "0240f3ee",
+  "voice": "am_fenrir",
+  "text": "Make it a double!",
+  "speed": 1.04
+ },
+ {
+  "id": "035ce3d4",
+  "voice": "am_fenrir",
+  "text": "Classy move.",
+  "speed": 1.04
+ },
+ {
+  "id": "05c13de1",
+  "voice": "am_fenrir",
+  "text": "That's alright, next one.",
+  "speed": 1.04
+ },
+ {
+  "id": "0684a971",
+  "voice": "am_fenrir",
+  "text": "Look at this ceiling. Who even builds this?",
+  "speed": 1.04
+ },
+ {
+  "id": "0defe575",
+  "voice": "am_fenrir",
+  "text": "Salute!",
+  "speed": 1.04
+ },
+ {
+  "id": "10517da1",
+  "voice": "am_fenrir",
+  "text": "Here we go!",
+  "speed": 1.04
+ },
+ {
+  "id": "12d7cdec",
+  "voice": "am_fenrir",
+  "text": "Bonus round!",
+  "speed": 1.04
+ },
+ {
+  "id": "13386bb7",
+  "voice": "am_fenrir",
+  "text": "Somebody's gonna hit big tonight. Might as well be us.",
+  "speed": 1.04
+ },
+ {
+  "id": "205ff885",
+  "voice": "am_fenrir",
+  "text": "Red is due. I can feel it.",
+  "speed": 1.04
+ },
+ {
+  "id": "21a517da",
+  "voice": "am_fenrir",
+  "text": "Shake it off.",
+  "speed": 1.04
+ },
+ {
+  "id": "246ffbeb",
+  "voice": "am_fenrir",
+  "text": "Roulette's calling your name, I'm telling you.",
+  "speed": 1.04
+ },
+ {
+  "id": "2532da8b",
+  "voice": "am_fenrir",
+  "text": "I've got a good feeling about tonight.",
+  "speed": 1.04
+ },
+ {
+  "id": "29bafefa",
+  "voice": "am_fenrir",
+  "text": "This is the best spot in Vegas.",
+  "speed": 1.04
+ },
+ {
+  "id": "2f1af9be",
+  "voice": "am_fenrir",
+  "text": "Don't touch him, he's on fire!",
+  "speed": 1.04
+ },
+ {
+  "id": "317a46e2",
+  "voice": "am_fenrir",
+  "text": "Easy money.",
+  "speed": 1.04
+ },
+ {
+  "id": "36c2303d",
+  "voice": "am_fenrir",
+  "text": "He's heating up!",
+  "speed": 1.04
+ },
+ {
+  "id": "37f69ea0",
+  "voice": "am_fenrir",
+  "text": "That's what I'm talking about!",
+  "speed": 1.04
+ },
+ {
+  "id": "42341070",
+  "voice": "am_fenrir",
+  "text": "That's insane!",
+  "speed": 1.04
+ },
+ {
+  "id": "4333b823",
+  "voice": "am_fenrir",
+  "text": "Somebody's feeling good tonight!",
+  "speed": 1.04
+ },
+ {
+  "id": "4e5cd1b4",
+  "voice": "am_fenrir",
+  "text": "Okay, deep breath. We go again.",
+  "speed": 1.04
+ },
+ {
+  "id": "551b91ca",
+  "voice": "am_fenrir",
+  "text": "Wait for the finale. Trust me.",
+  "speed": 1.04
+ },
+ {
+  "id": "5f4d00f1",
+  "voice": "am_fenrir",
+  "text": "Checking boxes tonight!",
+  "speed": 1.04
+ },
+ {
+  "id": "693fdf7b",
+  "voice": "am_fenrir",
+  "text": "Oh it's happening!",
+  "speed": 1.04
+ },
+ {
+  "id": "69489741",
+  "voice": "am_fenrir",
+  "text": "Alright boys. Vegas, baby!",
+  "speed": 1.04
+ },
+ {
+  "id": "7a5c9c7b",
+  "voice": "am_fenrir",
+  "text": "That piano guy is smooth.",
+  "speed": 1.04
+ },
+ {
+  "id": "802a04fd",
+  "voice": "am_fenrir",
+  "text": "Okay, water next. I mean it.",
+  "speed": 1.04
+ },
+ {
+  "id": "8259a41b",
+  "voice": "am_fenrir",
+  "text": "To the best night ever!",
+  "speed": 1.04
+ },
+ {
+  "id": "8671b930",
+  "voice": "am_fenrir",
+  "text": "That one hurt to watch.",
+  "speed": 1.04
+ },
+ {
+  "id": "8802c43d",
+  "voice": "am_fenrir",
+  "text": "Big money, big money!",
+  "speed": 1.04
+ },
+ {
+  "id": "8c3a6447",
+  "voice": "am_fenrir",
+  "text": "Now that's a view.",
+  "speed": 1.04
+ },
+ {
+  "id": "8f80b0d9",
+  "voice": "am_fenrir",
+  "text": "First stop: the tables. Let's make some money.",
+  "speed": 1.04
+ },
+ {
+  "id": "920dd57c",
+  "voice": "am_fenrir",
+  "text": "This place is unreal.",
+  "speed": 1.04
+ },
+ {
+  "id": "9360e84c",
+  "voice": "am_fenrir",
+  "text": "Whoa!",
+  "speed": 1.04
+ },
+ {
+  "id": "96161985",
+  "voice": "am_fenrir",
+  "text": "Ka-ching!",
+  "speed": 1.04
+ },
+ {
+  "id": "9707ddca",
+  "voice": "am_fenrir",
+  "text": "There it is!",
+  "speed": 1.04
+ },
+ {
+  "id": "993f0f72",
+  "voice": "am_fenrir",
+  "text": "Have you seen the fountains? We gotta go out on the terrace.",
+  "speed": 1.04
+ },
+ {
+  "id": "995ee5c6",
+  "voice": "am_fenrir",
+  "text": "Oof. Brutal.",
+  "speed": 1.04
+ },
+ {
+  "id": "9a5920c0",
+  "voice": "am_fenrir",
+  "text": "You're a legend!",
+  "speed": 1.04
+ },
+ {
+  "id": "9cd8b645",
+  "voice": "am_fenrir",
+  "text": "Now that's a friend!",
+  "speed": 1.04
+ },
+ {
+  "id": "9d8df431",
+  "voice": "am_fenrir",
+  "text": "Cheers, brother!",
+  "speed": 1.04
+ },
+ {
+  "id": "9fa1c5f6",
+  "voice": "am_fenrir",
+  "text": "Okay, that was worth the trip.",
+  "speed": 1.04
+ },
+ {
+  "id": "a1e182d6",
+  "voice": "am_fenrir",
+  "text": "Nice!",
+  "speed": 1.04
+ },
+ {
+  "id": "a330e8c5",
+  "voice": "am_fenrir",
+  "text": "Drinks are on you tonight!",
+  "speed": 1.04
+ },
+ {
+  "id": "ab2448c6",
+  "voice": "am_fenrir",
+  "text": "Look at us go.",
+  "speed": 1.04
+ },
+ {
+  "id": "b447167a",
+  "voice": "am_fenrir",
+  "text": "No way! No way!",
+  "speed": 1.04
+ },
+ {
+  "id": "b695349f",
+  "voice": "am_fenrir",
+  "text": "He's gonna play our song now.",
+  "speed": 1.04
+ },
+ {
+  "id": "bc1479f6",
+  "voice": "am_fenrir",
+  "text": "Somebody call my mom!",
+  "speed": 1.04
+ },
+ {
+  "id": "c2bb5943",
+  "voice": "am_fenrir",
+  "text": "Come on, come on!",
+  "speed": 1.04
+ },
+ {
+  "id": "c3bd2179",
+  "voice": "am_fenrir",
+  "text": "Ouch.",
+  "speed": 1.04
+ },
+ {
+  "id": "c594d0cc",
+  "voice": "am_fenrir",
+  "text": "Cheers to that.",
+  "speed": 1.04
+ },
+ {
+  "id": "c93c80ad",
+  "voice": "am_fenrir",
+  "text": "Let it ride!",
+  "speed": 1.04
+ },
+ {
+  "id": "cc4bf159",
+  "voice": "am_fenrir",
+  "text": "Ooh, fancy.",
+  "speed": 1.04
+ },
+ {
+  "id": "ce68ecd4",
+  "voice": "am_fenrir",
+  "text": "Easy there, champ!",
+  "speed": 1.04
+ },
+ {
+  "id": "d43e74ab",
+  "voice": "am_fenrir",
+  "text": "Run it back.",
+  "speed": 1.04
+ },
+ {
+  "id": "d9539d3a",
+  "voice": "am_fenrir",
+  "text": "Big tipper over here.",
+  "speed": 1.04
+ },
+ {
+  "id": "da055647",
+  "voice": "am_fenrir",
+  "text": "Three in a row! Who is this guy?",
+  "speed": 1.04
+ },
+ {
+  "id": "dd27d077",
+  "voice": "am_fenrir",
+  "text": "We should hit the bar at some point.",
+  "speed": 1.04
+ },
+ {
+  "id": "dd55d9f5",
+  "voice": "am_fenrir",
+  "text": "Legendary night, boys. Legendary.",
+  "speed": 1.04
+ },
+ {
+  "id": "e5cbc41b",
+  "voice": "am_fenrir",
+  "text": "The house got lucky.",
+  "speed": 1.04
+ },
+ {
+  "id": "e71337ce",
+  "voice": "am_fenrir",
+  "text": "Nobody's gonna believe this back home.",
+  "speed": 1.04
+ },
+ {
+  "id": "f381c5c5",
+  "voice": "am_fenrir",
+  "text": "Here we go, here we go!",
+  "speed": 1.04
+ },
+ {
+  "id": "f809671e",
+  "voice": "am_fenrir",
+  "text": "Let's gooo!",
+  "speed": 1.04
+ },
+ {
+  "id": "02c409b9",
+  "voice": "am_liam",
+  "text": "The magician. My cousin saw it, said it's unreal.",
+  "speed": 1
+ },
+ {
+  "id": "066a2161",
+  "voice": "am_liam",
+  "text": "How are you doing tonight?",
+  "speed": 1
+ },
+ {
+  "id": "071f4115",
+  "voice": "am_liam",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "0760a40f",
+  "voice": "am_liam",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "0bd6dd37",
+  "voice": "am_liam",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "0cfa9110",
+  "voice": "am_liam",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "0e2caa87",
+  "voice": "am_liam",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "13f4d7c6",
+  "voice": "am_liam",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "1590b942",
+  "voice": "am_liam",
+  "text": "Past the slots, on the left.",
+  "speed": 1
+ },
+ {
+  "id": "15c2fc3e",
+  "voice": "am_liam",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "1a0831e0",
+  "voice": "am_liam",
+  "text": "This carpet is wild.",
+  "speed": 1
+ },
+ {
+  "id": "1bc3b2db",
+  "voice": "am_liam",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "1ea715f1",
+  "voice": "am_liam",
+  "text": "It's a hundred and four outside.",
+  "speed": 1
+ },
+ {
+  "id": "212b1073",
+  "voice": "am_liam",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "25548d6e",
+  "voice": "am_liam",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "25f9afb2",
+  "voice": "am_liam",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "284d2fb8",
+  "voice": "am_liam",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "2899a745",
+  "voice": "am_liam",
+  "text": "I'm betting seventeen next.",
+  "speed": 1
+ },
+ {
+  "id": "2f3af7a8",
+  "voice": "am_liam",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "33c0fd8f",
+  "voice": "am_liam",
+  "text": "Hey! Fancy seeing you here.",
+  "speed": 1
+ },
+ {
+  "id": "351c71d2",
+  "voice": "am_liam",
+  "text": "Or two.",
+  "speed": 1
+ },
+ {
+  "id": "35717676",
+  "voice": "am_liam",
+  "text": "So is an oven.",
+  "speed": 1
+ },
+ {
+  "id": "3963fa4c",
+  "voice": "am_liam",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "3c9c4196",
+  "voice": "am_liam",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "3e2aa566",
+  "voice": "am_liam",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "456c81af",
+  "voice": "am_liam",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "469791a5",
+  "voice": "am_liam",
+  "text": "You said that last year.",
+  "speed": 1
+ },
+ {
+  "id": "46c42a1a",
+  "voice": "am_liam",
+  "text": "What's your system for craps?",
+  "speed": 1
+ },
+ {
+  "id": "473a79d2",
+  "voice": "am_liam",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "495b20a5",
+  "voice": "am_liam",
+  "text": "That's a system?",
+  "speed": 1
+ },
+ {
+  "id": "5b896028",
+  "voice": "am_liam",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "6497da24",
+  "voice": "am_liam",
+  "text": "You said that an hour ago.",
+  "speed": 1
+ },
+ {
+  "id": "64d09c82",
+  "voice": "am_liam",
+  "text": "Excuse me, which way to the cashier?",
+  "speed": 1
+ },
+ {
+  "id": "6ddc0a86",
+  "voice": "am_liam",
+  "text": "Is Mike still asleep?",
+  "speed": 1
+ },
+ {
+  "id": "70d3ba17",
+  "voice": "am_liam",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "72cdbb06",
+  "voice": "am_liam",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "77100c83",
+  "voice": "am_liam",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "772902a5",
+  "voice": "am_liam",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "77418766",
+  "voice": "am_liam",
+  "text": "We're on thirty two. The view of the Strip is insane.",
+  "speed": 1
+ },
+ {
+  "id": "7ccb60be",
+  "voice": "am_liam",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "7d4c61a1",
+  "voice": "am_liam",
+  "text": "This is my lucky shirt.",
+  "speed": 1
+ },
+ {
+  "id": "7d9485eb",
+  "voice": "am_liam",
+  "text": "What time is the show?",
+  "speed": 1
+ },
+ {
+  "id": "83579b91",
+  "voice": "am_liam",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "88b2030b",
+  "voice": "am_liam",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "8a81e3d0",
+  "voice": "am_liam",
+  "text": "Steakhouse or the buffet?",
+  "speed": 1
+ },
+ {
+  "id": "8dc488f2",
+  "voice": "am_liam",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "9294de9c",
+  "voice": "am_liam",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "9b3983c9",
+  "voice": "am_liam",
+  "text": "Fair.",
+  "speed": 1
+ },
+ {
+  "id": "9c9c2b3f",
+  "voice": "am_liam",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "9f48ddd0",
+  "voice": "am_liam",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "a0ef2e25",
+  "voice": "am_liam",
+  "text": "Don't look, but I think that's a basketball player by the bar.",
+  "speed": 1
+ },
+ {
+  "id": "a535e036",
+  "voice": "am_liam",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "a5efde45",
+  "voice": "am_liam",
+  "text": "He never knows when to stop.",
+  "speed": 1
+ },
+ {
+  "id": "aab32ed3",
+  "voice": "am_liam",
+  "text": "It's working.",
+  "speed": 1
+ },
+ {
+  "id": "aadb4281",
+  "voice": "am_liam",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "aaf2b0eb",
+  "voice": "am_liam",
+  "text": "Cashing in. Again.",
+  "speed": 1
+ },
+ {
+  "id": "bf7f07d9",
+  "voice": "am_liam",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "c36a41c5",
+  "voice": "am_liam",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "c7465543",
+  "voice": "am_liam",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "c939c2fd",
+  "voice": "am_liam",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "cbab6585",
+  "voice": "am_liam",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "cf9b7d5b",
+  "voice": "am_liam",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "d0100960",
+  "voice": "am_liam",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "d3ca4f74",
+  "voice": "am_liam",
+  "text": "You love casinos.",
+  "speed": 1
+ },
+ {
+  "id": "d5ff0dd4",
+  "voice": "am_liam",
+  "text": "Don't ask.",
+  "speed": 1
+ },
+ {
+  "id": "d62cc0dd",
+  "voice": "am_liam",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "d6e6b1cc",
+  "voice": "am_liam",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "d8783112",
+  "voice": "am_liam",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "dc9e1560",
+  "voice": "am_liam",
+  "text": "So, down a hundred.",
+  "speed": 1
+ },
+ {
+  "id": "ddb165c5",
+  "voice": "am_liam",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "de088997",
+  "voice": "am_liam",
+  "text": "Fancy. Are we dressing up?",
+  "speed": 1
+ },
+ {
+  "id": "de25faff",
+  "voice": "am_liam",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "df6c7f6e",
+  "voice": "am_liam",
+  "text": "Happy anniversary, by the way.",
+  "speed": 1
+ },
+ {
+  "id": "e1297add",
+  "voice": "am_liam",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "e31d5e92",
+  "voice": "am_liam",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "e5d44390",
+  "voice": "am_liam",
+  "text": "A free drink.",
+  "speed": 1
+ },
+ {
+  "id": "e76e740d",
+  "voice": "am_liam",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "e80e50b9",
+  "voice": "am_liam",
+  "text": "The tall one.",
+  "speed": 1
+ },
+ {
+  "id": "eae2eeca",
+  "voice": "am_liam",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "ee0ed7c0",
+  "voice": "am_liam",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "f58629fb",
+  "voice": "am_liam",
+  "text": "The one who hit seventeen twice?",
+  "speed": 1
+ },
+ {
+  "id": "f94c933b",
+  "voice": "am_liam",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "fab3c0a6",
+  "voice": "am_liam",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "0acd06ec",
+  "voice": "am_michael",
+  "text": "To the best night ever!",
+  "speed": 1.03
+ },
+ {
+  "id": "0cc2ce22",
+  "voice": "am_michael",
+  "text": "Ka-ching!",
+  "speed": 1.03
+ },
+ {
+  "id": "0d78e96a",
+  "voice": "am_michael",
+  "text": "Ouch.",
+  "speed": 1.03
+ },
+ {
+  "id": "111b1c6b",
+  "voice": "am_michael",
+  "text": "Don't touch him, he's on fire!",
+  "speed": 1.03
+ },
+ {
+  "id": "18742c7e",
+  "voice": "am_michael",
+  "text": "Somebody's gonna hit big tonight. Might as well be us.",
+  "speed": 1.03
+ },
+ {
+  "id": "1d6e96c2",
+  "voice": "am_michael",
+  "text": "I've got a good feeling about tonight.",
+  "speed": 1.03
+ },
+ {
+  "id": "211f838d",
+  "voice": "am_michael",
+  "text": "Classy move.",
+  "speed": 1.03
+ },
+ {
+  "id": "23c63e39",
+  "voice": "am_michael",
+  "text": "Easy money.",
+  "speed": 1.03
+ },
+ {
+  "id": "2939a94f",
+  "voice": "am_michael",
+  "text": "Nobody's gonna believe this back home.",
+  "speed": 1.03
+ },
+ {
+  "id": "2d31f3ab",
+  "voice": "am_michael",
+  "text": "Wait for the finale. Trust me.",
+  "speed": 1.03
+ },
+ {
+  "id": "2df75e2a",
+  "voice": "am_michael",
+  "text": "Here we go, here we go!",
+  "speed": 1.03
+ },
+ {
+  "id": "35318a65",
+  "voice": "am_michael",
+  "text": "Let's gooo!",
+  "speed": 1.03
+ },
+ {
+  "id": "3cfe5875",
+  "voice": "am_michael",
+  "text": "This is the best spot in Vegas.",
+  "speed": 1.03
+ },
+ {
+  "id": "3d150f78",
+  "voice": "am_michael",
+  "text": "That piano guy is smooth.",
+  "speed": 1.03
+ },
+ {
+  "id": "4ce07e21",
+  "voice": "am_michael",
+  "text": "Bonus round!",
+  "speed": 1.03
+ },
+ {
+  "id": "5545beae",
+  "voice": "am_michael",
+  "text": "Here we go!",
+  "speed": 1.03
+ },
+ {
+  "id": "57c4cbf1",
+  "voice": "am_michael",
+  "text": "Shake it off.",
+  "speed": 1.03
+ },
+ {
+  "id": "6c16fda6",
+  "voice": "am_michael",
+  "text": "That's alright, next one.",
+  "speed": 1.03
+ },
+ {
+  "id": "6fe48464",
+  "voice": "am_michael",
+  "text": "Red is due. I can feel it.",
+  "speed": 1.03
+ },
+ {
+  "id": "728cb983",
+  "voice": "am_michael",
+  "text": "This place is unreal.",
+  "speed": 1.03
+ },
+ {
+  "id": "72e2bd82",
+  "voice": "am_michael",
+  "text": "Ooh, fancy.",
+  "speed": 1.03
+ },
+ {
+  "id": "75aa6879",
+  "voice": "am_michael",
+  "text": "You're a legend!",
+  "speed": 1.03
+ },
+ {
+  "id": "787cdfc6",
+  "voice": "am_michael",
+  "text": "Somebody's feeling good tonight!",
+  "speed": 1.03
+ },
+ {
+  "id": "788e904d",
+  "voice": "am_michael",
+  "text": "No way! No way!",
+  "speed": 1.03
+ },
+ {
+  "id": "78ff7474",
+  "voice": "am_michael",
+  "text": "He's gonna play our song now.",
+  "speed": 1.03
+ },
+ {
+  "id": "797c59b3",
+  "voice": "am_michael",
+  "text": "Whoa!",
+  "speed": 1.03
+ },
+ {
+  "id": "7a2f5e38",
+  "voice": "am_michael",
+  "text": "Let it ride!",
+  "speed": 1.03
+ },
+ {
+  "id": "7b7b533e",
+  "voice": "am_michael",
+  "text": "Three in a row! Who is this guy?",
+  "speed": 1.03
+ },
+ {
+  "id": "7cff2322",
+  "voice": "am_michael",
+  "text": "Checking boxes tonight!",
+  "speed": 1.03
+ },
+ {
+  "id": "7d99910e",
+  "voice": "am_michael",
+  "text": "Run it back.",
+  "speed": 1.03
+ },
+ {
+  "id": "7dec77b0",
+  "voice": "am_michael",
+  "text": "He's heating up!",
+  "speed": 1.03
+ },
+ {
+  "id": "80b8bc31",
+  "voice": "am_michael",
+  "text": "That's what I'm talking about!",
+  "speed": 1.03
+ },
+ {
+  "id": "81e27dbc",
+  "voice": "am_michael",
+  "text": "Drinks are on you tonight!",
+  "speed": 1.03
+ },
+ {
+  "id": "83e6865d",
+  "voice": "am_michael",
+  "text": "Easy there, champ!",
+  "speed": 1.03
+ },
+ {
+  "id": "83f2b5b3",
+  "voice": "am_michael",
+  "text": "Okay, that was worth the trip.",
+  "speed": 1.03
+ },
+ {
+  "id": "842e2eba",
+  "voice": "am_michael",
+  "text": "Big money, big money!",
+  "speed": 1.03
+ },
+ {
+  "id": "912bf05b",
+  "voice": "am_michael",
+  "text": "Cheers to that.",
+  "speed": 1.03
+ },
+ {
+  "id": "92737a07",
+  "voice": "am_michael",
+  "text": "Look at us go.",
+  "speed": 1.03
+ },
+ {
+  "id": "93a07bc4",
+  "voice": "am_michael",
+  "text": "Come on, come on!",
+  "speed": 1.03
+ },
+ {
+  "id": "98f353c2",
+  "voice": "am_michael",
+  "text": "Legendary night, boys. Legendary.",
+  "speed": 1.03
+ },
+ {
+  "id": "9967708a",
+  "voice": "am_michael",
+  "text": "The house got lucky.",
+  "speed": 1.03
+ },
+ {
+  "id": "9fc45bc6",
+  "voice": "am_michael",
+  "text": "Oh it's happening!",
+  "speed": 1.03
+ },
+ {
+  "id": "a5d94c15",
+  "voice": "am_michael",
+  "text": "Make it a double!",
+  "speed": 1.03
+ },
+ {
+  "id": "b7b23437",
+  "voice": "am_michael",
+  "text": "Okay, deep breath. We go again.",
+  "speed": 1.03
+ },
+ {
+  "id": "b9d09738",
+  "voice": "am_michael",
+  "text": "First stop: the tables. Let's make some money.",
+  "speed": 1.03
+ },
+ {
+  "id": "c3200d30",
+  "voice": "am_michael",
+  "text": "Cheers, brother!",
+  "speed": 1.03
+ },
+ {
+  "id": "c9125f00",
+  "voice": "am_michael",
+  "text": "Alright boys. Vegas, baby!",
+  "speed": 1.03
+ },
+ {
+  "id": "cc0cc856",
+  "voice": "am_michael",
+  "text": "Now that's a view.",
+  "speed": 1.03
+ },
+ {
+  "id": "d24e6797",
+  "voice": "am_michael",
+  "text": "There it is!",
+  "speed": 1.03
+ },
+ {
+  "id": "d5196907",
+  "voice": "am_michael",
+  "text": "Have you seen the fountains? We gotta go out on the terrace.",
+  "speed": 1.03
+ },
+ {
+  "id": "d7d366fe",
+  "voice": "am_michael",
+  "text": "Salute!",
+  "speed": 1.03
+ },
+ {
+  "id": "d810b0d9",
+  "voice": "am_michael",
+  "text": "Nice!",
+  "speed": 1.03
+ },
+ {
+  "id": "dede5138",
+  "voice": "am_michael",
+  "text": "Now that's a friend!",
+  "speed": 1.03
+ },
+ {
+  "id": "df40cbad",
+  "voice": "am_michael",
+  "text": "That's insane!",
+  "speed": 1.03
+ },
+ {
+  "id": "dfc8f5b3",
+  "voice": "am_michael",
+  "text": "That one hurt to watch.",
+  "speed": 1.03
+ },
+ {
+  "id": "e1afc98a",
+  "voice": "am_michael",
+  "text": "Look at this ceiling. Who even builds this?",
+  "speed": 1.03
+ },
+ {
+  "id": "e27270bd",
+  "voice": "am_michael",
+  "text": "Big tipper over here.",
+  "speed": 1.03
+ },
+ {
+  "id": "e4a31a96",
+  "voice": "am_michael",
+  "text": "We should hit the bar at some point.",
+  "speed": 1.03
+ },
+ {
+  "id": "f0641c94",
+  "voice": "am_michael",
+  "text": "Okay, water next. I mean it.",
+  "speed": 1.03
+ },
+ {
+  "id": "f2308d56",
+  "voice": "am_michael",
+  "text": "Roulette's calling your name, I'm telling you.",
+  "speed": 1.03
+ },
+ {
+  "id": "f3bcc34d",
+  "voice": "am_michael",
+  "text": "Somebody call my mom!",
+  "speed": 1.03
+ },
+ {
+  "id": "fa31d16b",
+  "voice": "am_michael",
+  "text": "Oof. Brutal.",
+  "speed": 1.03
+ },
+ {
+  "id": "00aeeb5b",
+  "voice": "am_onyx",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "065f1dd4",
+  "voice": "am_onyx",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "0990778a",
+  "voice": "am_onyx",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "0c76eb25",
+  "voice": "am_onyx",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "0d10689f",
+  "voice": "am_onyx",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "0df0ebf5",
+  "voice": "am_onyx",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "0df34479",
+  "voice": "am_onyx",
+  "text": "Again?",
+  "speed": 1
+ },
+ {
+  "id": "0f9712f2",
+  "voice": "am_onyx",
+  "text": "A very famous-looking waiter.",
+  "speed": 1
+ },
+ {
+  "id": "0fbc977e",
+  "voice": "am_onyx",
+  "text": "Have you been up to the suites?",
+  "speed": 1
+ },
+ {
+  "id": "126c3714",
+  "voice": "am_onyx",
+  "text": "Okay, one more hand and then dinner.",
+  "speed": 1
+ },
+ {
+  "id": "129c92de",
+  "voice": "am_onyx",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "1428b44e",
+  "voice": "am_onyx",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "17590834",
+  "voice": "am_onyx",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "1c05b488",
+  "voice": "am_onyx",
+  "text": "What did everyone win today?",
+  "speed": 1
+ },
+ {
+  "id": "1d824c91",
+  "voice": "am_onyx",
+  "text": "Three times! Straight up!",
+  "speed": 1
+ },
+ {
+  "id": "2067c171",
+  "voice": "am_onyx",
+  "text": "That's the point, honey.",
+  "speed": 1
+ },
+ {
+  "id": "23085faf",
+  "voice": "am_onyx",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "25feb471",
+  "voice": "am_onyx",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "26c197b5",
+  "voice": "am_onyx",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "281eb340",
+  "voice": "am_onyx",
+  "text": "Where is that machine?",
+  "speed": 1
+ },
+ {
+  "id": "282f5416",
+  "voice": "am_onyx",
+  "text": "Sure you are.",
+  "speed": 1
+ },
+ {
+  "id": "2b145d63",
+  "voice": "am_onyx",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "2bb92ade",
+  "voice": "am_onyx",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "2db19200",
+  "voice": "am_onyx",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "305f0428",
+  "voice": "am_onyx",
+  "text": "Thanks!",
+  "speed": 1
+ },
+ {
+  "id": "30766918",
+  "voice": "am_onyx",
+  "text": "Bachelor party's at the pool later.",
+  "speed": 1
+ },
+ {
+  "id": "322c0ce9",
+  "voice": "am_onyx",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "357819f7",
+  "voice": "am_onyx",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "38421ba1",
+  "voice": "am_onyx",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "3e479358",
+  "voice": "am_onyx",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "44140e14",
+  "voice": "am_onyx",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "46bc14e5",
+  "voice": "am_onyx",
+  "text": "Then I'm due!",
+  "speed": 1
+ },
+ {
+  "id": "4ce42f66",
+  "voice": "am_onyx",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "502b11ad",
+  "voice": "am_onyx",
+  "text": "A very nice parking lot.",
+  "speed": 1
+ },
+ {
+  "id": "50304e94",
+  "voice": "am_onyx",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "509f02c2",
+  "voice": "am_onyx",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "51667016",
+  "voice": "am_onyx",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "562f4fe0",
+  "voice": "am_onyx",
+  "text": "I booked the tasting menu for nine.",
+  "speed": 1
+ },
+ {
+  "id": "571a0a3d",
+  "voice": "am_onyx",
+  "text": "Have you seen the bathrooms?",
+  "speed": 1
+ },
+ {
+  "id": "5a797e6e",
+  "voice": "am_onyx",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "5be8a3cf",
+  "voice": "am_onyx",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "5e9ae0ff",
+  "voice": "am_onyx",
+  "text": "Let's finish these first.",
+  "speed": 1
+ },
+ {
+  "id": "5fb4cad2",
+  "voice": "am_onyx",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "68d9be12",
+  "voice": "am_onyx",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "6b239577",
+  "voice": "am_onyx",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "6b2ca803",
+  "voice": "am_onyx",
+  "text": "I swear I saw a famous chef at the steakhouse.",
+  "speed": 1
+ },
+ {
+  "id": "6d078b27",
+  "voice": "am_onyx",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "6ea9ea76",
+  "voice": "am_onyx",
+  "text": "Are we doing the water show or the magician?",
+  "speed": 1
+ },
+ {
+  "id": "70358e8a",
+  "voice": "am_onyx",
+  "text": "Best weekend in years.",
+  "speed": 1
+ },
+ {
+  "id": "720bfe3a",
+  "voice": "am_onyx",
+  "text": "Thanks, it's rented.",
+  "speed": 1
+ },
+ {
+  "id": "75fde806",
+  "voice": "am_onyx",
+  "text": "You are already dressed up.",
+  "speed": 1
+ },
+ {
+  "id": "76def2e0",
+  "voice": "am_onyx",
+  "text": "Sold out. We'll find something better.",
+  "speed": 1
+ },
+ {
+  "id": "7b530003",
+  "voice": "am_onyx",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "8b4142c4",
+  "voice": "am_onyx",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "8db0b9ca",
+  "voice": "am_onyx",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "8db5e8ba",
+  "voice": "am_onyx",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "997ffca2",
+  "voice": "am_onyx",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "99831377",
+  "voice": "am_onyx",
+  "text": "You just don't know when to stop.",
+  "speed": 1
+ },
+ {
+  "id": "9b6b07cb",
+  "voice": "am_onyx",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "9d3ebe97",
+  "voice": "am_onyx",
+  "text": "Which bar? There are five.",
+  "speed": 1
+ },
+ {
+  "id": "a16069ed",
+  "voice": "am_onyx",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "a9693757",
+  "voice": "am_onyx",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "aa4cf765",
+  "voice": "am_onyx",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "b4b9ab67",
+  "voice": "am_onyx",
+  "text": "When's the next one?",
+  "speed": 1
+ },
+ {
+  "id": "b4daed68",
+  "voice": "am_onyx",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "b7072b6f",
+  "voice": "am_onyx",
+  "text": "Did you see that guy at roulette?",
+  "speed": 1
+ },
+ {
+  "id": "b8b00cd9",
+  "voice": "am_onyx",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "bbe16b90",
+  "voice": "am_onyx",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "c1e3abeb",
+  "voice": "am_onyx",
+  "text": "I bought earplugs.",
+  "speed": 1
+ },
+ {
+  "id": "c30621b4",
+  "voice": "am_onyx",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "c4123ffe",
+  "voice": "am_onyx",
+  "text": "Penny slot? On what bet?",
+  "speed": 1
+ },
+ {
+  "id": "cafe20eb",
+  "voice": "am_onyx",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "cce35ebd",
+  "voice": "am_onyx",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "cd031081",
+  "voice": "am_onyx",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "ddd02794",
+  "voice": "am_onyx",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "e43a7cd4",
+  "voice": "am_onyx",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "e5eb336b",
+  "voice": "am_onyx",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "f48e27de",
+  "voice": "am_onyx",
+  "text": "Winners all around.",
+  "speed": 1
+ },
+ {
+  "id": "faa83b93",
+  "voice": "am_onyx",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "fc45369c",
+  "voice": "am_onyx",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "fe48b97d",
+  "voice": "am_onyx",
+  "text": "It's midnight.",
+  "speed": 1
+ },
+ {
+  "id": "0a74f090",
+  "voice": "am_puck",
+  "text": "Eight the hard way. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "0c6827c3",
+  "voice": "am_puck",
+  "text": "Eight the hard way. Point is 6.",
+  "speed": 1.08
+ },
+ {
+  "id": "10c5f314",
+  "voice": "am_puck",
+  "text": "The point is 9. Mark it!",
+  "speed": 1.08
+ },
+ {
+  "id": "10f03555",
+  "voice": "am_puck",
+  "text": "Aces! Craps, line away.",
+  "speed": 1.08
+ },
+ {
+  "id": "14edcb48",
+  "voice": "am_puck",
+  "text": "9! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "19a50d63",
+  "voice": "am_puck",
+  "text": "Boxcars! Craps.",
+  "speed": 1.08
+ },
+ {
+  "id": "1beb0c94",
+  "voice": "am_puck",
+  "text": "Four, easy. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "1ce6f9d7",
+  "voice": "am_puck",
+  "text": "The point is 4. Mark it!",
+  "speed": 1.08
+ },
+ {
+  "id": "26bc3c57",
+  "voice": "am_puck",
+  "text": "Ten, easy. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "2f7b9dc0",
+  "voice": "am_puck",
+  "text": "Four the hard way. Point is 8.",
+  "speed": 1.08
+ },
+ {
+  "id": "32255227",
+  "voice": "am_puck",
+  "text": "Seven out! Line away, pay the don'ts.",
+  "speed": 1.08
+ },
+ {
+  "id": "32a4b7eb",
+  "voice": "am_puck",
+  "text": "The point is 8. Mark it!",
+  "speed": 1.08
+ },
+ {
+  "id": "33dce1a2",
+  "voice": "am_puck",
+  "text": "Six, easy. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "34361dd1",
+  "voice": "am_puck",
+  "text": "The point is 6. Mark it!",
+  "speed": 1.08
+ },
+ {
+  "id": "357e4429",
+  "voice": "am_puck",
+  "text": "Six the hard way. Point is 10.",
+  "speed": 1.08
+ },
+ {
+  "id": "35e9f8f9",
+  "voice": "am_puck",
+  "text": "Seven, front line winner!",
+  "speed": 1.08
+ },
+ {
+  "id": "3dfdaa84",
+  "voice": "am_puck",
+  "text": "Ace-deuce, three craps three.",
+  "speed": 1.08
+ },
+ {
+  "id": "44beaa28",
+  "voice": "am_puck",
+  "text": "Ten, easy. Point is 6.",
+  "speed": 1.08
+ },
+ {
+  "id": "460f7319",
+  "voice": "am_puck",
+  "text": "10 the hard way! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "4edb1ed2",
+  "voice": "am_puck",
+  "text": "Nine, center field nine. Point is 6.",
+  "speed": 1.08
+ },
+ {
+  "id": "4edf9c00",
+  "voice": "am_puck",
+  "text": "Nine, center field nine. Point is 4.",
+  "speed": 1.08
+ },
+ {
+  "id": "4f49a845",
+  "voice": "am_puck",
+  "text": "Eight, easy. Point is 10.",
+  "speed": 1.08
+ },
+ {
+  "id": "4f6cc596",
+  "voice": "am_puck",
+  "text": "Four the hard way. Point is 6.",
+  "speed": 1.08
+ },
+ {
+  "id": "537df42a",
+  "voice": "am_puck",
+  "text": "Six the hard way. Point is 4.",
+  "speed": 1.08
+ },
+ {
+  "id": "544c3160",
+  "voice": "am_puck",
+  "text": "Ten the hard way. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "5594ef6f",
+  "voice": "am_puck",
+  "text": "Four the hard way. Point is 10.",
+  "speed": 1.08
+ },
+ {
+  "id": "564e731d",
+  "voice": "am_puck",
+  "text": "Ten the hard way. Point is 4.",
+  "speed": 1.08
+ },
+ {
+  "id": "57fa877a",
+  "voice": "am_puck",
+  "text": "Midnight, boxcars!",
+  "speed": 1.08
+ },
+ {
+  "id": "589377b5",
+  "voice": "am_puck",
+  "text": "Put a chip on the Pass Line, then pick up the dice and throw them to the far wall.",
+  "speed": 1.08
+ },
+ {
+  "id": "5cbe5aa6",
+  "voice": "am_puck",
+  "text": "Five, no field five. Point is 8.",
+  "speed": 1.08
+ },
+ {
+  "id": "5d63f544",
+  "voice": "am_puck",
+  "text": "Eight, easy. Point is 6.",
+  "speed": 1.08
+ },
+ {
+  "id": "5e5493d1",
+  "voice": "am_puck",
+  "text": "Five, no field five. Point is 10.",
+  "speed": 1.08
+ },
+ {
+  "id": "63701849",
+  "voice": "am_puck",
+  "text": "No problem. It's a hot table, though.",
+  "speed": 1.08
+ },
+ {
+  "id": "6707c62f",
+  "voice": "am_puck",
+  "text": "Alright, enjoy your night!",
+  "speed": 1.08
+ },
+ {
+  "id": "6b36890c",
+  "voice": "am_puck",
+  "text": "10! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "6c6d3c11",
+  "voice": "am_puck",
+  "text": "Eight the hard way. Point is 4.",
+  "speed": 1.08
+ },
+ {
+  "id": "75806847",
+  "voice": "am_puck",
+  "text": "Six the hard way. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "7b6d3c8b",
+  "voice": "am_puck",
+  "text": "Nine, center field nine. Point is 10.",
+  "speed": 1.08
+ },
+ {
+  "id": "7ccd9790",
+  "voice": "am_puck",
+  "text": "Five, no field five. Point is 6.",
+  "speed": 1.08
+ },
+ {
+  "id": "7dede571",
+  "voice": "am_puck",
+  "text": "Four, easy. Point is 8.",
+  "speed": 1.08
+ },
+ {
+  "id": "7df2629f",
+  "voice": "am_puck",
+  "text": "Four, easy. Point is 6.",
+  "speed": 1.08
+ },
+ {
+  "id": "7ec0cec3",
+  "voice": "am_puck",
+  "text": "Five, no field five. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "7f6ae68f",
+  "voice": "am_puck",
+  "text": "Eight, easy. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "81ae0d52",
+  "voice": "am_puck",
+  "text": "8 the hard way! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "8a6b2cb4",
+  "voice": "am_puck",
+  "text": "Eight the hard way. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "93d2eb66",
+  "voice": "am_puck",
+  "text": "Six, easy. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "95dfba7f",
+  "voice": "am_puck",
+  "text": "Six, easy. Point is 8.",
+  "speed": 1.08
+ },
+ {
+  "id": "9bf4d070",
+  "voice": "am_puck",
+  "text": "Four, easy. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "9c956426",
+  "voice": "am_puck",
+  "text": "Yo-leven! Front line winner!",
+  "speed": 1.08
+ },
+ {
+  "id": "a6d987eb",
+  "voice": "am_puck",
+  "text": "Ten, easy. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "a8a8fe3e",
+  "voice": "am_puck",
+  "text": "No worries. Have a good one!",
+  "speed": 1.08
+ },
+ {
+  "id": "a9425010",
+  "voice": "am_puck",
+  "text": "The point is 5. Mark it!",
+  "speed": 1.08
+ },
+ {
+  "id": "ad2bb2c4",
+  "voice": "am_puck",
+  "text": "Eight the hard way. Point is 10.",
+  "speed": 1.08
+ },
+ {
+  "id": "b17ea8fd",
+  "voice": "am_puck",
+  "text": "Four the hard way. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "b5d55f83",
+  "voice": "am_puck",
+  "text": "Six, easy. Point is 4.",
+  "speed": 1.08
+ },
+ {
+  "id": "b71d810b",
+  "voice": "am_puck",
+  "text": "6! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "bca8e9ce",
+  "voice": "am_puck",
+  "text": "4 the hard way! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "beea9715",
+  "voice": "am_puck",
+  "text": "8! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "c4b9637a",
+  "voice": "am_puck",
+  "text": "Ten, easy. Point is 4.",
+  "speed": 1.08
+ },
+ {
+  "id": "c4d7788e",
+  "voice": "am_puck",
+  "text": "Ten, easy. Point is 8.",
+  "speed": 1.08
+ },
+ {
+  "id": "c9337afc",
+  "voice": "am_puck",
+  "text": "5! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "ced5d824",
+  "voice": "am_puck",
+  "text": "Nine, center field nine. Point is 8.",
+  "speed": 1.08
+ },
+ {
+  "id": "cfb9bb7c",
+  "voice": "am_puck",
+  "text": "6 the hard way! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "d0e2a73d",
+  "voice": "am_puck",
+  "text": "Nine, center field nine. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "d1744e01",
+  "voice": "am_puck",
+  "text": "Four the hard way. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "d39b3fbe",
+  "voice": "am_puck",
+  "text": "Six the hard way. Point is 8.",
+  "speed": 1.08
+ },
+ {
+  "id": "d4426d84",
+  "voice": "am_puck",
+  "text": "Ten the hard way. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "d930b328",
+  "voice": "am_puck",
+  "text": "Aces, snake eyes!",
+  "speed": 1.08
+ },
+ {
+  "id": "df60f053",
+  "voice": "am_puck",
+  "text": "Eight, easy. Point is 5.",
+  "speed": 1.08
+ },
+ {
+  "id": "e017241e",
+  "voice": "am_puck",
+  "text": "The point is 10. Mark it!",
+  "speed": 1.08
+ },
+ {
+  "id": "e868b949",
+  "voice": "am_puck",
+  "text": "4! Winner, pay the line!",
+  "speed": 1.08
+ },
+ {
+  "id": "e9ae16ba",
+  "voice": "am_puck",
+  "text": "Six, easy. Point is 10.",
+  "speed": 1.08
+ },
+ {
+  "id": "ebb47ccb",
+  "voice": "am_puck",
+  "text": "Hey, new shooter! Want the dice?",
+  "speed": 1.08
+ },
+ {
+  "id": "ed89f489",
+  "voice": "am_puck",
+  "text": "Yo-leven!",
+  "speed": 1.08
+ },
+ {
+  "id": "edc7980a",
+  "voice": "am_puck",
+  "text": "Alright! Pass line first, then hit the back wall.",
+  "speed": 1.08
+ },
+ {
+  "id": "f4e7fc60",
+  "voice": "am_puck",
+  "text": "Four, easy. Point is 10.",
+  "speed": 1.08
+ },
+ {
+  "id": "f59db3db",
+  "voice": "am_puck",
+  "text": "Six the hard way. Point is 9.",
+  "speed": 1.08
+ },
+ {
+  "id": "f5d43aba",
+  "voice": "am_puck",
+  "text": "Ace-deuce, craps. Line away.",
+  "speed": 1.08
+ },
+ {
+  "id": "f644e1a1",
+  "voice": "am_puck",
+  "text": "Ten the hard way. Point is 8.",
+  "speed": 1.08
+ },
+ {
+  "id": "f6495ecf",
+  "voice": "am_puck",
+  "text": "Ten the hard way. Point is 6.",
+  "speed": 1.08
+ },
+ {
+  "id": "fcc850e2",
+  "voice": "am_puck",
+  "text": "Five, no field five. Point is 4.",
+  "speed": 1.08
+ },
+ {
+  "id": "fd5ee0f6",
+  "voice": "am_puck",
+  "text": "Eight, easy. Point is 4.",
+  "speed": 1.08
+ },
+ {
+  "id": "0090afc4",
+  "voice": "bf_emma",
+  "text": "I do love casinos.",
+  "speed": 1
+ },
+ {
+  "id": "00916400",
+  "voice": "bf_emma",
+  "text": "We're on six. We see a parking lot.",
+  "speed": 1
+ },
+ {
+  "id": "0359358c",
+  "voice": "bf_emma",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "077b09fb",
+  "voice": "bf_emma",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "0789b115",
+  "voice": "bf_emma",
+  "text": "Wait until the blue one is huge. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "09da1cc0",
+  "voice": "bf_emma",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "0c155318",
+  "voice": "bf_emma",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "0dd9e7f8",
+  "voice": "bf_emma",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "1211e65e",
+  "voice": "bf_emma",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "1b8426c0",
+  "voice": "bf_emma",
+  "text": "Look at this ceiling. All glass.",
+  "speed": 1
+ },
+ {
+  "id": "1d805135",
+  "voice": "bf_emma",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "223b257c",
+  "voice": "bf_emma",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "24443bf6",
+  "voice": "bf_emma",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "2561f010",
+  "voice": "bf_emma",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "2a15b76c",
+  "voice": "bf_emma",
+  "text": "Over by the entrance. Cashing out?",
+  "speed": 1
+ },
+ {
+  "id": "2a9486fe",
+  "voice": "bf_emma",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "2bc45c42",
+  "voice": "bf_emma",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "2d101310",
+  "voice": "bf_emma",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "2eb7c3e4",
+  "voice": "bf_emma",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "312eddc3",
+  "voice": "bf_emma",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "395afd3e",
+  "voice": "bf_emma",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "3a78b122",
+  "voice": "bf_emma",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "48ca1830",
+  "voice": "bf_emma",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "4d72de43",
+  "voice": "bf_emma",
+  "text": "Your cousin thinks everything is unreal.",
+  "speed": 1
+ },
+ {
+  "id": "55250fd7",
+  "voice": "bf_emma",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "57e4f69d",
+  "voice": "bf_emma",
+  "text": "Or two.",
+  "speed": 1
+ },
+ {
+  "id": "5e3071e0",
+  "voice": "bf_emma",
+  "text": "Is the pool open?",
+  "speed": 1
+ },
+ {
+  "id": "6374db54",
+  "voice": "bf_emma",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "74965eab",
+  "voice": "bf_emma",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "7ba002e8",
+  "voice": "bf_emma",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "7d205eb2",
+  "voice": "bf_emma",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "7ef094e7",
+  "voice": "bf_emma",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "7fa085b1",
+  "voice": "bf_emma",
+  "text": "Have you tried the new piggy bank slot?",
+  "speed": 1
+ },
+ {
+  "id": "81f0dec1",
+  "voice": "bf_emma",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "83cffa8b",
+  "voice": "bf_emma",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "850bc7f1",
+  "voice": "bf_emma",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "8540831e",
+  "voice": "bf_emma",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "8545dc11",
+  "voice": "bf_emma",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "858f3e8d",
+  "voice": "bf_emma",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "86bd33d6",
+  "voice": "bf_emma",
+  "text": "Don't say it like that.",
+  "speed": 1
+ },
+ {
+  "id": "8790fc27",
+  "voice": "bf_emma",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "8b8de80c",
+  "voice": "bf_emma",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "91fe373a",
+  "voice": "bf_emma",
+  "text": "Never split tens. Never.",
+  "speed": 1
+ },
+ {
+  "id": "960a53e7",
+  "voice": "bf_emma",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "97a362f2",
+  "voice": "bf_emma",
+  "text": "Ten thirty. We have time for one more drink.",
+  "speed": 1
+ },
+ {
+  "id": "9c8ee334",
+  "voice": "bf_emma",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "a256837e",
+  "voice": "bf_emma",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "a7cf2c73",
+  "voice": "bf_emma",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "aaa6c151",
+  "voice": "bf_emma",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "ada18812",
+  "voice": "bf_emma",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "afc5a160",
+  "voice": "bf_emma",
+  "text": "It's supposed to keep you awake.",
+  "speed": 1
+ },
+ {
+  "id": "ba53929d",
+  "voice": "bf_emma",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "c59a0ebd",
+  "voice": "bf_emma",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "c958f59c",
+  "voice": "bf_emma",
+  "text": "How do they even clean that?",
+  "speed": 1
+ },
+ {
+  "id": "cf99c7ed",
+  "voice": "bf_emma",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "cfdb2364",
+  "voice": "bf_emma",
+  "text": "And?",
+  "speed": 1
+ },
+ {
+  "id": "d312c06d",
+  "voice": "bf_emma",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "d33c3d66",
+  "voice": "bf_emma",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "d3808118",
+  "voice": "bf_emma",
+  "text": "Mike lost his shoes.",
+  "speed": 1
+ },
+ {
+  "id": "d6b14594",
+  "voice": "bf_emma",
+  "text": "Up three hundred on blackjack. Down four on craps.",
+  "speed": 1
+ },
+ {
+  "id": "d95ce4af",
+  "voice": "bf_emma",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "da4e242d",
+  "voice": "bf_emma",
+  "text": "Then it's not a budget, it's a suggestion.",
+  "speed": 1
+ },
+ {
+  "id": "e08dfa1a",
+  "voice": "bf_emma",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "e29e81f1",
+  "voice": "bf_emma",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "e3cbc71d",
+  "voice": "bf_emma",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "e529a1ff",
+  "voice": "bf_emma",
+  "text": "Ten years. And you brought me to a casino.",
+  "speed": 1
+ },
+ {
+  "id": "f184cafb",
+  "voice": "bf_emma",
+  "text": "Remind me how much we budgeted?",
+  "speed": 1
+ },
+ {
+  "id": "f196b013",
+  "voice": "bf_emma",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "f54b41d1",
+  "voice": "bf_emma",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "f890085d",
+  "voice": "bf_emma",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "fb74aa32",
+  "voice": "bf_emma",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "03a8dac1",
+  "voice": "bm_daniel",
+  "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "04d6bdad",
+  "voice": "bm_daniel",
+  "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "0ac1de7c",
+  "voice": "bm_daniel",
+  "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "0d3e696a",
+  "voice": "bm_daniel",
+  "text": "Last year it was a waiter.",
+  "speed": 1
+ },
+ {
+  "id": "0fdfcb6c",
+  "voice": "bm_daniel",
+  "text": "It's Vegas. Everything's open.",
+  "speed": 1
+ },
+ {
+  "id": "1167d381",
+  "voice": "bm_daniel",
+  "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "11d241a2",
+  "voice": "bm_daniel",
+  "text": "Ten thirty. We have time for one more drink.",
+  "speed": 1
+ },
+ {
+  "id": "11f910a4",
+  "voice": "bm_daniel",
+  "text": "Up three hundred on blackjack. Down four on craps.",
+  "speed": 1
+ },
+ {
+  "id": "1428dac6",
+  "voice": "bm_daniel",
+  "text": "He's playing all night. Grab a lounger before they're gone!",
+  "speed": 1
+ },
+ {
+  "id": "1717bfd3",
+  "voice": "bm_daniel",
+  "text": "Your cousin thinks everything is unreal.",
+  "speed": 1
+ },
+ {
+  "id": "175d1340",
+  "voice": "bm_daniel",
+  "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "17ffd28e",
+  "voice": "bm_daniel",
+  "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "1b5569a7",
+  "voice": "bm_daniel",
+  "text": "Pass line, take the odds, pray.",
+  "speed": 1
+ },
+ {
+  "id": "1c077b21",
+  "voice": "bm_daniel",
+  "text": "Have you tried the new piggy bank slot?",
+  "speed": 1
+ },
+ {
+  "id": "2391c16a",
+  "voice": "bm_daniel",
+  "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "253b2c50",
+  "voice": "bm_daniel",
+  "text": "We're on six. We see a parking lot.",
+  "speed": 1
+ },
+ {
+  "id": "254f0dac",
+  "voice": "bm_daniel",
+  "text": "The pigs? Alright, I'll give it a shot!",
+  "speed": 1
+ },
+ {
+  "id": "292183ce",
+  "voice": "bm_daniel",
+  "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "2b0f7fea",
+  "voice": "bm_daniel",
+  "text": "Never split tens. Never.",
+  "speed": 1
+ },
+ {
+  "id": "2d0b49ae",
+  "voice": "bm_daniel",
+  "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "2d962e48",
+  "voice": "bm_daniel",
+  "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "2e03a1ca",
+  "voice": "bm_daniel",
+  "text": "Dry heat, though.",
+  "speed": 1
+ },
+ {
+  "id": "31177e00",
+  "voice": "bm_daniel",
+  "text": "Which one?",
+  "speed": 1
+ },
+ {
+  "id": "337b188d",
+  "voice": "bm_daniel",
+  "text": "Where are you guys from?",
+  "speed": 1
+ },
+ {
+  "id": "3486bdbc",
+  "voice": "bm_daniel",
+  "text": "They're all tall.",
+  "speed": 1
+ },
+ {
+  "id": "385f7170",
+  "voice": "bm_daniel",
+  "text": "It's supposed to keep you awake.",
+  "speed": 1
+ },
+ {
+  "id": "3b776101",
+  "voice": "bm_daniel",
+  "text": "I hit a slot bonus on the piggy machine.",
+  "speed": 1
+ },
+ {
+  "id": "3b82b8f0",
+  "voice": "bm_daniel",
+  "text": "Is the pool open?",
+  "speed": 1
+ },
+ {
+  "id": "3c564708",
+  "voice": "bm_daniel",
+  "text": "Mike lost his shoes.",
+  "speed": 1
+ },
+ {
+  "id": "459d9d47",
+  "voice": "bm_daniel",
+  "text": "Small world. You winning?",
+  "speed": 1
+ },
+ {
+  "id": "4b2a955d",
+  "voice": "bm_daniel",
+  "text": "Salute!",
+  "speed": 1
+ },
+ {
+  "id": "4c148424",
+  "voice": "bm_daniel",
+  "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "54bae3c7",
+  "voice": "bm_daniel",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "554809ce",
+  "voice": "bm_daniel",
+  "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "5b178960",
+  "voice": "bm_daniel",
+  "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "640e7991",
+  "voice": "bm_daniel",
+  "text": "Forty dollars.",
+  "speed": 1
+ },
+ {
+  "id": "64b066f2",
+  "voice": "bm_daniel",
+  "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "68127eb7",
+  "voice": "bm_daniel",
+  "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "6cae1e22",
+  "voice": "bm_daniel",
+  "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "6e721ac6",
+  "voice": "bm_daniel",
+  "text": "Don't say it like that.",
+  "speed": 1
+ },
+ {
+  "id": "74cbf3db",
+  "voice": "bm_daniel",
+  "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "78ba975d",
+  "voice": "bm_daniel",
+  "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "7907a139",
+  "voice": "bm_daniel",
+  "text": "The bartender made me something with gold flakes in it.",
+  "speed": 1
+ },
+ {
+  "id": "7c1cda2d",
+  "voice": "bm_daniel",
+  "text": "Or two.",
+  "speed": 1
+ },
+ {
+  "id": "80f7fc70",
+  "voice": "bm_daniel",
+  "text": "A stomach ache from the buffet.",
+  "speed": 1
+ },
+ {
+  "id": "851ecf01",
+  "voice": "bm_daniel",
+  "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "85d6ba5f",
+  "voice": "bm_daniel",
+  "text": "Ha! There's a shop in the lobby. Think about it.",
+  "speed": 1
+ },
+ {
+  "id": "88f6fe20",
+  "voice": "bm_daniel",
+  "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "89771c45",
+  "voice": "bm_daniel",
+  "text": "Wait until the blue one is huge. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "8a607b6f",
+  "voice": "bm_daniel",
+  "text": "Ten years. And you brought me to a casino.",
+  "speed": 1
+ },
+ {
+  "id": "8b0286ad",
+  "voice": "bm_daniel",
+  "text": "Keep your eyes open, it happens all night.",
+  "speed": 1
+ },
+ {
+  "id": "917c3314",
+  "voice": "bm_daniel",
+  "text": "And?",
+  "speed": 1
+ },
+ {
+  "id": "923f3357",
+  "voice": "bm_daniel",
+  "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "966874e3",
+  "voice": "bm_daniel",
+  "text": "Respect. Somebody has to remember this night!",
+  "speed": 1
+ },
+ {
+  "id": "978d09c4",
+  "voice": "bm_daniel",
+  "text": "Two hours ago.",
+  "speed": 1
+ },
+ {
+  "id": "9f565fcc",
+  "voice": "bm_daniel",
+  "text": "The pool party's going till two.",
+  "speed": 1
+ },
+ {
+  "id": "9ffe7fc5",
+  "voice": "bm_daniel",
+  "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "a0ea8936",
+  "voice": "bm_daniel",
+  "text": "The bartender here is a legend. Ask for something off menu.",
+  "speed": 1
+ },
+ {
+  "id": "a69dd66e",
+  "voice": "bm_daniel",
+  "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "b2a207f8",
+  "voice": "bm_daniel",
+  "text": "She started it.",
+  "speed": 1
+ },
+ {
+  "id": "ba080324",
+  "voice": "bm_daniel",
+  "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "bdeab157",
+  "voice": "bm_daniel",
+  "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "bebf41fd",
+  "voice": "bm_daniel",
+  "text": "Then it's not a budget, it's a suggestion.",
+  "speed": 1
+ },
+ {
+  "id": "bed705d3",
+  "voice": "bm_daniel",
+  "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "bfbef841",
+  "voice": "bm_daniel",
+  "text": "Ha! Famous last words. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "bfe87408",
+  "voice": "bm_daniel",
+  "text": "It's worked for thirty years.",
+  "speed": 1
+ },
+ {
+  "id": "c2948c12",
+  "voice": "bm_daniel",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "c2b3deb0",
+  "voice": "bm_daniel",
+  "text": "Look at this ceiling. All glass.",
+  "speed": 1
+ },
+ {
+  "id": "c714c910",
+  "voice": "bm_daniel",
+  "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "c716615b",
+  "voice": "bm_daniel",
+  "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "c86b2fa2",
+  "voice": "bm_daniel",
+  "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "cc246113",
+  "voice": "bm_daniel",
+  "text": "Dallas. First time here?",
+  "speed": 1
+ },
+ {
+  "id": "ce3ebfcd",
+  "voice": "bm_daniel",
+  "text": "Hey there! Having a good night?",
+  "speed": 1
+ },
+ {
+  "id": "d038408c",
+  "voice": "bm_daniel",
+  "text": "How do they even clean that?",
+  "speed": 1
+ },
+ {
+  "id": "d22f54b4",
+  "voice": "bm_daniel",
+  "text": "I do love casinos.",
+  "speed": 1
+ },
+ {
+  "id": "d876e891",
+  "voice": "bm_daniel",
+  "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "d9647068",
+  "voice": "bm_daniel",
+  "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "dc36016e",
+  "voice": "bm_daniel",
+  "text": "It was twenty six dollars.",
+  "speed": 1
+ },
+ {
+  "id": "dc586c83",
+  "voice": "bm_daniel",
+  "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "ddf5e3bd",
+  "voice": "bm_daniel",
+  "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "e3315a38",
+  "voice": "bm_daniel",
+  "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
+  "speed": 1
+ },
+ {
+  "id": "e66e8a33",
+  "voice": "bm_daniel",
+  "text": "Buffet. Crab legs.",
+  "speed": 1
+ },
+ {
+  "id": "e6f9fb7c",
+  "voice": "bm_daniel",
+  "text": "Over by the entrance. Cashing out?",
+  "speed": 1
+ },
+ {
+  "id": "f0a98061",
+  "voice": "bm_daniel",
+  "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "f27b110b",
+  "voice": "bm_daniel",
+  "text": "Remind me how much we budgeted?",
+  "speed": 1
+ },
+ {
+  "id": "f27dd862",
+  "voice": "bm_daniel",
+  "text": "Want to get in the water? It is actually warm.",
+  "speed": 1
+ },
+ {
+  "id": "f618296d",
+  "voice": "bm_daniel",
+  "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "f7c55ecb",
+  "voice": "bm_daniel",
+  "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "fc5483d4",
+  "voice": "bm_daniel",
+  "text": "Nothing wrong with that. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "fdbdf47c",
+  "voice": "bm_daniel",
+  "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "19fb2e65",
+  "voice": "bm_fable",
+  "text": "Champagne, sir? Compliments of the house.",
+  "speed": 1
+ },
+ {
+  "id": "3744b1a8",
+  "voice": "bm_fable",
+  "text": "Of course. Let me know if you change your mind.",
+  "speed": 1
+ },
+ {
+  "id": "48ae027e",
+  "voice": "bm_fable",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "9761c16f",
+  "voice": "bm_fable",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "e58eaf74",
+  "voice": "bm_fable",
+  "text": "Enjoy your evening!",
+  "speed": 1
+ },
+ {
+  "id": "04a12653",
+  "voice": "bm_george",
+  "text": "Twenty-five, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "10788ad3",
+  "voice": "bm_george",
+  "text": "Twenty-four, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "12b06493",
+  "voice": "bm_george",
+  "text": "Fourteen, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "134c4f16",
+  "voice": "bm_george",
+  "text": "Thirty-one, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "17c44ff9",
+  "voice": "bm_george",
+  "text": "Double zero.",
+  "speed": 0.96
+ },
+ {
+  "id": "1f35f9da",
+  "voice": "bm_george",
+  "text": "Eighteen, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "1fa2fad6",
+  "voice": "bm_george",
+  "text": "Eleven, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "26978f7f",
+  "voice": "bm_george",
+  "text": "Twenty-one, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "2a8b70e9",
+  "voice": "bm_george",
+  "text": "No worries. Have a good one!",
+  "speed": 0.96
+ },
+ {
+  "id": "3b89c890",
+  "voice": "bm_george",
+  "text": "Thirteen, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "3e69662b",
+  "voice": "bm_george",
+  "text": "Three, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "4cf64144",
+  "voice": "bm_george",
+  "text": "Twenty-eight, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "4e0fd63c",
+  "voice": "bm_george",
+  "text": "Eight, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "5ceee239",
+  "voice": "bm_george",
+  "text": "Two, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "5f79edbd",
+  "voice": "bm_george",
+  "text": "Welcome! Place your bets whenever you are ready.",
+  "speed": 0.96
+ },
+ {
+  "id": "6d7b92f8",
+  "voice": "bm_george",
+  "text": "Alright, enjoy your night!",
+  "speed": 0.96
+ },
+ {
+  "id": "71d0a2dc",
+  "voice": "bm_george",
+  "text": "Thirty-four, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "77e988e3",
+  "voice": "bm_george",
+  "text": "Thirty, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "78e6d3a6",
+  "voice": "bm_george",
+  "text": "Thirty-six, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "7b176ecf",
+  "voice": "bm_george",
+  "text": "Sixteen, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "89936498",
+  "voice": "bm_george",
+  "text": "Zero.",
+  "speed": 0.96
+ },
+ {
+  "id": "9270b0d7",
+  "voice": "bm_george",
+  "text": "One, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "951b8ac6",
+  "voice": "bm_george",
+  "text": "Thirty-three, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "9a09c03b",
+  "voice": "bm_george",
+  "text": "Nine, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "9bccda8d",
+  "voice": "bm_george",
+  "text": "Inside bets pay more, outside bets hit more often. Ten dollar minimum.",
+  "speed": 0.96
+ },
+ {
+  "id": "9caf7926",
+  "voice": "bm_george",
+  "text": "Twenty, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "9ce754a6",
+  "voice": "bm_george",
+  "text": "Seven, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "a26245fe",
+  "voice": "bm_george",
+  "text": "Twenty-seven, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "a2b8ffd2",
+  "voice": "bm_george",
+  "text": "Fifteen, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "a716d4d0",
+  "voice": "bm_george",
+  "text": "Thirty-five, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "a83f6b40",
+  "voice": "bm_george",
+  "text": "Ten, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "ab197e11",
+  "voice": "bm_george",
+  "text": "Twenty-two, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "b520162a",
+  "voice": "bm_george",
+  "text": "No more bets.",
+  "speed": 0.96
+ },
+ {
+  "id": "c557205f",
+  "voice": "bm_george",
+  "text": "Six, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "c58d7d27",
+  "voice": "bm_george",
+  "text": "Twenty-six, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "c96d04b2",
+  "voice": "bm_george",
+  "text": "Seventeen, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "cf382f6b",
+  "voice": "bm_george",
+  "text": "Five, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "d151dfa3",
+  "voice": "bm_george",
+  "text": "Twenty-three, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "d7cb0d1a",
+  "voice": "bm_george",
+  "text": "Place your bets, please.",
+  "speed": 0.96
+ },
+ {
+  "id": "da8f6467",
+  "voice": "bm_george",
+  "text": "Nineteen, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "e23376b9",
+  "voice": "bm_george",
+  "text": "Red has been running hot. Seventeen came up twice.",
+  "speed": 0.96
+ },
+ {
+  "id": "e2cb874b",
+  "voice": "bm_george",
+  "text": "Four, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "e3bfe38f",
+  "voice": "bm_george",
+  "text": "Twenty-nine, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "f8beed80",
+  "voice": "bm_george",
+  "text": "Thirty-two, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "fef0f8ee",
+  "voice": "bm_george",
+  "text": "Twelve, red.",
+  "speed": 0.96
+ },
+ {
+  "id": "0c30aca1",
+  "voice": "bm_lewis",
+  "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "2101e6f8",
+  "voice": "bm_lewis",
+  "text": "Good evening. Welcome to the table. Can I get you some chips?",
+  "speed": 1
+ },
+ {
+  "id": "6b7ed934",
+  "voice": "bm_lewis",
+  "text": "Between us, the house always has an edge. But tonight feels lucky.",
+  "speed": 1
+ },
+ {
+  "id": "9f0fe842",
+  "voice": "bm_lewis",
+  "text": "Of course. Jump in whenever you like.",
+  "speed": 1
+ },
+ {
+  "id": "d0c41bd4",
+  "voice": "bm_lewis",
+  "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "ebb864a4",
+  "voice": "bm_lewis",
+  "text": "Ten dollars, sir. Five hundred straight up.",
+  "speed": 1
+ }
+]

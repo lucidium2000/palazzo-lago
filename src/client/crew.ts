@@ -5,58 +5,16 @@ import type { Hud } from './hud';
 import type { Crowd, Look, Person } from './people';
 import type { Player } from './player';
 import type { World } from './world';
+import { CREW_LINES, type CrewMoment } from './speech';
 
 /**
  * Your crew for the night: three buddies who stick with you, crowd around
  * whatever you're playing, hype your wins, razz your losses and suggest where
- * to go next. They talk with the browser's speech voices, with subtitles.
+ * to go next. Each has his own recorded voice (speech.ts).
  */
 
-export type CrewMoment =
-  | 'arrive'
-  | 'idle'
-  | 'spin'
-  | 'win'
-  | 'bigwin'
-  | 'loss'
-  | 'bigloss'
-  | 'streak'
-  | 'bonus'
-  | 'order'
-  | 'round'
-  | 'tip'
-  | 'terrace'
-  | 'finale'
-  | 'goal'
-  | 'legend';
-
-const LINES: Record<CrewMoment, string[]> = {
-  arrive: ["Alright boys. Vegas, baby!", "I've got a good feeling about tonight.", "First stop: the tables. Let's make some money."],
-  idle: [
-    "This place is unreal.",
-    "We should hit the bar at some point.",
-    "Have you seen the fountains? We gotta go out on the terrace.",
-    "Roulette's calling your name, I'm telling you.",
-    "Red is due. I can feel it.",
-    "That piano guy is smooth.",
-    "Somebody's gonna hit big tonight. Might as well be us.",
-    "Look at this ceiling. Who even builds this?",
-  ],
-  spin: ["Come on, come on!", "Big money, big money!", "Here we go!", "Let it ride!"],
-  win: ["There it is!", "Nice!", "Ka-ching!", "That's what I'm talking about!", "Easy money."],
-  bigwin: ["Let's gooo!", "No way! No way!", "Drinks are on you tonight!", "You're a legend!", "Somebody call my mom!"],
-  loss: ["Shake it off.", "Run it back.", "That's alright, next one.", "Ouch.", "The house got lucky."],
-  bigloss: ["Oof. Brutal.", "That one hurt to watch.", "Okay, deep breath. We go again."],
-  streak: ["He's heating up!", "Don't touch him, he's on fire!", "Three in a row! Who is this guy?"],
-  bonus: ["Bonus round!", "Here we go, here we go!", "Oh it's happening!"],
-  order: ["Make it a double!", "Ooh, fancy.", "Cheers to that."],
-  round: ["Now that's a friend!", "Salute!", "To the best night ever!", "Cheers, brother!"],
-  tip: ["Classy move.", "Big tipper over here.", "He's gonna play our song now."],
-  terrace: ["Now that's a view.", "Wait for the finale. Trust me.", "This is the best spot in Vegas."],
-  finale: ["Whoa!", "That's insane!", "Okay, that was worth the trip."],
-  goal: ["Checking boxes tonight!", "Look at us go."],
-  legend: ["Legendary night, boys. Legendary.", "Nobody's gonna believe this back home."],
-};
+export type { CrewMoment } from './speech';
+const LINES = CREW_LINES;
 
 interface Buddy {
   person: Person;
