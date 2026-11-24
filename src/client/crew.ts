@@ -67,86 +67,66 @@ export class Crew {
       if (!p) return;
       const b: Buddy = { person: p, name, slot: slots[i], voiceId: CREW_VOICES[i % CREW_VOICES.length], ...tones[i] };
       p.speed = 1;
-      p.onUpdate = (pp, dt) => this.follow(b, pp, dt);
+      p.onUpdate = (pp, dt) => this.hangOut(b, pp, dt);
       this.buddies.push(b);
     });
   }
 
-  /** Puts the crew around you immediately (after a map jump or entering VR). */
-  regroup() {
-    for (const b of this.buddies) {
-      const t = this.slotTarget(b);
-      if (this.world.groundAt(t.x, t.z) < -0.05) continue;
-      b.person.pos.copy(t);
-    }
-  }
+  private placed = false;
 
-  private yaw() {
+  /** They hang out together where you came in (a little circle in front of you), not on your heels. */
+  private settle() {
+    this.placed = true;
+    const f = this.player.feet();
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.player.camera.getWorldQuaternion(new THREE.Quaternion()));
-    return Math.atan2(-dir.x, -dir.z);
+    dir.y = 0;
+    if (dir.lengthSq() < 1e-4) dir.set(0, 0, -1);
+    dir.normalize();
+    const c = f.clone().addScaledVector(dir, 2.4);
+    const free = this.world.settle(c.x, c.z, 0.6);
+    if (free) c.set(free[0], 0, free[1]);
+    this.spot.copy(c);
+    this.buddies.forEach((b, i) => {
+      const a = (i / Math.max(1, this.buddies.length)) * Math.PI * 2;
+      const at = new THREE.Vector3(c.x + Math.sin(a) * 0.75, 0, c.z + Math.cos(a) * 0.75);
+      const f = this.world.settle(at.x, at.z, 0.3);
+      if (f) at.set(f[0], 0, f[1]);
+      b.person.pos.copy(at);
+      b.person.yaw = Math.atan2(c.x - at.x, c.z - at.z);
+    });
   }
 
-  private slotTarget(b: Buddy): THREE.Vector3 {
-    const seat = this.player.seated;
-    const seated = !!seat;
-    // At a game they gather around your seat, whichever way the camera looks.
-    const yaw = seat ? seat.yaw : this.yaw();
-    // Seated: they line up alongside you at the table or the next machines, out of your view line.
-    const seatedSlots: [number, number][] = [
-      [1.9, 0.15],
-      [-1.9, 0.15],
-      [2.75, -0.2],
-    ];
-    const k = this.buddies.indexOf(b);
-    const right = seated ? seatedSlots[k][0] : b.slot[0];
-    const back = seated ? seatedSlots[k][1] : b.slot[1];
-    const f = seat ? seat.position.clone() : this.player.feet();
-    const t = new THREE.Vector3(f.x + Math.cos(yaw) * right + Math.sin(yaw) * back, 0, f.z - Math.sin(yaw) * right + Math.cos(yaw) * back);
-    const free = this.world.settle(t.x, t.z, 0.3);
-    if (free) t.set(free[0], 0, free[1]);
-    return t;
-  }
+  /** Where the crew hangs out. */
+  readonly spot = new THREE.Vector3();
 
-  private follow(b: Buddy, p: Person, dt: number) {
-    const target = this.slotTarget(b);
-    const dx = target.x - p.pos.x,
-      dz = target.z - p.pos.z;
-    const d = Math.hypot(dx, dz);
-    // The crew stays dry: they wait on the deck while you're in the pool.
-    const dry = (x: number, z: number) => this.world.groundAt(x, z) > -0.05;
-    if (d > 12) {
-      // You jumped across the room: they catch up off-screen.
-      if (dry(target.x, target.z)) p.pos.copy(target);
-      return;
-    }
-    const want = d < 0.35 ? 0 : Math.min(2.6, 0.9 + d * 0.6);
-    p.moving += (want - p.moving) * Math.min(1, dt * 5);
-    if (p.moving > 0.02 && d > 0.05) {
-      const step = Math.min(d, p.moving * dt);
-      const [nx, nz] = this.world.move(p.pos.x, p.pos.z, (dx / d) * step, (dz / d) * step, 0.24);
-      if (!dry(nx, nz) && dry(p.pos.x, p.pos.z)) {
-        p.moving = 0;
-        return;
+  /** The buddy nearest you, if he's close enough to hear and be heard. */
+  private nearest(range = 9): Buddy | null {
+    const f = this.player.feet();
+    let best: Buddy | null = null,
+      bd = range;
+    for (const b of this.buddies) {
+      const d = Math.hypot(b.person.pos.x - f.x, b.person.pos.z - f.z);
+      if (d < bd) {
+        bd = d;
+        best = b;
       }
-      p.pos.x = nx;
-      p.pos.z = nz;
-      p.walkPhase += p.moving * dt * 5.2;
-      const ty = Math.atan2(dx, dz);
-      let dy = ty - p.yaw;
-      dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-      p.yaw += dy * Math.min(1, dt * 6);
-    } else {
-      // Stand facing the same way you do (toward the game), turned a little toward you.
-      const seat = this.player.seated;
-      const f = seat ? seat.position : this.player.feet();
-      const toYou = Math.atan2(f.x - p.pos.x, f.z - p.pos.z);
-      const yourDir = (seat ? seat.yaw : this.yaw()) + Math.PI;
-      const ty = yourDir + Math.atan2(Math.sin(toYou - yourDir), Math.cos(toYou - yourDir)) * 0.35;
-      let dy = ty - p.yaw;
-      dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-      p.yaw += dy * Math.min(1, dt * 3);
     }
+    return best;
   }
+
+  /** Standing with the others; turns to you when you come over. */
+  private hangOut(_b: Buddy, p: Person, dt: number) {
+    p.moving += (0 - p.moving) * Math.min(1, dt * 5);
+    const f = this.player.feet();
+    const dYou = Math.hypot(f.x - p.pos.x, f.z - p.pos.z);
+    const ty = dYou < 4.5 ? Math.atan2(f.x - p.pos.x, f.z - p.pos.z) : Math.atan2(this.spot.x - p.pos.x, this.spot.z - p.pos.z);
+    let dy = ty - p.yaw;
+    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    p.yaw += dy * Math.min(1, dt * 2.5);
+  }
+
+  /** (The crew used to follow you everywhere; now they stay where they hang out.) */
+  regroup() {}
 
   /** Something happened: maybe one of the boys says something. */
   react(moment: CrewMoment, opts: { chance?: number; force?: boolean; cheer?: boolean } = {}) {
@@ -167,12 +147,19 @@ export class Crew {
     let line = lines[Math.floor(Math.random() * lines.length)];
     if (line === this.lastLine) line = lines[(lines.indexOf(line) + 1) % lines.length];
     this.lastLine = line;
-    const b = this.buddies[Math.floor(Math.random() * this.buddies.length)];
+    // Only the boys within earshot say anything.
+    const b = this.nearest();
     if (!b) return;
     this.cooldown = 5;
     this.idleIn = 35 + Math.random() * 30;
     this.say(b, line);
     b.person.headYaw = 0;
+  }
+
+  /** The nearest buddy (if you're with them) says a line. */
+  sayNear(line: string) {
+    const b = this.nearest();
+    if (b) this.say(b, line);
   }
 
   /** A buddy says something, in his own voice, from where he stands. */
@@ -184,6 +171,7 @@ export class Crew {
   }
 
   update(dt: number) {
+    if (!this.placed) this.settle();
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.idleIn -= dt;
     if (this.idleIn <= 0) this.react('idle');

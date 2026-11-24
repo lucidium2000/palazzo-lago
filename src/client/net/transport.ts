@@ -42,6 +42,9 @@ export interface PlayerState {
   /** Grip squeeze per hand 0..1 (a fist when high). */
   lg?: number;
   rg?: number;
+  /** Wrist pose per hand (world): x, y, z, qx, qy, qz, qw. Drives their real-looking hands. */
+  lw?: number[] | null;
+  rw?: number[] | null;
   /** Per-finger curls per hand, 5 digits [thumb,index,middle,ring,pinky] 0-9. */
   lf?: string;
   rf?: string;

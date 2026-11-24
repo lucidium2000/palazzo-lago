@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { controllerPose, handTrackPose, handTrackWrist, OPEN, type FingerPose } from './fingers';
 import { PALM } from './net/embody';
+import { GRIP_HOLD, PosedHand } from './posedhand';
 import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
 
@@ -38,12 +39,67 @@ export class Hands {
   private handModels: THREE.Object3D[] = [];
   private handSpaces: THREE.Group[] = [];
   private stands: THREE.Object3D[] = [];
+  /** Your hands, seated on the controllers (see posedhand.ts). */
+  readonly posed = { left: new PosedHand('left'), right: new PosedHand('right') };
+  /** Skin for the hand-tracking mesh too. */
+  readonly skin = new THREE.MeshStandardMaterial({ color: 0xd9a17e, roughness: 0.62, side: THREE.DoubleSide });
+  private controllersShown = false;
 
-  /** Show or hide the plastic controller models (your avatar's own hands replace them). */
+  /** Show the plastic controllers instead of hands (off by default: hands replace them). */
   showControllers(v: boolean) {
+    this.controllersShown = v;
     for (const m of this.models) m.visible = v;
     for (const st of this.stands) if (!v) st.visible = false;
-    for (const m of this.handModels) m.visible = v;
+  }
+
+  /** Matches your hands to your avatar's skin. */
+  setSkin(c: THREE.Color) {
+    this.posed.left.setColor(c);
+    this.posed.right.setColor(c);
+    this.skin.color.copy(c);
+  }
+
+  /** Is this side's hand followed by hand tracking (no controller)? */
+  tracked(side: 'left' | 'right') {
+    const hs = this.handSpace(side) as (THREE.Object3D & { joints?: Record<string, THREE.Object3D> }) | undefined;
+    return !!hs?.joints?.['wrist']?.visible;
+  }
+
+  /** The wrist's world pose (for the avatar's forearm, and for your friend's view of you). */
+  wristPose(side: 'left' | 'right'): { p: THREE.Vector3; q: THREE.Quaternion } | null {
+    const hs = this.handSpace(side) as (THREE.Object3D & { joints?: Record<string, THREE.Object3D> }) | undefined;
+    const j = hs?.joints?.['wrist'];
+    if (j?.visible) return { p: j.getWorldPosition(new THREE.Vector3()), q: j.getWorldQuaternion(new THREE.Quaternion()) };
+    const ph = this.posed[side];
+    if (!ph.visible || !ph.ready) return null;
+    const h = this.hands.find((x) => x.ctrl.userData.handedness === side);
+    if (!h || h.ctrl.userData.connected === false || !h.grip.visible) return null;
+    ph.root.updateMatrixWorld(true);
+    return ph.wristPoseWorld();
+  }
+
+  /** Poses the controller hands for this frame (fingers from the touch sensors). */
+  poseHands(poses: { l: FingerPose; r: FingerPose }) {
+    for (const side of ['left', 'right'] as const) {
+      const ph = this.posed[side];
+      const h = this.hands.find((x) => x.ctrl.userData.handedness === side);
+      const on = !this.controllersShown && !!h && h.ctrl.userData.connected !== false && !h.ctrl.userData.isHand;
+      if (on && ph.root.parent !== h!.grip) {
+        h!.grip.add(ph.root);
+        ph.calibrateToGrip(GRIP_HOLD.fwd(), GRIP_HOLD.palm(side), GRIP_HOLD.fit);
+      }
+      ph.visible = on;
+      if (on) ph.setPose(poses[side === 'left' ? 'l' : 'r'], { controller: true });
+    }
+    // Hand tracking: the real joints drive the same hand mesh (tinted to your skin).
+    for (const hm of this.handModels)
+      hm.traverse((o) => {
+        const m = o as THREE.SkinnedMesh;
+        if (m.isSkinnedMesh && m.material !== this.skin) {
+          m.material = this.skin;
+          m.frustumCulled = false;
+        }
+      });
   }
 
   /** The tracked-hand space for a side (when hand tracking is active). */
@@ -101,6 +157,8 @@ export class Hands {
     const tw = hs ? handTrackWrist(hs as never) : null;
     if (tw) return tw;
     if (!h || h.ctrl.userData.connected === false || !h.grip.visible) return null;
+    const wp = this.wristPose(side);
+    if (wp) return wp.p;
     h.grip.updateMatrixWorld(true);
     return new THREE.Vector3(0, -0.01, 0.07).applyMatrix4(h.grip.matrixWorld);
   }
@@ -116,6 +174,8 @@ export class Hands {
   ) {
     const controllerModels = new XRControllerModelFactory();
     const handModels = new XRHandModelFactory();
+    // The hand-tracking mesh: the same hand model, bundled with the game (no CDN).
+    handModels.setPath(new URL('assets/hands/', document.baseURI).href);
     // A simple built-in hand shown until (or unless) the real controller model loads.
     const glove = new THREE.MeshStandardMaterial({ color: 0xe9d7c0, roughness: 0.6 });
     const cuff = new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.5 });
@@ -139,8 +199,10 @@ export class Hands {
       const grip = renderer.xr.getControllerGrip(i);
       const model = controllerModels.createControllerModel(grip);
       grip.add(model);
+      model.visible = false;
       this.models.push(model);
       const stand = fallback();
+      stand.visible = false;
       grip.add(stand);
       this.stands.push(stand);
       // Hide the stand-in once the real model has loaded.

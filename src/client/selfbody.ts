@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { assets, spawnCharacter } from './assets';
 import { AVATARS } from './net/avatars';
-import { orientHand, reach, setFingers } from './net/embody';
-import { blendPose, OPEN, type FingerPose } from './fingers';
+import { reach, setFingers } from './net/embody';
+import type { FingerPose } from './fingers';
+import { skinTone } from './posedhand';
 
 /**
  * Your own body in VR: the character you picked, standing under your headset
@@ -10,11 +11,20 @@ import { blendPose, OPEN, type FingerPose } from './fingers';
  * real controllers, hands closing into fists when you squeeze grip, and legs
  * walking when you move. Look down and it's you.
  */
+/** How far (metres, at your size) the body sits behind your eyes. */
+export const BODY_BACK = 0.13;
+/** Size of the character's own (hidden) hand inside the real one. */
+const HIDDEN_HAND = 0.3;
+const FIST: FingerPose = [1, 1, 1, 1, 1];
+
 export class SelfBody {
   private rig: ReturnType<typeof spawnCharacter> | null = null;
   private kind = '';
   private bodyYaw = 0;
-  private shown: { L: FingerPose; R: FingerPose } = { L: [...OPEN] as FingerPose, R: [...OPEN] as FingerPose };
+  /** Skin tone of the character you wear (your hands are tinted to match). */
+  skin: THREE.Color | null = null;
+  /** Called when you change character (to re-tint your hands). */
+  onSkin: ((c: THREE.Color) => void) | null = null;
   private avatar = -1;
   readonly root = new THREE.Group();
 
@@ -41,6 +51,8 @@ export class SelfBody {
     }
     this.root.add(rig.root);
     this.rig = rig;
+    this.skin = skinTone(rig.mesh);
+    if (this.skin) this.onSkin?.(this.skin);
   }
 
   /**
@@ -48,7 +60,7 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; aims?: { l: { fwd: THREE.Vector3; palm: THREE.Vector3 } | null; r: { fwd: THREE.Vector3; palm: THREE.Vector3 } | null }; speed: number }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number }) {
     this.root.visible = o.on && !!this.rig;
     const rig = this.rig;
     if (!o.on || !rig) return;
@@ -62,8 +74,9 @@ export class SelfBody {
     const diff = Math.atan2(Math.sin(headYaw - this.bodyYaw), Math.cos(headYaw - this.bodyYaw));
     if (Math.abs(diff) > 0.6 || o.speed > 0.2) this.bodyYaw += diff * Math.min(1, dt * (o.speed > 0.2 ? 8 : 3));
     const fwd = new THREE.Vector3(Math.sin(this.bodyYaw), 0, Math.cos(this.bodyYaw));
-    // Neck under the eyes, set back a little so the chest doesn't fill your view.
-    rig.root.position.set(o.head.x, o.floorY, o.head.z).addScaledVector(fwd, -0.09 * sc);
+    // Neck under the eyes, set back so the body sits a little behind your
+    // point of view (as your real one does) and the chest doesn't fill your view.
+    rig.root.position.set(o.head.x, o.floorY, o.head.z).addScaledVector(fwd, -BODY_BACK * sc);
     rig.root.rotation.y = this.bodyYaw;
     const a = rig.actions;
     // Walk and run blend with your real speed (strides match the ground you cover).
@@ -76,8 +89,11 @@ export class SelfBody {
     if (a.Run) a.Run.timeScale = THREE.MathUtils.clamp(o.speed / (3.2 * sc), 0.6, 1.5);
     rig.mixer.update(dt);
     const b = rig.bones;
-    // Hide the head from the inside (collapse it), keep the neck.
-    b.Head?.scale.setScalar(0.001);
+    // Hide the head from the inside (collapse it), keep the neck. The
+    // character's own hands collapse into the wrists too: you see the real
+    // hand models on your controllers (posedhand.ts), and the arms reach them.
+    // (The neck too: with the body set back you'd look down into it.)
+    b.Neck?.scale.setScalar(0.001);
     rig.root.updateMatrixWorld(true);
     const left = new THREE.Vector3(Math.cos(this.bodyYaw), 0, -Math.sin(this.bodyYaw));
     for (const [side, S, dir] of [['l', 'L', 1], ['r', 'R', -1]] as const) {
@@ -89,11 +105,12 @@ export class SelfBody {
         const shoulder = upper.getWorldPosition(new THREE.Vector3());
         const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.3).addScaledVector(left, 0.45 * dir);
         reach(upper, lower, end, target, pole, 1);
-        const aim = o.aims?.[side];
-        if (aim) orientHand(b, S, aim.fwd, aim.palm);
       }
-      blendPose(this.shown[S], o.poses[side], Math.min(1, dt * 18));
-      setFingers(b, S, this.shown[S]);
+      // The character's own hand becomes a small fist tucked inside the real
+      // hand model, turned the same way, so the forearm runs full width into it.
+      const w = o.wrists?.[side];
+      if (end) end.scale.setScalar(w ? HIDDEN_HAND : 1);
+      if (w && end) setFingers(b, S, FIST);
     }
   }
 }

@@ -11,6 +11,7 @@ import type { CrapsTable } from '../craps/table';
 import { money } from '../game';
 import type { Bankroll } from '../../rules/bankroll';
 import type { NetEvent, PlayerState, Transport, Wire } from './transport';
+import { PosedHand, skinTone } from '../posedhand';
 
 /** Viewpoints where a player sits (the rest are played standing). */
 const SEATED = (id: string | null) => !!id && id !== 'craps';
@@ -26,6 +27,10 @@ interface Remote {
   talkUntil: number;
   bodyYaw: number;
   hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null };
+  /** Their wrists (smoothed world poses) and the hand models shown there. */
+  wrists: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null };
+  posed: { l: PosedHand; r: PosedHand } | null;
+  skinOf: THREE.Object3D | null;
   /** Grip squeeze shown on their hands (0..1). */
   fist: { l: number; r: number };
   /** Their finger poses as displayed (smoothed). */
@@ -65,6 +70,8 @@ export interface SessionDeps {
   listener: THREE.AudioListener;
   /** Your real hands in VR (world positions), or null on a screen. */
   hands?(): { l: THREE.Vector3 | null; r: THREE.Vector3 | null } | null;
+  /** Your wrists' world poses in VR (for the hands your friend sees). */
+  wrists?(): { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null } | null;
   /** Grip squeeze per hand 0..1 (VR). */
   grip?(): { l: number; r: number };
   /** Per-finger poses (VR controllers' touch sensors or hand tracking). */
@@ -206,13 +213,23 @@ export class Session {
     };
   }
 
-  private handState(): { lh?: number[] | null; rh?: number[] | null; lg?: number; rg?: number; lf?: string; rf?: string } {
+  private handState(): Partial<PlayerState> {
     const h = this.d.hands?.();
     if (!h) return {};
     const r = (v: THREE.Vector3 | null) => (v ? v.toArray().map((x) => Math.round(x * 100) / 100) : null);
     const g = this.d.grip?.() ?? { l: 0, r: 0 };
     const f = this.d.fingers?.();
-    return { lh: r(h.l), rh: r(h.r), lg: Math.round(g.l * 10) / 10, rg: Math.round(g.r * 10) / 10, ...(f ? { lf: packPose(f.l), rf: packPose(f.r) } : {}) };
+    const w = this.d.wrists?.();
+    const pose = (x: { p: THREE.Vector3; q: THREE.Quaternion } | null | undefined) =>
+      x ? [...x.p.toArray().map((v) => Math.round(v * 1000) / 1000), ...x.q.toArray().map((v) => Math.round(v * 100) / 100)] : null;
+    return {
+      lh: r(h.l),
+      rh: r(h.r),
+      lg: Math.round(g.l * 10) / 10,
+      rg: Math.round(g.r * 10) / 10,
+      ...(f ? { lf: packPose(f.l), rf: packPose(f.r) } : {}),
+      ...(w ? { lw: pose(w.l), rw: pose(w.r) } : {}),
+    };
   }
 
   private lastSent = '';
@@ -260,6 +277,9 @@ export class Session {
         talkUntil: 0,
         bodyYaw: Number(s.yaw) || 0,
         hands: { l: null, r: null },
+        wrists: { l: null, r: null },
+        posed: null,
+        skinOf: null,
         fist: { l: 0, r: 0 },
         pose: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose },
         emote: null,
@@ -473,19 +493,42 @@ export class Session {
     if (r.mouth) setOpen(r.mouth, r.open);
     const fwd = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
     const left = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
+    // Their real hands (same hand models you see on your own controllers), placed at their wrists.
+    if (!r.posed && (r.wrists.l || r.wrists.r)) {
+      r.posed = { l: new PosedHand('left'), r: new PosedHand('right') };
+      this.d.scene.add(r.posed.l.root, r.posed.r.root);
+    }
+    if (r.posed && r.skinOf !== rig.mesh) {
+      r.skinOf = rig.mesh;
+      const c = skinTone(rig.mesh);
+      if (c) {
+        r.posed.l.setColor(c);
+        r.posed.r.setColor(c);
+      }
+    }
     for (const [side, dir] of [['l', 1], ['r', -1]] as const) {
-      const target = r.hands[side];
       const S = side === 'l' ? 'L' : 'R';
+      const wrist = r.wrists[side];
+      const ph = r.posed?.[side];
+      const target = wrist?.p ?? r.hands[side];
       const upper = b[`UpperArm${S}`],
         lower = b[`LowerArm${S}`],
         end = b[`Wrist${S}`] ?? b[`Hand${S}`];
+      if (ph) {
+        ph.visible = !!wrist && !p.culled;
+        if (wrist) {
+          ph.placeByWrist(wrist.p, wrist.q);
+          ph.setPose(r.pose[side]);
+        }
+      }
+      // The avatar's own hand becomes a small fist tucked inside the real-looking one.
+      end?.scale.setScalar(wrist ? 0.3 : 1);
       if (!target || !upper || !lower || !end) continue;
       const shoulder = upper.getWorldPosition(new THREE.Vector3());
       const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.35).addScaledVector(left, 0.45 * dir);
       reach(upper, lower, end, target, pole, 1);
+      setFingers(b, S, wrist ? [1, 1, 1, 1, 1] : r.pose[side]);
     }
-    setFingers(b, 'L', r.pose.l);
-    setFingers(b, 'R', r.pose.r);
   }
 
   private showBubble(r: Remote, text: string) {
@@ -501,6 +544,10 @@ export class Session {
 
   private drop(r: Remote) {
     this.d.scene.remove(r.tag);
+    if (r.posed) {
+      this.d.scene.remove(r.posed.l.root, r.posed.r.root);
+      r.posed = null;
+    }
     if (r.bubble) this.d.scene.remove(r.bubble);
     if (r.person) {
       // Park the avatar out of sight (the crowd keeps its slot for a rejoin).
@@ -559,6 +606,17 @@ export class Session {
           if (!r.hands[side] || r.hands[side]!.distanceTo(t) > 1.5) r.hands[side] = t;
           else r.hands[side]!.lerp(t, Math.min(1, dt * 18));
         } else r.hands[side] = null;
+        const w = side === 'l' ? s.lw : s.rw;
+        if (Array.isArray(w) && w.length === 7 && w.every(Number.isFinite)) {
+          const p = new THREE.Vector3(w[0], w[1], w[2]);
+          const q = new THREE.Quaternion(w[3], w[4], w[5], w[6]).normalize();
+          const cur = r.wrists[side];
+          if (!cur || cur.p.distanceTo(p) > 1.5) r.wrists[side] = { p, q };
+          else {
+            cur.p.lerp(p, Math.min(1, dt * 18));
+            cur.q.slerp(q, Math.min(1, dt * 18));
+          }
+        } else r.wrists[side] = null;
       }
       this.gestures(r, p, dt);
       r.fist.l += ((Number(s.lg) || 0) - r.fist.l) * Math.min(1, dt * 14);

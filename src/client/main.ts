@@ -332,9 +332,7 @@ async function main() {
   // A few drinks in, the crew notices.
   lounge.onTipsy = (stage) => {
     const line = TIPSY_LINES[stage];
-    const b = crew.buddies[stage % Math.max(1, crew.buddies.length)];
-    if (!line || !b) return;
-    if (!voiceArbiter.busy() && !voices.priorityBusy) crew.say(b, line);
+    if (line && !voiceArbiter.busy() && !voices.priorityBusy) crew.sayNear(line);
   };
   lounge.onTip = () => {
     night.complete('tip');
@@ -572,6 +570,7 @@ async function main() {
       craps,
       listener: sound.listener,
       hands: () => (player.inXR ? { l: hands.wrist('left'), r: hands.wrist('right') } : null),
+      wrists: () => (player.inXR ? { l: hands.wristPose('left'), r: hands.wristPose('right') } : null),
       grip: () => gripValues(),
       fingers: () => fingerPoses(),
       knock: (at) => {
@@ -628,6 +627,7 @@ async function main() {
   );
   // --- Your own body in VR ------------------------------------------------------
   const selfBody = new SelfBody(scene);
+  selfBody.onSkin = (c) => hands.setSkin(c);
   selfBody.setAvatar(me.avatar);
   const fingerPoses = () => {
     const gp = (side: string) => interaction.gamepads().find((g) => g.handedness === side)?.gamepad;
@@ -962,12 +962,14 @@ async function main() {
     if (player.inXR && hud.station === 'craps') craps.offerDice(feet);
     {
       const on = player.inXR;
+      hands.showControllers(!on);
       if (on) {
+        // Your hands first (they sit on the controllers), then the body's arms reach them.
+        hands.poseHands(fingerPoses());
         const head = camera.getWorldPosition(new THREE.Vector3());
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
-        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), aims: { l: hands.handAim('left'), r: hands.handAim('right') }, speed: player.speed });
+        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.speed });
       } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, poses: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose }, speed: 0 });
-      hands.showControllers(!on);
     }
     for (const m of machines) m.update(dt);
     piggy.update(dt);
