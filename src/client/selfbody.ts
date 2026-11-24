@@ -14,7 +14,9 @@ import { skinTone } from './posedhand';
 /** How far (metres, at your size) the body sits behind your eyes. */
 export const BODY_BACK = 0.13;
 /** Size of the character's own (hidden) hand inside the real one. */
-const HIDDEN_HAND = 0.3;
+const HIDDEN_HAND = 0.001;
+/** The forearm runs this far into the hand model (past its open wrist), metres. */
+export const ARM_INTO_HAND = 0.035;
 const FIST: FingerPose = [1, 1, 1, 1, 1];
 
 export class SelfBody {
@@ -97,7 +99,9 @@ export class SelfBody {
     rig.root.updateMatrixWorld(true);
     const left = new THREE.Vector3(Math.cos(this.bodyYaw), 0, -Math.sin(this.bodyYaw));
     for (const [side, S, dir] of [['l', 'L', 1], ['r', 'R', -1]] as const) {
-      const target = o.hands[side];
+      const w0 = o.wrists?.[side];
+      // With a hand model there, the forearm ends a little inside it (no gap, no seam).
+      const target = w0 ? w0.p.clone().addScaledVector(new THREE.Vector3(0, 0, -1).applyQuaternion(w0.q), ARM_INTO_HAND) : o.hands[side];
       const upper = b[`UpperArm${S}`],
         lower = b[`LowerArm${S}`],
         end = b[`Wrist${S}`];

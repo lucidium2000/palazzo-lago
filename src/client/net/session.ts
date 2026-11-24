@@ -16,6 +16,18 @@ import { PosedHand, skinTone } from '../posedhand';
 /** Viewpoints where a player sits (the rest are played standing). */
 const SEATED = (id: string | null) => !!id && id !== 'craps';
 
+/** What other parts of the game may know about a friend in the room. */
+export interface Friend {
+  id: string;
+  name: string;
+  person: Person | null;
+  state: PlayerState;
+  /** Their hand model (VR players), if shown. */
+  hand(side: 'l' | 'r'): PosedHand | null;
+  /** Their wrist pose (VR players), if known. */
+  wrist(side: 'l' | 'r'): { p: THREE.Vector3; q: THREE.Quaternion } | null;
+}
+
 interface Remote {
   id: string;
   state: PlayerState;
@@ -312,8 +324,28 @@ export class Session {
     }
   }
 
+  /** Extra event handlers (game mirroring, drinks…): `on('kind', (friend, data) => …)`. */
+  private handlers = new Map<string, (friend: Friend, d: Record<string, unknown>) => void>();
+  on(kind: string, fn: (friend: Friend, d: Record<string, unknown>) => void) {
+    this.handlers.set(kind, fn);
+  }
+
+  /** The friends in the room (name, avatar, where their hands are). */
+  friendList(): Friend[] {
+    return [...this.remotes.values()].map((r) => this.friendOf(r));
+  }
+
+  private friendOf(r: Remote): Friend {
+    return { id: r.id, name: r.name, person: r.person, state: r.state, hand: (side) => r.posed?.[side] ?? null, wrist: (side) => r.wrists[side] ?? (r.hands[side] ? { p: r.hands[side]!, q: new THREE.Quaternion() } : null) };
+  }
+
   private handle(r: Remote, e: NetEvent) {
     const d = (e.d ?? {}) as Record<string, unknown>;
+    const extra = this.handlers.get(e.k);
+    if (extra) {
+      extra(this.friendOf(r), d);
+      return;
+    }
     switch (e.k) {
       case 'say': {
         const t = String(d.t ?? '').slice(0, 120);
@@ -510,7 +542,7 @@ export class Session {
       const S = side === 'l' ? 'L' : 'R';
       const wrist = r.wrists[side];
       const ph = r.posed?.[side];
-      const target = wrist?.p ?? r.hands[side];
+      const target = wrist ? wrist.p.clone().addScaledVector(new THREE.Vector3(0, 0, -1).applyQuaternion(wrist.q), 0.035) : r.hands[side];
       const upper = b[`UpperArm${S}`],
         lower = b[`LowerArm${S}`],
         end = b[`Wrist${S}`] ?? b[`Hand${S}`];
@@ -522,7 +554,7 @@ export class Session {
         }
       }
       // The avatar's own hand becomes a small fist tucked inside the real-looking one.
-      end?.scale.setScalar(wrist ? 0.3 : 1);
+      end?.scale.setScalar(wrist ? 0.001 : 1);
       if (!target || !upper || !lower || !end) continue;
       const shoulder = upper.getWorldPosition(new THREE.Vector3());
       const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.35).addScaledVector(left, 0.45 * dir);
