@@ -185,6 +185,11 @@ export class World {
     return this.inWalkable(nx, nz, r) ? [nx, nz] : null;
   }
 
+  /** Inside the walls (anywhere you could stand, obstacles aside)? */
+  isInside(x: number, z: number): boolean {
+    return this.inWalkable(x, z, 0.02);
+  }
+
   isFree(x: number, z: number, r = 0.25): boolean {
     const [nx, nz] = this.pushOut(x, z, r);
     return Math.hypot(nx - x, nz - z) < 1e-3 && this.inWalkable(x, z, r);

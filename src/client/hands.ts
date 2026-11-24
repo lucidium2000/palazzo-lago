@@ -308,10 +308,35 @@ export class Hands {
     return true;
   }
 
+  /** Recent hand positions (for throw speed). */
+  private trail = new Map<Hand, { t: number; p: THREE.Vector3 }[]>();
+
+  /**
+   * How fast a hand is moving right now (m/s, world): averaged over the last
+   * ~70 ms, which is what a throw "feels" like when you let go.
+   */
+  velocity(hand: Hand): THREE.Vector3 {
+    const tr = this.trail.get(hand);
+    if (!tr || tr.length < 2) return new THREE.Vector3();
+    const last = tr[tr.length - 1];
+    let first = tr[0];
+    for (const s of tr) if (last.t - s.t <= 0.07) {
+      first = s;
+      break;
+    }
+    const dt = last.t - first.t;
+    return dt > 0.008 ? last.p.clone().sub(first.p).divideScalar(dt) : new THREE.Vector3();
+  }
+
   update() {
     if (!this.renderer.xr.isPresenting) return;
+    const now = performance.now() / 1000;
     for (const hand of this.hands) {
       const p = this.handPos(hand);
+      let tr = this.trail.get(hand);
+      if (!tr) this.trail.set(hand, (tr = []));
+      tr.push({ t: now, p: p.clone() });
+      while (tr.length > 2 && now - tr[0].t > 0.2) tr.shift();
       hand.ctrl.userData.nearGrab = !hand.held && !!this.nearest(hand);
       if (hand.held?.drag) hand.held.drag(hand, p);
     }

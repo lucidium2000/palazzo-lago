@@ -222,6 +222,7 @@ export class Session {
       hh: Math.round((p.camera.getWorldPosition(new THREE.Vector3()).y - p.rig.position.y) * 100) / 100,
       mo: this.voice?.enabled ? Math.round(this.voice.level() * 9) : 0,
       ...this.handState(),
+      ...(this.extraState?.() ?? {}),
     };
   }
 
@@ -323,6 +324,9 @@ export class Session {
       this.handle(r, e);
     }
   }
+
+  /** Extra fields published with your state (e.g. the drink in your hand). */
+  extraState: (() => Partial<PlayerState>) | null = null;
 
   /** Extra event handlers (game mirroring, drinks…): `on('kind', (friend, data) => …)`. */
   private handlers = new Map<string, (friend: Friend, d: Record<string, unknown>) => void>();

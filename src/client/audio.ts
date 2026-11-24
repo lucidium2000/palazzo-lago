@@ -38,6 +38,8 @@ type SoundName =
   | 'ding'
   | 'liftHum'
   | 'splash'
+  | 'shatter'
+  | 'thunk'
   | 'swim'
   | 'land';
 
@@ -287,6 +289,18 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
   })();
   const liftHum = synth(ctx, 2.0, (t) => 0.25 * (Math.sin(2 * Math.PI * 55 * t) * 0.6 + Math.sin(2 * Math.PI * 110 * t) * 0.25 + rand() * 0.08) * Math.min(1, t * 3, (2.0 - t) * 3));
   const clink = synth(ctx, 0.8, (t) => (Math.sin(2 * Math.PI * 3520 * t) * 0.3 + Math.sin(2 * Math.PI * 5270 * t) * 0.15 + Math.sin(2 * Math.PI * 2210 * t) * 0.1) * env(t, 0.0008, 0.18));
+  // A glass breaking: a sharp crack, then a spray of tinkling shards.
+  const shatter = (() => {
+    const h = hp(0.6);
+    const tinkles = Array.from({ length: 26 }, () => ({ t0: 0.02 + Math.random() * 0.5, f: 2400 + Math.random() * 5200, a: 0.05 + Math.random() * 0.12, d: 0.03 + Math.random() * 0.08 }));
+    return synth(ctx, 1.0, (t) => {
+      let v = h(rand()) * 1.4 * env(t, 0.001, 0.06);
+      for (const k of tinkles) if (t > k.t0) v += Math.sin(2 * Math.PI * k.f * (t - k.t0)) * k.a * env(t - k.t0, 0.0005, k.d);
+      return v;
+    });
+  })();
+  // A glass landing without breaking: a dull knock with a little ring.
+  const thunk = synth(ctx, 0.35, (t) => Math.sin(2 * Math.PI * 180 * t) * 0.5 * env(t, 0.001, 0.04) + Math.sin(2 * Math.PI * 2900 * t) * 0.08 * env(t, 0.001, 0.09));
   const pour = (() => {
     const l = lp(0.12);
     return synth(ctx, 1.6, (t) => {
@@ -327,7 +341,7 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
 
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, ambience, denied,
-    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
+    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
     ding, liftHum, splash, swim, land,
   };
 }

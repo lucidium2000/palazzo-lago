@@ -42,6 +42,8 @@ import type { Control } from './hud';
 import { CHIP_COLORS, CHIP_DENOMS, chipLabel } from './textures';
 import { CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
 import { mouthOf, voices } from './voices';
+import { Throwables } from './throwables';
+import { DrinkSync } from './net/drinksync';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
@@ -153,7 +155,18 @@ async function main() {
   world.addLocalBox(craps.group, 0, 0, 3.75, 1.7);
 
   // --- Places and people -------------------------------------------------------------
-  const lounge = new Lounge({ ...ctx, crowd, hands, player, world });
+  // Throwing physics (glasses fly, land, break); your own body and hands are never a landing spot.
+  const throwables = new Throwables({
+    scene,
+    world,
+    sound,
+    camera,
+    isSelf: (o) => {
+      for (let p: THREE.Object3D | null = o; p; p = p.parent) if (p.userData.noLand) return true;
+      return false;
+    },
+  });
+  const lounge = new Lounge({ ...ctx, crowd, hands, player, world, throwables });
   const slotRows = new SlotRows(ctx, crowd, world);
 
   // Walking routes through the open floor; edges are found automatically.
@@ -554,6 +567,7 @@ async function main() {
       openChat();
     }
   });
+  let drinkSync: DrinkSync | null = null;
   const startSession = (net: { transport: Transport; host: boolean }, name: string, avatar: number) => {
     session?.leave();
     session = new Session({
@@ -595,6 +609,8 @@ async function main() {
       },
       onRoster: (f) => showRoom(f),
     });
+    drinkSync?.dispose();
+    drinkSync = new DrinkSync(session, lounge, scene);
     session.onCheers = (at, name) => {
       lounge.cheers(at, undefined, true);
       hud.toast(`Cheers with ${name}!`, 'win');
@@ -606,6 +622,7 @@ async function main() {
     showRoom([]);
     hud.toast(net.host ? `Room LAGO-${session.code} is open · press T to chat` : `Joined room LAGO-${session.code}`, 'win');
     (window as unknown as { casino: Record<string, unknown> }).casino.session = session;
+    (window as unknown as { casino: Record<string, unknown> }).casino.drinkSync = drinkSync;
     vrMenu.redraw();
   };
   let me = { name: 'Guest', avatar: 0 };
@@ -627,6 +644,9 @@ async function main() {
   );
   // --- Your own body in VR ------------------------------------------------------
   const selfBody = new SelfBody(scene);
+  selfBody.root.userData.noLand = true;
+  hands.posed.left.root.userData.noLand = true;
+  hands.posed.right.root.userData.noLand = true;
   selfBody.onSkin = (c) => hands.setSkin(c);
   selfBody.setAvatar(me.avatar);
   const fingerPoses = () => {
@@ -661,6 +681,8 @@ async function main() {
     leaveRoom: () => {
       session?.leave();
       session = null;
+      drinkSync?.dispose();
+      drinkSync = null;
       roomPill.hidden = true;
       voiceBtn.hidden = true;
       chatForm.hidden = true;
@@ -958,6 +980,7 @@ async function main() {
     roulette.update(dt);
     craps.update(dt);
     session?.update(dt);
+    drinkSync?.update();
     // Walk up to craps in VR and the stickman slides you the dice.
     if (player.inXR && hud.station === 'craps') craps.offerDice(feet);
     {
@@ -975,6 +998,7 @@ async function main() {
     piggy.update(dt);
     slotRows.update(t, feet);
     lounge.update(dt);
+    throwables.update(dt);
     crowd.update(dt, t, feet, head);
     casino.update(t, feet);
     areas.update(dt, t, feet);
@@ -1082,7 +1106,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables };
 }
 
 main().catch((e) => {

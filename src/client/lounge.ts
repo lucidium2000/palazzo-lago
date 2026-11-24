@@ -16,6 +16,7 @@ import type { Viewpoint } from './player';
 import { voiceArbiter } from './dialogue';
 import { BARTENDER_LINES, CHEERS_LINES, STAFF, guestVoice, orderLine } from './speech';
 import { mouthOf, voices } from './voices';
+import type { Throwables } from './throwables';
 
 /**
  * The lounge: Bar Lago along the west wall (order a drink, hold it, sip it),
@@ -27,7 +28,17 @@ export interface LoungeDeps extends GameContext {
   hands: Hands;
   player: Player;
   world: World;
+  /** Throwing physics (glasses fly, land, break). */
+  throwables: Throwables;
 }
+
+/** Something your friend should see happen to a drink (two-player). */
+export type DrinkEvent =
+  | { k: 'take'; id: string }
+  | { k: 'put'; id: string; p: number[] }
+  | { k: 'throw'; id?: string; kind: number; level: number; p: number[]; q: number[]; v: number[] }
+  | { k: 'order'; kind: number; z: number }
+  | { k: 'sip' };
 
 const drink = (name: string) => DRINKS.find((d) => d.name === name)!;
 const BAR_X = -15.0;
@@ -64,6 +75,8 @@ const iceMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: tr
 export class Drink {
   readonly group = new THREE.Group();
   level = 1;
+  /** Shared id for drinks both players see in the same place (two-player). */
+  id: string | null = null;
   private liquid: THREE.Mesh;
   private liquidTop: number;
   private liquidBottom: number;
@@ -224,6 +237,7 @@ export class Lounge {
     this.buildPiano();
     addEventListener('keydown', (e) => {
       if (e.code === 'KeyQ') this.putDownDesktop();
+      if (e.code === 'KeyX') this.throwHeld();
       if (e.code === 'KeyF' && this.desktopDrink) this.sip(this.desktopDrink);
       if (e.code === 'KeyG') this.tryCheers();
     });
@@ -517,6 +531,7 @@ export class Lounge {
     }
     this.d.bankroll.debit(cost, 'bet', 'bar');
     this.startPour(kind, THREE.MathUtils.clamp(z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4), false);
+    this.onDrinkEvent?.({ k: 'order', kind: DRINKS.indexOf(kind), z: Math.round(z * 100) / 100 });
     this.greet(orderLine(kind.name, kind.prep), true);
     this.onOrder?.();
   }
@@ -571,8 +586,12 @@ export class Lounge {
   private served(drink: Drink, forNpc: boolean, z: number) {
     this.d.sound.play('clink', drink.group, { volume: 0.6 });
     if (forNpc) {
-      this.npcDrinks.get(z)?.group.removeFromParent();
+      // The last glass at that spot goes (unless someone picked it up or it's flying).
+      const old = this.npcDrinks.get(z);
+      if (old && old.group.parent === this.d.scene && !this.d.throwables.flying(old.group)) old.group.removeFromParent();
       this.npcDrinks.set(z, drink);
+      // Guests' drinks on the bar can be picked up too.
+      this.makeTakeable(drink);
       return;
     }
     this.waiting = drink;
@@ -611,7 +630,10 @@ export class Lounge {
       grab: () => {
         if (this.waiting === drink) this.waiting = null;
         this.falling = this.falling.filter((f) => f.obj !== drink.group);
+        // Caught out of the air.
+        this.d.throwables.catch(drink.group);
         this.vrHeld = drink;
+        if (drink.id) this.onDrinkEvent?.({ k: 'take', id: drink.id });
         return drink.group;
       },
       drag: (hand, pos) => {
@@ -621,13 +643,118 @@ export class Lounge {
           this.d.hands.onHaptic?.(hand, 0.2, 30);
         }
       },
-      release: (_hand, _pos, carried) => {
+      release: (hand, _pos, carried) => {
         if (this.vrHeld === drink) this.vrHeld = null;
-        if (carried) this.drop(carried);
+        if (!carried) return;
+        // Let go while moving: it flies (your hand's speed, a touch of extra so throws feel right).
+        const v = this.d.hands.velocity(hand);
+        if (v.length() > 1.2) this.throwDrink(drink, v.multiplyScalar(1.15));
+        else this.drop(carried, drink);
       },
     };
     this.d.hands.register(grab);
     return grab;
+  }
+
+  /** Two-player: what happened to a drink (wired to the session). */
+  onDrinkEvent: ((e: DrinkEvent) => void) | null = null;
+
+  /** Throws a glass: it flies, lands, maybe breaks. `remote`: your friend threw it (don't echo). */
+  throwDrink(drink: Drink, v: THREE.Vector3, remote = false) {
+    const g = drink.group;
+    if (g.parent !== this.d.scene) this.d.scene.attach(g);
+    if (this.desktopDrink === drink) this.desktopDrink = null;
+    if (this.vrHeld === drink) this.vrHeld = null;
+    if (this.waiting === drink) this.waiting = null;
+    this.falling = this.falling.filter((f) => f.obj !== g);
+    if (!remote)
+      this.onDrinkEvent?.({ k: 'throw', id: drink.id ?? undefined, kind: DRINKS.indexOf(drink.kind), level: Math.round(drink.level * 10) / 10, p: round(g.position.toArray(), 3), q: round(g.quaternion.toArray(), 2), v: round(v.toArray(), 2) });
+    this.d.throwables.throw(g, v, {
+      fragile: true,
+      radius: 0.045,
+      liquid: drink.level > 0.05 ? drink.kind.liquid : null,
+      onSettle: () => {
+        if (!remote && drink.id) this.onDrinkEvent?.({ k: 'put', id: drink.id, p: round(g.position.toArray(), 3) });
+      },
+      onBreak: () => {
+        if (this.drinks.has(drink.id ?? '')) this.drinks.delete(drink.id!);
+      },
+    });
+  }
+
+  /** Drinks with shared ids (the ones on the lounge tables). */
+  private drinks = new Map<string, Drink>();
+
+  /** Your friend did something to a drink: show it here. */
+  friendDrink(e: DrinkEvent) {
+    if (e.k === 'take') {
+      const dr = this.drinks.get(e.id);
+      if (dr) {
+        this.d.throwables.catch(dr.group);
+        dr.group.removeFromParent();
+      }
+    } else if (e.k === 'put') {
+      const dr = this.drinks.get(e.id);
+      if (dr && e.p.length === 3 && e.p.every(Number.isFinite)) {
+        this.d.scene.add(dr.group);
+        dr.group.position.fromArray(e.p);
+        dr.group.rotation.set(0, dr.group.rotation.y, 0);
+      }
+    } else if (e.k === 'throw') {
+      const kind = DRINKS[e.kind];
+      if (!kind || e.p.length !== 3 || e.v.length !== 3 || ![...e.p, ...e.v].every(Number.isFinite)) return;
+      let dr = e.id ? this.drinks.get(e.id) : undefined;
+      if (!dr) {
+        dr = new Drink(kind);
+        this.makeTakeable(dr);
+      }
+      dr.setLevel(Number(e.level) || 0);
+      this.d.scene.add(dr.group);
+      dr.group.position.fromArray(e.p);
+      if (e.q?.length === 4) dr.group.quaternion.fromArray(e.q).normalize();
+      this.throwDrink(dr, new THREE.Vector3().fromArray(e.v), true);
+    } else if (e.k === 'order') {
+      const kind = DRINKS[e.kind];
+      if (kind && !this.pour && !this.slide) {
+        const z = THREE.MathUtils.clamp(Number(e.z) || 9, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
+        this.friendServeZ = z;
+        this.startPour(kind, z, true);
+      }
+    }
+  }
+
+  private friendServeZ: number | null = null;
+
+  /** Your friend picked up the drink they ordered: it leaves the counter here. */
+  friendPickedUp() {
+    if (this.friendServeZ === null) return;
+    const dr = this.npcDrinks.get(this.friendServeZ);
+    if (dr && dr.group.parent === this.d.scene) dr.group.removeFromParent();
+    this.npcDrinks.delete(this.friendServeZ);
+    this.friendServeZ = null;
+  }
+
+  /** The drink you're holding (for your friend's view): kind, level, which hand. */
+  heldDrink(): { kind: number; level: number; side: 'l' | 'r' } | null {
+    if (this.desktopDrink) return { kind: DRINKS.indexOf(this.desktopDrink.kind), level: this.desktopDrink.level, side: 'r' };
+    if (this.vrHeld) {
+      const h = this.d.hands.hands.find((x) => x.carried === this.vrHeld!.group);
+      return { kind: DRINKS.indexOf(this.vrHeld.kind), level: this.vrHeld.level, side: h?.ctrl.userData.handedness === 'left' ? 'l' : 'r' };
+    }
+    return null;
+  }
+
+  /** Desktop/phone: throw the drink you're holding where you're looking. */
+  throwHeld() {
+    const drink = this.desktopDrink;
+    if (!drink) return;
+    const cam = this.d.player.camera;
+    cam.updateMatrixWorld(true);
+    const g = drink.group;
+    this.d.scene.attach(g);
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.getWorldQuaternion(new THREE.Quaternion()));
+    const v = dir.multiplyScalar(7).add(new THREE.Vector3(0, 2.2, 0));
+    this.throwDrink(drink, v);
   }
 
   /** A waiter hands you a glass of champagne. */
@@ -655,12 +782,14 @@ export class Lounge {
   private pickUpDesktop(drink: Drink) {
     if (this.desktopDrink || this.d.player.inXR) return;
     if (this.waiting === drink) this.waiting = null;
+    this.d.throwables.catch(drink.group);
     this.desktopDrink = drink;
+    if (drink.id) this.onDrinkEvent?.({ k: 'take', id: drink.id });
     this.d.player.camera.add(drink.group);
     drink.group.position.set(0.2, -0.2, -0.42);
     drink.group.rotation.set(0.15, 0, 0);
     this.d.sound.play('clink', drink.group, { volume: 0.4 });
-    this.d.hud.toast(`Holding a ${drink.kind.name} · F to sip · Q to set it down`, 'info');
+    this.d.hud.toast(`Holding a ${drink.kind.name} · F to sip · Q to set it down · X to throw`, 'info');
   }
 
   private sip(drink: Drink) {
@@ -672,6 +801,7 @@ export class Lounge {
     this.drank(before - drink.units);
     if (drink.kind.glass === 'shot' && voices.captions) this.d.hud.say('You', 'Woo!');
     this.d.sound.playLocal('sip', 0.6);
+    this.onDrinkEvent?.({ k: 'sip' });
     if (this.desktopDrink === drink) {
       const g = drink.group;
       g.position.set(0.05, -0.08, -0.22);
@@ -695,11 +825,11 @@ export class Lounge {
     this.d.scene.add(drink.group);
     drink.group.position.copy(at);
     drink.group.rotation.set(0, 0, 0);
-    this.drop(drink.group);
+    this.drop(drink.group, drink);
   }
 
   /** Lets go of a glass: it drops onto whatever surface is below it. */
-  private drop(obj: THREE.Object3D) {
+  private drop(obj: THREE.Object3D, drink?: Drink) {
     obj.rotation.set(0, obj.rotation.y, 0);
     const origin = obj.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.05, 0));
     this.raycaster.set(origin, new THREE.Vector3(0, -1, 0));
@@ -710,6 +840,7 @@ export class Lounge {
       .filter((h) => h.object.visible && !isInside(h.object, obj) && (h.object as THREE.Mesh).isMesh && !(h.object as THREE.InstancedMesh).isInstancedMesh);
     const floor = hits.length ? hits[0].point.y : 0;
     this.falling.push({ obj, v: 0, floor });
+    if (drink?.id) this.onDrinkEvent?.({ k: 'put', id: drink.id, p: round([origin.x, floor, origin.z], 3) });
   }
 
   // ---------------------------------------------------------------------------
@@ -776,12 +907,15 @@ export class Lounge {
         const pb = this.d.crowd.add('patron', randomLook(), new THREE.Vector3(x + 0.78, 0, z), -Math.PI / 2);
         if (pb) pb.seatY = 0.5;
       }
-      // Drinks on the table.
+      // Drinks on the table (real ones: pick them up, sip, throw them).
       for (const dx of [-0.15, 0.17]) {
         const d = new Drink(dx > 0 ? drink('Champagne') : drink('Negroni'));
         d.group.position.set(x + dx, 0.64, z + (dx > 0 ? 0.08 : -0.06));
         d.setLevel(0.6);
-        g.add(d.group);
+        d.id = `lt${i}${dx > 0 ? 'b' : 'a'}`;
+        this.drinks.set(d.id, d);
+        this.d.scene.add(d.group);
+        this.makeTakeable(d);
       }
     });
     bakeStatic(g);
@@ -1150,4 +1284,7 @@ function isInside(o: THREE.Object3D, root: THREE.Object3D) {
   return false;
 }
 
-
+function round(a: number[], digits: number) {
+  const k = 10 ** digits;
+  return a.map((v) => Math.round(v * k) / k);
+}
