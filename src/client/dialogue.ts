@@ -5,6 +5,8 @@ import type { Hud } from './hud';
 import type { Interaction } from './interaction';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Audience, type Ctx, type Exchange, type Node, type Reply } from './dialogueLines';
+import { CONVO_BYE, STAFF, guestVoice, sceneVoice, type VoiceId } from './speech';
+import { mouthOf, voices } from './voices';
 
 /**
  * Who's speaking out loud right now. One voice at a time across the whole
@@ -29,6 +31,8 @@ export const lineTime = (text: string) => 0.9 + text.length * 0.06;
 
 interface Scene {
   ex: Exchange;
+  /** Which exchange (voices are recorded per exchange and part). */
+  key: number;
   cast: Person[];
   turn: number;
   nextAt: number;
@@ -110,7 +114,7 @@ export class Dialogue {
     const near = this.d.crowd.people.filter((p) => !p.driven && p.role !== 'buddy' && !p.culled && p.pos.distanceTo(at) < 5 && p !== this.convo?.npc);
     const p = near[Math.floor(Math.random() * near.length)];
     if (!p) return;
-    this.line(p, WIN_REACTIONS[Math.floor(Math.random() * WIN_REACTIONS.length)], { voice: p.pos.distanceTo(this.d.feet()) < 6 });
+    this.line(p, WIN_REACTIONS[Math.floor(Math.random() * WIN_REACTIONS.length)], { voice: p.pos.distanceTo(this.d.feet()) < 9 });
   }
 
   update(dt: number) {
@@ -155,7 +159,8 @@ export class Dialogue {
         const pool = EXCHANGES.filter((e) => e.cast <= t.members.length);
         const ex = pool[Math.floor(Math.random() * pool.length)];
         const cast = [...t.members].sort(() => Math.random() - 0.5).slice(0, ex.cast);
-        s = { ex, cast, turn: 0, nextAt: now + 0.5 };
+        s = { ex, key: EXCHANGES.indexOf(ex), cast, turn: 0, nextAt: now + 0.6 };
+        this.prefetchScene(s);
         this.scenes.set(t, s);
       }
       if (s && (!nearest || d < nearest.d)) nearest = { s, d };
@@ -168,7 +173,8 @@ export class Dialogue {
       let s = this.passing.get(p);
       if (!s && d < 10) {
         const ex = PASSING[Math.floor(Math.random() * PASSING.length)];
-        s = { ex, cast: [p, o], turn: 0, nextAt: now + 0.4 };
+        s = { ex, key: 100 + PASSING.indexOf(ex), cast: [p, o], turn: 0, nextAt: now + 0.5 };
+        this.prefetchScene(s);
         this.passing.set(p, s);
       }
       if (s && (!nearest || d < nearest.d)) nearest = { s, d };
@@ -182,11 +188,15 @@ export class Dialogue {
       const [k, text, laugh] = turn;
       const who = s.cast[k];
       if (!who) return done();
-      const dur = lineTime(text);
+      // Everyone within earshot talks out loud (3D sound does the rest); the
+      // crowd quiets under staff, your crew and anyone talking to you.
+      const voice = sceneVoice(s.key, k, isFemale(who));
+      const recorded = voices.has(voice, text);
+      let dur = voices.duration(voice, text) ?? lineTime(text);
+      if (recorded && d < 9) dur = voices.talk({ who: 'Guest', text, voice, at: mouthOf(who), volume: 0.85, captionFallback: false });
+      else if (!recorded && nearest?.s === s && d < 6 && !this.convo && !voiceArbiter.busy()) this.voice(who, text, Math.max(0.2, Math.min(0.9, 1 - d / 7)), false);
       this.d.crowd.speak(who, dur);
-      if (d < 6.5) this.bubble(who, text, dur + 0.4);
-      const voiced = nearest?.s === s && d < 6 && !this.convo && !voiceArbiter.busy();
-      if (voiced) this.voice(who, text, Math.max(0.2, Math.min(0.9, 1 - d / 7)), false);
+      if (d < 6.5 && (voices.captions || !recorded)) this.bubble(who, text, dur + 0.4);
       if (laugh) setTimeout(() => s.cast.forEach((m) => (m.laughT = 1.2 + Math.random() * 0.4)), dur * 1000);
       s.turn++;
       s.nextAt = now + dur + 0.35 + Math.random() * 0.4;
@@ -228,14 +238,14 @@ export class Dialogue {
     if (c) {
       const d = c.npc.pos.distanceTo(feet);
       c.npc.attendUntil = this.d.crowd.now + 1.5;
-      if (!on || d > 3.6) return this.endConvo(d < 6 ? 'Alright, enjoy your night!' : null);
+      if (!on || d > 3.6) return this.endConvo(d < 6 ? CONVO_BYE.walkedOff : null);
       if (this.time >= c.readyAt) {
         if (c.ending) return this.endConvo(null);
         if (c.replies && c.waitingSince === 0) {
           c.waitingSince = this.time;
           this.showReplies(c.replies);
         }
-        if (c.replies && this.time - c.waitingSince > 15) return this.endConvo('No worries. Have a good one!');
+        if (c.replies && this.time - c.waitingSince > 15) return this.endConvo(CONVO_BYE.timedOut);
       }
       if (c.replies && this.d.inXR()) this.placePanel(c.npc);
       return;
@@ -275,7 +285,7 @@ export class Dialogue {
     const staff = best.role === 'croupier' || best.role === 'bartender' || best.role === 'waiter';
     if (this.lookFor < (staff ? 0.6 : 1.0)) return;
     if (this.time < (this.talkedTo.get(best) ?? -1e9) + (staff ? 60 : 150)) return;
-    if (voiceArbiter.busy()) return;
+    if (voiceArbiter.busy() || voices.priorityBusy) return;
     this.startConvo(best);
   }
 
@@ -283,6 +293,7 @@ export class Dialogue {
     const list = OPENERS[this.audience(p)];
     const node = list[Math.floor(Math.random() * list.length)];
     this.talkedTo.set(p, this.time);
+    this.prefetchTree(node, this.voiceOf(p));
     // Their circle pauses while they talk to you.
     if (p.talk) this.scenes.delete(p.talk);
     this.convo = { npc: p, replies: null, readyAt: 0, waitingSince: 0, ending: false };
@@ -304,8 +315,10 @@ export class Dialogue {
     const c = this.convo;
     if (!c) return;
     this.hideReplies();
-    this.d.hud.say('You', r.label);
+    if (voices.captions) this.d.hud.say('You', r.label);
     c.replies = null;
+    if (r.next) this.prefetchTree(r.next, this.voiceOf(c.npc));
+    else if (r.end) voices.prefetch(this.voiceOf(c.npc), r.end);
     if (r.next) {
       setTimeout(() => this.convo === c && this.say(r.next!), 500);
       c.readyAt = this.time + 9;
@@ -330,14 +343,45 @@ export class Dialogue {
     this.lookAt = null;
   }
 
-  /** Someone says a line: bubble, gestures, and (if asked and free) their voice. */
+  /** Someone says a line: their own recorded voice from where they stand (bubble and caption if wanted). */
   private line(p: Person, text: string, o: { voice?: boolean; priority?: boolean; subtitle?: boolean } = {}) {
-    const dur = lineTime(text);
+    const voice = this.voiceOf(p);
+    const recorded = voices.has(voice, text);
+    let dur = voices.duration(voice, text) ?? lineTime(text);
+    if (recorded && o.voice) {
+      dur = voices.talk({ who: this.title(p), text, voice, at: mouthOf(p), priority: o.priority, group: o.priority ? 'convo' : undefined, captionFallback: false });
+      if (o.priority) voiceArbiter.claim(dur);
+    } else {
+      if (o.subtitle) this.d.hud.say(this.title(p), text);
+      if (o.voice && (o.priority || !voiceArbiter.busy())) this.voice(p, text, 1, !!o.priority);
+    }
     this.d.crowd.speak(p, dur);
-    this.bubble(p, text, dur + 0.8);
-    if (o.subtitle) this.d.hud.say(this.title(p), text);
-    if (o.voice && (o.priority || !voiceArbiter.busy())) this.voice(p, text, 1, !!o.priority);
+    if (voices.captions || !recorded) this.bubble(p, text, dur + 0.8);
     return dur;
+  }
+
+  /** The recorded voice a person speaks with (staff by job, guests their own). */
+  voiceOf(p: Person): VoiceId {
+    if (p.role === 'bartender') return STAFF.bartender;
+    if (p.role === 'waiter') return STAFF.waiter;
+    if (p.role === 'croupier') {
+      const a = this.audience(p);
+      return a === 'dealer-roulette' ? STAFF.croupier : a === 'dealer-craps' ? STAFF.stickman : STAFF.dealer;
+    }
+    return guestVoice(p.seed, isFemale(p));
+  }
+
+  private prefetchScene(s: Scene) {
+    for (const [k, text] of s.ex.turns) {
+      const who = s.cast[k];
+      if (who) voices.prefetch(sceneVoice(s.key, k, isFemale(who)), text);
+    }
+  }
+
+  private prefetchTree(n: Node, voice: VoiceId) {
+    if (typeof n.say === 'string') voices.prefetch(voice, n.say);
+    else voices.prefetch(voice, n.say(this.d.ctx()));
+    for (const r of n.replies ?? []) if (r.end) voices.prefetch(voice, r.end);
   }
 
   private title(p: Person) {
@@ -347,7 +391,7 @@ export class Dialogue {
     return 'Guest';
   }
 
-  /** Each person keeps their own voice, pitch and pace. */
+  /** Browser-speech fallback: each person keeps their own voice, pitch and pace. */
   private voice(p: Person, text: string, volume: number, interrupt: boolean) {
     const female = (p.look.kind ?? '').startsWith('female') || p.look.dress;
     const s = p.seed;
@@ -432,6 +476,10 @@ export class Dialogue {
     m.lookAt(head);
     m.visible = true;
   }
+}
+
+function isFemale(p: Person) {
+  return (p.look.kind ?? '').startsWith('female') || !!p.look.dress;
 }
 
 function escapeHtml(s: string) {

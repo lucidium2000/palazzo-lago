@@ -13,7 +13,9 @@ import type { World } from './world';
 import { BarMenuCard, buildVrMenu, DRINKS, PREP_TIME, SportsTicker, TIP, type DrinkKind } from './bar';
 import type { CanvasPanel } from './panel';
 import type { Viewpoint } from './player';
-import { lineTime, voiceArbiter } from './dialogue';
+import { voiceArbiter } from './dialogue';
+import { BARTENDER_LINES, CHEERS_LINES, STAFF, guestVoice, orderLine } from './speech';
+import { mouthOf, voices } from './voices';
 
 /**
  * The lounge: Bar Lago along the west wall (order a drink, hold it, sip it),
@@ -489,16 +491,17 @@ export class Lounge {
     }
     this.menuZ = THREE.MathUtils.clamp(z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
     this.bartenderZ = this.menuZ;
-    this.greet(this.tipped > 0 ? 'Good to see you again, my friend. The usual, or something new?' : 'Evening! What can I get you?');
+    this.greet(this.tipped > 0 ? BARTENDER_LINES.regular : BARTENDER_LINES.hello);
     this.menuCard.show();
   }
 
-  private greet(line: string) {
-    this.d.hud.say('Bartender', line);
-    if (!voiceArbiter.busy()) {
-      voiceArbiter.claim(lineTime(line));
-      this.d.sound.say(line, { pitch: 1.1, rate: 1.02, voice: 2 });
-    }
+  /** The bartender talks to you (her own voice, from behind the bar). */
+  private greet(line: string, force = false) {
+    if (!force && voiceArbiter.busy()) return;
+    const b = this.bartender;
+    const dur = voices.talk({ who: 'Bartender', text: line, voice: STAFF.bartender, at: b ? mouthOf(b) : null, priority: true, group: 'bartender', fallback: { pitch: 1.1, rate: 1.02, voice: 2 } });
+    if (b) this.d.crowd.speak(b, dur);
+    voiceArbiter.claim(dur);
   }
 
   /** Orders a drink: Strip prices plus a tip. (Cocktail servers comp you only while you gamble.) */
@@ -514,13 +517,7 @@ export class Lounge {
     }
     this.d.bankroll.debit(cost, 'bet', 'bar');
     this.startPour(kind, THREE.MathUtils.clamp(z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4), false);
-    const lines: Record<DrinkKind['prep'], string> = {
-      shake: `One ${kind.name}, shaken. Coming up.`,
-      stir: `${kind.name}, coming right up.`,
-      pour: `${kind.name}. Good choice.`,
-      tap: `${kind.name}, fresh off the tap.`,
-    };
-    this.greet(lines[kind.prep]);
+    this.greet(orderLine(kind.name, kind.prep), true);
     this.onOrder?.();
   }
 
@@ -592,7 +589,7 @@ export class Lounge {
     this.d.bankroll.debit(5, 'bet', 'tip');
     this.tipped++;
     this.d.sound.play('chip', new THREE.Vector3(Lounge.COUNTER_X + 0.22, Lounge.TOP, Lounge.COUNTER_Z1 - 0.35), { volume: 0.7 });
-    this.greet(this.tipped === 1 ? 'Hey, appreciate you! Next one is on the fast track.' : 'You are a gentleman. Thank you!');
+    this.greet(this.tipped === 1 ? BARTENDER_LINES.tip1 : BARTENDER_LINES.tipMore);
     if (this.bartender) this.bartender.cheer = 0.8;
   }
 
@@ -673,7 +670,7 @@ export class Lounge {
     // Shots go down in one; everything else in sips.
     drink.setLevel(drink.kind.glass === 'shot' ? 0 : drink.level - 0.2);
     this.drank(before - drink.units);
-    if (drink.kind.glass === 'shot') this.d.hud.say('You', 'Woo!');
+    if (drink.kind.glass === 'shot' && voices.captions) this.d.hud.say('You', 'Woo!');
     this.d.sound.playLocal('sip', 0.6);
     if (this.desktopDrink === drink) {
       const g = drink.group;
@@ -973,7 +970,12 @@ export class Lounge {
     if (this.cheersCooldown > 0) return;
     this.cheersCooldown = 2;
     this.d.sound.play('clink', at, { volume: 1, rate: 1.15 });
-    this.d.hud.say(with_ ? 'Guest' : 'You', with_ ? ['Cheers!', 'Salute!', 'To Vegas!', 'Bottoms up!'][Math.floor(Math.random() * 4)] : 'Cheers!');
+    if (with_) {
+      const text = CHEERS_LINES[Math.floor(Math.random() * CHEERS_LINES.length)];
+      const female = (with_.look.kind ?? '').startsWith('female') || !!with_.look.dress;
+      const dur = voices.talk({ who: 'Guest', text, voice: guestVoice(with_.seed, female), at: mouthOf(with_), priority: true });
+      this.d.crowd.speak(with_, dur);
+    } else if (voices.captions) this.d.hud.say('You', 'Cheers!');
     if (with_) {
       with_.sipT = 1.6;
       with_.cheer = 0.6;
@@ -1107,7 +1109,7 @@ export class Lounge {
       m.position.set(Lounge.COUNTER_X + 0.02, Lounge.TOP + 0.36, this.menuZ);
       m.rotation.set(0, Math.PI / 2, 0);
       m.rotateX(-0.25);
-      this.greet(this.tipped > 0 ? 'My friend! What are we having?' : 'Evening! What can I get you?');
+      this.greet(this.tipped > 0 ? BARTENDER_LINES.regularShort : BARTENDER_LINES.hello);
       this.vrMenu.redraw();
     }
     m.visible = show;

@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { lineTime, voiceArbiter } from './dialogue';
+import { voiceArbiter } from './dialogue';
 import type { Sound } from './audio';
 import type { Hud } from './hud';
 import type { Crowd, Look, Person } from './people';
 import type { Player } from './player';
 import type { World } from './world';
-import { CREW_LINES, type CrewMoment } from './speech';
+import { CREW_LINES, CREW_VOICES, type CrewMoment, type VoiceId } from './speech';
+import { mouthOf, voices } from './voices';
 
 /**
  * Your crew for the night: three buddies who stick with you, crowd around
@@ -22,6 +23,8 @@ interface Buddy {
   pitch: number;
   rate: number;
   voice: number;
+  /** His recorded voice. */
+  voiceId: VoiceId;
   /** Where he stands relative to you: right, back (metres). */
   slot: [number, number];
 }
@@ -39,11 +42,11 @@ export class Crew {
   private lastLine = '';
 
   constructor(
-    crowd: Crowd,
+    private crowd: Crowd,
     private world: World,
     private player: Player,
-    private hud: Hud,
-    private sound: Sound,
+    _hud: Hud,
+    _sound: Sound,
     lookFor: () => Look,
   ) {
     const names = ['Rocco', 'Dev', 'Mikey'];
@@ -52,7 +55,7 @@ export class Crew {
       [-1.25, 0.9],
       [0.35, 1.9],
     ];
-    const voices = [
+    const tones = [
       { pitch: 0.85, rate: 1.05, voice: 1 },
       { pitch: 1.1, rate: 1.12, voice: 2 },
       { pitch: 0.95, rate: 0.98, voice: 3 },
@@ -62,7 +65,7 @@ export class Crew {
       const look = { ...lookFor(), ...LOOKS[i], dress: false, height: 1.76 + i * 0.04 };
       const p = crowd.add('buddy', look, start.clone().add(new THREE.Vector3(slots[i][0], 0, slots[i][1])), player.rig.rotation.y);
       if (!p) return;
-      const b: Buddy = { person: p, name, slot: slots[i], ...voices[i] };
+      const b: Buddy = { person: p, name, slot: slots[i], voiceId: CREW_VOICES[i % CREW_VOICES.length], ...tones[i] };
       p.speed = 1;
       p.onUpdate = (pp, dt) => this.follow(b, pp, dt);
       this.buddies.push(b);
@@ -159,7 +162,7 @@ export class Crew {
     }
     if (!opts.force && (this.cooldown > 0 || Math.random() > (opts.chance ?? 1))) return;
     // Don't talk over a guest or the staff (forced lines still cut in, like friends do).
-    if (!opts.force && voiceArbiter.busy()) return;
+    if (!opts.force && (voiceArbiter.busy() || voices.priorityBusy)) return;
     const lines = LINES[moment];
     let line = lines[Math.floor(Math.random() * lines.length)];
     if (line === this.lastLine) line = lines[(lines.indexOf(line) + 1) % lines.length];
@@ -168,10 +171,16 @@ export class Crew {
     if (!b) return;
     this.cooldown = 5;
     this.idleIn = 35 + Math.random() * 30;
-    this.hud.say(b.name, line);
-    this.sound.say(line, { pitch: b.pitch, rate: b.rate, voice: b.voice, interrupt: opts.force });
-    voiceArbiter.claim(lineTime(line));
+    this.say(b, line);
     b.person.headYaw = 0;
+  }
+
+  /** A buddy says something, in his own voice, from where he stands. */
+  say(b: Buddy, line: string) {
+    const dur = voices.talk({ who: b.name, text: line, voice: b.voiceId, at: mouthOf(b.person), priority: true, group: 'crew', fallback: { pitch: b.pitch, rate: b.rate, voice: b.voice } });
+    this.crowd.speak(b.person, dur);
+    voiceArbiter.claim(dur);
+    return dur;
   }
 
   update(dt: number) {

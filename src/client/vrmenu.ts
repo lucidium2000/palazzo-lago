@@ -36,6 +36,8 @@ export interface VrMenuDeps {
   toggleSound(): void;
   musicOn(): boolean;
   soundOn(): boolean;
+  captionsOn(): boolean;
+  toggleCaptions(): void;
   resetChips(): void;
   exitVR(): void;
   helpText(): string[];
@@ -136,6 +138,7 @@ export class VrMenu {
       const items: [string, () => string, () => void][] = [
         ['music', () => (d.musicOn() ? 'Music on' : 'Music off'), () => d.toggleMusic()],
         ['sound', () => (d.soundOn() ? 'Sound on' : 'Sound off'), () => d.toggleSound()],
+        ['captions', () => (d.captionsOn() ? 'Captions on' : 'Captions off'), () => d.toggleCaptions()],
         ['help', () => 'Help', () => this.toggleHelp()],
         ['reset', () => 'Reset chips', () => d.resetChips()],
         ['exit', () => 'Exit VR', () => d.exitVR()],

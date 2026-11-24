@@ -8,7 +8,7 @@ import { buildCasino, POSITIONS, registerHall, SLOTS_YAW } from './casino';
 import { preloadChips } from './chips';
 import { CrapsTable } from './craps/table';
 import { PostFX } from './post';
-import { Dialogue, lineTime, voiceArbiter } from './dialogue';
+import { Dialogue, voiceArbiter } from './dialogue';
 import { AREA_NODES, buildAreas, registerAreas } from './areas';
 import { Session } from './net/session';
 import { setupLobby } from './net/lobby';
@@ -40,6 +40,8 @@ import { Night } from './night';
 import { TouchControls } from './touch';
 import type { Control } from './hud';
 import { CHIP_COLORS, CHIP_DENOMS, chipLabel } from './textures';
+import { CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
+import { mouthOf, voices } from './voices';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
@@ -107,6 +109,7 @@ async function main() {
     saveTimer = window.setTimeout(() => saveBankroll(bankroll), 400);
   });
   const hud = new Hud(bankroll, scene, renderer, interaction);
+  voices.init(sound, hud, scene);
   preloadChips();
 
   const ctx: GameContext = { scene, interaction, sound, bankroll, hud, rng: new CryptoRng(), quality };
@@ -198,8 +201,8 @@ async function main() {
   }
   let crapsBetsTimer = 0;
   const stickSays = (text: string) => {
-    hud.say('Stickman', text);
-    sound.say(text, { pitch: 1.05, rate: 1.05, voice: 1, interrupt: true });
+    const dur = voices.talk({ who: 'Stickman', text, voice: STAFF.stickman, at: stickman ? mouthOf(stickman) : null, priority: true, group: 'stickman', fallback: { pitch: 1.05, rate: 1.05, voice: 1 } });
+    if (stickman) crowd.speak(stickman, dur);
   };
   craps.onRoll = () => {
     if (stickman) {
@@ -234,11 +237,11 @@ async function main() {
       croupier.actionKind = 'reach';
       croupier.action = 1.2;
     }
-    if (near(roulette.group.position, 5)) croupierSays('No more bets.');
+    if (near(roulette.group.position, 5)) croupierSays(CROUPIER_LINES.noMore);
     if (near(roulette.group.position, 4)) crew.react('spin', { chance: 0.35 });
   };
   roulette.onResult = (pocket, staked, returned) => {
-    const call = `${pocketLabel(pocket) === '00' ? 'Double zero' : pocketLabel(pocket)}${pocketColor(pocket) === 'green' ? '' : ', ' + pocketColor(pocket)}.`;
+    const call = rouletteCall(pocketLabel(pocket), pocketColor(pocket));
     if (near(roulette.group.position, 6)) croupierSays(call);
     night.result('roulette', staked, returned, roulette.group.position);
     if (returned >= staked * 3 && returned > 0) {
@@ -295,9 +298,9 @@ async function main() {
     if (session && returned > 0 && returned >= Math.max(staked * 10, 250)) session.bigWin(game === 'slots' ? 'the slots' : game, returned);
   };
   const croupierSays = (text: string) => {
-    hud.say('Croupier', text);
-    sound.say(text, { pitch: 0.9, rate: 0.95, voice: 0, interrupt: true });
-    voiceArbiter.claim(lineTime(text));
+    const dur = voices.talk({ who: 'Croupier', text, voice: STAFF.croupier, at: croupier ? mouthOf(croupier) : null, priority: true, group: 'croupier', fallback: { pitch: 0.9, rate: 0.95, voice: 0 } });
+    if (croupier) crowd.speak(croupier, dur);
+    voiceArbiter.claim(dur);
   };
   machines.forEach((m) => {
     m.onResult = (staked, won, feature) => {
@@ -328,13 +331,10 @@ async function main() {
   lounge.onOrder = () => crew.react('order', { chance: 0.7 });
   // A few drinks in, the crew notices.
   lounge.onTipsy = (stage) => {
-    const line = ['', 'Easy there, champ!', "Somebody's feeling good tonight!", 'Okay, water next. I mean it.'][stage];
-    if (!line) return;
-    hud.say(crew.buddies[stage % Math.max(1, crew.buddies.length)]?.name ?? 'Your crew', line);
-    if (!voiceArbiter.busy()) {
-      voiceArbiter.claim(lineTime(line));
-      sound.say(line, { pitch: 0.95, rate: 1.05, voice: 1 });
-    }
+    const line = TIPSY_LINES[stage];
+    const b = crew.buddies[stage % Math.max(1, crew.buddies.length)];
+    if (!line || !b) return;
+    if (!voiceArbiter.busy() && !voices.priorityBusy) crew.say(b, line);
   };
   lounge.onTip = () => {
     night.complete('tip');
@@ -681,6 +681,8 @@ async function main() {
     toggleSound: () => document.getElementById('sound')!.click(),
     musicOn: () => document.getElementById('music')!.textContent === 'Music on',
     soundOn: () => !sound.muted,
+    captionsOn: () => voices.captions,
+    toggleCaptions: () => document.getElementById('captions')!.click(),
     resetChips: () => document.getElementById('reset')!.click(),
     exitVR: () => void xrSession?.end(),
     helpText: () => [...document.querySelectorAll('#help .card p')].map((p) => p.textContent ?? ''),
@@ -739,6 +741,13 @@ async function main() {
   soundBtn.addEventListener('click', () => {
     sound.setMuted(!sound.muted);
     soundBtn.textContent = sound.muted ? 'Sound off' : 'Sound on';
+  });
+  const captionsBtn = document.getElementById('captions')!;
+  const showCaptions = () => (captionsBtn.textContent = voices.captions ? 'Captions on' : 'Captions off');
+  showCaptions();
+  captionsBtn.addEventListener('click', () => {
+    voices.setCaptions(!voices.captions);
+    showCaptions();
   });
   const help = document.getElementById('help')!;
   document.getElementById('help-btn')!.addEventListener('click', () => help.classList.toggle('open'));
@@ -992,6 +1001,7 @@ async function main() {
     hud.update(camera);
     crew.update(dt);
     dialogue.update(dt);
+    voices.update();
     night.update(dt);
     adapt();
 
@@ -1016,7 +1026,7 @@ async function main() {
     // Croupier invites bets again after each spin.
     if (placeBetsTimer > 0) {
       placeBetsTimer -= dt;
-      if (placeBetsTimer <= 0 && near(roulette.group.position, 5)) croupierSays('Place your bets, please.');
+      if (placeBetsTimer <= 0 && near(roulette.group.position, 5)) croupierSays(CROUPIER_LINES.place);
     }
     if (crapsBetsTimer > 0) {
       crapsBetsTimer -= dt;
@@ -1070,7 +1080,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices };
 }
 
 main().catch((e) => {
