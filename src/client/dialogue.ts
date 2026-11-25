@@ -478,7 +478,7 @@ export class Dialogue {
       this.d.listener?.stop();
       this.convo = null;
     }
-    const loud = kind === 'punched' ? 1.9 : kind === 'pushed' ? 0.85 : 1.35;
+    const loud = kind === 'punched' ? 1.5 : kind === 'pushed' ? 0.85 : 1.35;
     const dur = voices.talk({ who: this.title(p), text, voice: elVoice(id), alt, at: mouthOf(p), priority: kind !== 'pushed', group: 'react', volume: loud, fallback: { rate: kind === 'punched' ? 1.15 : 1.05, pitch: kind === 'punched' ? 1.15 : 1 } });
     this.reactCool.set(p, t + Math.max(1.2, dur));
     this.d.crowd.speak(p, dur);
