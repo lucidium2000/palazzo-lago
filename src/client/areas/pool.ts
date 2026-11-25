@@ -5,6 +5,7 @@ import { SEAT_R, type World } from '../world';
 import { canvas, radial, toTexture } from '../textures';
 import { Batch, M, nightSky, plane, type Mats } from './kit';
 import { flowers } from './hotel';
+import { assets } from '../assets';
 
 /**
  * The pool deck at night, Vegas pool-party style, in an Italian garden: a lit
@@ -155,12 +156,23 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   sky.position.set(cx, 0, cz);
   root.add(sky);
 
-  // Travertine deck.
-  const deckTex = toTexture(travertine(1024));
-  deckTex.wrapS = deckTex.wrapT = THREE.RepeatWrapping;
-  deckTex.repeat.set(0.25, 0.25);
-  // Travertine with a wet night sheen: it catches the pool glow and the string lights.
-  const deck = new THREE.MeshStandardMaterial({ map: deckTex, color: new THREE.Color(0.78, 0.74, 0.7), roughness: 0.38, metalness: 0.05, envMapIntensity: 0.7, emissive: 0x1c140e, emissiveIntensity: 0.6 });
+  // Limestone deck (Poly Haven "Floor Tiles 02" scan, 4 m per repeat; deck UVs are metres),
+  // with a wet night sheen: it catches the pool glow and the string lights.
+  const deck = assets.material('limestone', {
+    repeat: 0.25,
+    rough: 0.62,
+    normal: 0.9,
+    tint: 0xeae0d2,
+    envIntensity: 0.8,
+    fallback: () => {
+      const deckTex = toTexture(travertine(1024));
+      deckTex.wrapS = deckTex.wrapT = THREE.RepeatWrapping;
+      deckTex.repeat.set(0.25, 0.25);
+      return new THREE.MeshStandardMaterial({ map: deckTex, color: new THREE.Color(0.78, 0.74, 0.7), roughness: 0.38, metalness: 0.05 });
+    },
+  });
+  deck.emissive.set(0x1c140e);
+  deck.emissiveIntensity = 0.6;
   // The deck surface, with the pool and hot tub cut out (shape in x / −z).
   const shape = new THREE.Shape();
   shape.moveTo(DECK.x0, -DECK.z1);
