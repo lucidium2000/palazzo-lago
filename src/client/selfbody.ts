@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { assets, spawnCharacter } from './assets';
-import { AVATARS } from './net/avatars';
+import { AVATARS, avatarLook } from './net/avatars';
 import { reach, setFingers } from './net/embody';
 import type { FingerPose } from './fingers';
 import { skinTone } from './posedhand';
-import { POSE } from './people';
+import { POSE, lookPaint } from './people';
 import { hipOnSeat, leanToward, sitLegs, standLegs } from './sitpose';
 import type { Seat } from './world';
 
@@ -52,7 +52,7 @@ export class SelfBody {
     const a = AVATARS[((i % AVATARS.length) + AVATARS.length) % AVATARS.length];
     if (this.rig) this.root.remove(this.rig.root);
     this.kind = a.kind;
-    const rig = spawnCharacter(assets.people, a.kind);
+    const rig = spawnCharacter(assets.people, a.kind, lookPaint(avatarLook(i)));
     rig.root.traverse((o) => {
       o.frustumCulled = false;
       (o as THREE.Mesh).castShadow = false;

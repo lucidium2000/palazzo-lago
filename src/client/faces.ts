@@ -52,12 +52,14 @@ const layouts = new WeakMap<THREE.BufferGeometry, FaceLayout>();
  * Positions are in the head bone's space, so they hold whatever the pose.
  */
 export function faceLayout(mesh: THREE.SkinnedMesh, head: THREE.Object3D): FaceLayout {
-  const cached = layouts.get(mesh.geometry);
+  // People wear their own colours on a geometry that shares the model's shape
+  // (peopleshade.ts paintCharacter): measure the model once, from its own colours.
+  const g = (mesh.geometry.userData.base as THREE.BufferGeometry | undefined) ?? mesh.geometry;
+  const cached = layouts.get(g);
   if (cached) return cached;
   let root: THREE.Object3D = mesh;
   while (root.parent && !(root.parent as THREE.Scene).isScene) root = root.parent;
   root.updateMatrixWorld(true);
-  const g = mesh.geometry;
   const pos = g.attributes.position as THREE.BufferAttribute;
   const col = g.attributes.color as THREE.BufferAttribute | undefined;
   const toHead = new THREE.Matrix4().copy(head.matrixWorld).invert().multiply(mesh.matrixWorld);
@@ -171,7 +173,7 @@ export function faceLayout(mesh: THREE.SkinnedMesh, head: THREE.Object3D): FaceL
   const browsOf = (l: typeof parts, eye: (typeof parts)[number] | null) =>
     eye ? l.filter((q) => q !== eye && q.patch.c.y > eye.patch.c.y + 0.003).flatMap((q) => browPieces(q.tris, P, q.patch.n, q.patch.color)) : [];
   const layout: FaceLayout = { eyes, brows: [browsOf(sides[0], eyeL), browsOf(sides[1], eyeR)], skin, mouth };
-  layouts.set(mesh.geometry, layout);
+  layouts.set(g, layout);
   return layout;
 }
 
@@ -528,11 +530,14 @@ export class Faces {
     const browUp = 0.0055 * st.wide + 0.0018 * cheer + (heard ? 0.0012 * heard.level : 0);
     st.brow += (browUp - st.brow) * Math.min(1, dt * 12);
 
+    // This person's own skin and brow colour (painted), else the model's.
+    const skin = (rig.mesh!.userData.skin as THREE.Color | undefined) ?? lay.skin;
+    const browCol = rig.mesh!.userData.brow as THREE.Color | undefined;
     if (lay.eyes) {
       for (let s = 0; s < 2; s++) {
         const e = lay.eyes[s];
         // Skin over the model's own eye, then the moving eye, its glint, the lids.
-        this.put(SQUARE, e.c, e.x, e.y, e.n, e.w * 1.32, e.h * 1.28, lay.skin, 0, 0, 0.001);
+        this.put(SQUARE, e.c, e.x, e.y, e.n, e.w * 1.32, e.h * 1.28, skin, 0, 0, 0.001);
         const ox = st.gx * 0.17 * e.w,
           oy = st.gy * 0.12 * e.h;
         const ih = e.h * (1 + 0.14 * st.wide);
@@ -542,18 +547,18 @@ export class Faces {
         if (upper > 0.01) {
           const top = e.h * 0.6,
             lh = upper * e.h * 1.2;
-          this.put(SQUARE, e.c, e.x, e.y, e.n, e.w * 1.3, lh, lay.skin, 0, top - lh / 2, 0.0026);
+          this.put(SQUARE, e.c, e.x, e.y, e.n, e.w * 1.3, lh, skin, 0, top - lh / 2, 0.0026);
         }
         if (lower > 0.01) {
           const bot = -e.h * 0.6,
             lh = lower * e.h;
-          this.put(SQUARE, e.c, e.x, e.y, e.n, e.w * 1.3, lh, lay.skin, 0, bot + lh / 2, 0.0026);
+          this.put(SQUARE, e.c, e.x, e.y, e.n, e.w * 1.3, lh, skin, 0, bot + lh / 2, 0.0026);
         }
         // Brows lift: skin over the model's brow, the brow drawn higher.
         if (st.brow > 0.0004) {
           for (const b of lay.brows[s]) {
-            this.put(SQUARE, b.c, b.x, b.y, b.n, b.w * 1.12, b.h * 1.3, lay.skin, 0, 0, 0.0006);
-            this.put(SQUARE, b.c, b.x, b.y, b.n, b.w, b.h, b.color, 0, st.brow, 0.0012);
+            this.put(SQUARE, b.c, b.x, b.y, b.n, b.w * 1.12, b.h * 1.3, skin, 0, 0, 0.0006);
+            this.put(SQUARE, b.c, b.x, b.y, b.n, b.w, b.h, browCol ?? b.color, 0, st.brow, 0.0012);
           }
         }
       }
@@ -566,7 +571,7 @@ export class Faces {
       const L = MOUTH.lips,
         I = MOUTH.inner,
         T = MOUTH.teeth;
-      this.put(ROUND, m, X, Y, Z, 2 * L.rx * sh.lips.sx * (1 + 0.16 * sm), 2 * L.ry * sh.lips.sy * (1 - 0.15 * sm), C.lips, 0, sh.lips.y, 0);
+      this.put(ROUND, m, X, Y, Z, 2 * L.rx * sh.lips.sx * (1 + 0.16 * sm), 2 * L.ry * sh.lips.sy * (1 - 0.15 * sm), (rig.mesh!.userData.lips as THREE.Color | undefined) ?? C.lips, 0, sh.lips.y, 0);
       if (sm < 0.4) {
         this.put(ROUND, m, X, Y, Z, 2 * I.rx * sh.inner.sx * (1 - 0.3 * st.wide), 2 * I.ry * sh.inner.sy, C.inner, 0, sh.inner.y, 0.0007);
         if (sh.teeth.visible) this.put(SQUARE, m, X, Y, Z, T.w * sh.teeth.sx, T.h, C.teeth, 0, T.y - T.h / 2, 0.0013);

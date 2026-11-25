@@ -4,6 +4,7 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { paintCharacter, peopleMaterial, type Paint } from './peopleshade';
 
 /**
  * Downloaded art (all CC0, see art/LICENSES.md):
@@ -153,7 +154,7 @@ class Assets {
     ]);
     const clips = new Map<string, THREE.AnimationClip>();
     for (const c of animGltf.animations) clips.set(c.name, c);
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.68, metalness: 0, envMapIntensity: 0.7 });
+    const mat = peopleMaterial();
     const models = new Map<string, THREE.Object3D>();
     kinds.forEach((k, i) => models.set(k, mergeCharacter(gltfs[i].scene, mat)));
     this.people = { models, clips };
@@ -209,8 +210,11 @@ function mergeCharacter(scene: THREE.Object3D, mat: THREE.Material): THREE.Objec
   return scene;
 }
 
-/** A posable copy of a character, with its own skeleton and animation mixer. */
-export function spawnCharacter(lib: PeopleLib, kind: string) {
+/**
+ * A posable copy of a character, with its own skeleton and animation mixer.
+ * With `paint`, it wears its own skin tone, hair and outfit colours (see peopleshade.ts).
+ */
+export function spawnCharacter(lib: PeopleLib, kind: string, paint?: Paint) {
   const template = lib.models.get(kind) ?? [...lib.models.values()][0];
   const root = SkeletonUtils.clone(template);
   const bones: Record<string, THREE.Bone> = {};
@@ -221,10 +225,12 @@ export function spawnCharacter(lib: PeopleLib, kind: string) {
     if ((o as THREE.SkinnedMesh).isSkinnedMesh) mesh = o as THREE.SkinnedMesh;
     o.raycast = () => {};
   });
+  const body = mesh as THREE.SkinnedMesh | null;
+  if (paint && body) paintCharacter(body, paint);
   const mixer = new THREE.AnimationMixer(root);
   const actions: Record<string, THREE.AnimationAction> = {};
   for (const [name, clip] of lib.clips) actions[name] = mixer.clipAction(clip);
-  return { root, mesh: mesh as THREE.SkinnedMesh | null, bones, mixer, actions };
+  return { root, mesh: body, bones, mixer, actions };
 }
 
 export const assets = new Assets();
