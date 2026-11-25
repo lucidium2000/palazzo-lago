@@ -4,7 +4,7 @@ import { connect, newCode, normalizeCode, type Transport } from './transport';
 export interface LobbyChoice {
   name: string;
   avatar: number;
-  /** Set for a two-player game. */
+  /** Set for a game with friends (up to four players). */
   net: { transport: Transport; host: boolean } | null;
   /** Go straight into the headset. */
   vr?: boolean;
@@ -29,7 +29,7 @@ const store = {
 
 /**
  * The start screen: pick a character (cycle or random), type a name, then
- * play solo, host a two-player room (shows a code to send a friend), or
+ * play solo, host a room for up to four (shows a code to send friends), or
  * join a friend's room by code. Calls `onStart` when the player steps in.
  */
 export function setupLobby(onStart: (c: LobbyChoice) => void, opts: { vr?: boolean } = {}) {
@@ -112,7 +112,7 @@ export function setupLobby(onStart: (c: LobbyChoice) => void, opts: { vr?: boole
     try {
       const transport = await connect(code, true);
       net = { transport, host: true };
-      setStatus(`Your room code<span class="code">LAGO-${code}</span>Send it to your friend. They'll walk in when they join.`);
+      setStatus(`Your room code<span class="code">LAGO-${code}</span>Send it to up to three friends. They'll walk in when they join.`);
       soloBtn.textContent = 'Step inside';
     } catch (e) {
       setStatus(`Couldn't open a room: ${(e as Error).message}`, true);

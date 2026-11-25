@@ -224,7 +224,8 @@ export class Mirror {
   private layer(f: Friend): Layer {
     let l = this.layers.get(f.id);
     if (l) return l;
-    const color = FRIEND_COLORS[this.layers.size % FRIEND_COLORS.length];
+    // Their player colour (the same as their name tag), else one by order of arrival.
+    const color = f.color ?? FRIEND_COLORS[this.layers.size % FRIEND_COLORS.length];
     const { roulette, craps } = this.d;
     const rAnchor = (id: string) => {
       const spot = SPOTS_BY_ID.get(id);

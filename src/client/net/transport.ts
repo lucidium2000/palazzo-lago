@@ -1,19 +1,28 @@
+import { MAX_PLAYERS } from './party';
+
 /**
- * Two-player networking. One small interface, three ways to carry it:
+ * Room networking for up to four players (host + three). One small
+ * interface, three ways to carry it:
  *
  *  - `room`:   the claude.ai artifact viewer's live room capability (when the
  *              game is opened from its claude.ai link). Everything travels in
  *              each player's presence object, which every signed-in viewer
  *              may set, so a friend the artifact is shared with can play.
  *  - `webrtc`: PeerJS over WebRTC, using PeerJS's free public broker only to
- *              introduce the two browsers (any normal web deploy).
+ *              introduce the browsers (any normal web deploy). Guests connect
+ *              to the host, which relays each guest's packets to the others.
  *  - `local`:  BroadcastChannel between tabs of one browser (testing).
  *
  * Messages are small JSON. Each player publishes a STATE (where they are,
  * what they're doing) about ten times a second, plus EVENTS (chat, a spin,
- * a roll). Events carry a sequence number and the last few are repeated
- * with every state, so none are lost when presence updates are coalesced.
+ * a roll). Events carry a per-sender sequence number and ride along with
+ * every state until each friend acknowledges them (see `Outbox` in party.ts),
+ * so none are lost when presence updates are coalesced.
+ *
+ * A fifth player is turned away with ROOM_FULL.
  */
+
+export const ROOM_FULL = `That room is full (${MAX_PLAYERS} players max)`;
 
 export interface PlayerState {
   name: string;
@@ -56,6 +65,12 @@ export interface PlayerState {
   /** Per-finger curls per hand, 5 digits [thumb,index,middle,ring,pinky] 0-9. */
   lf?: string;
   rf?: string;
+  /** Chips won (+) or lost (−) tonight. */
+  nt?: number;
+  /** Acks: for each friend (their id), the last event number handled from them. */
+  a?: Record<string, number>;
+  /** Host only: the colour slot of each guest (by id); the host is slot 0. */
+  sl?: Record<string, number>;
 }
 
 export interface NetEvent {
@@ -72,6 +87,8 @@ export interface Wire {
 export interface Transport {
   readonly kind: 'room' | 'webrtc' | 'local';
   readonly code: string;
+  /** My id as the other players see it (keys their acks and the host's slot table). */
+  readonly self: string;
   /** Publish my latest wire packet (state + recent events). */
   publish(w: Wire): void;
   /** A remote player's packet arrived (or `null`: they left). */
@@ -125,8 +142,15 @@ export async function roomCapability(): Promise<RoomCap | null> {
   }
 }
 
-async function roomTransport(cap: RoomCap, code: string): Promise<Transport> {
+async function roomTransport(cap: RoomCap, code: string, host: boolean): Promise<Transport> {
   const room = await cap.join(`lago-${code.toLowerCase()}`);
+  // Give the room a moment to list who's already in it, then count heads.
+  if (!host && room.peers().filter((p) => !p.isMe).length === 0) await new Promise((r) => setTimeout(r, 500));
+  if (room.peers().filter((p) => !p.isMe).length >= MAX_PLAYERS) {
+    void room.leave();
+    throw new Error(ROOM_FULL);
+  }
+  const self = room.peers().find((p) => p.isMe)?.peer ?? `me-${Math.random().toString(36).slice(2)}`;
   let handler: ((id: string, w: Wire | null) => void) | null = null;
   let pending: Wire | null = null;
   let sending = false;
@@ -164,6 +188,7 @@ async function roomTransport(cap: RoomCap, code: string): Promise<Transport> {
   return {
     kind: 'room',
     code,
+    self,
     publish(w) {
       pending = w;
       void flush();
@@ -182,6 +207,14 @@ async function roomTransport(cap: RoomCap, code: string): Promise<Transport> {
 // WebRTC via PeerJS
 // ---------------------------------------------------------------------------
 
+/** Host → guest envelope: `w` from `f` (another guest; absent = the host itself), or a door answer. */
+interface Envelope {
+  f?: string;
+  w?: Wire | null;
+  ok?: boolean;
+  full?: boolean;
+}
+
 async function webrtcTransport(code: string, host: boolean): Promise<Transport> {
   const { Peer } = await import('peerjs');
   type Conn = import('peerjs').DataConnection;
@@ -189,14 +222,6 @@ async function webrtcTransport(code: string, host: boolean): Promise<Transport> 
   const peer = host ? new Peer(id) : new Peer();
   const conns = new Map<string, Conn>();
   let handler: ((id: string, w: Wire | null) => void) | null = null;
-  const attach = (c: Conn) => {
-    conns.set(c.peer, c);
-    c.on('data', (d) => handler?.(c.peer, d as Wire));
-    c.on('close', () => {
-      conns.delete(c.peer);
-      handler?.(c.peer, null);
-    });
-  };
   await new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Could not reach the matchmaking server')), 12000);
     peer.on('open', () => {
@@ -208,15 +233,67 @@ async function webrtcTransport(code: string, host: boolean): Promise<Transport> 
       reject(new Error(e.type === 'unavailable-id' ? 'That room code is already in use' : e.type === 'peer-unavailable' ? 'No game with that code' : e.message ?? 'Connection failed'));
     });
   });
-  if (host) peer.on('connection', (c) => c.on('open', () => attach(c)));
-  else {
+  if (host) {
+    // The host is the hub: it hears every guest and passes each packet on to the others.
+    const relay = (from: string, w: Wire | null) => {
+      for (const [pid, c] of conns) if (pid !== from && c.open) c.send({ f: from, w } satisfies Envelope);
+    };
+    peer.on('connection', (c) =>
+      c.on('open', () => {
+        if (conns.size >= MAX_PLAYERS - 1) {
+          c.send({ full: true } satisfies Envelope);
+          setTimeout(() => c.close(), 400);
+          return;
+        }
+        conns.set(c.peer, c);
+        c.send({ ok: true } satisfies Envelope);
+        c.on('data', (d) => {
+          const w = d as Wire;
+          if (!w || typeof w !== 'object' || !w.s) return;
+          handler?.(c.peer, w);
+          relay(c.peer, w);
+        });
+        c.on('close', () => {
+          if (conns.get(c.peer) !== c) return;
+          conns.delete(c.peer);
+          handler?.(c.peer, null);
+          relay(c.peer, null);
+        });
+      }),
+    );
+  } else {
     const c = peer.connect(id, { reliable: true });
+    const relayed = new Set<string>();
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('No game with that code (or the host is offline)')), 12000);
-      c.on('open', () => {
-        clearTimeout(timer);
-        attach(c);
-        resolve();
+      c.on('data', (d) => {
+        const m = d as Envelope;
+        if (m.full) {
+          clearTimeout(timer);
+          reject(new Error(ROOM_FULL));
+          peer.destroy();
+          return;
+        }
+        if (m.ok) {
+          clearTimeout(timer);
+          conns.set(id, c);
+          resolve();
+          return;
+        }
+        if (m.w === undefined) return;
+        const from = m.f ?? c.peer;
+        if (m.f) {
+          if (m.w) relayed.add(m.f);
+          else relayed.delete(m.f);
+        }
+        handler?.(from, m.w);
+      });
+      c.on('close', () => {
+        conns.delete(id);
+        // The hub is gone: so is everyone it was relaying.
+        for (const r of relayed) handler?.(r, null);
+        relayed.clear();
+        handler?.(c.peer, null);
       });
       peer.on('error', (e: { type?: string }) => {
         clearTimeout(timer);
@@ -227,8 +304,10 @@ async function webrtcTransport(code: string, host: boolean): Promise<Transport> 
   return {
     kind: 'webrtc',
     code,
+    self: peer.id,
     publish(w) {
-      for (const c of conns.values()) if (c.open) c.send(w);
+      // Guests send plain packets to the host; the host wraps its own for the relay.
+      for (const c of conns.values()) if (c.open) c.send(host ? ({ w } satisfies Envelope) : w);
     },
     onRemote(fn) {
       handler = fn;
@@ -243,26 +322,72 @@ async function webrtcTransport(code: string, host: boolean): Promise<Transport> 
 // Same-browser tabs (testing)
 // ---------------------------------------------------------------------------
 
-function localTransport(code: string): Transport {
+interface LocalMsg {
+  from: string;
+  w?: Wire | null;
+  /** Door: "who's in?" and the answers. */
+  hello?: boolean;
+  here?: boolean;
+  to?: string;
+  host?: boolean;
+}
+
+/**
+ * Same-browser tabs over a BroadcastChannel (testing). Everyone hears
+ * everyone; on the way in a tab asks who's there, so a fifth is turned away
+ * and a code nobody is hosting says so.
+ */
+export async function localTransport(code: string, host: boolean, wait = 350): Promise<Transport> {
   const me = Math.random().toString(36).slice(2);
   const ch = new BroadcastChannel(`palazzo-lago-${code}`);
   let handler: ((id: string, w: Wire | null) => void) | null = null;
+  let inside = false;
+  const present = new Map<string, boolean>();
   ch.onmessage = (m) => {
-    const { from, w } = m.data as { from: string; w: Wire | null };
-    if (from !== me) handler?.(from, w);
+    const msg = m.data as LocalMsg;
+    if (!msg || msg.from === me) return;
+    if (msg.hello) {
+      if (inside) ch.postMessage({ from: me, here: true, to: msg.from, host } satisfies LocalMsg);
+      return;
+    }
+    if (msg.here) {
+      if (msg.to === me) present.set(msg.from, !!msg.host);
+      return;
+    }
+    if (inside && msg.w !== undefined) handler?.(msg.from, msg.w);
   };
-  addEventListener('pagehide', () => ch.postMessage({ from: me, w: null }));
+  ch.postMessage({ from: me, hello: true } satisfies LocalMsg);
+  await new Promise((r) => setTimeout(r, wait));
+  if (present.size >= MAX_PLAYERS) {
+    ch.close();
+    throw new Error(ROOM_FULL);
+  }
+  if (!host && ![...present.values()].some(Boolean)) {
+    ch.close();
+    throw new Error('No game with that code');
+  }
+  inside = true;
+  const bye = () => {
+    try {
+      ch.postMessage({ from: me, w: null } satisfies LocalMsg);
+    } catch {
+      /* closed */
+    }
+  };
+  globalThis.addEventListener?.('pagehide', bye);
   return {
     kind: 'local',
     code,
+    self: me,
     publish(w) {
-      ch.postMessage({ from: me, w });
+      if (inside) ch.postMessage({ from: me, w } satisfies LocalMsg);
     },
     onRemote(fn) {
       handler = fn;
     },
     leave() {
-      ch.postMessage({ from: me, w: null });
+      bye();
+      inside = false;
       ch.close();
     },
   };
@@ -274,10 +399,10 @@ function localTransport(code: string): Transport {
  */
 export async function connect(code: string, host: boolean): Promise<Transport> {
   const force = new URLSearchParams(location.search).get('net');
-  if (force === 'local') return localTransport(code);
+  if (force === 'local') return localTransport(code, host);
   if (force !== 'webrtc') {
     const cap = await roomCapability();
-    if (cap) return roomTransport(cap, code);
+    if (cap) return roomTransport(cap, code, host);
   }
   return webrtcTransport(code, host);
 }
