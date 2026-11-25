@@ -716,8 +716,12 @@ async function main() {
     { vr: vrCapable },
   );
   // --- Your own body in VR ------------------------------------------------------
-  // VR swimming: your hands' speed and height drive your strokes.
-  player.strokes = () => (player.inXR ? hands.hands.filter((h) => h.ctrl.userData.connected !== false).map((h) => ({ v: hands.velocity(h), y: h.pos.y })) : []);
+  // VR swimming: your hands' motion drives your strokes (grip positions are in the rig's frame).
+  player.strokes = () => {
+    if (!player.inXR) return [];
+    const t = performance.now() / 1000;
+    return hands.hands.filter((h) => h.ctrl.userData.connected !== false && h.grip.visible).map((h) => ({ id: h.index, p: h.grip.position, t }));
+  };
   const selfBody = new SelfBody(scene);
   selfBody.root.userData.noLand = true;
   hands.posed.left.root.userData.noLand = true;
