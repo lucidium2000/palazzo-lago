@@ -47,6 +47,8 @@ import { mouthOf, voices } from './voices';
 import { Throwables } from './throwables';
 import { DrinkPhysics } from './drinkphysics';
 import { DrinkSync } from './net/drinksync';
+import { LooseObjects } from './loose';
+import { LooseSync } from './net/loosesync';
 import { Boxing } from './net/boxing';
 import { BUMP_LINES, Bodies, friendShove } from './bodies';
 
@@ -186,6 +188,8 @@ async function main() {
     inXR: () => player.inXR,
     douse: (p, c) => drinkSync?.douse(p, c) ?? false,
   });
+  // Loose things to pick up and throw: chips, dice, bottles, fruit, napkins, menus, ashtrays, buckets.
+  const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics });
   const slotRows = new SlotRows(ctx, crowd, world);
 
   // Walking routes through the open floor; edges are found automatically.
@@ -611,6 +615,7 @@ async function main() {
     }
   });
   let drinkSync: DrinkSync | null = null;
+  let looseSync: LooseSync | null = null;
   let boxing: Boxing | null = null;
   const buzz = (side: 'left' | 'right', strength: number, ms: number) => {
     for (const { handedness, gamepad } of interaction.gamepads()) {
@@ -658,6 +663,8 @@ async function main() {
     });
     drinkSync?.dispose();
     drinkSync = new DrinkSync(session, lounge, scene, (c) => drinkPhysics.soaked(c));
+    looseSync?.dispose();
+    looseSync = new LooseSync(session, loose, scene);
     boxing?.dispose();
     boxing = new Boxing({
       session,
@@ -699,6 +706,7 @@ async function main() {
     hud.toast(net.host ? `Room LAGO-${session.code} is open · press T to chat` : `Joined room LAGO-${session.code}`, 'win');
     (window as unknown as { casino: Record<string, unknown> }).casino.session = session;
     (window as unknown as { casino: Record<string, unknown> }).casino.drinkSync = drinkSync;
+    (window as unknown as { casino: Record<string, unknown> }).casino.looseSync = looseSync;
     vrMenu.redraw();
   };
   let me = { name: 'Guest', avatar: 0 };
@@ -765,6 +773,8 @@ async function main() {
       mirror = null;
       session?.leave();
       session = null;
+      looseSync?.dispose();
+      looseSync = null;
       drinkSync?.dispose();
       drinkSync = null;
       boxing?.dispose();
@@ -1067,6 +1077,7 @@ async function main() {
     craps.update(dt);
     session?.update(dt);
     drinkSync?.update();
+    looseSync?.update();
     boxing?.update(dt);
     mirror?.update(dt);
     // Walk up to craps in VR and the stickman slides you the dice.
@@ -1088,6 +1099,7 @@ async function main() {
     lounge.update(dt);
     throwables.update(dt);
     drinkPhysics.update(dt);
+    loose.update(dt);
     bodies.update(dt);
     crowd.update(dt, t, feet, head);
     casino.update(t, feet);
@@ -1131,6 +1143,7 @@ async function main() {
       const m = machines.find((mm) => mm.machine.id === station);
       hud.setControls(station === 'roulette' ? rouletteControls() : station === 'craps' ? crapsControls() : m ? slotControls(m) : station === piggy.machine.id ? piggyControls(piggy) : null);
       if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());
+      else if (loose.holding) touch.setAction('Throw', () => loose.throwDesk());
       else if (player.seated) touch.setAction('Stand', () => player.stand());
       else {
         const s = nearestSeat(1.8);
@@ -1197,7 +1210,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics };
+  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose };
 }
 
 main().catch((e) => {

@@ -28,6 +28,20 @@ interface Drop {
   mine: boolean;
 }
 
+/** Anything that pours when tipped: a glass, a bottle. */
+export interface Pourable {
+  group: THREE.Object3D;
+  level: number;
+  setLevel(l: number): void;
+  rimHeight: number;
+  rimRadius: number;
+  color: number;
+  /** Your friend's (their side decides how much is left). */
+  remote: boolean;
+  /** How many glasses it holds (a bottle empties slower). */
+  capacity?: number;
+}
+
 export interface DrinkPhysicsDeps {
   scene: THREE.Scene;
   camera: THREE.Camera;
@@ -54,7 +68,9 @@ export class DrinkPhysics {
   private pairCool = new Map<string, number>();
   private flinchCool = new WeakMap<Person, number>();
   private time = 0;
-  private landCache = new WeakMap<Drink, { at: THREE.Vector3; y: number; t: number }>();
+  private landCache = new WeakMap<Pourable, { at: THREE.Vector3; y: number; t: number }>();
+  /** Other things that pour (bottles you pick up). */
+  pourables: (() => Pourable[]) | null = null;
   private veil: THREE.Mesh;
   private veilA = 0;
 
@@ -110,6 +126,7 @@ export class DrinkPhysics {
     this.time += dt;
     const live = [...Drink.all].filter((dr) => this.inScene(dr.group));
     for (const dr of live) this.pour(dr, dt);
+    for (const pr of this.pourables?.() ?? []) this.pour(pr, dt);
     this.collide(live);
     this.hitPeople(live);
     this.stepDrops(dt);
@@ -128,7 +145,7 @@ export class DrinkPhysics {
   // Pouring
   // -------------------------------------------------------------------------
 
-  private pour(dr: Drink, dt: number) {
+  private pour(dr: Pourable, dt: number) {
     if (dr.level <= 0.005) return;
     const q = dr.group.getWorldQuaternion(new THREE.Quaternion());
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
@@ -136,7 +153,7 @@ export class DrinkPhysics {
     if (up.y > 0.17) return;
     const tilt = THREE.MathUtils.clamp((0.17 - up.y) / 1.17, 0, 1);
     const rate = 0.12 + 0.75 * tilt; // glass-fulls per second
-    if (!dr.remote) dr.setLevel(dr.level - rate * dt);
+    if (!dr.remote) dr.setLevel(dr.level - (rate * dt) / (dr.capacity ?? 1));
     const base = dr.group.getWorldPosition(new THREE.Vector3());
     const side = new THREE.Vector3(up.x, 0, up.z);
     if (side.lengthSq() < 1e-6) side.set(0, 0, 1);
@@ -158,7 +175,7 @@ export class DrinkPhysics {
   }
 
   /** Where the stream lands under a point (cached briefly: one ray every ~0.2 s per glass). */
-  private landing(dr: Drink, at: THREE.Vector3): number {
+  private landing(dr: Pourable, at: THREE.Vector3): number {
     const c = this.landCache.get(dr);
     if (c && this.time - c.t < 0.2 && c.at.distanceTo(at) < 0.08) return c.y;
     const y = this.d.throwables.surfaceBelow(at, dr.group);

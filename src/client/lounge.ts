@@ -639,7 +639,7 @@ export class Lounge {
     this.d.interaction.register({
       object: drink.group,
       kind: 'button',
-      enabled: () => this.desktopDrink === drink || (drink.group.parent === this.d.scene && !this.desktopDrink),
+      enabled: () => this.desktopDrink === drink || (drink.group.parent === this.d.scene && !this.desktopDrink && !this.otherHeld()),
       label: () =>
         this.desktopDrink === drink ? (drink.level > 0 ? 'Sip (F)' : 'Empty glass · Q to set it down') : `Pick up the ${drink.kind.name}`,
       onSelect: () => (this.desktopDrink === drink ? this.sip(drink) : this.pickUpDesktop(drink)),
@@ -826,8 +826,21 @@ export class Lounge {
     return !!this.desktopDrink;
   }
 
+  /** Desktop: your hand is already full with something else (a bottle, a chip). */
+  otherHeld: () => boolean = () => false;
+
+  /** A swig straight from a bottle (counts like a drink). */
+  swig(units: number) {
+    if (this.sipCooldown > 0) return false;
+    this.sipCooldown = 1.2;
+    this.drank(units);
+    this.d.sound.playLocal('gulp', 0.6);
+    this.onDrinkEvent?.({ k: 'sip' });
+    return true;
+  }
+
   private pickUpDesktop(drink: Drink) {
-    if (this.desktopDrink || this.d.player.inXR) return;
+    if (this.desktopDrink || this.d.player.inXR || this.otherHeld()) return;
     if (this.waiting === drink) this.waiting = null;
     this.d.throwables.catch(drink.group);
     this.desktopDrink = drink;

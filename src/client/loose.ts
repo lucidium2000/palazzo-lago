@@ -1,0 +1,942 @@
+import * as THREE from 'three';
+import type { Grabbable, Hand, Hands } from './hands';
+import type { Interaction } from './interaction';
+import type { Hud } from './hud';
+import type { Player } from './player';
+import type { World } from './world';
+import type { Throwables } from './throwables';
+import type { DrinkPhysics, Pourable } from './drinkphysics';
+import { Drink, type Lounge } from './lounge';
+import { CHIP_HEIGHT, CHIP_RADIUS, makeChip } from './chips';
+import type { ChipDenom } from './textures';
+import { LooseSim, Surfaces, extents, type LooseBody, type LooseEnv, type LooseEvent, type LooseSpec } from './loosephys';
+import { BAR as POOL_BAR } from './areas/pool';
+
+type SoundName = Parameters<import('./audio').Sound['play']>[0];
+interface SoundLike {
+  play(name: SoundName, at?: THREE.Vector3 | THREE.Object3D, opts?: { volume?: number; rate?: number }): unknown;
+  playLocal(name: SoundName, volume?: number, rate?: number): void;
+}
+
+/**
+ * Loose objects around the venue: things you can pick up, throw, knock over
+ * and sweep off a table. Chips on the bar and the tables, a pair of souvenir
+ * dice, bottles on the bar and the back bar (swig, pour, smash), garnish bowls
+ * of limes and lemons, cocktail napkins, menus, crystal ashtrays and
+ * champagne buckets at the bar, the lounge, the pool bar and the cabanas.
+ *
+ * Physics lives in loosephys.ts; this draws each kind as one instanced mesh
+ * (one draw call per kind wherever they are), hooks them up to VR grabbing,
+ * desktop click / X / Q / F / P, knocks with glasses and hands, and tells your
+ * friend what you did with them (net/loosesync.ts).
+ */
+
+export interface LooseDeps {
+  scene: THREE.Scene;
+  camera: THREE.Camera;
+  world: World;
+  sound: SoundLike;
+  hands: Hands;
+  interaction: Interaction;
+  hud: Hud;
+  player: Player;
+  lounge: Lounge;
+  throwables: Throwables;
+  drinkPhysics: DrinkPhysics;
+}
+
+/** What your friend should see happen to a loose object. */
+export type LooseNet =
+  | { k: 'take'; id: string }
+  | { k: 'put'; id: string; p: number[]; q: number[] }
+  | { k: 'throw'; id: string; p: number[]; q: number[]; v: number[]; w: number[] }
+  | { k: 'break'; id: string };
+
+interface KindDef {
+  key: string;
+  label: string;
+  spec: LooseSpec;
+  geo: THREE.BufferGeometry;
+  mat: THREE.Material | THREE.Material[];
+  /** Colours per instance (bottles, fruit). */
+  tinted?: boolean;
+  /** Impact sound. */
+  sound: SoundName;
+  rate: number;
+  vol: number;
+  /** How it sits in your desktop hand (camera space). */
+  hold: { p: [number, number, number]; r: [number, number, number] };
+  /** Bottles: holds this many glasses. */
+  capacity?: number;
+}
+
+interface Kind extends KindDef {
+  index: number;
+  mesh: THREE.InstancedMesh;
+  items: Item[];
+  dirty: boolean;
+}
+
+export interface Item {
+  id: string;
+  kind: Kind;
+  body: LooseBody;
+  index: number;
+  color: THREE.Color;
+  /** Bottles: how full (0..1) and what's in it. */
+  level: number;
+  liquid: number | null;
+  /** In a hand: the stand-in mesh you carry. */
+  proxy: THREE.InstancedMesh | null;
+  holder: 'vr' | 'desk' | 'remote' | null;
+  hand: Hand | null;
+  gone: boolean;
+}
+
+const tmpM = new THREE.Matrix4();
+const ONE = new THREE.Vector3(1, 1, 1);
+const ZERO = new THREE.Vector3(0, 0, 0);
+const round = (a: number[], d: number) => a.map((v) => Math.round(v * 10 ** d) / 10 ** d);
+
+/** Chip geometry with its base at y = 0 and both faces in one group (two draws per denomination). */
+function chipGeometry() {
+  const g = new THREE.CylinderGeometry(CHIP_RADIUS, CHIP_RADIUS, CHIP_HEIGHT, 24, 1).translate(0, CHIP_HEIGHT / 2, 0);
+  const [side, top, bottom] = g.groups;
+  g.clearGroups();
+  g.addGroup(side.start, side.count, 0);
+  g.addGroup(top.start, top.count + bottom.count, 1);
+  return g;
+}
+
+function lathe(points: [number, number][], seg = 14) {
+  return new THREE.LatheGeometry(
+    points.map(([r, y]) => new THREE.Vector2(r, y)),
+    seg,
+  );
+}
+
+function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  draw(c.getContext('2d')!);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/** Souvenir dice: a 3 × 2 atlas of red faces with white pips, one draw. */
+function diceGeometry(size: number) {
+  const geo = new THREE.BoxGeometry(size, size, size).translate(0, size / 2, 0);
+  const uv = geo.attributes.uv as THREE.BufferAttribute;
+  for (let f = 0; f < 6; f++) {
+    const cx = f % 3,
+      cy = Math.floor(f / 3);
+    for (let k = 0; k < 4; k++) {
+      const i = f * 4 + k;
+      uv.setXY(i, (cx + uv.getX(i)) / 3, 1 - (cy + 1 - uv.getY(i)) / 2);
+    }
+  }
+  geo.clearGroups();
+  const tex = canvasTex(384, 256, (g) => {
+    const order = [2, 5, 1, 6, 3, 4];
+    const o = 34;
+    const pips: Record<number, [number, number][]> = {
+      1: [[0, 0]],
+      2: [[-o, -o], [o, o]],
+      3: [[-o, -o], [0, 0], [o, o]],
+      4: [[-o, -o], [o, -o], [-o, o], [o, o]],
+      5: [[-o, -o], [o, -o], [0, 0], [-o, o], [o, o]],
+      6: [[-o, -o], [o, -o], [-o, 0], [o, 0], [-o, o], [o, o]],
+    };
+    order.forEach((n, i) => {
+      const ox = (i % 3) * 128,
+        oy = Math.floor(i / 3) * 128;
+      g.fillStyle = '#a80e1a';
+      g.fillRect(ox, oy, 128, 128);
+      g.strokeStyle = '#d4a94e';
+      g.lineWidth = 6;
+      g.strokeRect(ox + 4, oy + 4, 120, 120);
+      g.fillStyle = n === 1 ? '#e8c060' : '#fbfaf4';
+      for (const [x, y] of pips[n]) {
+        g.beginPath();
+        g.arc(ox + 64 + x, oy + 64 + y, n === 1 ? 16 : 11, 0, Math.PI * 2);
+        g.fill();
+      }
+    });
+  });
+  return { geo, mat: new THREE.MeshStandardMaterial({ map: tex, roughness: 0.2 }) };
+}
+
+function kinds(): KindDef[] {
+  const chip = (d: ChipDenom, key: string): KindDef => ({
+    key,
+    label: `$${d} chip`,
+    spec: { name: key, shape: { type: 'cyl', r: CHIP_RADIUS, h: CHIP_HEIGHT }, mass: 0.01, bounce: 0.3, friction: 0.45, tumble: 0.3 },
+    geo: chipGeometry(),
+    mat: [(makeChip(d).material as THREE.Material[])[0], (makeChip(d).material as THREE.Material[])[1]],
+    sound: 'chip',
+    rate: 1,
+    vol: 0.7,
+    hold: { p: [0.16, -0.17, -0.36], r: [1.2, 0, 0] },
+  });
+  const dice = diceGeometry(0.022);
+  const silver = new THREE.MeshStandardMaterial({ color: 0xe4e6ea, metalness: 1, roughness: 0.22 });
+  const menuTex = canvasTex(256, 384, (g) => {
+    g.fillStyle = '#4a1218';
+    g.fillRect(0, 0, 256, 384);
+    g.strokeStyle = '#d4a94e';
+    g.lineWidth = 8;
+    g.strokeRect(14, 14, 228, 356);
+    g.fillStyle = '#e8c878';
+    g.textAlign = 'center';
+    g.font = 'italic bold 46px Georgia, serif';
+    g.fillText('Bar', 128, 160);
+    g.fillText('Lago', 128, 214);
+    g.font = '20px Georgia, serif';
+    g.fillText('COCKTAILS · WINE', 128, 270);
+  });
+  return [
+    chip(5, 'chip5'),
+    chip(25, 'chip25'),
+    chip(100, 'chip100'),
+    {
+      key: 'die',
+      label: 'souvenir die',
+      spec: { name: 'die', shape: { type: 'box', x: 0.011, y: 0.011, z: 0.011 }, mass: 0.012, bounce: 0.45, friction: 0.35, tumble: 1 },
+      geo: dice.geo,
+      mat: dice.mat,
+      sound: 'click',
+      rate: 0.75,
+      vol: 0.6,
+      hold: { p: [0.16, -0.17, -0.36], r: [0.4, 0.5, 0] },
+    },
+    {
+      key: 'bottle',
+      label: 'bottle',
+      spec: { name: 'bottle', shape: { type: 'cyl', r: 0.037, h: 0.32 }, mass: 1.2, bounce: 0.18, friction: 0.4, fragile: 6, floats: true, tumble: 0.5 },
+      geo: lathe([[0, 0], [0.036, 0], [0.037, 0.2], [0.03, 0.235], [0.013, 0.27], [0.012, 0.32], [0, 0.32]]),
+      mat: new THREE.MeshStandardMaterial({ roughness: 0.08, metalness: 0.15, envMapIntensity: 2 }),
+      tinted: true,
+      sound: 'clink',
+      rate: 0.55,
+      vol: 0.8,
+      hold: { p: [0.2, -0.32, -0.45], r: [0.12, 0, 0] },
+      capacity: 5,
+    },
+    {
+      key: 'fruit',
+      label: 'lime',
+      spec: { name: 'fruit', shape: { type: 'sphere', r: 0.028 }, mass: 0.07, bounce: 0.3, friction: 0.5, floats: true },
+      geo: new THREE.SphereGeometry(0.028, 12, 9).scale(1, 0.92, 1.12).translate(0, 0.026, 0),
+      mat: new THREE.MeshStandardMaterial({ roughness: 0.55 }),
+      tinted: true,
+      sound: 'thunk',
+      rate: 1.7,
+      vol: 0.35,
+      hold: { p: [0.16, -0.18, -0.38], r: [0, 0, 0] },
+    },
+    {
+      key: 'napkin',
+      label: 'cocktail napkin',
+      spec: { name: 'napkin', shape: { type: 'box', x: 0.06, y: 0.0015, z: 0.06 }, mass: 0.004, bounce: 0.02, friction: 0.7, drag: 3.2, floats: true, tumble: 0.1 },
+      geo: new THREE.BoxGeometry(0.12, 0.003, 0.12).translate(0, 0.0015, 0),
+      mat: new THREE.MeshStandardMaterial({ color: 0xf6f1e6, roughness: 0.95 }),
+      sound: 'thunk',
+      rate: 2.2,
+      vol: 0.05,
+      hold: { p: [0.16, -0.18, -0.38], r: [1.1, 0, 0] },
+    },
+    {
+      key: 'menu',
+      label: 'menu',
+      spec: { name: 'menu', shape: { type: 'box', x: 0.075, y: 0.006, z: 0.11 }, mass: 0.15, bounce: 0.1, friction: 0.6, drag: 0.8, floats: true, tumble: 0.3 },
+      geo: (() => {
+        const g = new THREE.BoxGeometry(0.15, 0.012, 0.22).translate(0, 0.006, 0);
+        g.clearGroups();
+        return g;
+      })(),
+      mat: new THREE.MeshStandardMaterial({ map: menuTex, roughness: 0.6 }),
+      sound: 'thunk',
+      rate: 1.3,
+      vol: 0.45,
+      hold: { p: [0.12, -0.2, -0.42], r: [1.0, 0, 0] },
+    },
+    {
+      key: 'ashtray',
+      label: 'crystal ashtray',
+      spec: { name: 'ashtray', shape: { type: 'cyl', r: 0.06, h: 0.03 }, mass: 0.6, bounce: 0.15, friction: 0.5, fragile: 7, carry: 0.012, tumble: 0.4 },
+      geo: lathe([[0, 0], [0.055, 0], [0.06, 0.03], [0.046, 0.03], [0.04, 0.012], [0, 0.012]], 16),
+      mat: new THREE.MeshStandardMaterial({ color: 0xd8eef8, roughness: 0.04, metalness: 0.3, transparent: true, opacity: 0.72, envMapIntensity: 2.2 }),
+      sound: 'clink',
+      rate: 0.45,
+      vol: 0.8,
+      hold: { p: [0.16, -0.2, -0.4], r: [0.5, 0, 0] },
+    },
+    {
+      key: 'bucket',
+      label: 'champagne bucket',
+      spec: { name: 'bucket', shape: { type: 'cyl', r: 0.1, h: 0.22 }, mass: 2.2, bounce: 0.15, friction: 0.5, carry: 0.03, tumble: 0.3 },
+      geo: lathe([[0, 0], [0.075, 0], [0.09, 0.2], [0.1, 0.21], [0.098, 0.22], [0.088, 0.215], [0.074, 0.03], [0, 0.03]], 18),
+      mat: silver,
+      sound: 'thunk',
+      rate: 0.75,
+      vol: 0.9,
+      hold: { p: [0.2, -0.4, -0.5], r: [0.1, 0, 0] },
+    },
+    {
+      key: 'bowl',
+      label: 'garnish bowl',
+      spec: { name: 'bowl', shape: { type: 'cyl', r: 0.075, h: 0.045 }, mass: 0.35, bounce: 0.15, friction: 0.5, carry: 0.01, tumble: 0.4 },
+      geo: lathe([[0, 0], [0.045, 0], [0.07, 0.035], [0.075, 0.045], [0.07, 0.045], [0.04, 0.01], [0, 0.01]], 18),
+      mat: silver,
+      sound: 'thunk',
+      rate: 1.2,
+      vol: 0.6,
+      hold: { p: [0.18, -0.25, -0.45], r: [0.2, 0, 0] },
+    },
+  ];
+}
+
+const FRUIT = { lime: 0x6cb83a, lemon: 0xf0d23a, orange: 0xf08a1a };
+const BOTTLES = {
+  champagne: { glass: 0x1c3a1e, liquid: 0xf4e2a0 },
+  whisky: { glass: 0x9a5a1a, liquid: 0xb8651d },
+  gin: { glass: 0x9fd0b0, liquid: 0xeaf4ee },
+  vodka: { glass: 0xe6eef4, liquid: 0xf2f6fa },
+  rum: { glass: 0x5a2a08, liquid: 0x8a4a1a },
+  tequila: { glass: 0xe0d0a0, liquid: 0xf0e0a0 },
+  wine: { glass: 0x2a0a10, liquid: 0x6a0a1a },
+};
+
+export class LooseObjects {
+  readonly sim: LooseSim;
+  readonly surfaces = new Surfaces();
+  readonly kinds: Kind[] = [];
+  readonly items = new Map<string, Item>();
+  /** The thing in your desktop hand. */
+  desk: Item | null = null;
+  onNet: ((e: LooseNet) => void) | null = null;
+  private woken = new Set<LooseBody>();
+  private near = new Map<string, { t: number; list: THREE.Object3D[] }>();
+  private ray = new THREE.Raycaster();
+  private time = 0;
+  private swigCool = 0;
+  private soundCool = new Map<string, number>();
+  /** Counters for tests and tuning. */
+  readonly stats = { thrown: 0, landed: 0, broken: 0, knocked: 0, swept: 0 };
+
+  constructor(private d: LooseDeps) {
+    const env: LooseEnv = {
+      ground: (x, z) => d.world.groundAt(x, z),
+      water: (x, z) => d.world.waterAt(x, z),
+      inside: (x, z) => d.world.isInside(x, z),
+      blocked: (x, z) => this.blocked(x, z),
+      top: (x, z, fromY) => this.top(x, z, fromY),
+      topFast: (x, z, fromY) => this.surfaces.top(x, z, fromY),
+    };
+    this.sim = new LooseSim(env, 7);
+    this.sim.onEvent = (e) => this.event(e);
+    d.throwables.extraTop = (x, z, fromY) => this.surfaces.top(x, z, fromY)?.y ?? null;
+    d.drinkPhysics.pourables = () => this.pourables();
+    d.lounge.otherHeld = () => !!this.desk;
+    for (const def of kinds()) this.addKind(def);
+    this.build();
+    addEventListener('keydown', (e) => {
+      if (!this.desk || d.player.inXR) return;
+      if (e.code === 'KeyQ') this.putDownDesk();
+      if (e.code === 'KeyX') this.throwDesk();
+      if (e.code === 'KeyF') this.swig(this.desk);
+    });
+  }
+
+  private kind(key: string) {
+    return this.kinds.find((k) => k.key === key)!;
+  }
+
+  private addKind(def: KindDef) {
+    const cap = 40;
+    const mesh = new THREE.InstancedMesh(def.geo, def.mat, cap);
+    mesh.count = 0;
+    mesh.frustumCulled = false;
+    mesh.castShadow = false;
+    mesh.userData.dynamic = true;
+    mesh.userData.noLand = true;
+    mesh.name = `loose-${def.key}`;
+    if (def.tinted) mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3);
+    const k: Kind = { ...def, index: this.kinds.length, mesh, items: [], dirty: true };
+    this.kinds.push(k);
+    this.d.scene.add(mesh);
+    // Desktop: click to pick it up (the instance under the cursor).
+    this.d.interaction.register({
+      object: mesh,
+      kind: 'button',
+      enabled: () => !this.desk && !this.d.lounge.holdingDrink,
+      label: (e) => {
+        const it = e.hit.instanceId !== undefined ? k.items[e.hit.instanceId] : undefined;
+        if (!it || it.holder || it.gone) return null;
+        return `Pick up the ${this.labelOf(it)}`;
+      },
+      onSelect: (e) => {
+        const it = e.hit.instanceId !== undefined ? k.items[e.hit.instanceId] : undefined;
+        if (it) this.pickUpDesk(it);
+      },
+    });
+  }
+
+  private labelOf(it: Item) {
+    if (it.kind.key === 'fruit') {
+      const hex = it.color.getHex();
+      return hex === new THREE.Color(FRUIT.lemon).getHex() ? 'lemon' : hex === new THREE.Color(FRUIT.orange).getHex() ? 'orange' : 'lime';
+    }
+    if (it.kind.key === 'bottle') return (it.level > 0.02 ? '' : 'empty ') + ((it.body.data.name as string) ?? 'bottle');
+    return it.kind.label;
+  }
+
+  /** Adds an object at build time; `fromY` is just above where it sits (it stacks on what's there). */
+  private spawn(key: string, x: number, z: number, fromY: number, o: { yaw?: number; color?: number; liquid?: number; name?: string } = {}) {
+    const k = this.kind(key);
+    const index = k.items.length;
+    const id = `${key}${index}`;
+    const body = this.sim.add(k.spec, id, new THREE.Vector3(x, fromY, z), o.yaw ?? 0);
+    this.sim.place(body, x, z, fromY);
+    if (o.name) body.data.name = o.name;
+    const color = new THREE.Color(o.color ?? 0xffffff);
+    const it: Item = { id, kind: k, body, index, color, level: o.liquid !== undefined ? 1 : 0, liquid: o.liquid ?? null, proxy: null, holder: null, hand: null, gone: false };
+    body.data.item = it;
+    k.items.push(it);
+    k.mesh.count = k.items.length;
+    if (k.mesh.instanceColor) k.mesh.setColorAt(index, color);
+    this.items.set(id, it);
+    this.writeMatrix(it);
+    this.registerGrab(it);
+    return it;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Where things are
+  // ---------------------------------------------------------------------------
+
+  private build() {
+    const S = this.surfaces;
+    // Bar Lago: counter (guest side reachable), back-bar counter.
+    const BX = -15.0,
+      Z0 = 6.2,
+      Z1 = 12.4,
+      TOP = 1.1;
+    S.box(BX + 0.05, (Z0 + Z1) / 2, 0.78, Z1 - Z0 + 0.12, TOP);
+    S.box(-17.53, (Z0 + Z1) / 2, 0.55, Z1 - Z0, 0.99);
+    // Lounge cocktail tables, blackjack tables (a half disc toward the players, plus the dealer's edge).
+    const lounge: [number, number][] = [
+      [-11.6, 11.4],
+      [-11.4, 8.2],
+    ];
+    for (const [x, z] of lounge) S.disc(x, z, 0.38, 0.64);
+    const pit: [number, number][] = [
+      [-11.1, -4.4],
+      [-3.95, -4.4],
+    ];
+    for (const [x, z] of pit) {
+      S.box(x, z + 0.3, 2.04, 0.72, 0.762);
+      S.box(x, z + 0.8, 1.2, 0.32, 0.762);
+      S.box(x, z - 0.06, 2.1, 0.16, 0.762);
+    }
+    // Pool deck: the round pool bar's ledge, the cabana cushions.
+    S.ring(POOL_BAR.x, POOL_BAR.z, POOL_BAR.r - 0.03, POOL_BAR.r + 0.13, 1.16);
+    const cabanas = [-30, -24, -18];
+    for (const z of cabanas) S.box(59.7, z, 2.0, 2.8, 0.5, 0, true);
+
+    const up = (y: number) => y + 0.4;
+    // --- On the bar counter ---
+    this.spawn('bucket', -14.95, 6.55, up(TOP));
+    this.spawn('bottle', -14.95, 6.55, up(TOP), { color: BOTTLES.champagne.glass, liquid: BOTTLES.champagne.liquid, name: 'champagne' });
+    this.spawn('bottle', -14.92, 6.85, up(TOP), { color: BOTTLES.whisky.glass, liquid: BOTTLES.whisky.liquid, name: 'whisky' });
+    this.spawn('bottle', -15.08, 6.98, up(TOP), { color: BOTTLES.gin.glass, liquid: BOTTLES.gin.liquid, name: 'gin' });
+    this.fruitBowl(-14.85, 7.38, up(TOP));
+    for (let i = 0; i < 6; i++) this.spawn('napkin', -14.74, 7.82, up(TOP), { yaw: (i * 0.37) % 0.5 });
+    this.spawn('die', -14.76, 8.45, up(TOP), { yaw: 0.4 });
+    this.spawn('die', -14.72, 8.5, up(TOP), { yaw: 1.3 });
+    this.spawn('menu', -14.97, 9.8, up(TOP), { yaw: 0.25 });
+    this.spawn('ashtray', -14.76, 11.0, up(TOP));
+    for (let i = 0; i < 5; i++) this.spawn('chip25', -14.72, 11.7, up(TOP), { yaw: i });
+    this.spawn('chip5', -14.63, 11.55, up(TOP));
+    this.spawn('chip5', -14.67, 11.46, up(TOP), { yaw: 2 });
+    this.spawn('chip5', -14.8, 11.5, up(TOP), { yaw: 4 });
+    // --- On the back bar (the bartender's side) ---
+    const back: [keyof typeof BOTTLES, number][] = [
+      ['vodka', 7.2],
+      ['rum', 8.0],
+      ['tequila', 10.6],
+      ['wine', 11.4],
+    ];
+    for (const [name, z] of back) this.spawn('bottle', -17.4, z, up(0.99), { color: BOTTLES[name].glass, liquid: BOTTLES[name].liquid, name });
+    // --- Lounge tables ---
+    {
+      const [x, z] = lounge[0];
+      this.spawn('ashtray', x + 0.03, z + 0.22, up(0.64));
+      for (let i = 0; i < 4; i++) this.spawn('chip100', x - 0.14, z + 0.17, up(0.64), { yaw: i * 1.7 });
+    }
+    {
+      const [x, z] = lounge[1];
+      this.spawn('menu', x + 0.05, z - 0.22, up(0.64), { yaw: 0.4 });
+      for (let i = 0; i < 3; i++) this.spawn('napkin', x - 0.05, z + 0.22, up(0.64), { yaw: i * 0.3 });
+    }
+    // --- Blackjack tables: a stack and a couple of strays by the dealer ---
+    for (const [x, z] of pit) {
+      for (let i = 0; i < 5; i++) this.spawn(i < 3 ? 'chip25' : 'chip5', x - 0.55, z + 0.12, up(0.762), { yaw: i * 2.1 });
+      this.spawn('chip5', x + 0.5, z + 0.15, up(0.762));
+      this.spawn('chip100', x + 0.56, z + 0.21, up(0.762), { yaw: 1 });
+    }
+    // --- Pool bar ledge ---
+    const ring = (a: number): [number, number] => [POOL_BAR.x + Math.cos(a) * (POOL_BAR.r + 0.05), POOL_BAR.z + Math.sin(a) * (POOL_BAR.r + 0.05)];
+    {
+      const [x, z] = ring(Math.PI * 0.75);
+      this.spawn('bucket', x, z, up(1.16));
+      this.spawn('bottle', x, z, up(1.16), { color: BOTTLES.champagne.glass, liquid: BOTTLES.champagne.liquid, name: 'champagne' });
+      const [ax, az] = ring(Math.PI * 0.75 + 0.22);
+      this.spawn('ashtray', ax, az, up(1.16));
+      const [nx, nz] = ring(Math.PI * 0.75 - 0.2);
+      for (let i = 0; i < 3; i++) this.spawn('napkin', nx, nz, up(1.16), { yaw: i * 0.4 });
+    }
+    // --- Cabanas ---
+    this.spawn('bucket', 60.3, -24.3, up(0.5));
+    this.spawn('bottle', 60.3, -24.3, up(0.5), { color: BOTTLES.champagne.glass, liquid: BOTTLES.champagne.liquid, name: 'champagne' });
+    this.fruitBowl(60.3, -30.2, up(0.5));
+    this.spawn('menu', 60.2, -18.3, up(0.5), { yaw: 1.2 });
+    for (let i = 0; i < 2; i++) this.spawn('napkin', 60.45, -17.8, up(0.5), { yaw: i * 0.6 });
+  }
+
+  private fruitBowl(x: number, z: number, fromY: number) {
+    this.spawn('bowl', x, z, fromY);
+    const fruit = [FRUIT.lime, FRUIT.lemon, FRUIT.lime, FRUIT.orange];
+    fruit.forEach((c, i) => {
+      const a = (i / fruit.length) * Math.PI * 2 + 0.3;
+      this.spawn('fruit', x + Math.cos(a) * 0.03, z + Math.sin(a) * 0.03, fromY, { color: c, yaw: i });
+    });
+  }
+
+  private blockCache = new Map<number, boolean>();
+
+  /** Furniture footprints (the world's colliders), looked up on a 3 cm grid: colliders don't move. */
+  private blocked(x: number, z: number) {
+    const ix = Math.round(x / 0.03),
+      iz = Math.round(z / 0.03);
+    const key = ix * 100003 + iz;
+    let v = this.blockCache.get(key);
+    if (v === undefined) {
+      const cx = ix * 0.03,
+        cz = iz * 0.03;
+      v = this.d.world.isInside(cx, cz) && !this.d.world.isFree(cx, cz, 0.005);
+      if (this.blockCache.size > 40000) this.blockCache.clear();
+      this.blockCache.set(key, v);
+    }
+    return v;
+  }
+
+  /** Furniture tops: declared surfaces, else the meshes near there (raycast, cached per area). */
+  private top(x: number, z: number, fromY: number): { y: number; soft?: boolean } | null {
+    const s = this.surfaces.top(x, z, fromY);
+    // Declared tops are the truth where there are any (the raycast would find lamps and shelves above).
+    if (s || this.surfaces.top(x, z) !== null) return s;
+    const key = `${Math.round(x / 4)},${Math.round(z / 4)}`;
+    let n = this.near.get(key);
+    if (!n || this.time - n.t > 15) {
+      // Meshes whose bounds reach this 4 m cell.
+      const cc = new THREE.Vector3(Math.round(x / 4) * 4, 1, Math.round(z / 4) * 4);
+      const sph = new THREE.Sphere();
+      const list = this.d.throwables.nearby(cc).filter((o) => {
+        const g = (o as THREE.Mesh).geometry;
+        sph.copy(g.boundingSphere!).applyMatrix4(o.matrixWorld);
+        return Math.hypot(sph.center.x - cc.x, sph.center.z - cc.z) - sph.radius < 3.2;
+      });
+      n = { t: this.time, list };
+      this.near.set(key, n);
+    }
+    if (!n.list.length || fromY > 50) return null;
+    this.ray.set(new THREE.Vector3(x, Math.min(fromY, 4) + 0.03, z), new THREE.Vector3(0, -1, 0));
+    this.ray.far = 4;
+    (this.ray as THREE.Raycaster & { camera: THREE.Camera }).camera = this.d.camera;
+    for (const h of this.ray.intersectObjects(n.list, false)) {
+      const nn = h.face?.normal.clone().transformDirection(h.object.matrixWorld);
+      if (nn && nn.y < 0.5) continue;
+      if (h.point.y < 0.05) break;
+      return { y: h.point.y };
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drawing
+  // ---------------------------------------------------------------------------
+
+  private writeMatrix(it: Item) {
+    const k = it.kind;
+    const hide = it.gone || !!it.holder;
+    tmpM.compose(it.body.pos, it.body.q, hide ? ZERO : ONE);
+    k.mesh.setMatrixAt(it.index, tmpM);
+    k.dirty = true;
+  }
+
+  /** A carryable stand-in (one instance) for an item in someone's hand. */
+  makeProxy(kindIndex: number, color: THREE.Color | number): THREE.InstancedMesh | null {
+    const k = this.kinds[kindIndex];
+    if (!k) return null;
+    const m = new THREE.InstancedMesh(k.geo, k.mat, 1);
+    m.setMatrixAt(0, new THREE.Matrix4());
+    if (k.tinted) {
+      m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(3), 3);
+      m.setColorAt(0, new THREE.Color(color));
+    }
+    m.frustumCulled = false;
+    m.raycast = () => {};
+    m.userData.noLand = true;
+    m.userData.loose = true;
+    return m;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Picking up, throwing, putting down
+  // ---------------------------------------------------------------------------
+
+  private registerGrab(it: Item) {
+    const g: Grabbable = {
+      at: () => extents(it.kind.spec.shape, it.body.pos, it.body.q).c,
+      radius: Math.max(0.07, extents(it.kind.spec.shape, it.body.pos, it.body.q).eh + 0.035),
+      enabled: () => !it.holder && !it.gone,
+      grab: (hand) => {
+        const p = this.take(it, 'vr');
+        it.hand = hand;
+        return p;
+      },
+      drag: (hand, pos) => {
+        // Bottles: bring it to your mouth for a swig.
+        if (it.kind.key === 'bottle' && pos.distanceTo(this.d.hands.head) < 0.2 && this.swig(it)) this.d.hands.onHaptic?.(hand, 0.2, 30);
+      },
+      release: (hand, _pos, carried) => {
+        if (it.holder !== 'vr' || !carried) return;
+        const v = this.d.hands.velocity(hand);
+        this.let(it, carried, v.length() > 1.2 ? v.multiplyScalar(1.15) : v.multiplyScalar(0.8));
+      },
+    };
+    this.d.hands.register(g);
+  }
+
+  /** Takes an item out of the world into a hand; returns the mesh to carry. */
+  private take(it: Item, who: 'vr' | 'desk'): THREE.InstancedMesh {
+    this.sim.hold(it.body);
+    it.holder = who;
+    const p = this.makeProxy(it.kind.index, it.color)!;
+    p.position.copy(it.body.pos);
+    p.quaternion.copy(it.body.q);
+    this.d.scene.add(p);
+    it.proxy = p;
+    this.writeMatrix(it);
+    this.d.sound.play(it.kind.sound, it.body.pos.clone(), { volume: it.kind.vol * 0.5, rate: it.kind.rate * 1.1 });
+    this.onNet?.({ k: 'take', id: it.id });
+    return p;
+  }
+
+  /** Lets go of an item at the carried mesh's pose with velocity v (0: just drop it). */
+  private let(it: Item, carried: THREE.Object3D, v: THREE.Vector3) {
+    carried.updateMatrixWorld(true);
+    carried.matrixWorld.decompose(it.body.pos, it.body.q, new THREE.Vector3());
+    carried.removeFromParent();
+    it.proxy = null;
+    it.holder = null;
+    it.hand = null;
+    this.launch(it, v, undefined, true);
+  }
+
+  private launch(it: Item, v: THREE.Vector3, w: THREE.Vector3 | undefined, mine: boolean) {
+    this.sim.launch(it.body, v, w, mine);
+    if (v.length() > 1.2) this.stats.thrown++;
+    this.writeMatrix(it);
+    if (mine) this.woken.add(it.body);
+  }
+
+  pickUpDesk(it: Item) {
+    if (this.desk || this.d.player.inXR || this.d.lounge.holdingDrink || it.holder || it.gone) return;
+    const p = this.take(it, 'desk');
+    this.desk = it;
+    this.d.camera.add(p);
+    p.position.set(...it.kind.hold.p);
+    p.rotation.set(...it.kind.hold.r);
+    const extra = it.kind.key === 'bottle' ? ' · F to swig · hold P to pour' : '';
+    this.d.hud.toast(`Holding a ${this.labelOf(it)} · X to throw · Q to set it down${extra}`, 'info');
+  }
+
+  /** Desktop/phone: throw what you're holding where you're looking. */
+  throwDesk() {
+    const it = this.desk;
+    if (!it || !it.proxy) return;
+    const cam = this.d.camera;
+    cam.updateMatrixWorld(true);
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.getWorldQuaternion(new THREE.Quaternion()));
+    const heavy = it.kind.spec.mass > 1;
+    const v = dir.multiplyScalar(heavy ? 5 : 7).add(new THREE.Vector3(0, heavy ? 1.8 : 2.2, 0));
+    this.desk = null;
+    this.let(it, it.proxy, v);
+  }
+
+  /** Desktop: set it down on whatever is in front of you (gently). */
+  putDownDesk() {
+    const it = this.desk;
+    if (!it || !it.proxy) return;
+    const cam = this.d.camera;
+    cam.updateMatrixWorld(true);
+    const at = new THREE.Vector3(0, -0.15, -0.6).applyMatrix4(cam.matrixWorld);
+    const yaw = new THREE.Euler().setFromQuaternion(cam.getWorldQuaternion(new THREE.Quaternion()), 'YXZ').y;
+    it.proxy.removeFromParent();
+    it.proxy = null;
+    it.holder = null;
+    this.desk = null;
+    const b = it.body;
+    b.held = false;
+    b.q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    this.sim.place(b, at.x, at.z, at.y);
+    this.writeMatrix(it);
+    this.d.sound.play(it.kind.sound, b.pos.clone(), { volume: it.kind.vol * 0.6, rate: it.kind.rate });
+    this.onNet?.({ k: 'put', id: it.id, p: round(b.pos.toArray(), 3), q: round(b.q.toArray(), 3) });
+  }
+
+  get holding() {
+    return !!this.desk;
+  }
+
+  /** A swig from a bottle in your hand. */
+  swig(it: Item): boolean {
+    if (it.kind.key !== 'bottle' || it.level <= 0.02 || this.swigCool > 0) return false;
+    if (!this.d.lounge.swig(0.5)) return false;
+    this.swigCool = 1.4;
+    it.level = Math.max(0, it.level - 0.08);
+    if (it.proxy && it.holder === 'desk') {
+      // Up to your lips and back.
+      const p = it.proxy;
+      p.position.set(0.04, -0.1, -0.24);
+      p.rotation.set(1.3, 0, 0);
+      setTimeout(() => {
+        if (this.desk === it && it.proxy === p) {
+          p.position.set(...it.kind.hold.p);
+          p.rotation.set(...it.kind.hold.r);
+        }
+      }, 700);
+    }
+    if (it.level <= 0.02) this.d.hud.toast(`That's the ${this.labelOf(it).replace('empty ', '')} finished.`, 'info');
+    return true;
+  }
+
+  /** Bottles in your hands pour when you tip them (the drink physics streams them). */
+  private pourables(): Pourable[] {
+    const out: Pourable[] = [];
+    for (const it of this.items.values()) {
+      if (it.kind.key !== 'bottle' || !it.proxy || it.liquid === null || it.holder === 'remote') continue;
+      const self = it;
+      out.push({
+        group: it.proxy,
+        get level() {
+          return self.level;
+        },
+        setLevel: (l) => (self.level = Math.max(0, l)),
+        rimHeight: 0.32,
+        rimRadius: 0.012,
+        color: it.liquid,
+        remote: false,
+        capacity: it.kind.capacity,
+      });
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Simulation
+  // ---------------------------------------------------------------------------
+
+  update(dt: number) {
+    this.time += dt;
+    this.swigCool = Math.max(0, this.swigCool - dt);
+    for (const [k, t] of this.soundCool) if (t < this.time) this.soundCool.delete(k);
+    // Desktop: P tips the bottle in your hand forward to pour.
+    if (this.desk?.proxy && this.desk.kind.key === 'bottle') {
+      const want = this.d.lounge.pouringDesktop ? -2.1 : this.desk.kind.hold.r[0];
+      const p = this.desk.proxy;
+      p.rotation.x += (want - p.rotation.x) * Math.min(1, dt * 6);
+    }
+    this.knocks();
+    this.sim.update(dt);
+    // Tell your friend about things you set moving.
+    if (this.onNet && this.woken.size) {
+      for (const b of this.woken) {
+        if (!b.awake || b.gone) continue;
+        this.onNet({ k: 'throw', id: b.id, p: round(b.pos.toArray(), 3), q: round(b.q.toArray(), 3), v: round(b.v.toArray(), 2), w: round(b.w.toArray(), 1) });
+      }
+    }
+    this.woken.clear();
+    for (const k of this.kinds) {
+      for (const it of k.items) if (it.body.awake) this.writeMatrix(it);
+      if (k.dirty) {
+        k.mesh.instanceMatrix.needsUpdate = true;
+        if (k.mesh.instanceColor) k.mesh.instanceColor.needsUpdate = true;
+        // Clicks find instances where they are now.
+        k.mesh.boundingSphere = null;
+        k.mesh.boundingBox = null;
+        k.dirty = false;
+      }
+    }
+  }
+
+  /** Hands, held things and flying glasses push loose things; loose things knock glasses over. */
+  private knocks() {
+    const sim = this.sim;
+    // VR hands sweeping across a table.
+    if (this.d.player.inXR) {
+      for (const h of this.d.hands.hands) {
+        if (h.ctrl.userData.connected === false) continue;
+        const v = this.d.hands.velocity(h);
+        const held = h.carried ? [...this.items.values()].find((it) => it.proxy === h.carried) : undefined;
+        const hit = sim.sweep(h.pos, v, 0.045, true, 0.9, held?.body);
+        if (h.carried) {
+          // Whatever you're holding hits things too (a bottle swung across the bar).
+          const c = h.carried.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.06, 0).applyQuaternion(h.carried.getWorldQuaternion(new THREE.Quaternion())));
+          hit.push(...sim.sweep(c, v, held ? Math.min(0.08, extents(held.kind.spec.shape, held.body.pos, held.body.q).eh) : 0.05, true, 0.9, held?.body));
+        }
+        for (const b of hit) {
+          this.woken.add(b);
+          this.stats.swept++;
+          this.d.hands.onHaptic?.(h, 0.25, 25);
+        }
+      }
+    }
+    // Flying glasses knock loose things.
+    for (const f of this.d.throwables.flyingObjects) {
+      const c = f.obj.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.04, 0));
+      for (const b of sim.sweep(c, f.v, 0.05, true, 0.8)) {
+        this.woken.add(b);
+        this.stats.knocked++;
+        f.v.multiplyScalar(0.7);
+        this.d.sound.play('clink', c, { volume: 0.5, rate: 0.9 });
+      }
+    }
+    // Moving loose things knock glasses standing on tables (yours to knock: your friend sees the glass fly).
+    let glasses: Drink[] | null = null;
+    for (const b of sim.bodies) {
+      if (!b.awake || !b.mine) continue;
+      const sp = b.v.length();
+      if (sp < 0.6) continue;
+      glasses ??= [...Drink.all].filter((dr) => dr.group.parent === this.d.scene && !this.d.throwables.flying(dr.group) && !this.d.lounge.holder(dr));
+      const e = extents(b.spec.shape, b.pos, b.q);
+      for (const dr of glasses) {
+        const g = dr.group.position;
+        if (Math.hypot(g.x - e.c.x, g.z - e.c.z) > e.eh + 0.04 || e.c.y - e.ey > g.y + 0.16 || e.c.y + e.ey < g.y) continue;
+        const push = b.v.clone().multiplyScalar(Math.min(1.2, 0.5 + b.spec.mass));
+        push.y = Math.max(push.y, 0.4 + Math.random() * 0.3);
+        this.d.lounge.throwDrink(dr, push);
+        this.d.sound.play('clink', g.clone(), { volume: 0.7 });
+        b.v.multiplyScalar(0.6);
+        this.stats.knocked++;
+        glasses = glasses.filter((x) => x !== dr);
+      }
+    }
+  }
+
+  private event(e: LooseEvent) {
+    const it = e.body.data.item as Item | undefined;
+    if (!it) return;
+    if (e.type === 'wake') {
+      // Knocked by something of yours: your friend should see it go.
+      if (e.body.mine && e.by) this.woken.add(e.body);
+      if (e.by) this.stats.knocked++;
+    } else if (e.type === 'impact') {
+      this.impactSound(it, e.speed, e.other, e.soft);
+    } else if (e.type === 'settle') {
+      this.stats.landed++;
+      this.writeMatrix(it);
+      // A bottle lying on its side glugs out what's left.
+      if (it.kind.key === 'bottle' && it.liquid !== null && it.level > 0.05 && Math.abs(it.body.axis().y) < 0.5) {
+        const at = extents(it.kind.spec.shape, it.body.pos, it.body.q).c;
+        this.d.throwables.spill(new THREE.Vector3(at.x, it.body.pos.y - 0.03, at.z), it.liquid, 0.1 + it.level * 0.25);
+        this.d.sound.play('pour', at, { volume: 0.4, rate: 0.8 });
+        it.level = 0;
+      }
+      if (e.body.mine) this.onNet?.({ k: 'put', id: it.id, p: round(it.body.pos.toArray(), 3), q: round(it.body.q.toArray(), 3) });
+    } else if (e.type === 'break') {
+      this.smash(it, e.at, e.v);
+      if (e.body.mine) this.onNet?.({ k: 'break', id: it.id });
+    }
+  }
+
+  private impactSound(it: Item, speed: number, other: LooseBody | null, soft: boolean) {
+    const key = it.id;
+    if (this.soundCool.has(key)) return;
+    this.soundCool.set(key, this.time + 0.06);
+    const at = it.body.pos.clone();
+    const vol = Math.min(1, speed / 3) * it.kind.vol * (soft ? 0.4 : 1);
+    if (vol < 0.03) return;
+    const k = it.kind.key;
+    const chipOnChip = k.startsWith('chip') && other?.spec.name.startsWith('chip');
+    const name: SoundName = it.body.inWater ? 'splash' : chipOnChip ? 'chips' : it.kind.sound;
+    this.d.sound.play(name, at, { volume: vol, rate: it.kind.rate * (0.9 + Math.random() * 0.2) });
+  }
+
+  /** It broke: glass everywhere (a bottle is a bigger mess), and what was in it. */
+  private smash(it: Item, at: THREE.Vector3, v: THREE.Vector3) {
+    it.gone = true;
+    this.stats.broken++;
+    this.writeMatrix(it);
+    const wet = it.liquid !== null && it.level > 0.05 ? it.liquid : null;
+    this.d.throwables.shatter(at, v, wet);
+    if (it.kind.key === 'bottle') {
+      this.d.throwables.shatter(at.clone().add(new THREE.Vector3(0.05, 0.05, -0.04)), v.clone().multiplyScalar(0.6), null);
+      if (wet !== null) {
+        const floor = this.d.throwables.surfaceBelow(at.clone().add(new THREE.Vector3(0, 0.2, 0)));
+        this.d.throwables.spill(new THREE.Vector3(at.x + 0.08, floor, at.z - 0.05), wet, 0.25 + it.level * 0.35);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Two-player
+  // ---------------------------------------------------------------------------
+
+  /** What you're holding, for your friend's view: [kind, colour, hand (0 left, 1 right)]. */
+  heldState(): number[] | null {
+    const it = this.desk ?? [...this.items.values()].find((x) => x.holder === 'vr');
+    if (!it) return null;
+    const side = it.hand?.ctrl.userData.handedness === 'left' ? 0 : 1;
+    return [it.kind.index, it.color.getHex(), side];
+  }
+
+  /** Your friend did something to a loose object. */
+  remote(e: LooseNet) {
+    if (!e || typeof e !== 'object' || typeof e.id !== 'string') return;
+    const it = this.items.get(e.id);
+    if (!it || it.gone) return;
+    const finite = (a: unknown, n: number) => Array.isArray(a) && a.length === n && a.every((x) => Number.isFinite(x));
+    // If it's in your hand, you have it: their copy catches up when you let go.
+    if (it.holder === 'vr' || it.holder === 'desk') return;
+    if (e.k === 'take') {
+      this.sim.hold(it.body);
+      it.holder = 'remote';
+      this.writeMatrix(it);
+    } else if (e.k === 'put') {
+      if (!finite(e.p, 3) || !finite(e.q, 4)) return;
+      it.holder = null;
+      const b = it.body;
+      this.sim.hold(b);
+      b.held = false;
+      b.pos.fromArray(e.p);
+      b.q.fromArray(e.q).normalize();
+      b.mine = false;
+      this.writeMatrix(it);
+    } else if (e.k === 'throw') {
+      if (!finite(e.p, 3) || !finite(e.q, 4) || !finite(e.v, 3)) return;
+      it.holder = null;
+      it.body.pos.fromArray(e.p);
+      it.body.q.fromArray(e.q).normalize();
+      this.launch(it, new THREE.Vector3().fromArray(e.v), finite(e.w, 3) ? new THREE.Vector3().fromArray(e.w) : new THREE.Vector3(), false);
+    } else if (e.k === 'break') {
+      const at = extents(it.kind.spec.shape, it.body.pos, it.body.q).c.clone();
+      this.sim.remove(it.body);
+      this.smash(it, at, new THREE.Vector3());
+    }
+  }
+}
