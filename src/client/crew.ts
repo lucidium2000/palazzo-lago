@@ -83,13 +83,13 @@ export class Crew {
     if (dir.lengthSq() < 1e-4) dir.set(0, 0, -1);
     dir.normalize();
     const c = f.clone().addScaledVector(dir, 2.4);
-    const free = this.world.settle(c.x, c.z, 0.6);
+    const free = this.world.settle(c.x, c.z, 0.6, true);
     if (free) c.set(free[0], 0, free[1]);
     this.spot.copy(c);
     this.buddies.forEach((b, i) => {
       const a = (i / Math.max(1, this.buddies.length)) * Math.PI * 2;
       const at = new THREE.Vector3(c.x + Math.sin(a) * 0.75, 0, c.z + Math.cos(a) * 0.75);
-      const f = this.world.settle(at.x, at.z, 0.3);
+      const f = this.world.settle(at.x, at.z, 0.3, true);
       if (f) at.set(f[0], 0, f[1]);
       b.person.pos.copy(at);
       b.person.yaw = Math.atan2(c.x - at.x, c.z - at.z);

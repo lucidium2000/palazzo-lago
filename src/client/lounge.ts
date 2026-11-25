@@ -9,7 +9,7 @@ import type { Crowd, Person } from './people';
 import { randomLook, staffLook } from './people';
 import type { Player } from './player';
 import { marble, radial, toTexture, wood } from './textures';
-import type { World } from './world';
+import { SEAT_R, type World } from './world';
 import { BarMenuCard, buildVrMenu, DRINKS, PREP_TIME, SportsTicker, TIP, type DrinkKind } from './bar';
 import type { CanvasPanel } from './panel';
 import type { Viewpoint } from './player';
@@ -410,14 +410,14 @@ export class Lounge {
       add(new THREE.CylinderGeometry(0.025, 0.025, 0.74, 8), gold, x + 0.6, 0.38, z);
       add(new THREE.TorusGeometry(0.15, 0.012, 6, 20).rotateX(Math.PI / 2), gold, x + 0.6, 0.3, z);
       add(new THREE.CylinderGeometry(0.2, 0.22, 0.03, 20), gold, x + 0.6, 0.015, z);
-      world.addCircle(x + 0.6, z, 0.2);
+      world.addSeat(x + 0.6, z, SEAT_R, 0.82, -Math.PI / 2, 'bar stool');
     }
     void q;
     bakeStatic(this.bar);
 
     // Colliders: the counter, and the space behind it is staff only.
-    world.addBox(x, zc, 0.8, len + 0.2);
-    world.addBox(-16.5, zc, 2.6, len + 0.2);
+    world.addBox(x + 0.05, zc, 0.9, len + 0.2, 0, 'bar');
+    world.addBox(-16.5, zc, 2.6, len + 0.2, 0, 'bar');
 
     // Bartender and a few regulars.
     this.bartender = crowd.add('bartender', staffLook('bar'), new THREE.Vector3(-16.0, 0, 9), Math.PI / 2);
@@ -925,7 +925,7 @@ export class Lounge {
       c.position.set(x, 0, z);
       c.rotation.y = yaw;
       g.add(c);
-      this.d.world.addCircle(x, z, 0.4);
+      this.d.world.addLocalBox(c, 0, -0.01, 0.72, 0.64, 'armchair');
     };
     tables.forEach(([x, z], i) => {
       const t = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.04, 28), top);
@@ -935,7 +935,7 @@ export class Lounge {
       const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.03, 20), gold);
       foot.position.set(x, 0.015, z);
       g.add(t, stem, foot);
-      this.d.world.addCircle(x, z, 0.38);
+      this.d.world.addCircle(x, z, 0.38, 'cocktail table');
       chair(x - 0.85, z, Math.PI / 2);
       chair(x + 0.85, z, -Math.PI / 2);
       // A couple chatting at the first table, a single guest at the second.
@@ -1083,8 +1083,8 @@ export class Lounge {
 
     g.updateMatrixWorld(true);
     // Collider: the piano body and bench.
-    this.d.world.addLocalBox(g, 0, -0.75, 1.7, 2.3);
-    this.d.world.addLocalBox(g, 0, 0.62, 0.9, 0.45);
+    this.d.world.addLocalBox(g, 0, -0.75, 1.7, 2.3, 'piano');
+    this.d.world.addLocalBox(g, 0, 0.62, 0.9, 0.45, 'piano');
 
     // The pianist, and the music: a positional loop you hear across the room.
     const seat = new THREE.Vector3(0, 0, 0.64).applyMatrix4(g.matrixWorld);

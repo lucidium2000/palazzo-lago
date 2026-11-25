@@ -29,6 +29,8 @@ export interface PlayerState {
   moving: number;
   /** Viewpoint id when sitting/playing at a game. */
   seat: string | null;
+  /** Sitting on a stool you walked onto: the seat's height (x, z are the stool's centre). */
+  st?: number;
   chips: number;
   /** Voice chat switched on. */
   v?: boolean;

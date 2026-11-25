@@ -7,7 +7,7 @@ import { bakeStatic } from './merge';
 import type { Crowd } from './people';
 import { randomLook } from './people';
 import { symbolAtlas } from './slots/symbols';
-import type { World } from './world';
+import { SEAT_R, type World } from './world';
 
 /**
  * Rows of slot machines that fill out the floor. They are scenery (guests play
@@ -155,9 +155,9 @@ export class SlotRows {
         this.bulbs.setMatrixAt(i * this.bulbsPer + b, tmp.matrix);
         this.bulbs.setColorAt(i * this.bulbsPer + b, new THREE.Color(0xfff0b0));
       }
-      // Colliders: cabinet and stool.
-      this.world.addLocalBox(m, 0, -0.05, 0.7, 0.62);
-      this.world.addLocalBox(m, 0, 0.78, 0.36, 0.36);
+      // Collider for the cabinet (with its sloped deck); the stool is a seat you can sit on.
+      this.world.addLocalBox(m, 0, 0.02, 0.72, 0.68, 'slot machine');
+      this.world.addLocalSeat(m, 0, 0.78, SEAT_R, 0.7, Math.PI, 'slot stool');
 
       // Some machines have someone playing (fewer on lighter devices, so the
       // crowd budget also covers people mingling on the floor).
@@ -201,7 +201,7 @@ export class SlotRows {
       crown.position.y = 3.25;
       t.add(col, drum, capTop, capBot, crown);
       g.add(t);
-      this.world.addCircle(cx, cz, 0.6);
+      this.world.addCircle(cx, cz, 0.6, 'sign tower');
     });
     bakeStatic(g);
     // The seat faces the machine: people at a machine look toward -Z of the person frame.

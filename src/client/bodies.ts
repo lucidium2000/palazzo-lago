@@ -217,7 +217,7 @@ export class Bodies {
         s.t += dt;
         const sx = s.dx * s.dist * k,
           sz = s.dz * s.dist * k;
-        const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, sx, sz, 0.22);
+        const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, sx, sz, 0.22, true);
         const moved = Math.hypot(nx - p.pos.x, nz - p.pos.z);
         p.pos.x = nx;
         p.pos.z = nz;
@@ -235,7 +235,7 @@ export class Bodies {
         const clear = Math.hypot(s.homeX - feet.x, s.homeZ - feet.z) > 0.75;
         if (hd > 0.03 && clear) {
           const k = Math.min(hd, 0.45 * dt) / hd;
-          const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, hx * k, hz * k, 0.22);
+          const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, hx * k, hz * k, 0.22, true);
           p.pos.x = nx;
           p.pos.z = nz;
           p.moving = 0.45;
@@ -279,7 +279,7 @@ export class Bodies {
           cz *= max / l;
         }
         const p = people[i];
-        const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, cx, cz, 0.22);
+        const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, cx, cz, 0.22, true);
         p.pos.x = nx;
         p.pos.z = nz;
       }

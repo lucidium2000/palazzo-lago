@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { hipOnSeat } from '../sitpose';
 import type { Crowd, Person } from '../people';
 import { avatarLook } from './avatars';
 import { Voice } from './voice';
@@ -204,7 +205,9 @@ export class Session {
 
   private state(): PlayerState {
     const p = this.d.player;
-    const f = p.seated ? p.seated.position : p.feet();
+    // On a stool you walked onto: you're sitting on its centre.
+    const stool = !p.seated && p.stool ? p.stool : null;
+    const f = p.seated ? p.seated.position : stool ? new THREE.Vector3(stool.x, p.feetY, stool.z) : p.feet();
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(p.camera.getWorldQuaternion(new THREE.Quaternion()));
     return {
       name: this.d.name,
@@ -217,6 +220,7 @@ export class Session {
       pitch: Math.round(Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1)) * 100) / 100,
       moving: 0,
       seat: p.seated?.id ?? null,
+      st: stool ? Math.round(stool.y * 100) / 100 : undefined,
       chips: Math.round(this.d.bankroll.balance),
       v: this.voice?.enabled ?? false,
       hh: Math.round((p.camera.getWorldPosition(new THREE.Vector3()).y - p.rig.position.y) * 100) / 100,
@@ -605,7 +609,8 @@ export class Session {
       const p = r.person;
       if (!p) continue;
       const s = r.state;
-      const seated = SEATED(s.seat);
+      const stool = Number(s.st) || 0;
+      const seated = SEATED(s.seat) || stool > 0;
       const dx = r.target.x - p.pos.x,
         dz = r.target.z - p.pos.z;
       const dist = Math.hypot(dx, dz);
@@ -623,7 +628,7 @@ export class Session {
       p.seated = seated;
       // Swimming: their body lies along the surface, head where theirs is.
       p.swimHead = s.sw ? p.pos.y + (Number(s.hh) || 1.6) : null;
-      p.seatY = s.seat === 'roulette' ? 0.66 : 0.62;
+      p.seatY = stool > 0 ? p.pos.y + hipOnSeat(stool) : s.seat === 'roulette' ? 0.66 : 0.62;
       // The body follows where they look only when they turn far or walk; the head does the rest.
       const headYaw = Number(s.yaw) || 0;
       let diff = Math.atan2(Math.sin(headYaw - r.bodyYaw), Math.cos(headYaw - r.bodyYaw));

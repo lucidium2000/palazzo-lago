@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Interaction } from './interaction';
-import type { Surface, World } from './world';
+import type { Seat, Surface, World } from './world';
 import { GRAVITY, MAX_SWIM_SPEED, StrokeHand, floatFeet, isDeep, newVState, strokeThrust, verticalStep, type VEvents } from './swimphys';
 
 /**
@@ -50,6 +50,12 @@ export const RADIUS = 0.25;
 const JUMP_V = Math.sqrt(2 * GRAVITY * 0.45);
 /** Highest ledge you can walk up (a stair, a curb). */
 const STEP_UP = 0.36;
+/** Desktop eye height sitting on a stool: this far above its seat. */
+const SEATED_EYE = 0.52;
+/** Once on a stool, you stay on it until your feet are this much further out. */
+const SEAT_STAY = 0.08;
+/** Eye height while sitting on a stool (desktop). */
+export const stoolEye = (seat: Seat) => THREE.MathUtils.clamp(seat.y + SEATED_EYE, 1.1, 1.45);
 
 export class Player {
   readonly rig = new THREE.Group();
@@ -65,6 +71,14 @@ export class Player {
   private turnFlash = 0;
   /** The game the player is sitting at (desktop), if any. */
   seated: Viewpoint | null = null;
+  /**
+   * The stool you're on: walk onto a slot, table or bar stool and you sit on
+   * it (desktop: your eyes come down to seated height; VR: your body sits).
+   * Null when you're not over one, sitting at a game, airborne or swimming.
+   */
+  stool: Seat | null = null;
+  /** Easing your eyes back up after a stool (desktop). */
+  private stoolEyeT = false;
   current: Viewpoint | null = null;
   onArrive: ((v: Viewpoint) => void) | null = null;
   onStep: ((surface: Surface, run: boolean) => void) | null = null;
@@ -638,7 +652,8 @@ export class Player {
     const turn = (k.has('ArrowLeft') ? 1 : 0) - (k.has('ArrowRight') ? 1 : 0);
     const run = k.has('ShiftLeft') || k.has('ShiftRight') || stickMag > 0.92;
     const push = Math.min(1, Math.hypot(f, s));
-    const target = (push > 0.05 ? (run ? RUN : WALK) * (stickMag > 0.15 ? Math.max(0.35, push) : 1) : 0) * this.waterDrag();
+    // Over a stool you shuffle (you're sitting down on it, or getting up).
+    const target = (push > 0.05 ? (run ? RUN : WALK) * (stickMag > 0.15 ? Math.max(0.35, push) : 1) : 0) * this.waterDrag() * (this.stool ? 0.6 : 1);
     // Ease into and out of walking so starts and stops feel like a body, not a cursor.
     this.speedNow += (target - this.speedNow) * Math.min(1, dt * (target > this.speedNow ? 6 : 9));
     if (turn) {
@@ -668,9 +683,31 @@ export class Player {
       p.z = nz;
       this.bob += moved * (run ? 5.4 : 6.6);
       if (this.water === null || this.water - this.feetY < 0.25) this.step(moved, run, p);
-      if (this.eye !== EYE) this.eye += (EYE - this.eye) * Math.min(1, dt * 4);
+      if (this.eye !== EYE && !this.stool && !this.stoolEyeT) this.eye += (EYE - this.eye) * Math.min(1, dt * 4);
+    }
+    this.updateStool(this.rig.position);
+    // Sitting on a stool: ease your eyes down to seated height, and back up as you get off.
+    if (!this.seated && !this.tween && (this.stool || this.stoolEyeT)) {
+      const want = this.stool ? stoolEye(this.stool) : EYE;
+      this.eye += (want - this.eye) * Math.min(1, dt * (this.stool ? 3.2 : 4));
+      this.stoolEyeT = !!this.stool || Math.abs(this.eye - EYE) > 0.004;
+      if (!this.stoolEyeT) this.eye = EYE;
     }
     if (!this.tween) this.applyDesktopCamera();
+  }
+
+  /**
+   * Which stool you're on (feet over its seat, on the ground, not playing a
+   * game, not swimming). Leaving takes a little more than arriving, so you
+   * don't flicker on and off at the edge.
+   */
+  private updateStool(at: THREE.Vector3) {
+    if (this.seated || this.tween || this.airborne || this.water !== null) {
+      this.stool = null;
+      return;
+    }
+    const s = this.world.seatAt(at.x, at.z, this.stool ? SEAT_STAY : 0);
+    this.stool = s && Math.abs(this.feetY - this.world.groundAt(s.x, s.z)) < 0.1 ? s : null;
   }
 
   /**
@@ -775,6 +812,7 @@ export class Player {
       if (this.water === null || this.water - this.feetY < 0.25) this.step(speed * dt, this.speedNow > WALK * 1.2, new THREE.Vector3(hx, 0, hz));
       this.current = null;
     }
+    this.updateStool(this.headWorld());
     this.turnFlash = Math.max(0, this.turnFlash - dt);
     const want = Math.min(0.9, (speed / WALK) * 0.75 + this.turnFlash * 3);
     const mat = this.vignette.material as THREE.MeshBasicMaterial;

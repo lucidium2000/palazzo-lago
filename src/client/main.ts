@@ -34,7 +34,8 @@ import { WHEEL_CENTER } from './roulette/layout';
 import { RouletteTable } from './roulette/table';
 import { SlotMachineView } from './slots/machine';
 import { PiggyMachineView } from './slots/piggy';
-import { World } from './world';
+import { SEAT_R, World } from './world';
+import { ColliderDebug } from './colliderdebug';
 import { assets } from './assets';
 import { Crew } from './crew';
 import { Night } from './night';
@@ -125,9 +126,10 @@ async function main() {
 
   // --- Games -------------------------------------------------------------------
   const roulette = new RouletteTable(ctx, POSITIONS.roulette);
-  world.addLocalBox(roulette.group, -0.28, -0.02, 2.95, 1.15);
-  world.addLocalBox(roulette.group, WHEEL_CENTER.x - 0.62, -0.25, 0.3, 0.3);
-  for (const x of [-0.75, 0.95]) world.addLocalBox(roulette.group, x, 0.98, 0.36, 0.36);
+  world.addLocalBox(roulette.group, -0.28, -0.02, 2.95, 1.15, 'table');
+  world.addLocalBox(roulette.group, WHEEL_CENTER.x - 0.62, -0.25, 0.3, 0.3, 'table');
+  // Its stools are seats: walk onto one and you sit (see world.addSeat).
+  for (const x of [-0.75, 0.95]) world.addLocalSeat(roulette.group, x, 0.98, SEAT_R, 0.72, Math.PI, 'table stool');
   const themes = [
     { body: 0x7a0c14, accent: 0xff3a3a, screenBg: ['#2a0608', '#0c0203'] as [string, string], reelBg: ['#fffaf0', '#c9bfa8'] as [string, string] },
     { body: 0x0f2a5a, accent: 0x4ab0ff, screenBg: ['#0d2a52', '#050c1c'] as [string, string], reelBg: ['#13305e', '#0a1630'] as [string, string] },
@@ -140,8 +142,8 @@ async function main() {
     const fwd = new THREE.Vector3(Math.sin(SLOTS_YAW), 0, Math.cos(SLOTS_YAW));
     const pos = POSITIONS.slots.clone().addScaledVector(right, off).addScaledVector(fwd, -Math.abs(off) * 0.12);
     const view = new SlotMachineView(ctx, m, pos, yaw, themes[i]);
-    world.addLocalBox(view.group, 0, -0.05, 0.74, 0.64);
-    world.addLocalBox(view.group, 0, 0.78, 0.34, 0.34);
+    world.addLocalBox(view.group, 0, 0.0, 0.76, 0.72, 'slot machine');
+    world.addLocalSeat(view.group, 0, 0.78, SEAT_R, 0.7, Math.PI, 'slot stool');
     return view;
   });
   // Porkbelly Payday: a premium cabinet at the end of the slot bank.
@@ -151,12 +153,12 @@ async function main() {
     const fwd = new THREE.Vector3(Math.sin(SLOTS_YAW), 0, Math.cos(SLOTS_YAW));
     const pos = POSITIONS.slots.clone().addScaledVector(right, off).addScaledVector(fwd, -off * 0.12);
     const view = new PiggyMachineView(ctx, pos, SLOTS_YAW - off * 0.22);
-    world.addLocalBox(view.group, 0, -0.05, 0.84, 0.66);
-    world.addLocalBox(view.group, 0, 0.82, 0.34, 0.34);
+    world.addLocalBox(view.group, 0, 0.0, 0.86, 0.72, 'slot machine');
+    world.addLocalSeat(view.group, 0, 0.86, SEAT_R, 0.7, Math.PI, 'slot stool');
     return view;
   })();
   const craps = new CrapsTable(ctx, POSITIONS.craps);
-  world.addLocalBox(craps.group, 0, 0, 3.75, 1.7);
+  world.addLocalBox(craps.group, 0, 0, 3.75, 1.7, 'table');
 
   // --- Places and people -------------------------------------------------------------
   // Throwing physics (glasses fly, land, break); your own body and hands are never a landing spot.
@@ -193,7 +195,7 @@ async function main() {
     [6.6, 2], [4.8, -2.8], [0, -4.6], [-4.8, -2.8], [-6.6, 2], [-4.4, 7.0], [4.4, 7.0],
     [-11, -2.5], [-11.2, 4.5], [-4.5, -10.5], [-10.5, -11], [3.8, -11.2], [0, -12.4],
     [9.2, -6.5], [9.4, -11.5], [9.4, -1.8], [14.6, -11.5], [14.6, -6], [14.6, -1.2],
-    [10.5, 10.5], [14.5, 10], [12.5, 1.2], [-10.1, 9.8], [-13.2, 8.6], [-9, 12.4],
+    [10.5, 10.5], [14.5, 10], [12.5, 1.2], [-10.1, 9.8], [-13.3, 9.0], [-9, 12.4],
     [0, -15.6], [-5.5, -16], [5.5, -16], [-8.5, -15.2], [8.5, -15.2],
   ]);
 
@@ -221,7 +223,8 @@ async function main() {
     const t = buildBlackjack(quality, spec);
     scene.add(t.group);
     bakeStatic(t.group, { shadows: quality.shadows });
-    world.addLocalBox(t.group, 0, 0.35, 2.3, 1.3);
+    world.addLocalBox(t.group, 0, 0.37, 2.3, 1.36, 'table');
+    for (const st of t.seats) world.addSeat(st.pos.x, st.pos.z, SEAT_R, 0.745, st.yaw, 'table stool');
     crowd.add('croupier', staffLook('dealer'), t.dealer.pos, t.dealer.yaw);
     for (const k of quality.name === 'quest2' || quality.name === 'mobile' ? [1, 4] : [0, 2, 3, 5]) {
       const st = t.seats[k];
@@ -1076,7 +1079,7 @@ async function main() {
         hands.poseHands(fingerPoses());
         const head = camera.getWorldPosition(new THREE.Vector3());
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
-        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.swimming ? Math.max(player.speed, player.swimSpeed) : player.speed, swim: player.swimming ? 1 : 0 });
+        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.swimming ? Math.max(player.speed, player.swimSpeed) : player.speed, swim: player.swimming ? 1 : 0, seat: player.stool });
       } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, poses: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose }, speed: 0 });
     }
     for (const m of machines) m.update(dt);
@@ -1193,7 +1196,8 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics };
+  const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
+  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics };
 }
 
 main().catch((e) => {

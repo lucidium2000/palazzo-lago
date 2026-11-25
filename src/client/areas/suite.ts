@@ -17,12 +17,31 @@ export function registerSuite(world: World) {
   const S = SUITE;
   world.addWalkable(S.x0 + 0.35, S.x1 - 0.3, S.z0 + 0.35, S.z1 - 0.3);
   world.addSurface('carpet', S.x0, S.x1, S.z0, S.z1);
-  world.addBox(592.2, -2.9, 3.0, 1.0); // sofa
-  world.addBox(590.0, -1.6, 1.0, 2.4); // sofa return
-  world.addBox(592.2, -1.2, 1.3, 0.7); // coffee table
-  world.addBox(593.2, 3.9, 2.2, 2.3); // bed
-  world.addBox(598.5, -5.3, 2.6, 0.7); // minibar
-  world.addBox(596.8, -1.0, 1.4, 0.9); // dining table
+  world.addBox(592.2, -3.0, 3.0, 1.22, 0, 'sofa'); // sofa (seat and back)
+  world.addBox(589.95, -1.6, 1.1, 2.4, 0, 'sofa'); // sofa return
+  world.addBox(592.2, -1.2, 1.3, 0.7, 0, 'table'); // coffee table
+  world.addBox(593.2, 3.98, 2.4, 2.52, 0, 'bed'); // bed and headboard
+  world.addBox(598.5, -5.3, 2.7, 0.7, 0, 'bar'); // minibar
+  world.addBox(596.8, -1.0, 1.4, 0.9, 0, 'table'); // dining table
+  // Armchairs by the coffee table (seat and back), turned toward the sofa.
+  for (const [x, z, ry] of [
+    [594.5, -1.6, -Math.PI / 2],
+    [594.5, -0.2, -Math.PI / 2 - 0.4],
+  ]) world.addBox(x, z, 0.9, 0.9, ry, 'armchair');
+  // Dining chairs (seat and back).
+  for (const [x, z] of [
+    [596.3, -1.7],
+    [597.3, -1.7],
+    [596.3, -0.3],
+    [597.3, -0.3],
+  ]) world.addBox(x, z + (z < -1 ? -0.03 : 0.03), 0.47, 0.52, 0, 'chair');
+  for (const x of [591.7, 594.7]) world.addBox(x, 4.9, 0.58, 0.48, 0, 'nightstand');
+  world.addBox(593.2, 2.35, 1.62, 0.48, 0, 'bench'); // bench at the foot of the bed
+  for (const [x, z] of [
+    [589.0, -5.0],
+    [595.5, -4.9],
+  ]) world.addCircle(x, z, 0.25, 'lamp');
+  world.addBox(599.5, 0.8, 0.48, 1.32, 0, 'table'); // entry console
 }
 
 export function buildSuite(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group {
