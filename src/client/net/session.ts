@@ -222,6 +222,7 @@ export class Session {
   }
 
   leave() {
+    this.left = true;
     this.fader.dispose();
     this.voice.disable();
     this.d.transport.leave();
@@ -290,7 +291,9 @@ export class Session {
   }
 
   private lastSent = '';
+  private left = false;
   private flush() {
+    if (this.left) return;
     // Forget events every friend still in touch has confirmed; the rest ride along (oldest first, within ~3.6 KB).
     const live = [...this.remotes.values()].filter((r) => this.time - r.heardAt < 1.5);
     this.outbox.prune(
@@ -795,6 +798,7 @@ export class Session {
   }
 
   update(dt: number) {
+    if (this.left) return;
     this.time += dt;
     this.fader.update(dt);
     // Publish my state ~10 times a second when it changes (events go at once).
@@ -896,7 +900,7 @@ export class Session {
       // Name tags stay readable across the room: they grow with distance (keeping their
       // size on screen past a few metres), and a faint copy shows through walls.
       r.tag.position.set(p.pos.x, top + 0.12, p.pos.z);
-      const far = THREE.MathUtils.clamp(cam.distanceTo(r.tag.position) / 4.5, 1, 6);
+      const far = THREE.MathUtils.clamp(cam.distanceTo(r.tag.position) / 3.5, 1, 7);
       r.tag.scale.set(r.tag.userData.w * far, r.tag.userData.h * far, 1);
       r.tag.position.y += (far - 1) * 0.08;
       r.ghost.position.copy(r.tag.position);
@@ -949,7 +953,7 @@ function label(text: string, opts: { bg: string; fg: string; font: string; pad: 
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   const s = new THREE.Sprite(
-    new THREE.SpriteMaterial(opts.ghost ? { map: t, depthWrite: false, depthTest: false, transparent: true, opacity: 0.28, fog: false } : { map: t, depthWrite: false, transparent: true, fog: false }),
+    new THREE.SpriteMaterial(opts.ghost ? { map: t, depthWrite: false, depthTest: false, transparent: true, opacity: 0.42, fog: false } : { map: t, depthWrite: false, transparent: true, fog: false }),
   );
   const h = opts.height;
   s.scale.set((h * c.width) / c.height, h, 1);

@@ -172,6 +172,13 @@ describe('finding each other', () => {
     expect(s.x).toBeGreaterThan(0);
     const wet = landingSpot({ x: 2, z: 0, heading: 0 }, room({ water: (_x, z) => z > 0.5 }))!;
     expect(wet.z).toBeLessThanOrEqual(0.5);
+    // Swimming mid-pool (water everywhere within 4 m): the nearest deck.
+    const pool = (x: number, z: number) => Math.hypot(x - 2, z) < 4;
+    const deck = landingSpot({ x: 2, z: 0, heading: 0 }, room({ water: pool, inside: (x, z) => Math.abs(z) < 5 && x > -5 && x < 9, free: (x, z, r) => Math.abs(z) < 5 - r && x > -5 + r && x < 9 - r }))!;
+    expect(pool(deck.x, deck.z)).toBe(false);
+    // All water: beside them in it.
+    const swim = landingSpot({ x: 2, z: 0, heading: 0 }, room({ water: () => true }))!;
+    expect(Math.hypot(swim.x - 2, swim.z)).toBeLessThan(2.1);
     const cab = landingSpot({ x: 2, z: 0, heading: 0 }, room({ cab: (x) => x > 1.5 && x < 2.5 }))!;
     expect(cab.x < 1.5 || cab.x > 2.5).toBe(true);
     const crowded = landingSpot({ x: 2, z: 0, heading: 0 }, room(), [{ x: 2, z: 1.1 }])!;

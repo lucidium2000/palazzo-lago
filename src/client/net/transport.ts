@@ -380,7 +380,7 @@ export async function localTransport(code: string, host: boolean, wait = 350): P
     code,
     self: me,
     publish(w) {
-      ch.postMessage({ from: me, w } satisfies LocalMsg);
+      if (inside) ch.postMessage({ from: me, w } satisfies LocalMsg);
     },
     onRemote(fn) {
       handler = fn;

@@ -199,7 +199,8 @@ export interface Ground {
 /**
  * A free spot beside a friend for "go to friend": in front of them first (so
  * you see their face), then round them, a little further out each ring;
- * never in the water, in a lift car, on another player, or through a wall
+ * not in the water (a friend swimming mid-pool: the nearest deck, else you
+ * join them in the water), in a lift car, on another player, or through a wall
  * from them. Returns where to stand and the heading that faces them.
  */
 export function landingSpot(
@@ -217,18 +218,22 @@ export function landingSpot(
     }
     return true;
   };
-  const ok = (x: number, z: number) =>
-    g.free(x, z, r) && !g.water?.(x, z) && !g.cab?.(x, z) && others.every((o) => Math.hypot(o.x - x, o.z - z) > 0.65) && clearLine(x, z);
+  const ok = (x: number, z: number, wet: boolean) =>
+    g.free(x, z, r) && (wet || !g.water?.(x, z)) && !g.cab?.(x, z) && others.every((o) => Math.hypot(o.x - x, o.z - z) > 0.65) && clearLine(x, z);
   const offsets = [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8, 2.4, -2.4, Math.PI];
-  for (const rad of [1.1, 1.5, 2.0, 2.6]) {
-    for (const o of offsets) {
-      const h = target.heading + o;
-      const x = target.x + Math.sin(h) * rad,
-        z = target.z + Math.cos(h) * rad;
-      if (ok(x, z)) return { x, z, heading: headingOf(target.x - x, target.z - z) };
+  const ring = (radii: number[], wet: boolean) => {
+    for (const rad of radii) {
+      for (const o of offsets) {
+        const h = target.heading + o;
+        const x = target.x + Math.sin(h) * rad,
+          z = target.z + Math.cos(h) * rad;
+        if (ok(x, z, wet)) return { x, z, heading: headingOf(target.x - x, target.z - z) };
+      }
     }
-  }
-  return null;
+    return null;
+  };
+  // Close by on dry ground; a friend swimming mid-pool: the nearest bit of deck; failing that, in the water beside them.
+  return ring([1.1, 1.5, 2.0, 2.6], false) ?? (g.water ? ring([3.3, 4.2, 5.2, 6.4, 7.6], false) ?? ring([1.1, 1.5, 2.0], true) : null);
 }
 
 // ---------------------------------------------------------------------------

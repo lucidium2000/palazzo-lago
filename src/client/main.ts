@@ -673,7 +673,9 @@ async function main() {
     if (!session) return;
     roomPill.hidden = false;
     showVoice();
-    roomPill.textContent = `Room LAGO-${session.code} · ${friends.length ? `${friends.length + 1}/${MAX_PLAYERS} · with ${friends.join(', ')}` : 'waiting for friends'} · Chat`;
+    // Who's here is on the scoreboard below: the pill stays short.
+    roomPill.textContent = `Room LAGO-${session.code} · ${friends.length ? `${friends.length + 1}/${MAX_PLAYERS}` : 'waiting for friends'} · Chat`;
+    roomPill.title = friends.length ? `With ${friends.join(', ')}` : '';
     showBoard();
   };
   const openChat = () => {

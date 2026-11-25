@@ -485,6 +485,17 @@ button.primary {
   padding: 2px 10px;
   pointer-events: auto;
 }
+@media (max-width: 640px) {
+  #room-board {
+    font-size: 12px;
+    padding: 4px 8px;
+    background: rgba(20, 12, 8, 0.55);
+  }
+  #room-board .where {
+    font-size: 11px;
+    max-width: 90px;
+  }
+}
 #voice-btn.live {
   background: rgba(40, 110, 50, 0.9);
 }
