@@ -170,114 +170,198 @@ export function floorTile(size: number, photo?: CanvasImageSource | null): HTMLC
 
 /** Ornate floral casino carpet: burgundy ground, gold scrolls, coral and amber blooms. */
 export function carpet(size: number): HTMLCanvasElement {
-  // Bellagio-style floral: a dark wine ground, gilded acanthus scrolls, and
-  // shaded blossoms in coral, saffron, teal and violet. One tile = 2.4 m.
+  // Classic Vegas casino floral. One tile = 2.4 m, half-drop: two big peonies (~55 cm) and two
+  // lilies per tile on broad swirling teal ribbons edged in gold, over a deep wine ground with a
+  // tone-on-tone damask. Bold, dark-outlined shapes read at a glance in VR (no confetti that
+  // would shimmer); the woven relief comes from the scanned pile normal map.
   const [c, g] = canvas(size);
-  g.fillStyle = '#4a0f1c';
-  g.fillRect(0, 0, size, size);
   const S = size;
+  g.fillStyle = '#3c0a16';
+  g.fillRect(0, 0, S, S);
   let seed = 11;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  // Tone-on-tone ground damask.
-  g.fillStyle = 'rgba(120,30,44,0.6)';
-  for (let i = 0; i < 4; i++)
-    for (let j = 0; j < 4; j++) {
-      const x = (i + 0.5) * (S / 4) + ((j % 2) * S) / 8,
-        y = (j + 0.5) * (S / 4);
-      g.beginPath();
-      g.ellipse(x, y, S * 0.06, S * 0.1, 0, 0, Math.PI * 2);
-      g.fill();
-    }
-  // Scrolling vines (wrap around the tile edges so it repeats seamlessly).
   const wrap = (fn: (ox: number, oy: number) => void) => {
     for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) fn(ox, oy);
   };
-  const vine = (pts: number[][], w: number, col: string) =>
-    wrap((ox, oy) => {
-      g.strokeStyle = col;
-      g.lineWidth = w;
-      g.lineCap = 'round';
-      g.beginPath();
-      g.moveTo(pts[0][0] * S + ox, pts[0][1] * S + oy);
-      for (let k = 1; k + 2 < pts.length + 1; k += 3) {
-        const [a1, b1, c1] = [pts[k], pts[k + 1], pts[k + 2]];
-        if (!c1) break;
-        g.bezierCurveTo(a1[0] * S + ox, a1[1] * S + oy, b1[0] * S + ox, b1[1] * S + oy, c1[0] * S + ox, c1[1] * S + oy);
-      }
-      g.stroke();
-    });
-  const paths = [
-    [[0, 0.25], [0.2, 0.05], [0.3, 0.45], [0.5, 0.25], [0.7, 0.05], [0.8, 0.45], [1, 0.25]],
-    [[0, 0.75], [0.2, 0.55], [0.3, 0.95], [0.5, 0.75], [0.7, 0.55], [0.8, 0.95], [1, 0.75]],
-    [[0.25, 0], [0.05, 0.2], [0.45, 0.3], [0.25, 0.5], [0.05, 0.7], [0.45, 0.8], [0.25, 1]],
-    [[0.75, 0], [0.55, 0.2], [0.95, 0.3], [0.75, 0.5], [0.55, 0.7], [0.95, 0.8], [0.75, 1]],
+  // Tone-on-tone ground: large damask lozenges.
+  g.fillStyle = 'rgba(96,22,36,0.7)';
+  for (let i = 0; i < 4; i++)
+    for (let j = 0; j < 4; j++)
+      wrap((ox, oy) => {
+        const x = (i + 0.5) * (S / 4) + ((j % 2) * S) / 8 + ox,
+          y = (j + 0.5) * (S / 4) + oy;
+        g.beginPath();
+        g.moveTo(x, y - S * 0.1);
+        g.quadraticCurveTo(x + S * 0.07, y, x, y + S * 0.1);
+        g.quadraticCurveTo(x - S * 0.07, y, x, y - S * 0.1);
+        g.fill();
+      });
+  // Broad swirling ribbons (S-curves that wrap seamlessly), dark-edged, gold-rimmed, teal with a sheen.
+  const curve = (pts: number[][], ox: number, oy: number) => {
+    g.beginPath();
+    g.moveTo(pts[0][0] * S + ox, pts[0][1] * S + oy);
+    for (let k = 1; k + 2 < pts.length + 1; k += 3) {
+      const [a1, b1, c1] = [pts[k], pts[k + 1], pts[k + 2]];
+      if (!c1) break;
+      g.bezierCurveTo(a1[0] * S + ox, a1[1] * S + oy, b1[0] * S + ox, b1[1] * S + oy, c1[0] * S + ox, c1[1] * S + oy);
+    }
+  };
+  const ribbons = [
+    [[0, 0.5], [0.12, 0.32], [0.38, 0.68], [0.5, 0.5], [0.62, 0.32], [0.88, 0.68], [1, 0.5]],
+    [[0.5, 0], [0.68, 0.12], [0.32, 0.38], [0.5, 0.5], [0.68, 0.62], [0.32, 0.88], [0.5, 1]],
   ];
-  for (const p of paths) {
-    vine(p, S * 0.016, '#6a521e');
-    vine(p, S * 0.008, '#d6ab52');
-  }
-  // Acanthus leaves along the vines.
+  for (const [w, col] of [
+    [0.05, '#14040a'],
+    [0.042, '#c9973e'],
+    [0.032, '#0f4a50'],
+    [0.014, '#2f8a86'],
+  ] as const)
+    for (const p of ribbons)
+      wrap((ox, oy) => {
+        g.strokeStyle = col;
+        g.lineWidth = S * w;
+        g.lineCap = 'round';
+        curve(p, ox, oy);
+        g.stroke();
+      });
+  // Fine gold scroll tendrils curling off the ribbons.
+  const tendril = (x: number, y: number, a: number, r: number) =>
+    wrap((ox, oy) => {
+      g.save();
+      g.translate(x + ox, y + oy);
+      g.rotate(a);
+      g.strokeStyle = '#d6a84c';
+      g.lineWidth = S * 0.006;
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.bezierCurveTo(r * 0.6, -r * 0.2, r, r * 0.3, r * 0.7, r * 0.6);
+      g.bezierCurveTo(r * 0.5, r * 0.8, r * 0.3, r * 0.5, r * 0.5, r * 0.4);
+      g.stroke();
+      g.restore();
+    });
+  for (let k = 0; k < 20; k++) tendril(rnd() * S, rnd() * S, rnd() * 6.28, S * (0.04 + rnd() * 0.03));
+  // Acanthus leaves, two-tone with a dark outline.
   const leaf = (x: number, y: number, a: number, l: number) =>
     wrap((ox, oy) => {
       g.save();
       g.translate(x + ox, y + oy);
       g.rotate(a);
       const grd = g.createLinearGradient(0, 0, l, 0);
-      grd.addColorStop(0, '#3f5a2a');
-      grd.addColorStop(1, '#8aa055');
+      grd.addColorStop(0, '#24401c');
+      grd.addColorStop(1, '#7c9a46');
       g.fillStyle = grd;
+      g.strokeStyle = '#120806';
+      g.lineWidth = S * 0.003;
       g.beginPath();
       g.moveTo(0, 0);
-      g.quadraticCurveTo(l * 0.5, -l * 0.35, l, 0);
-      g.quadraticCurveTo(l * 0.5, l * 0.2, 0, 0);
+      g.bezierCurveTo(l * 0.3, -l * 0.42, l * 0.75, -l * 0.3, l, 0);
+      g.bezierCurveTo(l * 0.7, l * 0.22, l * 0.3, l * 0.28, 0, 0);
       g.fill();
+      g.stroke();
+      g.strokeStyle = 'rgba(220,230,150,0.5)';
+      g.beginPath();
+      g.moveTo(l * 0.05, 0);
+      g.quadraticCurveTo(l * 0.5, -l * 0.08, l * 0.9, 0);
+      g.stroke();
       g.restore();
     });
-  for (let k = 0; k < 90; k++) leaf(rnd() * S, rnd() * S, rnd() * 6.28, S * (0.025 + rnd() * 0.035));
-  // Shaded blossoms.
-  const blossom = (x: number, y: number, r: number, cols: string[], petals: number) =>
+  const blooms: [number, number, number][] = [
+    [0.25, 0.25, 0.115],
+    [0.75, 0.75, 0.115],
+    [0.75, 0.25, 0.075],
+    [0.25, 0.75, 0.075],
+  ];
+  for (const [x, y, r] of blooms)
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2 + x * 3;
+      leaf(x * S + Math.cos(a) * r * S * 0.75, y * S + Math.sin(a) * r * S * 0.75, a, S * r * (0.9 + rnd() * 0.3));
+    }
+  // Big peonies: rings of ruffled, shaded petals, each outlined so the bloom stays crisp.
+  const peony = (x: number, y: number, r: number, cols: string[]) =>
     wrap((ox, oy) => {
       const cx = x + ox,
         cy = y + oy;
-      for (let ring = 0; ring < 3; ring++) {
-        const rr = r * (1 - ring * 0.3);
-        for (let k = 0; k < petals; k++) {
-          const a = (k / petals) * Math.PI * 2 + ring * 0.3;
-          const px = cx + Math.cos(a) * rr * 0.5,
-            py = cy + Math.sin(a) * rr * 0.5;
-          const grd = g.createRadialGradient(cx, cy, rr * 0.1, px, py, rr * 0.55);
-          grd.addColorStop(0, cols[Math.min(2, ring + 1)]);
-          grd.addColorStop(1, cols[ring]);
+      for (let ring = 0; ring < 4; ring++) {
+        const rr = r * (1 - ring * 0.22);
+        const n = 9 - ring;
+        for (let k = 0; k < n; k++) {
+          const a = (k / n) * Math.PI * 2 + ring * 0.4;
+          const px = cx + Math.cos(a) * rr * 0.52,
+            py = cy + Math.sin(a) * rr * 0.52;
+          const grd = g.createRadialGradient(cx, cy, rr * 0.05, px, py, rr * 0.6);
+          grd.addColorStop(0, cols[Math.min(3, ring + 1)]);
+          grd.addColorStop(1, cols[Math.min(3, ring)]);
           g.fillStyle = grd;
+          g.strokeStyle = 'rgba(30,6,10,0.85)';
+          g.lineWidth = S * 0.0025;
           g.beginPath();
-          g.ellipse(px, py, rr * 0.45, rr * 0.26, a, 0, Math.PI * 2);
+          g.ellipse(px, py, rr * 0.5, rr * 0.3, a, 0, Math.PI * 2);
           g.fill();
+          g.stroke();
         }
       }
-      g.fillStyle = '#f2d27a';
+      g.fillStyle = '#f6d67a';
       g.beginPath();
-      g.arc(cx, cy, r * 0.14, 0, Math.PI * 2);
+      g.arc(cx, cy, r * 0.12, 0, Math.PI * 2);
       g.fill();
     });
-  const palettes = [
-    ['#b8402e', '#e0704a', '#f5b48a'],
-    ['#c58a1e', '#e8b444', '#fae3a0'],
-    ['#1f6a6a', '#3a9a90', '#9fd6c6'],
-    ['#5a2e7a', '#8a54a8', '#d2a8e0'],
-    ['#a8304e', '#d65a78', '#f6b4c4'],
-  ];
-  const spots = [
-    [0.25, 0.25, 0.09],
-    [0.75, 0.75, 0.09],
-    [0.75, 0.25, 0.07],
-    [0.25, 0.75, 0.07],
-    [0.5, 0.5, 0.05],
-    [0, 0, 0.05],
-    [0.5, 0, 0.04],
-    [0, 0.5, 0.04],
-  ];
-  spots.forEach(([x, y, r], i) => blossom(x * S, y * S, r * S, palettes[i % palettes.length], i < 4 ? 8 : 6));
-  for (let k = 0; k < 64; k++) blossom(rnd() * S, rnd() * S, S * (0.01 + rnd() * 0.016), palettes[k % palettes.length], 5);
+  // Lilies: six pointed petals with a pale throat and gold stamens.
+  const lily = (x: number, y: number, r: number, cols: string[]) =>
+    wrap((ox, oy) => {
+      const cx = x + ox,
+        cy = y + oy;
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2;
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(a);
+        const grd = g.createLinearGradient(0, 0, r, 0);
+        grd.addColorStop(0, cols[2]);
+        grd.addColorStop(0.5, cols[1]);
+        grd.addColorStop(1, cols[0]);
+        g.fillStyle = grd;
+        g.strokeStyle = 'rgba(30,6,10,0.85)';
+        g.lineWidth = S * 0.0025;
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.quadraticCurveTo(r * 0.5, -r * 0.32, r, 0);
+        g.quadraticCurveTo(r * 0.5, r * 0.32, 0, 0);
+        g.fill();
+        g.stroke();
+        g.restore();
+      }
+      g.fillStyle = '#ffe08a';
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2 + 0.5;
+        g.beginPath();
+        g.arc(cx + Math.cos(a) * r * 0.3, cy + Math.sin(a) * r * 0.3, r * 0.05, 0, Math.PI * 2);
+        g.fill();
+      }
+    });
+  peony(0.25 * S, 0.25 * S, 0.115 * S, ['#9a2a24', '#cf4c38', '#ec8a62', '#f8c49a']);
+  peony(0.75 * S, 0.75 * S, 0.115 * S, ['#b07612', '#dca23a', '#f2cc6c', '#fbe8b0']);
+  lily(0.75 * S, 0.25 * S, 0.075 * S, ['#5a2a7e', '#9a5ab8', '#f0d8f4']);
+  lily(0.25 * S, 0.75 * S, 0.075 * S, ['#b02a58', '#de6a8e', '#fbd6e0']);
+  // Small rosettes where the ribbons cross, and gold four-point sparkles.
+  for (const [x, y] of [[0.5, 0.5], [0, 0], [0.5, 0], [0, 0.5]])
+    peony(x * S, y * S, 0.038 * S, ['#0d4a5a', '#1f7a8a', '#5ab4b8', '#bfe6e0']);
+  for (let k = 0; k < 14; k++) {
+    const sx = rnd() * S,
+      sy = rnd() * S;
+    wrap((ox, oy) => {
+      const x = sx + ox,
+        y = sy + oy,
+        r = S * 0.012;
+      g.fillStyle = '#e8c068';
+      g.beginPath();
+      g.moveTo(x, y - r);
+      g.quadraticCurveTo(x, y, x + r, y);
+      g.quadraticCurveTo(x, y, x, y + r);
+      g.quadraticCurveTo(x, y, x - r, y);
+      g.quadraticCurveTo(x, y, x, y - r);
+      g.fill();
+    });
+  }
   // Pile: fibre noise and a soft blur so it reads as woven wool.
   const img = g.getImageData(0, 0, S, S);
   for (let i = 0; i < img.data.length; i += 4) {
@@ -430,109 +514,6 @@ export function damask(size: number): HTMLCanvasElement {
     }
   }
   g.putImageData(img, 0, 0);
-  return c;
-}
-
-/** Night view over a lake, seen through the big windows. */
-export function lakeView(w: number, h: number): HTMLCanvasElement {
-  const [c, ctx] = canvas(w, h);
-  const H = h * 0.55; // horizon
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#03050f');
-  sky.addColorStop(0.55, '#0b1230');
-  sky.addColorStop(0.9, '#2a2a52');
-  sky.addColorStop(1, '#4a3550');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, w, H);
-  let s = 3;
-  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  // Stars and a moon.
-  for (let k = 0; k < 260; k++) {
-    ctx.fillStyle = `rgba(255,255,255,${0.2 + rnd() * 0.6})`;
-    ctx.fillRect(rnd() * w, rnd() * H * 0.6, 1 + (rnd() < 0.1 ? 1 : 0), 1);
-  }
-  const mx = w * 0.78,
-    my = H * 0.3;
-  const mg = ctx.createRadialGradient(mx, my, 4, mx, my, 70);
-  mg.addColorStop(0, 'rgba(255,250,235,1)');
-  mg.addColorStop(0.18, 'rgba(255,245,225,0.9)');
-  mg.addColorStop(0.3, 'rgba(200,210,255,0.15)');
-  mg.addColorStop(1, 'rgba(200,210,255,0)');
-  ctx.fillStyle = mg;
-  ctx.fillRect(mx - 70, my - 70, 140, 140);
-  // Light haze over the city.
-  const haze = ctx.createLinearGradient(0, H - h * 0.22, 0, H);
-  haze.addColorStop(0, 'rgba(255,170,100,0)');
-  haze.addColorStop(1, 'rgba(255,150,90,0.28)');
-  ctx.fillStyle = haze;
-  ctx.fillRect(0, H - h * 0.22, w, h * 0.22);
-  // Two rows of towers: far (dim, hazy) then near (taller, brighter windows, neon crowns).
-  const towers: { x: number; bw: number; bh: number; neon: string | null }[] = [];
-  for (const row of [0, 1]) {
-    for (let x = rnd() * 20; x < w; ) {
-      const bw = (row ? 26 : 16) + rnd() * (row ? 70 : 40);
-      const bh = (row ? 40 : 30) + rnd() * h * (row ? 0.33 : 0.2) * (rnd() < 0.15 ? 1.6 : 1);
-      const top = H - bh;
-      ctx.fillStyle = row ? '#0a0d1e' : '#141a34';
-      ctx.fillRect(x, top, bw, bh);
-      // Window grid.
-      const lit = row ? 0.55 : 0.35;
-      for (let yy = top + 4; yy < H - 3; yy += row ? 7 : 6) {
-        for (let xx = x + 3; xx < x + bw - 3; xx += row ? 5 : 4) {
-          if (rnd() < lit) {
-            const warm = rnd();
-            ctx.fillStyle = warm < 0.55 ? `rgba(255,214,150,${row ? 0.9 : 0.5})` : warm < 0.85 ? `rgba(255,186,110,${row ? 0.8 : 0.45})` : `rgba(190,220,255,${row ? 0.7 : 0.4})`;
-            ctx.fillRect(xx, yy, row ? 2 : 1.5, row ? 3 : 2);
-          }
-        }
-      }
-      let neon: string | null = null;
-      if (row && rnd() < 0.3) {
-        neon = ['#ff3a8a', '#3ad0ff', '#ffb03a', '#b06aff', '#4aff9a'][Math.floor(rnd() * 5)];
-        ctx.fillStyle = neon;
-        ctx.shadowColor = neon;
-        ctx.shadowBlur = 14;
-        ctx.fillRect(x, top - 3, bw, 3);
-        if (rnd() < 0.5) {
-          ctx.beginPath();
-          ctx.moveTo(x + bw * 0.2, top - 3);
-          ctx.lineTo(x + bw / 2, top - 3 - bw * 0.9);
-          ctx.lineTo(x + bw * 0.8, top - 3);
-          ctx.fill();
-        }
-        ctx.shadowBlur = 0;
-      }
-      towers.push({ x, bw, bh, neon });
-      x += bw + (row ? 6 + rnd() * 18 : 1 + rnd() * 6);
-    }
-  }
-  // The lake: dark water with long shimmering reflections of the lights.
-  const lake = ctx.createLinearGradient(0, H, 0, h);
-  lake.addColorStop(0, '#141a3a');
-  lake.addColorStop(1, '#03050f');
-  ctx.fillStyle = lake;
-  ctx.fillRect(0, H, w, h - H);
-  for (const t of towers) {
-    const col = t.neon ?? 'rgba(255,196,120,1)';
-    for (let k = 0; k < 3; k++) {
-      const x = t.x + rnd() * t.bw;
-      const len = (h - H) * (0.25 + rnd() * 0.6);
-      for (let y = H + 1; y < H + len; y += 2) {
-        const f = 1 - (y - H) / len;
-        ctx.globalAlpha = f * (t.neon ? 0.5 : 0.28) * (0.5 + 0.5 * rnd());
-        ctx.fillStyle = col;
-        const wob = Math.sin(y * 0.4 + x) * 2;
-        ctx.fillRect(x + wob - 1, y, 2 + rnd() * 3, 1);
-      }
-    }
-  }
-  ctx.globalAlpha = 1;
-  // The moon's path on the water.
-  for (let y = H + 2; y < h; y += 2) {
-    const f = 1 - (y - H) / (h - H);
-    ctx.fillStyle = `rgba(230,235,255,${0.18 * f})`;
-    ctx.fillRect(mx - 6 - (1 - f) * 20 + Math.sin(y) * 4, y, 12 + (1 - f) * 40, 1);
-  }
   return c;
 }
 

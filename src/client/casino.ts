@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import type { Quality } from './quality';
-import { carpet, damask, floorTile, lakeReflection, lakeView, marble, radial, toTexture, wood } from './textures';
+import { carpet, damask, floorTile, lakeReflection, marble, radial, toTexture, wood } from './textures';
+import { buildCity } from './skyline';
 import { textSign } from './panel';
 import { bakeStatic } from './merge';
 import { assets } from './assets';
@@ -65,6 +66,32 @@ export interface Casino {
   fountainLevel(): number;
   fountainAnchor: THREE.Object3D;
   update(t: number, player?: THREE.Vector3): void;
+  /**
+   * Captures each area's own reflections (a cube render from inside it, prefiltered for PBR)
+   * and uses them as the environment map there instead of the generic HDRI. One-time cost,
+   * behind the loading screen; call again only if an area's lighting changes for good.
+   * `setZone` must show/hide the resort's parts as the frame loop's zone culling would for a
+   * viewer standing at that spot; `hide` are things never to reflect (people, your own body).
+   */
+  captureReflections(setZone: (feet: THREE.Vector3) => void, hide: THREE.Object3D[], only?: EnvZone): Promise<number>;
+}
+
+/** The areas that get their own captured reflections. */
+export type EnvZone = 'casino' | 'hotel' | 'terrace' | 'pool' | 'suite';
+/** Where each area's reflections are captured from (eye height). */
+const ENV_PROBES: Record<EnvZone, THREE.Vector3> = {
+  casino: new THREE.Vector3(0, 1.8, 7.5),
+  hotel: new THREE.Vector3(36, 1.7, 6),
+  terrace: new THREE.Vector3(0, 1.7, -16.4),
+  pool: new THREE.Vector3(36, 1.6, -12),
+  suite: new THREE.Vector3(594, 1.5, 0),
+};
+export function envZoneAt(f: THREE.Vector3): EnvZone {
+  if (f.x > 500) return 'suite';
+  if (f.x > 21 && f.z < -0.2) return 'pool';
+  if (f.x > 17.5) return 'hotel';
+  if (f.z < -14.2) return 'terrace';
+  return 'casino';
 }
 
 /** The terrace sits at floor level outside the French doors; the lake is far below. */
@@ -98,7 +125,11 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
 
   // --- Lighting -----------------------------------------------------------------
   scene.background = new THREE.Color(0x120c08);
-  scene.environment = assets.envHdr ? hdrEnvironment(renderer, assets.envHdr) : warmEnvironment(renderer);
+  // The generic HDRI lights the first capture of each area's own reflections (see captureReflections),
+  // and stays as the fallback.
+  let baseEnv: THREE.Texture | null = assets.envHdr ? hdrEnvironment(renderer, assets.envHdr) : warmEnvironment(renderer);
+  scene.environment = baseEnv;
+  const envs: Partial<Record<EnvZone, THREE.Texture>> = {};
   scene.environmentIntensity = 0.6;
   const hemi = new THREE.HemisphereLight(0xffdcae, 0x3a1810, 0.42);
   scene.add(hemi);
@@ -154,13 +185,33 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   });
   const carpetTex = toTexture(carpet(tex / 2), { aniso });
   carpetTex.wrapS = carpetTex.wrapT = THREE.RepeatWrapping;
-  // Woven pile: the velvet scan's normal map at a fine repeat catches the light like real wool tufts.
-  const pile = assets.pbr('velvet', 7);
-  const carpetMat = new THREE.MeshStandardMaterial({ map: carpetTex, roughness: 0.95, envMapIntensity: 0.3, normalMap: pile?.normalMap ?? null, normalScale: new THREE.Vector2(0.7, 0.7) });
-  const wallTex = toTexture(damask(1024), { aniso });
-  wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
-  wallTex.repeat.set(1, 1);
-  const wallMat = new THREE.MeshPhysicalMaterial({ map: wallTex, roughness: 0.6, sheen: 0.6, sheenRoughness: 0.4, sheenColor: new THREE.Color(0xfff0d0) });
+  // Woven loop pile: a scanned carpet's relief and roughness (Poly Haven "Dirty Carpet", 60 cm per
+  // repeat; carpet UVs are 2.4 m) under the drawn pattern, so it catches the light like real tufts.
+  const pile = assets.pbr('carpetweave', 4) ?? assets.pbr('velvet', 7);
+  const carpetMat = new THREE.MeshStandardMaterial({
+    map: carpetTex,
+    roughness: 1,
+    roughnessMap: pile?.roughnessMap ?? null,
+    envMapIntensity: 0.3,
+    normalMap: pile?.normalMap ?? null,
+    normalScale: new THREE.Vector2(0.9, 0.9),
+  });
+  // Walls: warm plaster framing gilded panels of silk jacquard (Poly Haven "Floral Jacquard",
+  // recoloured to champagne gold), over a raised-panel walnut wainscot. The panels and their
+  // mouldings are real geometry, merged into the fabric, gold and walnut batches.
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf0e4ca, roughness: 0.82, envMapIntensity: 0.45 });
+  const jac = assets.pbr('jacquard', 1);
+  // Lifts the champagne silk so the panels don't darken the room.
+  const FABRIC_TINT = new THREE.Color(1.4, 1.34, 1.24);
+  const fabricMat = jac?.map
+    ? q.name === 'desktop'
+      ? new THREE.MeshPhysicalMaterial({ map: jac.map, color: FABRIC_TINT, roughnessMap: jac.roughnessMap, roughness: 0.9, envMapIntensity: 0.5, sheen: 0.55, sheenRoughness: 0.45, sheenColor: new THREE.Color(0xffe6b8) })
+      : new THREE.MeshStandardMaterial({ map: jac.map, color: FABRIC_TINT, roughnessMap: jac.roughnessMap, roughness: 0.85, envMapIntensity: 0.55 })
+    : (() => {
+        const t = toTexture(damask(1024), { aniso });
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        return new THREE.MeshStandardMaterial({ map: t, roughness: 0.6 });
+      })();
   const woodTex = toTexture(wood(512), { aniso });
   woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
   const woodMat = assets.material('walnut', { repeat: [6, 1], rough: 0.7, envIntensity: 0.8, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.4, envMapIntensity: 0.8 }) });
@@ -184,7 +235,8 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // --- Floor ----------------------------------------------------------------------
   // Polished marble mirrors the room (desktop): a planar reflection at quarter resolution
   // (soft, like real polished stone), faded by a mask so the carpets don't reflect.
-  if (q.name === 'desktop') root.add(marbleReflection(HALL.w, HALL.d));
+  const mirror = q.name === 'desktop' ? marbleReflection(HALL.w, HALL.d) : null;
+  if (mirror) root.add(mirror);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALL.w, HALL.d), floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = q.shadows;
@@ -221,6 +273,51 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     const uv = g.attributes.uv as THREE.BufferAttribute;
     for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (len / 1.6), uv.getY(i) * (h / 1.6));
     batch.add(g, wallMat, M(x, y0 + h / 2, z, ry));
+  };
+  // Fabric panels in gilded frames between the pilasters, and raised walnut panels in the
+  // wainscot below them. `along` is world x (ry 0 / π) or z (ry ±π/2); bays are `B` apart from
+  // `o` (the pilaster spacing), clipped to the free stretches of wall.
+  const bays = (ry: number, fixed: number, o: number, B: number, ranges: [number, number][], fabric: boolean, wainscot = true) => {
+    const inward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry);
+    const alongX = Math.abs(inward.z) > 0.5;
+    const at = (a: number, off: number): [number, number] => (alongX ? [a, fixed + inward.z * off] : [fixed + inward.x * off, a]);
+    const hw = B / 2 - 0.45;
+    // A rectangle frame of gilt moulding (or walnut) around a panel.
+    const frame = (a: number, w: number, y0: number, y1: number, off: number, t: number, dep: number, mat: THREE.Material) => {
+      const [cx, cz] = at(a, off);
+      batch.add(box, mat, M(cx, y0 + t / 2, cz, ry, w + t, t, dep));
+      batch.add(box, mat, M(cx, y1 - t / 2, cz, ry, w + t, t, dep));
+      for (const sgn of [-1, 1]) {
+        const [sx, sz] = at(a + (sgn * w) / 2, off);
+        batch.add(box, mat, M(sx, (y0 + y1) / 2, sz, ry, t, y1 - y0, dep));
+      }
+    };
+    for (let k = -1; o + k * B < 40; k++) {
+      const c = o + (k + 0.5) * B;
+      for (const [r0, r1] of ranges) {
+        const a0 = Math.max(c - hw, r0 + 0.25),
+          a1 = Math.min(c + hw, r1 - 0.25);
+        if (a1 - a0 < 1) continue;
+        const a = (a0 + a1) / 2,
+          w = a1 - a0;
+        if (fabric) {
+          for (const [y0, y1] of [[1.38, 4.42], [4.72, 5.42]] as const) {
+            const g = new THREE.PlaneGeometry(w, y1 - y0);
+            const uv = g.attributes.uv as THREE.BufferAttribute;
+            // 0.51 x 0.77 m per repeat of the scan (twice its real size: a bolder, palace-scale damask).
+            for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) - 0.5) * (w / 0.506), (uv.getY(i) * (y1 - y0) + y0) / 0.768);
+            const [cx, cz] = at(a, 0.012);
+            batch.add(g, fabricMat, M(cx, (y0 + y1) / 2, cz, ry));
+            frame(a, w, y0 - 0.03, y1 + 0.03, 0.026, 0.05, 0.03, gold);
+          }
+        }
+        if (!wainscot) continue;
+        // Raised walnut panel in the wainscot, with a fine gilt bead.
+        const [px, pz] = at(a, 0.112);
+        batch.add(box, woodMat, M(px, 0.6, pz, ry, w, 0.56, 0.025));
+        frame(a, w + 0.02, 0.31, 0.89, 0.123, 0.018, 0.014, gold);
+      }
+    }
   };
   // Wainscot + rails along a wall segment.
   const trim = (x: number, z: number, len: number, ry: number) => {
@@ -278,6 +375,23 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     batch.add(box, darkMarble, M(wx, winY0 - 0.05, -D / 2 + 0.25, 0, winW + 0.3, 0.1, 0.4));
   }
   wallPanel((edge + W / 2) / 2, -D / 2, W / 2 - edge, 0, winY0, winY1);
+  // Panelling: south (not round the entrance), west (not behind the bar), east (not at the
+  // opening to the hotel), and the piers between the lake windows.
+  bays(Math.PI, D / 2, -W / 2, 3, [[-W / 2, -3.2], [3.2, W / 2]], true);
+  bays(Math.PI / 2, -W / 2, -D / 2, 3.5, [[-D / 2, 4.5]], true);
+  bays(-Math.PI / 2, W / 2, -D / 2, 3.5, [[-D / 2, 3.9], [9.1, D / 2]], true);
+  {
+    const piers: [number, number][] = [];
+    let e = -W / 2;
+    for (const wx of windowsX) {
+      piers.push([e, wx - winW / 2 - 0.1]);
+      e = wx + winW / 2 + 0.1;
+    }
+    piers.push([e, W / 2]);
+    bays(0, -D / 2, -W / 2 + 1.5, 3, piers, true, false);
+    // The wainscot runs on under the windows (not across the doors).
+    bays(0, -D / 2, -W / 2 + 1.5, 3, [[-W / 2, -doorHalf - 0.1], [doorHalf + 0.1, W / 2]], false);
+  }
   trim((-W / 2 - doorHalf - 0.06) / 2, -D / 2, W / 2 - doorHalf - 0.06, 0);
   trim((W / 2 + doorHalf + 0.06) / 2, -D / 2, W / 2 - doorHalf - 0.06, 0);
 
@@ -473,24 +587,21 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   }
 
   // --- Lake view and fountains beyond the windows -------------------------------------
-  const lake = new THREE.Mesh(
-    new THREE.PlaneGeometry(160, 70),
-    new THREE.MeshBasicMaterial({ map: toTexture(lakeView(2048, 900)), toneMapped: false, transparent: true, depthWrite: false, alphaMap: skyFade() }),
-  );
-  // Painted horizon (55% down the 70 m backdrop) sits on the real water line, so no band
-  // of painted lake shows above the far edge of the water.
-  lake.position.set(0, LAKE_Y + 3.5, -D / 2 - 70);
-  root.add(lake);
+  // The Strip across the lake: real 3D towers, landmarks and boulevards (two draw calls),
+  // so the view has parallax from the terrace, the windows and the pool deck.
+  // It's its own top-level group: it stays drawn from the pool deck, where the casino is culled.
+  const city = buildCity({ ground: LAKE_Y + 0.4, layout: 'lake', center: new THREE.Vector2(10, -20), seed: 7, hazeNear: 110, hazeFar: 400, mirrorY: LAKE_Y });
+  scene.add(city.group);
   // High anisotropy keeps the light streaks crisp at grazing angles (blurred, they read as a brown band).
   const reflTex = toTexture(lakeReflection(1024, 512), { aniso: Math.min(16, renderer.capabilities.getMaxAnisotropy()) });
   const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(160, 70),
+    new THREE.PlaneGeometry(300, 150),
     // Unlit: the night lake is the city's light streaks on black water. (A glossy lit material
     // picked up a flat brown sheen at grazing angles that read as a floor, not water.)
-    new THREE.MeshBasicMaterial({ map: reflTex, color: new THREE.Color(0xb8c8ff).multiplyScalar(0.6) }),
+    new THREE.MeshBasicMaterial({ map: reflTex, color: new THREE.Color(0xb8c8ff).multiplyScalar(0.4) }),
   );
   water.rotation.x = -Math.PI / 2;
-  water.position.set(0, LAKE_Y, -D / 2 - 35);
+  water.position.set(0, LAKE_Y, -D / 2 - 75);
   // Nothing lies under the lake, so it needn't write depth: the fountain jets' mirrored
   // reflections (drawn below the water line) then show through it.
   // Drawn after the other opaque things so the backdrop below the horizon can't paint over it.
@@ -544,18 +655,22 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // Casino: warm and glowing. Hotel corridors: warm, a touch dimmer. Outdoors (terrace,
   // pool deck): moonlit night with cool fill, the warmth coming from fixtures. Suite: lamps.
   const MOODS = {
-    casino: { exp: 0.68, hemi: 0.42, sky: new THREE.Color(0xffdcae), ground: new THREE.Color(0x3a1810), key: 0.8, keyC: new THREE.Color(0xffe6c4), env: 0.55 },
-    hotel: { exp: 0.8, hemi: 0.36, sky: new THREE.Color(0xffd8a8), ground: new THREE.Color(0x30160c), key: 0.35, keyC: new THREE.Color(0xffe0b8), env: 0.5 },
+    casino: { exp: 0.68, hemi: 0.42, sky: new THREE.Color(0xffdcae), ground: new THREE.Color(0x3a1810), key: 0.8, keyC: new THREE.Color(0xffe6c4), env: 0.85 },
+    hotel: { exp: 0.8, hemi: 0.36, sky: new THREE.Color(0xffd8a8), ground: new THREE.Color(0x30160c), key: 0.35, keyC: new THREE.Color(0xffe0b8), env: 0.7 },
     outside: { exp: 0.95, hemi: 0.2, sky: new THREE.Color(0x5a74a8), ground: new THREE.Color(0x1c140e), key: 0.38, keyC: new THREE.Color(0xa8bcff), env: 0.28 },
-    suite: { exp: 0.9, hemi: 0.2, sky: new THREE.Color(0xffd0a0), ground: new THREE.Color(0x1a100a), key: 0.12, keyC: new THREE.Color(0xffe0c0), env: 0.32 },
+    suite: { exp: 0.9, hemi: 0.2, sky: new THREE.Color(0xffd0a0), ground: new THREE.Color(0x1a100a), key: 0.12, keyC: new THREE.Color(0xffe0c0), env: 0.45 },
   };
   let lastT = -1;
-  const mood = (f: THREE.Vector3, t: number) => {
-    const zone = f.x > 500 ? 'suite' : f.x > 21 && f.z < -0.2 ? 'outside' : f.x > 17.5 ? 'hotel' : f.z < -14.2 ? 'outside' : 'casino';
-    const m = MOODS[zone];
+  const MOOD_OF: Record<EnvZone, keyof typeof MOODS> = { casino: 'casino', hotel: 'hotel', terrace: 'outside', pool: 'outside', suite: 'suite' };
+  const mood = (f: THREE.Vector3, t: number, now = false) => {
+    const ez = envZoneAt(f);
+    const m = MOODS[MOOD_OF[ez]];
+    // Each area reflects itself (swapping between captures of one size doesn't recompile shaders).
+    const env = envs[ez] ?? baseEnv;
+    if (env && scene.environment !== env) scene.environment = env;
     const dt = lastT < 0 ? 1 : Math.min(0.1, t - lastT);
     lastT = t;
-    const k = lastT < 0 ? 1 : Math.min(1, dt * 2.5);
+    const k = now ? 1 : Math.min(1, dt * 2.5);
     hemi.intensity += (m.hemi - hemi.intensity) * k;
     hemi.color.lerp(m.sky, k);
     hemi.groundColor.lerp(m.ground, k);
@@ -573,8 +688,61 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     doorsOpen: () => doors.open,
     fountainLevel: () => fountains.userData.level as number,
     fountainAnchor: fountains,
+    async captureReflections(setZone, hide, only) {
+      const t0 = performance.now();
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      // Same size as the HDRI's prefiltered map, so every swap keeps the compiled shaders.
+      const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+      const cam = new THREE.CubeCamera(0.05, 400, cubeRT);
+      const hidden = [...hide, ...(mirror ? [mirror] : [])].filter((o) => o.visible);
+      for (const o of hidden) o.visible = false;
+      const saved = { env: scene.environment, exp: renderer.toneMappingExposure, hemi: hemi.intensity, key: key.intensity };
+      const sc = hemi.color.clone(),
+        gc = hemi.groundColor.clone(),
+        kc = key.color.clone();
+      try {
+        (fountains.userData.update as (t: number) => void)(4);
+        for (const zone of Object.keys(ENV_PROBES) as EnvZone[]) {
+          if (only && zone !== only) continue;
+          const p = ENV_PROBES[zone];
+          setZone(p);
+          // Light the area as it is lit when you're there, reflecting the HDRI on the first bounce.
+          mood(p, 0, true);
+          scene.environment = envs[zone] ?? baseEnv;
+          cam.position.copy(p);
+          cam.updateMatrixWorld(true);
+          // Compile this area's shaders off the main thread first (KHR_parallel_shader_compile), so the
+          // loading screen keeps going; they'd otherwise compile in a hitch the first time you walk in.
+          await renderer.compileAsync(scene, cam.children[0] as THREE.Camera);
+          cam.update(renderer, scene);
+          const prev = envs[zone];
+          envs[zone] = pmrem.fromCubemap(cubeRT.texture).texture;
+          prev?.dispose();
+        }
+      } finally {
+        pmrem.dispose();
+        cubeRT.dispose();
+        for (const o of hidden) o.visible = true;
+      }
+      // Every area has its own now: the HDRI's maps can go (a re-capture starts from the old capture).
+      if (!only && baseEnv) {
+        baseEnv.dispose();
+        baseEnv = null;
+        assets.envHdr?.dispose();
+      }
+      scene.environment = envs[envZoneAt(ENV_PROBES.casino)] ?? saved.env;
+      renderer.toneMappingExposure = saved.exp;
+      hemi.intensity = saved.hemi;
+      key.intensity = saved.key;
+      hemi.color.copy(sc);
+      hemi.groundColor.copy(gc);
+      key.color.copy(kc);
+      lastT = -1;
+      return performance.now() - t0;
+    },
     update(t: number, player?: THREE.Vector3) {
       (fountains.userData.update as (t: number) => void)(t);
+      city.update(t);
       sparkle.value = t;
       if (player) {
         doors.update(player);
@@ -582,25 +750,6 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
       }
     },
   };
-}
-
-/** Fades the top of the painted backdrop into the sky dome, so there's no seam where it ends,
- * and cuts it off at its horizon, where the real lake begins. */
-function skyFade(): THREE.Texture {
-  const c = document.createElement('canvas');
-  c.width = 4;
-  c.height = 128;
-  const g = c.getContext('2d')!;
-  const grd = g.createLinearGradient(0, 0, 0, 128);
-  grd.addColorStop(0, '#000');
-  grd.addColorStop(0.18, '#fff');
-  // Below the painted horizon the real lake takes over (the water doesn't write depth).
-  grd.addColorStop(0.54, '#fff');
-  grd.addColorStop(0.56, '#000');
-  grd.addColorStop(1, '#000');
-  g.fillStyle = grd;
-  g.fillRect(0, 0, 4, 128);
-  return new THREE.CanvasTexture(c);
 }
 
 /** A soft planar reflection over the marble (not the carpet patches). Desktop only. */

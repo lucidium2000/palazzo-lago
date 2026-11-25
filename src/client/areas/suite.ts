@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import type { Quality } from '../quality';
 import type { World } from '../world';
 import { canvas, radial, toTexture } from '../textures';
-import { Batch, haloQuad, M, plane, wallQuad, type Mats } from './kit';
+import { Batch, haloQuad, M, nightSky, plane, wallQuad, type Mats } from './kit';
+import { buildCity } from '../skyline';
 
 /**
  * Suite 3201: a corner suite high in the tower, with floor-to-ceiling windows
@@ -55,23 +56,13 @@ export function buildSuite(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
   const w = S.x1 - S.x0,
     d = S.z1 - S.z0;
 
-  // The view: a ring of the Strip at night around the suite.
-  const view = new THREE.Mesh(
-    new THREE.CylinderGeometry(70, 70, 90, 64, 1, true),
-    new THREE.MeshBasicMaterial({ map: (() => {
-      const t = toTexture(strip(4096, 1024));
-      t.wrapS = THREE.RepeatWrapping;
-      t.repeat.set(2, 1);
-      return t;
-    })(), side: THREE.BackSide, fog: false }),
-  );
-  view.position.set(cx, -20, cz);
-  view.raycast = () => {};
-  root.add(view);
-  const top = new THREE.Mesh(new THREE.CircleGeometry(70, 48), new THREE.MeshBasicMaterial({ color: 0x05060f, side: THREE.DoubleSide }));
-  top.rotation.x = Math.PI / 2;
-  top.position.set(cx, 25, cz);
-  root.add(top);
+  // The view: the Strip at night all round, 100 m below and rising past the windows
+  // (real 3D towers with parallax as you walk to the glass), under a starry sky.
+  const sky = nightSky(380);
+  sky.position.set(cx, 0, cz);
+  root.add(sky);
+  const city = buildCity({ ground: -100, layout: 'ring', center: new THREE.Vector2(cx, cz), seed: 23, hazeNear: 140, hazeFar: 420, name: 'skyline-suite' });
+  root.add(city.group);
 
   // Plush carpet, a patterned rug, and the ceiling with a glowing cove.
   const carpetTex = toTexture(plush(512));
@@ -208,110 +199,6 @@ function flowersSmall(b: Batch, m: Mats, x: number, y: number, z: number) {
     const a = i * 2.4;
     b.add(new THREE.IcosahedronGeometry(0.05, 0), m.glow(pal[i % 4], 0.85), M(x + Math.cos(a) * 0.12, y + 0.3 + (i % 3) * 0.04, z + Math.sin(a) * 0.12));
   }
-}
-
-/** The Strip at night from the 32nd floor: mountains, towers, neon, the lake fountains. */
-function strip(w: number, h: number): HTMLCanvasElement {
-  const [c, g] = canvas(w, h);
-  const sky = g.createLinearGradient(0, 0, 0, h);
-  sky.addColorStop(0, '#03040c');
-  sky.addColorStop(0.42, '#141a3a');
-  sky.addColorStop(0.5, '#3a2448');
-  sky.addColorStop(0.53, '#6a3a3a');
-  sky.addColorStop(1, '#0a0608');
-  g.fillStyle = sky;
-  g.fillRect(0, 0, w, h);
-  let s = 17;
-  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < 500; i++) {
-    g.fillStyle = `rgba(255,255,255,${rnd() * 0.7})`;
-    g.fillRect(rnd() * w, rnd() * h * 0.38, 1.5, 1.5);
-  }
-  // Distant mountains on the horizon.
-  const horizon = h * 0.52;
-  g.fillStyle = '#120c1c';
-  g.beginPath();
-  g.moveTo(0, horizon);
-  for (let x = 0; x <= w; x += 40) g.lineTo(x, horizon - 18 - Math.abs(Math.sin(x * 0.004) * 40 + Math.sin(x * 0.013) * 14));
-  g.lineTo(w, horizon + 4);
-  g.lineTo(0, horizon + 4);
-  g.fill();
-  // City grid of lights below the horizon (we are looking down on it).
-  for (let i = 0; i < 9000; i++) {
-    const y = horizon + 6 + Math.pow(rnd(), 1.6) * (h - horizon - 6);
-    const near = (y - horizon) / (h - horizon);
-    const warm = rnd() < 0.7;
-    g.fillStyle = warm ? `rgba(255,${180 + rnd() * 60},${100 + rnd() * 60},${0.4 + near * 0.6})` : `rgba(${150 + rnd() * 100},${180 + rnd() * 60},255,${0.3 + near * 0.5})`;
-    const sz = 1 + near * 3;
-    g.fillRect(rnd() * w, y, sz, sz * 0.7);
-  }
-  // Glowing boulevard bands.
-  for (const y of [0.62, 0.74, 0.88]) {
-    const grd = g.createLinearGradient(0, h * y - 6, 0, h * y + 6);
-    grd.addColorStop(0, 'rgba(255,190,110,0)');
-    grd.addColorStop(0.5, 'rgba(255,200,130,0.55)');
-    grd.addColorStop(1, 'rgba(255,190,110,0)');
-    g.fillStyle = grd;
-    g.fillRect(0, h * y - 6, w, 12);
-  }
-  // Resort towers rising above and below eye level, with lit windows and neon crowns.
-  const neon = ['#ff3a8a', '#3ad8ff', '#ffd23a', '#9a5aff', '#3aff9a', '#ff7a2a'];
-  for (let i = 0; i < 46; i++) {
-    const x = rnd() * w;
-    const bw = 30 + rnd() * 90;
-    const top = horizon - 30 - rnd() * 260;
-    const base = horizon + 60 + rnd() * 200;
-    g.fillStyle = `rgb(${18 + rnd() * 20},${16 + rnd() * 16},${28 + rnd() * 24})`;
-    g.fillRect(x, top, bw, base - top);
-    for (let y = top + 6; y < base; y += 9)
-      for (let wx = x + 4; wx < x + bw - 4; wx += 7) {
-        if (rnd() < 0.45) continue;
-        g.fillStyle = rnd() < 0.85 ? `rgba(255,${200 + rnd() * 40},${140 + rnd() * 60},0.85)` : 'rgba(170,210,255,0.8)';
-        g.fillRect(wx, y, 3.5, 4.5);
-      }
-    const col = neon[i % neon.length];
-    g.fillStyle = col;
-    g.shadowColor = col;
-    g.shadowBlur = 18;
-    g.fillRect(x, top - 4, bw, 5);
-    if (rnd() < 0.25) {
-      // A spire.
-      g.beginPath();
-      g.moveTo(x + bw * 0.3, top);
-      g.lineTo(x + bw * 0.5, top - 80 - rnd() * 80);
-      g.lineTo(x + bw * 0.7, top);
-      g.fill();
-    }
-    g.shadowBlur = 0;
-  }
-  // A sky beam from a pyramid-topped resort, and the lake with its fountains.
-  const bx = w * 0.7;
-  const beam = g.createLinearGradient(0, 0, 0, horizon);
-  beam.addColorStop(0, 'rgba(220,230,255,0)');
-  beam.addColorStop(1, 'rgba(220,230,255,0.5)');
-  g.fillStyle = beam;
-  g.fillRect(bx - 3, 0, 6, horizon - 60);
-  g.fillStyle = '#0a0a14';
-  g.beginPath();
-  g.moveTo(bx - 70, horizon + 20);
-  g.lineTo(bx, horizon - 60);
-  g.lineTo(bx + 70, horizon + 20);
-  g.fill();
-  const lake = g.createLinearGradient(0, h * 0.78, 0, h);
-  lake.addColorStop(0, 'rgba(20,40,90,0.9)');
-  lake.addColorStop(1, 'rgba(10,20,50,0.9)');
-  g.fillStyle = lake;
-  g.fillRect(w * 0.15, h * 0.8, w * 0.22, h * 0.12);
-  for (let k = 0; k < 18; k++) {
-    const fx = w * 0.16 + k * (w * 0.2 / 18);
-    const fh = 30 + Math.abs(Math.sin(k * 0.9)) * 70;
-    const fg = g.createLinearGradient(0, h * 0.8 - fh, 0, h * 0.8);
-    fg.addColorStop(0, 'rgba(230,240,255,0)');
-    fg.addColorStop(1, 'rgba(230,240,255,0.8)');
-    g.fillStyle = fg;
-    g.fillRect(fx, h * 0.8 - fh, 3, fh);
-  }
-  return c;
 }
 
 function plush(size: number): HTMLCanvasElement {

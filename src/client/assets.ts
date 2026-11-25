@@ -8,18 +8,33 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 /**
  * Downloaded art (all CC0, see art/LICENSES.md):
  *  - Poly Haven PBR material sets (colour, normal, packed AO/roughness/metal),
- *    including a honed limestone paving for the terrace and pool deck
- *  - the Poly Haven "Ballroom" HDRI for reflections
+ *    including a honed limestone paving for the terrace and pool deck, a carpet
+ *    pile (relief only) and a silk jacquard for the wall panels
+ *  - the Poly Haven "Ballroom" HDRI, the first bounce of each area's own
+ *    captured reflections (casino.captureReflections)
  *  - Quaternius "Ultimate Modular" people, merged to one mesh per person
  * Everything has a procedural fallback, so the casino still opens if a file fails.
  */
 
-export type PbrName = 'marble' | 'darkmarble' | 'walnut' | 'velvet' | 'leather' | 'limestone';
+export type PbrName = 'marble' | 'darkmarble' | 'walnut' | 'velvet' | 'leather' | 'limestone' | 'jacquard' | 'carpetweave';
+
+type MapKind = 'diff' | 'nor' | 'arm';
+/** Which maps each set ships (the carpet weave is relief only; its pattern is drawn in code). */
+const SET_MAPS: Record<PbrName, MapKind[]> = {
+  marble: ['diff', 'nor', 'arm'],
+  darkmarble: ['diff', 'nor', 'arm'],
+  walnut: ['diff', 'nor', 'arm'],
+  velvet: ['diff', 'nor', 'arm'],
+  leather: ['diff', 'nor', 'arm'],
+  limestone: ['diff', 'nor', 'arm'],
+  jacquard: ['diff', 'arm'],
+  carpetweave: ['nor', 'arm'],
+};
 
 interface PbrSet {
-  map: THREE.Texture;
-  normalMap: THREE.Texture;
-  arm: THREE.Texture;
+  map: THREE.Texture | null;
+  normalMap: THREE.Texture | null;
+  arm: THREE.Texture | null;
 }
 
 export interface PeopleLib {
@@ -57,11 +72,11 @@ class Assets {
   people: PeopleLib | null = null;
 
   async load(renderer: THREE.WebGLRenderer, onProgress: (k: number) => void) {
-    const names: PbrName[] = ['marble', 'darkmarble', 'walnut', 'velvet', 'leather', 'limestone'];
+    const names = Object.keys(SET_MAPS) as PbrName[];
     const loader = new THREE.TextureLoader();
     const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     let done = 0;
-    const total = names.length * 3 + 2;
+    const total = names.reduce((n, k) => n + SET_MAPS[k].length, 0) + 2;
     const tick = () => onProgress(++done / total);
     const tex = async (file: string, srgb: boolean) => {
       const t = await loader.loadAsync(base(`tex/${file}`));
@@ -73,7 +88,9 @@ class Assets {
     };
     const jobs: Promise<unknown>[] = names.map(async (n) => {
       try {
-        const [map, normalMap, arm] = await Promise.all([tex(`${n}.diff.jpg`, true), tex(`${n}.nor.jpg`, false), tex(`${n}.arm.jpg`, false)]);
+        const has = SET_MAPS[n];
+        const get = (k: MapKind) => (has.includes(k) ? tex(`${n}.${k}.jpg`, k === 'diff') : Promise.resolve(null));
+        const [map, normalMap, arm] = await Promise.all([get('diff'), get('nor'), get('arm')]);
         this.pbrSets.set(n, { map, normalMap, arm });
       } catch (e) {
         console.warn('texture set failed', n, e);
@@ -102,7 +119,8 @@ class Assets {
     const s = this.pbrSets.get(name);
     if (!s) return null;
     const [rx, ry] = typeof repeat === 'number' ? [repeat, repeat] : repeat;
-    const c = (t: THREE.Texture) => {
+    const c = (t: THREE.Texture | null) => {
+      if (!t) return null;
       const k = t.clone();
       k.repeat.set(rx, ry);
       k.needsUpdate = true;
@@ -114,7 +132,7 @@ class Assets {
 
   /** Raw image of a material's colour map (for drawing into canvases, e.g. the floor tiles). */
   image(name: PbrName): HTMLImageElement | ImageBitmap | null {
-    return (this.pbrSets.get(name)?.map.image as HTMLImageElement) ?? null;
+    return (this.pbrSets.get(name)?.map?.image as HTMLImageElement) ?? null;
   }
 
   /**
