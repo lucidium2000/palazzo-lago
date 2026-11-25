@@ -25,6 +25,7 @@ import { FINGER, THUMB, curlFingers, makeMouth, setFingers, setOpen } from './ne
 import { bakeStatic } from './merge';
 import { buildBlackjack } from './pit';
 import { BlackjackPlay } from './blackjackplay';
+import { BlackjackSync } from './net/bjsync';
 import { SlotRows } from './decor';
 import { money, type GameContext } from './game';
 import { Hands } from './hands';
@@ -234,6 +235,9 @@ async function main() {
   for (const w of light ? cs.players.slice(0, 3) : cs.players) crowd.add('watch', randomLook(), w.pos, w.yaw);
   // Blackjack tables in the pit, each with a dealer and a few players.
   const blackjacks: BlackjackPlay[] = [];
+  /** Free stools at the blackjack tables: sit down (or walk onto one) and play. */
+  const bjSeats: { table: number; k: number; vp: Viewpoint }[] = [];
+  let bjSync: BlackjackSync | null = null;
   for (const spec of [
     { x: -11.1, z: -4.4, yaw: 0, felt: '#1d5a3a', min: 25, max: 5000 },
     { x: -3.95, z: -4.4, yaw: 0, felt: '#123f6a', min: 100, max: 10000 },
@@ -252,7 +256,44 @@ async function main() {
       players.push({ seat: k, person: p ?? null });
     }
     // The dealer deals real hands to them while you're nearby.
-    blackjacks.push(new BlackjackPlay({ sound }, t, dealer ?? null, players, spec.min));
+    const index = blackjacks.length;
+    const bj = new BlackjackPlay(
+      {
+        sound,
+        bankroll,
+        toast: (text, kind) => hud.toast(text, kind ?? 'info'),
+        haptic: (side, s, ms) => buzz(side, s, ms),
+        name: () => me.name,
+        onResult: (staked, returned) => {
+          if (session && returned >= Math.max(staked * 2.5, 250)) session.bigWin('blackjack', returned);
+        },
+      },
+      t,
+      dealer ?? null,
+      players,
+      spec.min,
+      spec.max,
+      index,
+    );
+    blackjacks.push(bj);
+    for (const k of bj.freeSeats) {
+      const st = t.seats[k];
+      const tableAt = new THREE.Vector3(spec.x, 0, spec.z);
+      bjSeats.push({
+        table: index,
+        k,
+        vp: {
+          id: `bj${index}s${k}`,
+          label: 'Blackjack',
+          position: st.pos.clone(),
+          yaw: st.yaw + Math.PI,
+          pitch: -0.72,
+          eye: 1.42,
+          back: 0.05,
+          portrait: { at: st.pos.clone().lerp(tableAt, 0.12), yaw: st.yaw + Math.PI, back: 0.35, eye: 2.15, pitch: -0.95 },
+        },
+      });
+    }
   }
   let crapsBetsTimer = 0;
   const stickSays = (text: string) => {
@@ -480,6 +521,10 @@ async function main() {
   // VR hands: chips from the rack, the slot lever.
   for (const g of roulette.grabbables) hands.register(g);
   for (const g of craps.grabbables) hands.register(g);
+  for (const b of blackjacks) {
+    for (const g of b.grabbables) hands.register(g);
+    interaction.register(b.target);
+  }
   const lever = machines[0].leverGrab();
   if (lever) hands.register(lever);
 
@@ -515,7 +560,7 @@ async function main() {
   ];
   hud.setNav(nav);
   // Tables count as 'at the game' anywhere around them (walk up and play); machines when you stand at one.
-  const seatable: { vp: Viewpoint; label: string; center?: THREE.Vector3; reach?: number }[] = [{ vp: roulette.viewpoint, label: 'Sit at roulette', center: roulette.group.position.clone().add(new THREE.Vector3(0.2, 0, 0.1)), reach: 2.6 }, { vp: craps.viewpoint, label: 'Shoot dice', center: craps.group.position.clone(), reach: 2.9 }, ...machines.map((m) => ({ vp: m.viewpoint, label: `Play ${m.machine.name}` })), { vp: piggy.viewpoint, label: `Play ${piggy.machine.name}` }, ...lounge.seats.map((vp) => ({ vp, label: 'Sit at the bar' }))];
+  const seatable: { vp: Viewpoint; label: string; center?: THREE.Vector3; reach?: number }[] = [{ vp: roulette.viewpoint, label: 'Sit at roulette', center: roulette.group.position.clone().add(new THREE.Vector3(0.2, 0, 0.1)), reach: 2.6 }, { vp: craps.viewpoint, label: 'Shoot dice', center: craps.group.position.clone(), reach: 2.9 }, ...machines.map((m) => ({ vp: m.viewpoint, label: `Play ${m.machine.name}` })), { vp: piggy.viewpoint, label: `Play ${piggy.machine.name}` }, ...lounge.seats.map((vp) => ({ vp, label: 'Sit at the bar' })), ...bjSeats.map((s) => ({ vp: s.vp, label: 'Sit at blackjack', center: s.vp.position, reach: 0.85 }))];
   hud.onNavigate = (item) => {
     if (!item.viewpoint) return;
     const seat = seatable.find((s) => s.vp === item.viewpoint);
@@ -782,6 +827,9 @@ async function main() {
     drinkSync = new DrinkSync(session, lounge, scene, (c) => drinkPhysics.soaked(c));
     looseSync?.dispose();
     looseSync = new LooseSync(session, loose, scene);
+    bjSync?.dispose();
+    bjSync = new BlackjackSync(session, blackjacks);
+    (window as unknown as { casino: Record<string, unknown> }).casino.bjSync = bjSync;
     boxing?.dispose();
     boxing = new Boxing({
       session,
@@ -924,6 +972,8 @@ async function main() {
       session = null;
       looseSync?.dispose();
       looseSync = null;
+      bjSync?.dispose();
+      bjSync = null;
       drinkSync?.dispose();
       drinkSync = null;
       boxing?.dispose();
@@ -1242,6 +1292,7 @@ async function main() {
     drinkSync?.update();
     watch.update(dt, player.inXR);
     looseSync?.update();
+    bjSync?.update(dt);
     boxing?.update(dt);
     mirror?.update(dt);
     // Walk up to craps in VR and the stickman slides you the dice.
@@ -1260,6 +1311,34 @@ async function main() {
     for (const m of machines) m.update(dt);
     piggy.update(dt);
     slotRows.update(t, feet, camera);
+    // Blackjack: which seat you're on (sat down, or walked onto the stool), your rack and your hand signals.
+    {
+      const m = /^bj(\d)s(\d)$/.exec(player.seated?.id ?? '');
+      const stool = player.stool;
+      blackjacks.forEach((b, i) => {
+        let k: number | null = m && Number(m[1]) === i ? Number(m[2]) : null;
+        if (k === null && stool) {
+          for (let j = 0; j < 7; j++) {
+            const sp = b.seatPos(j).pos;
+            if (Math.hypot(sp.x - stool.x, sp.z - stool.z) < 0.12) k = j;
+          }
+        }
+        b.setLocal(k);
+        b.showRack(player.inXR);
+        if (player.inXR && b.mySeat !== null) {
+          const poses = fingerPoses();
+          for (const side of ['left', 'right'] as const) {
+            const h = hands.hands.find((x) => x.ctrl.userData.handedness === side);
+            if (!h || h.held || h.ctrl.userData.connected === false) continue;
+            const pose = poses[side === 'left' ? 'l' : 'r'];
+            const open = 1 - (pose[1] + pose[2] + pose[3] + pose[4]) / 4;
+            h.grip.updateMatrixWorld(true);
+            const palm = h.grip.visible ? new THREE.Vector3().setFromMatrixPosition(h.grip.matrixWorld) : null;
+            b.handInput(side, hands.fingertip(side), palm, open, t);
+          }
+        }
+      });
+    }
     for (const b of blackjacks) b.update(dt, feet);
     lounge.update(dt);
     throwables.update(dt);
@@ -1308,13 +1387,19 @@ async function main() {
       // Walk up and play: the game's controls show as soon as you're at it, sitting or not.
       const station = hud.station;
       const m = machines.find((mm) => mm.machine.id === station);
-      hud.setControls(station === 'roulette' ? rouletteControls() : station === 'craps' ? crapsControls() : m ? slotControls(m) : station === piggy.machine.id ? piggyControls(piggy) : null);
+      const bjAt = station?.startsWith('bj') ? bjSeats.find((s) => s.vp.id === station) : undefined;
+      const bjControls = (): Control[] | null => {
+        const mine = blackjacks.find((b) => b.mySeat !== null);
+        if (mine) return mine.controls();
+        return bjAt ? [{ id: 'bjsit', label: 'SIT', sub: 'blackjack', kind: 'primary', onPress: () => player.sit(bjAt.vp) }] : null;
+      };
+      hud.setControls(station === 'roulette' ? rouletteControls() : station === 'craps' ? crapsControls() : m ? slotControls(m) : station === piggy.machine.id ? piggyControls(piggy) : bjAt || blackjacks.some((b) => b.mySeat !== null) ? bjControls() : null);
       if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());
       else if (loose.holding) touch.setAction('Throw', () => loose.throwDesk());
       else if (player.seated) touch.setAction('Stand', () => player.stand());
       else {
         const s = nearestSeat(1.8);
-        touch.setAction(s ? (s.vp.id === 'roulette' ? 'Sit' : 'Play') : null, s ? () => player.sit(s.vp) : null);
+        touch.setAction(s ? (s.vp.id === 'roulette' || s.vp.id.startsWith('bj') ? 'Sit' : 'Play') : null, s ? () => player.sit(s.vp) : null);
       }
       touch.setJump(!player.seated && !hud.station);
     } else hud.setControls(null);
@@ -1377,7 +1462,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces };
+  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera };
 }
 
 main().catch((e) => {
