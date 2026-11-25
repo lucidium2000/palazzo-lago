@@ -19,6 +19,8 @@ export const SLOTS_YAW = -0.8;
 const SLOTS_FWD = new THREE.Vector3(Math.sin(SLOTS_YAW), 0, Math.cos(SLOTS_YAW));
 
 export const ROTUNDA = { x: 0, z: 2, r: 4.6, h: 8.5 };
+/** The doorway in the west wall to the poker room (see pokerroom.ts). */
+export const POKER_DOOR = { z0: -0.8, z1: 0.8, h: 2.6 };
 
 export const POSITIONS = {
   start: new THREE.Vector3(0, 0, 12.6),
@@ -238,8 +240,17 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // South, east, west walls.
   wallPanel(0, D / 2, W, Math.PI);
   trim(0, D / 2, W, Math.PI);
-  wallPanel(-W / 2, 0, D, Math.PI / 2);
-  trim(-W / 2, 0, D, Math.PI / 2);
+  // West wall, with the doorway to the poker room.
+  {
+    const { z0, z1, h } = POKER_DOOR;
+    wallPanel(-W / 2, (-D / 2 + z0) / 2, z0 + D / 2, Math.PI / 2);
+    trim(-W / 2, (-D / 2 + z0) / 2, z0 + D / 2, Math.PI / 2);
+    wallPanel(-W / 2, (z1 + D / 2) / 2, D / 2 - z1, Math.PI / 2);
+    trim(-W / 2, (z1 + D / 2) / 2, D / 2 - z1, Math.PI / 2);
+    wallPanel(-W / 2, (z0 + z1) / 2, z1 - z0, Math.PI / 2, h, H);
+    batch.add(box, gold, M(-W / 2 + 0.12, H - 0.25, (z0 + z1) / 2, Math.PI / 2, z1 - z0, 0.12, 0.2));
+    batch.add(box, ceilingMat, M(-W / 2 + 0.12, H - 0.1, (z0 + z1) / 2, Math.PI / 2, z1 - z0, 0.2, 0.26));
+  }
   // East wall, with the grand opening to the hotel tower (corridor z 4.6–8.4, 4.2 m high).
   wallPanel(W / 2, (-D / 2 + 4.6) / 2, 4.6 + D / 2, -Math.PI / 2);
   trim(W / 2, (-D / 2 + 4.6) / 2, 4.6 + D / 2, -Math.PI / 2);
@@ -304,7 +315,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
       [
         { from: [-W / 2, D / 2], to: [W / 2, D / 2], inward: [0, -1], every: 3, skip: (x) => Math.abs(x) < 3.2 },
         { from: [W / 2, -D / 2], to: [W / 2, D / 2], inward: [-1, 0], every: 3.5, skip: (_x, z) => z > 3.9 && z < 9.1 },
-        { from: [-W / 2, -D / 2], to: [-W / 2, D / 2], inward: [1, 0], every: 3.5, skip: (_x, z) => z > 4.5 },
+        { from: [-W / 2, -D / 2], to: [-W / 2, D / 2], inward: [1, 0], every: 3.5, skip: (_x, z) => z > 4.5 || (z > POKER_DOOR.z0 - 0.5 && z < POKER_DOOR.z1 + 0.5) },
       ],
       H,
       { marble: columnMat, gold },
