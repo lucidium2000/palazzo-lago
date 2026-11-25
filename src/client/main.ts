@@ -134,12 +134,18 @@ async function main() {
     if (loadTip) loadTip.textContent = TIPS[tipIx];
   }, 5000);
   /** Overall progress 0..1 with a step label: shows %, elapsed and (once it can tell) time left. */
+  const loadStep = { name: '', t: 0, k: 0 };
   const loadProgress = (k: number, label: string) => {
     if (loadingSub) loadingSub.textContent = label;
     if (loadBar) loadBar.style.width = `${Math.round(k * 100)}%`;
-    const el = (performance.now() - loadT0) / 1000;
-    const left = k > 0.15 ? Math.max(1, Math.round((el / k) * (1 - k))) : null;
-    if (loadMeta) loadMeta.textContent = `${Math.round(k * 100)}% · ${Math.round(el)} s${left !== null ? ` · about ${left} s to go` : ''}`;
+    const t = performance.now() / 1000;
+    const el = t - loadT0 / 1000;
+    // Time left from the pace of the current step (lighting is much slower per % than loading).
+    const step = label.slice(0, 11);
+    if (step !== loadStep.name) Object.assign(loadStep, { name: step, t, k });
+    const dk = k - loadStep.k;
+    const left = k >= 1 ? null : dk > 0.04 ? Math.max(1, Math.round(((t - loadStep.t) / dk) * (1 - k))) : null;
+    if (loadMeta) loadMeta.textContent = `${Math.round(k * 100)}% · ${Math.round(el)} s${left !== null ? ` · about ${left} s to go` : k < 1 ? ' · estimating…' : ''}`;
   };
   await assets.load(renderer, (k) => loadProgress(k * 0.35, 'Step 1 of 3 · Opening the doors'));
   loadProgress(0.36, 'Step 2 of 3 · Building the resort');
