@@ -49,6 +49,10 @@ export interface BodiesDeps {
   hands: Hands;
   /** Someone reacts out loud (strength 0..1): a breath, a word if one's recorded. */
   onBump?(p: Person, strength: number): void;
+  /** A fist (or a very fast hand) landed on someone: power 0..1, where it landed. */
+  onPunch?(p: Person, power: number, at: THREE.Vector3): void;
+  /** Is this hand making a fist (grip squeezed)? */
+  isFist?(h: Hand): boolean;
   /** You pushed your friend: send it to their game (dx, dz metres). */
   onPushFriend?(p: Person, dx: number, dz: number): void;
 }
@@ -135,7 +139,7 @@ export class Bodies {
    * Shoves `p` by `dist` metres along (ux, uz) (a unit vector), and they react
    * with `strength` 0..1 (a stumble, a turn toward `from`, maybe a word).
    */
-  shove(p: Person, ux: number, uz: number, dist: number, strength: number, from: THREE.Vector3) {
+  shove(p: Person, ux: number, uz: number, dist: number, strength: number, from: THREE.Vector3, quiet = false) {
     const s = this.st(p);
     if (p.driven) {
       if (this.friendCool <= 0) {
@@ -168,7 +172,8 @@ export class Bodies {
     }
     // Rooted people (seated, behind a counter) just give you a look, once in a while.
     s.cool = canMove ? 0.5 : 2.5;
-    if (strength >= 0.6 || this.time - s.lastSound > 3) {
+    if (quiet) s.lastSound = this.time;
+    else if (strength >= 0.6 || this.time - s.lastSound > 3) {
       s.lastSound = this.time;
       this.d.onBump?.(p, strength);
     }
@@ -308,6 +313,16 @@ export class Bodies {
       const into = handInto(v.x, v.z, ox, oz);
       if (into < 0.5) continue;
       const vl = Math.hypot(v.x, v.z) || 1;
+      // A punch: a fist moving fast, or any hand moving very fast (hand tracking has no grip button).
+      const speed = v.length();
+      if ((speed > 1.9 && this.d.isFist?.(h)) || speed > 3.2) {
+        const power = Math.min(1, (speed - 1.6) / 3);
+        this.shove(p, v.x / vl, v.z / vl, Math.min(1, handShove(into) + 0.4), Math.min(0.7, 0.3 + power * 0.4), this.d.player.feet(), true);
+        s.cool = Math.max(s.cool, 1);
+        this.d.hands.onHaptic?.(h, 0.6 + power * 0.4, 70);
+        this.d.onPunch?.(p, power, hp.clone());
+        continue;
+      }
       this.shove(p, v.x / vl, v.z / vl, handShove(into), Math.min(0.5, 0.15 + into * 0.12), this.d.player.feet());
       s.cool = Math.max(s.cool, 0.7);
       this.d.hands.onHaptic?.(h, Math.min(0.6, 0.25 + into * 0.1), 40);

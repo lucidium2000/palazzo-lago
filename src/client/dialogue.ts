@@ -10,6 +10,7 @@ import { interpret, vocabulary } from './understand';
 import { characterFor, elVoice, spoken, type Character } from './cast';
 import type { Listener } from './listen';
 import { mouthOf, voices } from './voices';
+import { PLAYER_STANDIN, PLAYER_VOICES, REACTIONS, type ReactKind } from './reactlines';
 
 /**
  * Who's speaking out loud right now. One voice at a time across the whole
@@ -64,6 +65,8 @@ export interface DialogueDeps {
   enabled?(): boolean;
   /** Listens for your spoken answers (voice replies). */
   listener?: Listener;
+  /** Is your character a woman (for your voice)? */
+  playerFemale?(): boolean;
 }
 
 /**
@@ -361,7 +364,7 @@ export class Dialogue {
         return;
       }
       const i = interpret(heard, replies);
-      if (i !== null) return this.pick(replies[i]);
+      if (i !== null) return this.pick(replies[i], true);
       // Didn't catch it: roll with it.
       const pool = this.isGuest(c.npc) && Math.random() < 0.7 ? this.character(c.npc).huh : HUH_LINES;
       const huh = pool[Math.floor(Math.random() * pool.length)];
@@ -379,17 +382,20 @@ export class Dialogue {
     });
   }
 
-  private pick(r: Reply) {
+  private pick(r: Reply, spokenAloud = false) {
     const c = this.convo;
     if (!c) return;
     this.d.listener?.stop();
     this.hideReplies();
     if (voices.captions) this.d.hud.say('You', r.label);
+    // You say it (unless you already did, into the mic); they answer once you're done.
+    const mine = spokenAloud ? 0 : this.sayMine(r.label);
+    const wait = Math.max(500, mine * 1000 + 250);
     c.replies = null;
     if (r.next) this.prefetchTree(r.next, this.voiceOf(c.npc));
     else if (r.end) voices.prefetch(this.voiceOf(c.npc), r.end);
     if (r.next) {
-      setTimeout(() => this.convo === c && this.say(r.next!), 500);
+      setTimeout(() => this.convo === c && this.say(r.next!), wait);
       c.readyAt = this.time + 9;
     } else {
       setTimeout(() => {
@@ -428,6 +434,67 @@ export class Dialogue {
     this.d.crowd.speak(p, dur);
     if (voices.captions || !recorded) this.bubble(p, spoken(text), dur + 0.8);
     return dur;
+  }
+
+  private reactCool = new WeakMap<Person, number>();
+
+  /**
+   * Someone you got physical with answers back, out loud, in their own voice: a word when bumped or
+   * pushed, a loud "ouch" when punched, anger when doused or hit by something thrown. `crew` names
+   * one of your boys (rocco, dev, mikey) with their stand-in voice. Returns how long they talk.
+   */
+  react(p: Person, kind: ReactKind, crew?: { name: string; voice: VoiceId }): number {
+    const t = this.time;
+    // One reaction at a time per person (a punch always gets its yell).
+    if ((this.reactCool.get(p) ?? -9) > t && kind !== 'punched') return 0;
+    let id: string;
+    let alt: VoiceId;
+    if (crew) {
+      id = 'crew_' + crew.name.toLowerCase();
+      alt = crew.voice;
+    } else if (p.role === 'bartender' || p.role === 'waiter' || p.role === 'croupier') {
+      const v = this.voicesOf(p);
+      id = v[0].replace(/^el_/, '');
+      alt = v[1];
+    } else {
+      const ch = this.character(p);
+      id = ch.id;
+      alt = ch.fallback;
+    }
+    const set = REACTIONS[id]?.[kind];
+    if (!set?.length) return 0;
+    // Recorded lines only (never the robot voice): until they're in, a gasp or a yelp.
+    const said = set.filter((l) => voices.has(elVoice(id), l) || voices.has(alt, l));
+    if (!said.length) {
+      if (kind === 'pushed') return 0;
+      this.d.sound.play('gasp', p.pos.clone().setY(p.pos.y + 1.5), { volume: kind === 'punched' ? 1 : 0.6, rate: kind === 'punched' ? 0.9 : 1.1 });
+      this.reactCool.set(p, t + 1.2);
+      return 0.8;
+    }
+    const text = said[Math.floor(Math.random() * said.length)];
+    // Offended: whatever you were talking about is over.
+    if (kind !== 'pushed' && this.convo?.npc === p) {
+      this.hideReplies();
+      this.d.listener?.stop();
+      this.convo = null;
+    }
+    const loud = kind === 'punched' ? 1.9 : kind === 'pushed' ? 0.85 : 1.35;
+    const dur = voices.talk({ who: this.title(p), text, voice: elVoice(id), alt, at: mouthOf(p), priority: kind !== 'pushed', group: 'react', volume: loud, fallback: { rate: kind === 'punched' ? 1.15 : 1.05, pitch: kind === 'punched' ? 1.15 : 1 } });
+    this.reactCool.set(p, t + Math.max(1.2, dur));
+    this.d.crowd.speak(p, dur);
+    p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + dur + (kind === 'pushed' ? 1 : 4));
+    // Nobody chats you up for a while after that.
+    if (kind !== 'pushed') this.globalCd = Math.max(this.globalCd, 12);
+    return dur;
+  }
+
+  /** Your chosen reply, out loud, in your own character's voice (so it's a conversation, not a menu). */
+  private sayMine(label: string) {
+    const fem = this.d.playerFemale?.() ?? false;
+    const voice = elVoice(fem ? PLAYER_VOICES.female : PLAYER_VOICES.male);
+    const alt = fem ? PLAYER_STANDIN.female : PLAYER_STANDIN.male;
+    if (!voices.has(voice, label) && !voices.has(alt, label)) return 0;
+    return voices.talk({ who: 'You', text: label, voice, alt, at: null, volume: 0.75, group: 'me', captionFallback: false });
   }
 
   /** The recorded voice a person speaks with (staff by job, guests their own). */
@@ -551,14 +618,31 @@ export class Dialogue {
     this.panel.mesh.visible = false;
   }
 
-  /** The reply panel floats beside the person you're talking to, facing you. */
+  /**
+   * The reply panel sits within arm's reach (chest high, a little toward the person you're talking to),
+   * so you answer by touching it. It stays put while you lean in to press, and only re-settles if you
+   * walk off or turn away.
+   */
   private placePanel(npc: Person) {
     const head = this.d.camera.getWorldPosition(new THREE.Vector3());
-    const to = new THREE.Vector3(head.x - npc.pos.x, 0, head.z - npc.pos.z).normalize();
-    const side = new THREE.Vector3(to.z, 0, -to.x);
     const m = this.panel.mesh;
-    m.position.set(npc.pos.x, head.y - 0.35, npc.pos.z).addScaledVector(to, 0.55).addScaledVector(side, 0.35);
-    m.lookAt(head);
+    if (m.visible) {
+      const dx = m.position.x - head.x,
+        dz = m.position.z - head.z;
+      const reach = Math.hypot(dx, dz);
+      const look = this.d.camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
+      const facing = reach > 1e-3 ? (dx * look.x + dz * look.z) / reach : 1;
+      if (reach > 0.2 && reach < 0.8 && facing > 0.35 && Math.abs(m.position.y - (head.y - 0.3)) < 0.35) return;
+    }
+    const toNpc = new THREE.Vector3(npc.pos.x - head.x, 0, npc.pos.z - head.z);
+    const look = this.d.camera.getWorldDirection(new THREE.Vector3()).setY(0);
+    if (look.lengthSq() < 1e-4) look.copy(toNpc);
+    look.normalize();
+    // Between where you look and where they stand (mostly where you look).
+    const dir = toNpc.lengthSq() > 1e-4 ? look.clone().lerp(toNpc.normalize(), 0.35).normalize() : look;
+    m.scale.setScalar(0.68);
+    m.position.set(head.x, head.y - 0.3, head.z).addScaledVector(dir, 0.42);
+    m.lookAt(head.x, head.y - 0.05, head.z);
     m.visible = true;
   }
 }

@@ -182,19 +182,20 @@ export class Player {
     });
     renderer.xr.addEventListener('sessionend', () => this.applyDesktopCamera());
 
-    // Comfort vignette: a soft dark ring in front of the eyes while moving in VR.
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    const g = c.getContext('2d')!;
-    const grad = g.createRadialGradient(128, 128, 40, 128, 128, 128);
-    grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(0.55, 'rgba(0,0,0,0)');
-    grad.addColorStop(1, 'rgba(0,0,0,1)');
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 256, 256);
+    // Comfort vignette: a soft dark ring round the edge of your view while moving in VR. Drawn by a
+    // shader on a plane far wider than any headset's view, so it has no edges (a small textured
+    // square showed up as a dark box on wide-view headsets).
     this.vignette = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.5, 0.5),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0, depthTest: false, depthWrite: false }),
+      new THREE.PlaneGeometry(1.6, 1.6),
+      new THREE.ShaderMaterial({
+        uniforms: { opacity: { value: 0 } },
+        vertexShader: 'varying vec2 vP; void main() { vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        // Radius in metres at 0.12 m: clear to ~45 degrees off centre, darkening to the edge.
+        fragmentShader: 'uniform float opacity; varying vec2 vP; void main() { float r = length(vP * vec2(0.9, 1.0)); float a = smoothstep(0.1, 0.24, r); gl_FragColor = vec4(0.0, 0.0, 0.0, a * opacity); }',
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+      }),
     );
     this.vignette.position.z = -0.12;
     this.vignette.renderOrder = 2000;
@@ -825,10 +826,10 @@ export class Player {
     }
     this.updateStool(this.headWorld());
     this.turnFlash = Math.max(0, this.turnFlash - dt);
-    const want = this.comfort.vignette ? Math.min(0.9, (speed / WALK) * 0.75 + this.turnFlash * 3) : 0;
-    const mat = this.vignette.material as THREE.MeshBasicMaterial;
-    mat.opacity += (want - mat.opacity) * Math.min(1, dt * 8);
-    this.vignette.visible = mat.opacity > 0.02;
+    const want = this.comfort.vignette ? Math.min(0.8, (speed / WALK) * 0.6 + this.turnFlash * 3) : 0;
+    const op = (this.vignette.material as THREE.ShaderMaterial).uniforms.opacity;
+    op.value += (want - op.value) * Math.min(1, dt * 8);
+    this.vignette.visible = op.value > 0.02;
   }
 }
 

@@ -3,6 +3,7 @@
  * (tools/voices/render.py). Run: npx tsx scripts/voice-lines.ts
  */
 import { writeFileSync } from 'node:fs';
+import { REACTIONS, PLAYER_VOICES, PLAYER_STANDIN, replyLabels } from '../src/client/reactlines';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Ctx, type Node } from '../src/client/dialogueLines';
 import {
   BARTENDER_LINES, CHEERS_LINES, CONVO_BYE, HUH_LINES, CREW_LINES, CREW_VOICES, CROUPIER_LINES, GUEST_ALL, PACE, STAFF,
@@ -109,6 +110,15 @@ for (let a = 1; a <= 6; a++)
   }
 }
 
+// Stand-ins (Kokoro) for the reactions and your replies, until the ElevenLabs takes are in.
+{
+  const { GUESTS } = await import('../src/client/cast');
+  const { STAFF, CREW_VOICES } = await import('../src/client/speech');
+  const stand: Record<string, string> = { ...Object.fromEntries(GUESTS.map((g) => [g.id, g.fallback])), ...STAFF, crew_rocco: CREW_VOICES[0], crew_dev: CREW_VOICES[1], crew_mikey: CREW_VOICES[2] };
+  for (const [who, set] of Object.entries(REACTIONS)) if (stand[who]) for (const list of Object.values(set)) for (const t of list) add(stand[who], t);
+  for (const [k, pv] of Object.entries(PLAYER_STANDIN)) for (const t of replyLabels()) add(pv, t), void k;
+}
+
 const lines = [...out.values()].sort((x, y) => (x.voice + x.id).localeCompare(y.voice + y.id));
 writeFileSync('tools/voices/lines.json', JSON.stringify(lines, null, 1));
 const per: Record<string, number> = {};
@@ -185,6 +195,10 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
     for (const list of Object.values(CREW_LINES)) for (const t of list) addEl(v, t);
     for (const t of TIPSY_LINES) addEl(v, t);
   }
+  // Getting physical: pushed, punched, doused, hit (priority 1: these are the loud moments).
+  for (const [who, set] of Object.entries(REACTIONS)) for (const list of Object.values(set)) for (const t of list) addEl(elVoice(who), t);
+  // Your own replies, out loud.
+  for (const pv of Object.values(PLAYER_VOICES)) for (const t of replyLabels()) addEl(elVoice(pv), t);
   const elLines = [...el.values()].sort((x, y) => (x.voice + x.id).localeCompare(y.voice + y.id));
   writeFileSync('tools/voices/eleven-lines.json', JSON.stringify(elLines, null, 1));
   const chars = elLines.reduce((n, l) => n + l.text.length, 0);

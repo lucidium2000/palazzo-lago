@@ -53,6 +53,8 @@ export interface DrinkPhysicsDeps {
   world: World;
   /** Your friend's avatar → tell them they got soaked (two-player). */
   douse?(person: Person, color: number): boolean;
+  /** They react out loud (doused by a pour, or hit by a thrown glass). Yours only. */
+  react?(person: Person, kind: 'doused' | 'hit'): void;
   inXR(): boolean;
 }
 
@@ -194,7 +196,7 @@ export class DrinkPhysics {
       // On someone? (heads and shoulders first)
       const who = this.personAt(dp.p);
       if (who) {
-        this.flinch(who, dp.color.getHex(), dp.mine);
+        this.flinch(who, dp.color.getHex(), dp.mine, 'doused');
         dp.t = 99;
         continue;
       }
@@ -225,7 +227,8 @@ export class DrinkPhysics {
   }
 
   /** The person whose body is at this point, if any. */
-  private personAt(p: THREE.Vector3): Person | null {
+  /** Whose head, shoulders or body is at this point (if anyone's). */
+  personAt(p: THREE.Vector3): Person | null {
     for (const q of this.d.crowd.people) {
       if (q.culled) continue;
       const dx = p.x - q.pos.x,
@@ -238,7 +241,7 @@ export class DrinkPhysics {
   }
 
   /** Someone got hit by drink (or a glass): they flinch, look at you; your friend gets told. */
-  private flinch(p: Person, color: number, mine: boolean) {
+  private flinch(p: Person, color: number, mine: boolean, kind: 'doused' | 'hit' = 'doused') {
     if ((this.flinchCool.get(p) ?? 0) > this.time) return;
     this.flinchCool.set(p, this.time + 1.2);
     p.gaspT = 0.9;
@@ -246,6 +249,7 @@ export class DrinkPhysics {
     this.d.sound.play('gasp', p.pos.clone().setY(p.pos.y + 1.5), { volume: 0.5 });
     this.d.throwables.spill(new THREE.Vector3(p.pos.x + (Math.random() - 0.5) * 0.3, this.d.world.groundAt(p.pos.x, p.pos.z), p.pos.z + (Math.random() - 0.5) * 0.3), color, 0.05);
     if (mine) this.d.douse?.(p, color);
+    if (mine) this.d.react?.(p, kind);
   }
 
   // -------------------------------------------------------------------------
@@ -306,7 +310,7 @@ export class DrinkPhysics {
       if (!who) continue;
       const color = dr.color;
       const full = dr.level > 0.05;
-      this.flinch(who, color, !dr.remote);
+      this.flinch(who, color, !dr.remote, full ? 'doused' : 'hit');
       if (full) {
         // The drink splashes off them.
         for (let i = 0; i < 18 && this.drops.length < MAX_DROPS; i++)

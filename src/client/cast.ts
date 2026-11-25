@@ -396,6 +396,8 @@ export const SPEAKERS: { id: string; name: string; bio: string; voiceHint: strin
   { id: 'waiter', name: 'Theo', bio: 'Cocktail server: polished, charming, discreet.', voiceHint: 'young man, polished, charming, soft British or neutral American' },
   { id: 'crew_rocco', name: 'Rocco', bio: "Your crew's loud leader: big laugh, big heart, always hyping you up.", voiceHint: 'man in his thirties, loud, booming, Boston or Chicago, big laugh' },
   { id: 'crew_dev', name: 'Dev', bio: "Your crew's joker: sarcastic, quick, roasts everyone with love.", voiceHint: 'man in his thirties, dry sarcastic humour, quick, American' },
+  { id: 'you_m', name: 'You', bio: 'The player (a man): your replies, out loud.', voiceHint: 'man in his thirties, natural, friendly, relaxed, neutral American' },
+  { id: 'you_f', name: 'You', bio: 'The player (a woman): your replies, out loud.', voiceHint: 'woman in her thirties, natural, friendly, relaxed, neutral American' },
   { id: 'crew_mikey', name: 'Mikey', bio: "Your crew's lightweight: sweet, excitable, two drinks in and already emotional.", voiceHint: 'young man, sweet, excitable, a little high-pitched, goofy, American' },
 ];
 

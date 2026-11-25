@@ -60,6 +60,7 @@ import { Listener } from './listen';
 import { Watch } from './watch';
 import { PhotoCams } from './photocam';
 import { elVoice } from './cast';
+import type { ReactKind } from './reactlines';
 import { DrinkSync } from './net/drinksync';
 import { LooseObjects } from './loose';
 import { LooseSync } from './net/loosesync';
@@ -67,7 +68,8 @@ import { Party } from './party';
 import { renderPartyTrack } from './party/track';
 import { DJ } from './areas/pool';
 import { Boxing } from './net/boxing';
-import { BUMP_LINES, Bodies, friendShove } from './bodies';
+import { Bodies, friendShove } from './bodies';
+import { avatarLook } from './net/avatars';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
@@ -244,8 +246,10 @@ async function main() {
     world,
     inXR: () => player.inXR,
     douse: (p, c) => drinkSync?.douse(p, c) ?? false,
+    react: (p, kind) => reactTo(p, kind),
   });
   // Loose things to pick up and throw: chips, dice, bottles, fruit, napkins, menus, ashtrays, buckets.
+  const hitBy = new WeakMap<object, Person>();
   const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics });
   const slotRows = new SlotRows(ctx, crowd, world);
 
@@ -471,22 +475,30 @@ async function main() {
   const crew = new Crew(crowd, world, player, hud, sound, randomLook);
   // People are solid: you squeeze past them, and push them if you keep going.
   let pushFriend: ((dx: number, dz: number) => void) | null = null;
+  /** Someone you got physical with says so (see Dialogue.react). */
+  const reactTo = (p: Person, kind: ReactKind): number => {
+    const b = crew.buddies.find((x) => x.person === p);
+    return dialogue.react(p, kind, b ? { name: b.name, voice: b.voiceId } : undefined);
+  };
   const bodies = new Bodies({
     crowd,
     world,
     player,
     hands,
     onBump: (p, k) => {
-      // One of the boys says something (recorded lines only); anyone else just catches their breath.
-      const b = crew.buddies.find((x) => x.person === p);
-      if (b && k > 0.5 && !voiceArbiter.busy() && !voices.priorityBusy) {
-        const lines = BUMP_LINES.filter((l) => voices.has(b.voiceId, l));
-        if (lines.length) {
-          crew.say(b, lines[Math.floor(Math.random() * lines.length)]);
-          return;
-        }
-      }
-      if (k > 0.3) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * k, rate: 1.2 + Math.random() * 0.25 });
+      // They notice: a word (in their own voice), or at least a breath for the lightest brush.
+      if (k > 0.2 && reactTo(p, 'pushed') > 0) return;
+      if (k > 0.1) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * k, rate: 1.2 + Math.random() * 0.25 });
+    },
+    onPunch: (p, power, at) => {
+      // A thud you feel, a stumble, and a loud ouch.
+      sound.play('punch', at, { volume: 0.9 + power * 0.6, rate: 0.85 + Math.random() * 0.15 });
+      p.gaspT = Math.max(p.gaspT, 1);
+      reactTo(p, 'punched');
+    },
+    isFist: (h) => {
+      const g = gripValues();
+      return (h.ctrl.userData.handedness === 'left' ? g.l : g.r) > 0.55;
     },
     onPushFriend: (_p, dx, dz) => pushFriend?.(dx, dz),
   });
@@ -513,6 +525,10 @@ async function main() {
     interaction,
     feet: () => player.feet(),
     inXR: () => player.inXR,
+    playerFemale: () => {
+      const l = avatarLook(me.avatar);
+      return (l.kind ?? '').startsWith('female') || !!l.dress;
+    },
     ctx: () => ({ chips: bankroll.balance, up: bankroll.balance - startChips, drink: lounge.holdingDrink, name: me.name }),
   });
   // Shout big wins to your friend in a two-player game.
@@ -1669,6 +1685,17 @@ async function main() {
     throwables.update(dt);
     drinkPhysics.update(dt);
     loose.update(dt);
+    // Things you throw that hit someone: a thump, and they let you know about it.
+    for (const b of loose.sim.bodies) {
+      if (!b.awake || !b.mine || b.held || b.v.lengthSq() < 4) continue;
+      const who = drinkPhysics.personAt(b.pos);
+      if (!who || hitBy.get(b) === who) continue;
+      hitBy.set(b, who);
+      sound.play('punch', b.pos, { volume: 0.35, rate: 1.4 });
+      who.gaspT = Math.max(who.gaspT, 0.8);
+      b.v.multiplyScalar(-0.3);
+      reactTo(who, 'hit');
+    }
     bodies.update(dt);
     party.update(dt, {
       feet,
