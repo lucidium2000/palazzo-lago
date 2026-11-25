@@ -466,10 +466,10 @@ export function buildPokerRoom(q: Quality): PokerRoom {
     interior.add(body, liquid, stopper);
   }
   const painting = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.0), new THREE.MeshBasicMaterial({ map: toTexture(lakeView(512, 256)), color: 0x9a8a7a }));
-  painting.position.set(x0 + 0.03, 1.95, 0);
+  painting.position.set(x0 + 0.055, 1.95, 0);
   painting.rotation.y = Math.PI / 2;
   interior.add(painting);
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.12, 2.12), gold);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.12, 2.12), gold); // the painting sits just in front of it
   frame.position.set(x0 + 0.015, 1.95, 0);
   interior.add(frame);
   // Wall sconces: two each side.
