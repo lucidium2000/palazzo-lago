@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import { buildWalla, renderFloor } from './ambience';
 
 /**
  * Synthesized sound effects. Every sound is generated in code at startup, so
  * there are no audio files to download. Sounds are positional: in VR a chip
- * clack comes from the felt, the slot jingle from the machine.
+ * clack comes from the felt, the slot jingle from the machine. (The room
+ * tone's crowd murmur is the exception: see ambience.ts.)
  */
 
 type SoundName =
@@ -18,7 +20,6 @@ type SoundName =
   | 'winBig'
   | 'bonus'
   | 'lever'
-  | 'ambience'
   | 'denied'
   | 'stepMarble'
   | 'stepCarpet'
@@ -65,7 +66,9 @@ function bell(f: number, t: number, decay = 0.4) {
   return (Math.sin(2 * Math.PI * f * t) + 0.35 * Math.sin(2 * Math.PI * f * 2.01 * t) + 0.15 * Math.sin(2 * Math.PI * f * 3.02 * t)) * env(t, 0.004, decay);
 }
 
-function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
+type Buffers = Record<SoundName, AudioBuffer> & { variants: Partial<Record<SoundName, AudioBuffer[]>> };
+
+function buildBuffers(ctx: BaseAudioContext): Buffers {
   // One-pole filters, stateful per buffer.
   const lp = (a: number) => {
     let y = 0;
@@ -194,52 +197,74 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
   const fanfare = synth(ctx, 1.5, (t) => fanfareNotes.reduce((a, [f, at, len]) => a + brass(f, t - at, len), 0) * 0.07);
   const denied = synth(ctx, 0.25, (t) => (Math.sin(2 * Math.PI * 220 * t) + Math.sin(2 * Math.PI * 233 * t)) * 0.18 * env(t, 0.005, 0.1));
 
-  // Casino room tone: a soft crowd murmur with distant chimes. Stereo, loops.
-  const ambience = (() => {
-    const L = [lp(0.02), lp(0.02)],
-      M = [lp(0.12), lp(0.12)];
-    const chimes = Array.from({ length: 14 }, () => ({ at: Math.abs(rand()) * 11.5, f: [C6, E6, G6, G5][Math.floor(Math.abs(rand()) * 4)], g: 0.04 + Math.abs(rand()) * 0.05 }));
-    const sr = ctx.sampleRate,
-      len = 12 * sr;
-    const buf = ctx.createBuffer(2, len, sr);
-    for (let c = 0; c < 2; c++) {
-      const d = buf.getChannelData(c);
-      for (let i = 0; i < len; i++) {
-        const t = i / sr;
-        const murmur = M[c](L[c](rand()) * 4) * (0.8 + 0.2 * Math.sin(t * 1.3 + c));
-        let ch = 0;
-        for (const k of chimes) if (t > k.at && t - k.at < 1) ch += bell(k.f * (c ? 1.002 : 1), t - k.at, 0.3) * k.g;
-        d[i] = murmur * 0.5 + ch;
-      }
-      // Crossfade the loop seam.
-      const fade = Math.floor(sr * 0.5);
-      for (let i = 0; i < fade; i++) {
-        const a = i / fade;
-        d[i] = d[i] * a + d[len - fade + i] * (1 - a);
-      }
+  // Footsteps: leather soles indoors. A soft heel tap with a dull low-mid body
+  // (no ringing partials), a little scuff, then a quieter toe/sole landing.
+  // Several variants of each so consecutive steps never sound identical.
+  const biquad = (type: 'lp' | 'hp' | 'bp', f: number, q = 0.707) => {
+    const w = (2 * Math.PI * f) / ctx.sampleRate,
+      al = Math.sin(w) / (2 * q),
+      cw = Math.cos(w);
+    const [b0, b1, b2] = type === 'lp' ? [(1 - cw) / 2, 1 - cw, (1 - cw) / 2] : type === 'hp' ? [(1 + cw) / 2, -(1 + cw), (1 + cw) / 2] : [al, 0, -al];
+    const a0 = 1 + al,
+      a1 = -2 * cw,
+      a2 = 1 - al;
+    let x1 = 0,
+      x2 = 0,
+      y1 = 0,
+      y2 = 0;
+    return (x: number) => {
+      const y = (b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      x2 = x1;
+      x1 = x;
+      y2 = y1;
+      y1 = y;
+      return y;
+    };
+  };
+  const jit = (k: number) => 1 + rand() * k;
+  const step = (surface: 'marble' | 'carpet' | 'stone') => {
+    if (surface === 'carpet') {
+      const body = biquad('lp', 320 * jit(0.15), 0.8),
+        body2 = biquad('lp', 300),
+        fibre = biquad('bp', 900 * jit(0.2), 0.7);
+      const thump = 85 * jit(0.1),
+        toe = 0.06 * jit(0.15);
+      return synth(ctx, 0.2, (t) => {
+        const e = env(t, 0.006, 0.026) + (t > toe ? 0.4 * env(t - toe, 0.005, 0.022) : 0);
+        return body2(body(rand())) * 2.2 * e + Math.sin(2 * Math.PI * thump * t) * 0.1 * env(t, 0.004, 0.03) + fibre(rand()) * 0.05 * env(t, 0.015, 0.04);
+      });
     }
-    return buf;
-  })();
-
-  // Footsteps: a heel click on marble, a soft thud on carpet, grit on stone.
-  const stepMarble = (() => {
-    const h = hp(0.5),
-      l = lp(0.15);
-    return synth(ctx, 0.18, (t) =>
-      h(rand()) * 0.5 * env(t, 0.0006, 0.006) +
-      (Math.sin(2 * Math.PI * 1900 * t) * 0.18 + Math.sin(2 * Math.PI * 3100 * t) * 0.08) * env(t, 0.0006, 0.025) +
-      l(rand()) * 0.9 * env(t, 0.002, 0.03),
-    );
-  })();
-  const stepCarpet = (() => {
-    const l = lp(0.04);
-    return synth(ctx, 0.2, (t) => l(rand()) * 2.4 * env(t, 0.008, 0.045) + Math.sin(2 * Math.PI * 85 * t) * 0.12 * env(t, 0.004, 0.04));
-  })();
-  const stepStone = (() => {
-    const b = hp(0.3),
-      l = lp(0.3);
-    return synth(ctx, 0.22, (t) => l(b(rand())) * 1.1 * env(t, 0.003, 0.05) * (0.7 + 0.3 * Math.abs(rand())));
-  })();
+    const stone = surface === 'stone';
+    const lo = stone ? 420 : 520;
+    const body = biquad('lp', lo * jit(0.12), 0.9),
+      bodyHp = biquad('hp', 140),
+      tap = biquad('bp', (stone ? 1300 : 1700) * jit(0.15), 0.9),
+      scuff = biquad('bp', 1100 * jit(0.2), 0.6),
+      grit = biquad('bp', 2200 * jit(0.2), 1.2);
+    const thock = (stone ? 170 : 230) * jit(0.12),
+      toe = 0.045 + Math.abs(rand()) * 0.02,
+      toeLevel = 0.35 + Math.abs(rand()) * 0.15;
+    // Sparse sand grains under the sole on the outdoor deck.
+    const grains = stone ? Array.from({ length: 9 }, () => ({ at: Math.abs(rand()) * 0.07, g: 0.15 + Math.abs(rand()) * 0.25 })) : [];
+    return synth(ctx, 0.2, (t) => {
+      const strike = (u: number) => (u < 0 ? 0 : env(u, 0.0015, 0.012));
+      const e = strike(t) + toeLevel * strike(t - toe);
+      let v = bodyHp(body(rand())) * 2.2 * e;
+      v += Math.sin(2 * Math.PI * thock * t) * 0.16 * (t < 0 ? 0 : env(t, 0.0015, 0.018));
+      v += tap(rand()) * 0.22 * (env(t, 0.0004, 0.0035) + toeLevel * (t > toe ? env(t - toe, 0.0004, 0.003) : 0));
+      v += scuff(rand()) * 0.035 * (t > 0.01 && t < 0.09 ? Math.sin((Math.PI * (t - 0.01)) / 0.08) : 0);
+      let gr = 0;
+      for (const g of grains) if (t > g.at && t - g.at < 0.004) gr += g.g;
+      if (stone) v += grit(rand()) * (0.05 * env(t, 0.004, 0.04) + gr * 0.2);
+      return v * 0.85;
+    });
+  };
+  const stepVariants = {
+    stepMarble: Array.from({ length: 4 }, () => step('marble')),
+    stepCarpet: Array.from({ length: 4 }, () => step('carpet')),
+    stepStone: Array.from({ length: 4 }, () => step('stone')),
+  };
+  const [stepMarble, stepCarpet, stepStone] = [stepVariants.stepMarble[0], stepVariants.stepCarpet[0], stepVariants.stepStone[0]];
 
   // A table erupting: shaped crowd noise with a few rising whoops.
   const cheer = (() => {
@@ -340,17 +365,26 @@ function buildBuffers(ctx: BaseAudioContext): Record<SoundName, AudioBuffer> {
   })();
 
   return {
-    chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, ambience, denied,
+    chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, denied,
     stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
     ding, liftHum, splash, swim, land,
+    variants: stepVariants,
   };
 }
 
+/** Mix levels of the room-tone layers (their loops are normalised: walla ~-23 dBFS, floor ~-26 dBFS). */
+const AMB_WALLA = 0.135;
+const AMB_FLOOR = 0.115;
+
+const pick = (b: Buffers, name: SoundName) => {
+  const v = b.variants[name];
+  return v ? v[Math.floor(Math.random() * v.length)] : b[name];
+};
+
 export class Sound {
   readonly listener = new THREE.AudioListener();
-  private buffers: Record<SoundName, AudioBuffer> | null = null;
+  private buffers: Buffers | null = null;
   private pool: THREE.PositionalAudio[] = [];
-  private ambient: THREE.Audio | null = null;
   muted = false;
 
   constructor(
@@ -375,18 +409,43 @@ export class Sound {
     return this.buffers;
   }
 
+  // Room tone: two seamless loops (see ambience.ts). The slot floor + air
+  // arrives first; the crowd walla (built from recorded voice clips) fades in
+  // once its clips are fetched and mixed. If they fail, the floor plays alone.
+  private ambLayers: { audio: THREE.Audio; base: number; curve: number }[] = [];
+  private ambStarted = false;
+  private ambLevel = 1;
+
   private startAmbience() {
-    if (this.ambient) return;
-    this.ambient = new THREE.Audio(this.listener);
-    this.ambient.setBuffer(this.ensure().ambience);
-    this.ambient.setLoop(true);
-    this.ambient.setVolume(this.muted ? 0 : 0.35);
-    this.ambient.play();
+    if (this.ambStarted) return;
+    this.ambStarted = true;
+    const add = (buf: AudioBuffer | null, base: number, curve: number) => {
+      if (!buf) return;
+      const a = new THREE.Audio(this.listener);
+      a.setBuffer(buf);
+      a.setLoop(true);
+      // Fade in through a gain stage of our own, so the per-frame level updates don't cut it short.
+      const ctx = this.listener.context;
+      const fade = ctx.createGain();
+      fade.gain.setValueAtTime(0, ctx.currentTime);
+      fade.gain.linearRampToValueAtTime(1, ctx.currentTime + 4);
+      a.setFilter(fade);
+      const layer = { audio: a, base, curve };
+      this.ambLayers.push(layer);
+      a.setVolume(base * this.ambLevel ** curve);
+      // Start each loop somewhere random so sessions don't all open the same way.
+      a.offset = Math.random() * buf.duration * 0.9;
+      a.play();
+    };
+    // Slots thin out faster than the crowd as you step outside (curve > 1).
+    renderFloor().then((b) => add(b, AMB_FLOOR, 1.6), () => {});
+    buildWalla().then((b) => add(b, AMB_WALLA, 1), () => {});
   }
 
   /** Room tone level (quieter out on the terrace). */
   setAmbience(level: number) {
-    if (this.ambient) this.ambient.setVolume(0.35 * level);
+    this.ambLevel = Math.max(0, Math.min(1, level));
+    for (const l of this.ambLayers) l.audio.setVolume(l.base * this.ambLevel ** l.curve);
   }
 
   setMuted(m: boolean) {
@@ -414,7 +473,7 @@ export class Sound {
       a.position.copy(at ?? new THREE.Vector3());
       this.scene.add(a);
     }
-    a.setBuffer(buffers[name]);
+    a.setBuffer(pick(buffers, name));
     a.setLoop(false);
     a.setVolume(opts.volume ?? 1);
     a.setPlaybackRate(opts.rate ?? 1);
@@ -434,7 +493,7 @@ export class Sound {
       a = new THREE.Audio(this.listener);
       this.local.push(a);
     }
-    a.setBuffer(buffers[name]);
+    a.setBuffer(pick(buffers, name));
     a.setVolume(volume);
     a.setPlaybackRate(rate);
     a.play();
