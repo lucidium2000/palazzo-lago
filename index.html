@@ -27,10 +27,11 @@
         </div>
       </div>
       <div id="room-bar"><button id="room-pill" hidden></button><button id="voice-btn" hidden>Voice off</button></div>
+      <div id="room-board" hidden></div>
       <form id="chat" hidden>
         <div class="quick gestures"><button type="button" data-gesture="highfive">High five</button><button type="button" data-gesture="fistbump">Fist bump</button><button type="button" data-gesture="handshake">Shake hands</button><button type="button" data-gesture="wave">Wave</button></div>
         <div class="quick"><button type="button">Let's go!</button><button type="button">Come to roulette</button><button type="button">Craps time</button><button type="button">Drinks at the bar?</button><button type="button">Nice!</button></div>
-        <input id="chat-input" maxlength="120" placeholder="Say something to your friend… (Enter to send)" autocomplete="off" />
+        <input id="chat-input" maxlength="120" placeholder="Say something to the room… (Enter to send)" autocomplete="off" />
       </form>
       <div id="toasts"></div>
       <div id="goals"></div>
@@ -56,8 +57,8 @@
         <p><b>Roulette:</b> pick a chip on the table's panel (or keys 1–7), click the layout to bet. Click between numbers for splits, corners and streets. Space spins, Z undoes, C clears, R rebets.</p>
         <p><b>Slots:</b> walk up to a machine, use − / + to set your bet, press SPIN (or tap the screen). Info shows the paytable.</p>
         <p><b>VR, hands first:</b> you do everything with your hands. Touch buttons and menu panels with your index finger to press them, grab things with the grip. Laser pointers are off by default (turn them on, pick snap or smooth turning, turn speed and the comfort vignette in the wrist menu, Menu tab).</p>
-        <p><b>VR (Quest):</b> left stick walks, right stick turns, point and pull the trigger (or pinch) to select or teleport. Grab with the grip button: chips from your rack (drop them on the felt to bet), the slot lever, glasses (raise one to your mouth to sip; swing and let go to throw it; tip it over to pour it on anything, or anyone; knock glasses together hard and they smash), and loose things lying around: chips, dice, bottles (swig, pour, smash), fruit, napkins, menus, ashtrays, champagne buckets. Sweep your hand across a table and you knock things flying. In a two-player game, squeeze into a fist and throw real punches at your friend: hits to the head or body land, their hand in the way blocks, and run out of stamina and you go down. Press <b>Y</b> on your left controller to open the full menu on your left wrist (with hand tracking it's always there): <b>Go</b> (jump to any game), <b>Room</b> (host or join a two-player game with a code keypad, change your character, voice chat, quick chat) and <b>Menu</b> (music, sound, help, reset chips, exit VR).</p>
-        <p><b>Two players:</b> on the start screen pick your character, then <b>Host 2-player</b> to get a room code (like LAGO-7K2F) and send it to a friend, who picks <b>Join a friend</b> and types it in. You'll see each other on the floor with name tags. Press <b>T</b> (or tap the room badge) to chat, and <b>Voice</b> to talk (V mutes); in VR it's under Room on your wrist, and your friend's voice comes from their avatar. Roulette and craps are shared: the host's table spins the wheel and rolls the dice, either of you can call the spin or shoot, and each of you bets your own chips. Big wins are announced to your friend.</p>
+        <p><b>VR (Quest):</b> left stick walks, right stick turns, point and pull the trigger (or pinch) to select or teleport. Grab with the grip button: chips from your rack (drop them on the felt to bet), the slot lever, glasses (raise one to your mouth to sip; swing and let go to throw it; tip it over to pour it on anything, or anyone; knock glasses together hard and they smash), and loose things lying around: chips, dice, bottles (swig, pour, smash), fruit, napkins, menus, ashtrays, champagne buckets. Sweep your hand across a table and you knock things flying. In a two-player game, squeeze into a fist and throw real punches at your friend: hits to the head or body land, their hand in the way blocks, and run out of stamina and you go down. Press <b>Y</b> on your left controller to open the full menu on your left wrist (with hand tracking it's always there): <b>Go</b> (jump to any game), <b>Room</b> (host or join a room with a code keypad, see where your friends are and jump to them, tonight's scoreboard, change your character, voice chat, quick chat) and <b>Menu</b> (music, sound, help, reset chips, exit VR).</p>
+        <p><b>With friends (up to 4):</b> on the start screen pick your character, then <b>Host a room</b> to get a room code (like LAGO-7K2F) and send it to up to three friends, who pick <b>Join a friend</b> and type it in. You'll see each other on the floor with name tags in your own colours (they stay readable across the room and show faintly through walls). The scoreboard under the room badge shows everyone's chips won or lost tonight and where each friend is; <b>Go</b> takes you straight to them. Press <b>T</b> (or tap the room badge) to chat, and <b>Voice</b> to talk (V mutes); in VR it's under Room on your wrist, and your friend's voice comes from their avatar. Roulette and craps are shared: the host's table spins the wheel and rolls the dice, either of you can call the spin or shoot, and each of you bets your own chips. Big wins are announced to your friend.</p>
         <p><b>Hanging out:</b> in VR you see your own body and hands. With your friend: slap open hands up high for a <b>high five</b>, squeeze both grips and bump fists for a <b>fist bump</b>, or hold hands together at waist height to <b>shake hands</b>. On a screen, open chat (T) and use the High five / Fist bump / Shake hands / Wave buttons; your avatar holds out its hand, and if your friend does the same (or meets it in VR), it lands.</p>
         <p class="fine">Play money only. Chips have no cash value. 18+.</p>
       </div>
@@ -65,7 +66,7 @@
     <div id="enter">
       <div class="card">
         <span class="name">Palazzo Lago</span>
-        <p class="intro">A night out on the Strip. Play on your own, or start a game and send a friend the room code.</p>
+        <p class="intro">A night out on the Strip. Play on your own, or host a room and send up to three friends the code.</p>
         <div class="avatar">
           <button id="av-prev" class="arrow" aria-label="Previous character">&#8249;</button>
           <canvas id="av-canvas"></canvas>
@@ -76,7 +77,7 @@
         <div class="modes">
           <button id="vr-start" class="primary" hidden>Enter VR</button>
           <button id="enter-btn" class="primary">Play solo</button>
-          <button id="host-btn">Host 2-player</button>
+          <button id="host-btn">Host a room</button>
           <button id="join-btn">Join a friend</button>
         </div>
         <form id="join-row" hidden>

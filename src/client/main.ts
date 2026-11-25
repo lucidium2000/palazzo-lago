@@ -13,6 +13,7 @@ import { AREA_NODES, buildAreas, registerAreas } from './areas';
 import { DECK, POOL, WATER_Y } from './areas/pool';
 import { BeachBalls } from './beachball';
 import { Session } from './net/session';
+import { MAX_PLAYERS, signedMoney, type AreaId } from './net/party';
 import { Mirror } from './net/mirror';
 import { setupLobby } from './net/lobby';
 import { connect, newCode, type Transport } from './net/transport';
@@ -58,6 +59,9 @@ import { Boxing } from './net/boxing';
 import { BUMP_LINES, Bodies, friendShove } from './bodies';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
+
+/** How the parts of the resort read on the room's scoreboard. */
+const AREA_NAMES: Record<AreaId, string> = { casino: 'casino', pool: 'pool', hotel: 'hotel', suite: 'suite' };
 
 function loadBankroll(): Bankroll {
   try {
@@ -610,11 +614,67 @@ async function main() {
   addEventListener('keydown', (e) => {
     if (e.code === 'KeyV' && session?.voice.enabled && !player.inXR) session.voice.setMuted(!session.voice.muted);
   });
+  const roomBoard = document.getElementById('room-board') as HTMLDivElement;
+  let boardKey = '';
+  /** The night's scoreboard under the room pill: everyone's chips won or lost tonight, where each friend is, and a Go button. */
+  const showBoard = () => {
+    const s = session;
+    if (!s || !s.friends.length) {
+      roomBoard.hidden = true;
+      roomBoard.replaceChildren();
+      boardKey = '';
+      return;
+    }
+    roomBoard.hidden = false;
+    const dirs = new Map(s.friendDirections().map((f) => [f.id, f]));
+    const board = s.scoreboard();
+    // Only rebuild when something shown changed (so a click on Go never lands mid-rebuild).
+    const key = JSON.stringify(board.map((r) => {
+      const f = dirs.get(r.id);
+      return [r.id, r.name, r.color, r.net, f?.area, f ? Math.round(f.distance) : 0, f?.talking];
+    }));
+    if (key === boardKey) return;
+    boardKey = key;
+    const rows = board.map((r) => {
+      const row = document.createElement('div');
+      row.className = 'row' + (r.me ? ' me' : '');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.background = Session.css(r.color);
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = r.me ? `${r.name} (you)` : r.name;
+      const where = document.createElement('span');
+      where.className = 'where';
+      const f = dirs.get(r.id);
+      where.textContent = f ? `${AREA_NAMES[f.area]} · ${Math.round(f.distance)} m${f.talking ? ' · talking' : ''}` : '';
+      const net = document.createElement('span');
+      net.className = 'net ' + (r.net > 0 ? 'up' : r.net < 0 ? 'down' : '');
+      net.textContent = signedMoney(r.net);
+      row.append(dot, name, where, net);
+      if (!r.me) {
+        const go = document.createElement('button');
+        go.textContent = 'Go';
+        go.title = `Go to ${r.name}`;
+        go.dataset.go = r.id;
+        row.append(go);
+      } else row.append(document.createElement('span'));
+      return row;
+    });
+    roomBoard.replaceChildren(...rows);
+  };
+  roomBoard.addEventListener('click', (e) => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>('[data-go]')?.dataset.go;
+    if (!id || !session) return;
+    const err = session.goToFriend(id);
+    if (err) hud.toast(err, 'warn');
+  });
   const showRoom = (friends: string[]) => {
     if (!session) return;
     roomPill.hidden = false;
     showVoice();
-    roomPill.textContent = `Room LAGO-${session.code} · ${friends.length ? 'with ' + friends.join(', ') : 'waiting for your friend'} · Chat`;
+    roomPill.textContent = `Room LAGO-${session.code} · ${friends.length ? `${friends.length + 1}/${MAX_PLAYERS} · with ${friends.join(', ')}` : 'waiting for friends'} · Chat`;
+    showBoard();
   };
   const openChat = () => {
     if (!session) return;
@@ -696,6 +756,20 @@ async function main() {
         sound.play('cheer', at, { volume: 0.7 });
       },
       onRoster: (f) => showRoom(f),
+      night: () => night.net(),
+      where: (p) => areas.where(p),
+      ground: {
+        free: (x, z, r) => world.isFree(x, z, r),
+        inside: (x, z) => world.isInside(x, z),
+        water: (x, z) => world.waterAt(x, z) !== null,
+        cab: (x, z) => areas.elevators.inCab(x, z),
+      },
+      liftBusy: () => areas.elevators.riding,
+      onAvatar: (i) => {
+        me.avatar = i;
+        selfBody.setAvatar(i);
+        vrMenu.redraw();
+      },
     });
     beachBalls.connect(session);
     drinkSync?.dispose();
@@ -747,6 +821,8 @@ async function main() {
     vrMenu.redraw();
   };
   let me = { name: 'Guest', avatar: 0 };
+  let boardT = 0,
+    wristT = 0;
   // Clink glasses with your friend: if they're close, they hear it and see it too.
   lounge.onCheers = () => {
     if (session?.friendNear(2.5)) session.emit('cheers');
@@ -836,6 +912,7 @@ async function main() {
       boxing?.dispose();
       boxing = null;
       roomPill.hidden = true;
+      roomBoard.hidden = true;
       voiceBtn.hidden = true;
       chatForm.hidden = true;
       hud.toast('You left the room', 'info');
@@ -1139,6 +1216,12 @@ async function main() {
     roulette.update(dt);
     craps.update(dt);
     session?.update(dt);
+    // The room's scoreboard and where everyone is (twice a second on screen; the wrist menu once a second).
+    if (session && (boardT -= dt) <= 0) {
+      boardT = 0.5;
+      showBoard();
+      if (player.inXR && (wristT = (wristT + 1) % 2) === 0) vrMenu.redrawRoom();
+    }
     drinkSync?.update();
     looseSync?.update();
     boxing?.update(dt);
