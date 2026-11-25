@@ -328,7 +328,8 @@ export class Elevators {
       } else if (!closed) r.t = 0;
     }
     if (this.shake > 0 && this.ride) {
-      this.player.rig.position.y = Math.sin(this.time * 47) * this.shake;
+      // (Keeping a VR crouch: the rig is lowered while you hold it.)
+      this.player.rig.position.y = Math.sin(this.time * 47) * this.shake - (this.player.inXR ? this.player.crouch.drop : 0);
     }
     // (Otherwise the player sets the rig's height itself each frame: feet on the ground, in the pool, mid-jump.)
   }

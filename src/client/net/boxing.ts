@@ -236,7 +236,7 @@ function targets(f: Friend): { head: THREE.Vector3; chest: THREE.Vector3 } | nul
     const chest = b.Chest.getWorldPosition(new THREE.Vector3());
     return { head, chest };
   }
-  const h = p.pos.y + (Number(f.state.hh) || 1.6);
+  const h = p.pos.y + (Number(f.state.hh) || 1.6) - (Number(f.state.cr) || 0);
   return { head: new THREE.Vector3(p.pos.x, h, p.pos.z), chest: new THREE.Vector3(p.pos.x, h - 0.45, p.pos.z) };
 }
 

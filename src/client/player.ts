@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Interaction } from './interaction';
 import type { Seat, Surface, World } from './world';
+import { Crouch } from './crouch';
 import { GRAVITY, MAX_SWIM_SPEED, StrokeHand, floatFeet, isDeep, newVState, strokeThrust, verticalStep, type VEvents } from './swimphys';
 
 /**
@@ -8,7 +9,8 @@ import { GRAVITY, MAX_SWIM_SPEED, StrokeHand, floatFeet, isDeep, newVState, stro
  * drag to look), WASD, Shift to hurry, collisions, footsteps and a little head
  * bob; sit down at a game for a framed view. VR: the headset drives the camera
  * inside the rig; the left stick walks (with a comfort vignette), the right
- * stick snap-turns, and pointing at the floor still teleports.
+ * stick snap-turns, and pointing at the floor still teleports. Hold the right
+ * stick in (desktop: C) to crouch, or in deep water to swim down.
  */
 
 export interface Viewpoint {
@@ -112,6 +114,10 @@ export class Player {
   }
   private jumpQueued = false;
   private diving = false;
+  /** The crouch / dive button: right stick clicked in (VR), C (desktop). */
+  private crouchBtn = false;
+  /** Crouching on the button (lowers your view on land; see crouch.ts). */
+  readonly crouch = new Crouch();
   private aWas = false;
   private strokeT = 0;
   private swimT = 0;
@@ -179,6 +185,7 @@ export class Player {
       camera.position.set(0, 0, 0);
       camera.rotation.set(0, 0, 0);
       this.seated = null;
+      this.crouch.reset();
     });
     renderer.xr.addEventListener('sessionend', () => this.applyDesktopCamera());
 
@@ -242,7 +249,7 @@ export class Player {
 
   private applyDesktopCamera() {
     if (this.inXR) return;
-    this.camera.position.set(0, this.eye + Math.sin(this.bob * 2) * 0.018 * Math.min(1, this.speedNow / WALK) + this.danceBob, 0);
+    this.camera.position.set(0, this.eye - this.crouch.drop + Math.sin(this.bob * 2) * 0.018 * Math.min(1, this.speedNow / WALK) + this.danceBob, 0);
     this.camera.rotation.set(this.pitch, 0, Math.sin(this.bob) * 0.004 * Math.min(1, this.speedNow / WALK) + this.danceRoll, 'YXZ');
   }
 
@@ -356,8 +363,7 @@ export class Player {
     const headNow = this.inXR ? THREE.MathUtils.clamp(this.camera.position.y, 0.05, 2.4) : this.eye;
     if (water === null || !wasWet || !this.inXR) this.swimEye = headNow;
     else this.swimEye += (headNow - this.swimEye) * Math.min(1, dt / 0.8);
-    const crouchDive = this.keys.has('KeyC') && !this.inXR;
-    this.diving = deep && crouchDive;
+    this.diving = deep && this.crouchBtn;
 
     if (this.jumpQueued) {
       this.jumpQueued = false;
@@ -411,6 +417,8 @@ export class Player {
       if (v > 0.6) this.onSplash?.(at.clone().setY(water), THREE.MathUtils.clamp(v / 5, 0.25, 1));
     }
     this.swimming = deep && !this.diving;
+    // On land the same button crouches (not swimming, not on a stool).
+    this.updateCrouch(dt, !deep && !this.stool);
     // Strokes and ripples while you move through the water.
     if (water !== null && water - this.feetY > 0.5 && moving) {
       this.strokeT -= dt;
@@ -425,7 +433,7 @@ export class Player {
     this.bobAmp += (settled - this.bobAmp) * Math.min(1, dt * 2);
     const bob = Math.sin(this.swimT * 1.7) * 0.025 * this.bobAmp;
     this.applyY(bob);
-    const head = this.inXR ? this.headWorld().y : this.feetY + this.eye + bob;
+    const head = this.inXR ? this.headWorld().y : this.feetY + this.eye - this.crouch.drop + bob;
     this.underwater = water !== null && head < water - 0.03;
   }
 
@@ -486,7 +494,18 @@ export class Player {
   }
 
   private applyY(bob = 0) {
-    this.rig.position.y = this.feetY + bob;
+    // VR: the button crouch lowers the whole rig (your real head still moves the view).
+    this.rig.position.y = this.feetY + bob - (this.inXR ? this.crouch.drop : 0);
+  }
+
+  /** The floor under you as the rig sees it (the rig is lowered while you crouch in VR). */
+  get floorY() {
+    return this.rig.position.y + (this.inXR ? this.crouch.drop : 0);
+  }
+
+  private updateCrouch(dt: number, allowed: boolean) {
+    const eye = this.inXR ? THREE.MathUtils.clamp(this.camera.position.y, 0.3, 2.4) : this.eye;
+    this.crouch.update(dt, allowed && this.crouchBtn, eye);
   }
 
   /** Moves the rig so the feet (desktop) / head (VR) are over a floor point. */
@@ -639,10 +658,13 @@ export class Player {
       this.velY = 0;
       this.airborne = false;
     }
+    this.crouchBtn = this.inXR ? interaction.gamepads().some(({ handedness, gamepad }) => handedness === 'right' && !!gamepad.buttons[3]?.pressed) : this.keys.has('KeyC');
     if (!this.inXR) this.updateDesktop(dt);
     else this.updateXR(dt, interaction);
     if (this.nudgeT > 0) this.updateNudge(dt);
     if (!this.tween && !this.seated) this.updateVertical(dt, this.feet(), this.speedNow > 0.2);
+    else this.updateCrouch(dt, false);
+    if (!this.inXR && !this.tween) this.applyDesktopCamera();
   }
 
   private updateDesktop(dt: number) {
@@ -659,7 +681,7 @@ export class Player {
     const run = k.has('ShiftLeft') || k.has('ShiftRight') || stickMag > 0.92;
     const push = Math.min(1, Math.hypot(f, s));
     // Over a stool you shuffle (you're sitting down on it, or getting up).
-    const target = (push > 0.05 ? (run ? RUN : WALK) * (stickMag > 0.15 ? Math.max(0.35, push) : 1) : 0) * this.waterDrag() * (this.stool ? 0.6 : 1);
+    const target = (push > 0.05 ? (run ? RUN : WALK) * (stickMag > 0.15 ? Math.max(0.35, push) : 1) : 0) * this.waterDrag() * (this.stool ? 0.6 : 1) * this.crouch.speedFactor;
     // Ease into and out of walking so starts and stops feel like a body, not a cursor.
     this.speedNow += (target - this.speedNow) * Math.min(1, dt * (target > this.speedNow ? 6 : 9));
     if (turn) {
@@ -804,7 +826,7 @@ export class Player {
         rightZ = -Math.sin(yaw);
       this.xrDir.set(fwdX * -ny + rightX * nx, fwdZ * -ny + rightZ * nx).normalize();
     }
-    target *= this.waterDrag();
+    target *= this.waterDrag() * this.crouch.speedFactor;
     this.speedNow += (target - this.speedNow) * Math.min(1, dt * (target > this.speedNow ? 5 : 8));
     let speed = 0;
     if (this.speedNow > 0.03) {

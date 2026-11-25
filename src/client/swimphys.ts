@@ -22,6 +22,15 @@ const MAX_DOWN = 2.5;
 export const MAX_DIVE = 1.0;
 const HEAD_OVER_FLOOR = 0.3;
 /**
+ * Holding the dive button (VR: right stick in; desktop: C): you sink at this
+ * steady speed (m/s), eased in at DIVE_ACC, slowing as you reach the deepest
+ * point. Let go and the buoyancy spring floats you back up.
+ */
+export const DIVE_SPEED = 0.7;
+const DIVE_ACC = 1.6;
+/** Within this much of the deepest point, the dive slows to a stop (m). */
+const DIVE_EASE_OUT = 0.35;
+/**
  * Stroke thrust limit (m/s²), both ways, so flailing evens out: pushing the water
  * up dives you (a quick push, a slow recovery), pushing it down treads water,
  * and that lift fades out as you rise above your floating height.
@@ -55,7 +64,7 @@ export interface VInput {
   eyeH: number;
   /** Actual eye height above the feet right now (VR: the headset), for the floor clearance. */
   headH?: number;
-  /** Holding a dive (desktop C). */
+  /** Holding the dive button (VR: right stick in; desktop: C). */
   dive?: boolean;
   /** Vertical acceleration from arm strokes (m/s², + up). */
   thrust?: number;
@@ -147,9 +156,17 @@ function subStep(s: VState, i: VInput, deep: boolean, h: number, ev: VEvents) {
       thrust = clamp(thrust, -THRUST_MAX, THRUST_MAX);
       // Pushing water down only lifts you while you're still in it.
       if (thrust > 0) thrust *= clamp(1 - above / 0.2, 0, 1);
-      // Diving with your arms: a softer pull back up, so a stroke takes you under.
-      const w = s.rescue ? OMEGA * 1.4 : i.diving || i.dive ? OMEGA * 0.55 : OMEGA;
-      let acc = w * w * (target - s.feetY) - 2 * w * s.velY + thrust;
+      let acc: number;
+      if (i.dive && !s.rescue) {
+        // Holding a dive: a steady, eased sink to the deepest point (strokes still add on top).
+        const want = s.feetY > target ? -DIVE_SPEED * clamp((s.feetY - target) / DIVE_EASE_OUT, 0, 1) : (target - s.feetY) * 2;
+        // Gently into the dive; hard braking if you came in faster (jumping in).
+        acc = clamp((want - s.velY) * 6, -DIVE_ACC, s.velY < want ? 8 : DIVE_ACC) + thrust;
+      } else {
+        // Diving with your arms: a softer pull back up, so a stroke takes you under.
+        const w = s.rescue ? OMEGA * 1.4 : i.diving ? OMEGA * 0.55 : OMEGA;
+        acc = w * w * (target - s.feetY) - 2 * w * s.velY + thrust;
+      }
       acc = clamp(acc, -GRAVITY, 8);
       if (s.feetY > water - 0.3 && s.velY < 0) {
         // Hitting the water from above: it brakes you hard.
