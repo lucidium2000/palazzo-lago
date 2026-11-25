@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import { betInfo, CrapsBetRejected, CrapsGame, MAX_ODDS, isPoint, type RollResult } from '../../rules/craps';
 import { assets } from '../assets';
 import { CHIP_HEIGHT, makeChip, makeChipStack } from '../chips';
+import { ChipRail } from '../chiprail';
 import { easeInOut, money, Tweens, type GameContext } from '../game';
 import type { Grabbable } from '../hands';
 import { bakeStatic, dynamic } from '../merge';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from '../panel';
 import type { Viewpoint } from '../player';
-import { canvas, CHIP_DENOMS, chipFace, radial, toTexture, wood, type ChipDenom } from '../textures';
+import { canvas, CHIP_DENOMS, radial, toTexture, wood, type ChipDenom } from '../textures';
 import { DIE, faceFix, poseAt, simulateThrow, type DicePlan, type DieFrame } from './dicesim';
 import { anchorPx, BED, crapsFelt, localToPx, pxToLocal, puckPx, regionAt } from './felt';
 
@@ -46,6 +47,8 @@ const PLACE_PAYS: Record<number, string> = { 4: '9 to 5', 10: '9 to 5', 5: '7 to
 const ODDS_PAYS: Record<number, string> = { 4: '2 to 1', 10: '2 to 1', 5: '3 to 2', 9: '3 to 2', 6: '6 to 5', 8: '6 to 5' };
 
 type Phase = 'betting' | 'rolling' | 'paying';
+/** The VR panel sits this far to the right of your chips, so it doesn't hide them. */
+const PANEL_FROM_RAIL = 0.68;
 
 export class CrapsTable {
   readonly group = new THREE.Group();
@@ -79,6 +82,10 @@ export class CrapsTable {
   /** Where the stickman leaves the dice for the shooter (table-local, on the felt by the rail). */
   private diceHome = DICE_HOME.clone();
   private offeredAt = -1e9;
+  /** Your chips on the rail (VR: pick them up and set them on the layout). */
+  readonly rail: ChipRail;
+  /** Winnings already credited but still being pushed to you by the dealers. */
+  private away = 0;
 
   constructor(ctx: GameContext, position: THREE.Vector3, yaw = 0) {
     this.ctx = ctx;
@@ -97,7 +104,8 @@ export class CrapsTable {
     this.ghost.visible = false;
     this.group.add(this.ghost);
     this.panel = this.buildPanel();
-    this.buildRack();
+    this.rail = this.buildRail();
+    this.buildDiceGrab();
 
     ctx.interaction.register({
       object: this.felt,
@@ -374,7 +382,7 @@ export class CrapsTable {
 
   private buildPanel(): CanvasPanel {
     const p = new CanvasPanel(0.74, 1560, 420);
-    p.mesh.position.set(SHOOTER.x - 0.1, RAIL_Y + 0.1, OUT.d / 2 + 0.06);
+    p.mesh.position.set(SHOOTER.x - 0.35 + PANEL_FROM_RAIL, RAIL_Y + 0.1, OUT.d / 2 + 0.06);
     p.mesh.rotation.x = -1.0;
     this.group.add(p.mesh);
     p.background = (ctx) => {
@@ -395,30 +403,13 @@ export class CrapsTable {
       ctx.font = `italic 32px ${SERIF}`;
       ctx.fillStyle = '#cbb991';
       ctx.fillText(this.status(), p.pxW / 2, 60);
+      ctx.textAlign = 'left';
+      ctx.font = `italic 30px ${SERIF}`;
+      ctx.fillStyle = '#a99670';
+      ctx.fillText('Your chips are on the rail below: pick some up', 40, 150);
+      ctx.fillText('and set them down on a bet. Pick a bet back up', 40, 192);
+      ctx.fillText('to take it down.', 40, 234);
     };
-    const chipTex = new Map<ChipDenom, HTMLCanvasElement>();
-    for (const d of CHIP_DENOMS) chipTex.set(d, chipFace(d, 160));
-    CHIP_DENOMS.forEach((d, i) => {
-      p.add({
-        id: `chip-${d}`,
-        x: 40 + i * 125,
-        y: 120,
-        w: 115,
-        h: 115,
-        label: '',
-        active: () => this.chip === d,
-        onPress: () => this.selectChip(d),
-        paint: (ctx, b, s) => {
-          ctx.save();
-          if (s.active || s.hover) {
-            ctx.shadowColor = s.active ? '#ffe39a' : '#ffffff';
-            ctx.shadowBlur = s.active ? 30 : 16;
-          }
-          ctx.drawImage(chipTex.get(d)!, b.x, b.y + (s.active ? -10 : 0), b.w, b.h);
-          ctx.restore();
-        },
-      });
-    });
     const btn = (id: string, x: number, label: string, onPress: () => void, enabled: () => boolean) => p.add({ id, x, y: 270, w: 200, h: 110, label, onPress, enabled });
     btn('undo', 40, 'Undo', () => this.undo(), () => this.canUndo);
     btn('clear', 260, 'Take down', () => this.clear(), () => this.canClear);
@@ -440,46 +431,68 @@ export class CrapsTable {
     return p;
   }
 
-  /** Chips in the rail in front of the shooter: pick them up and drop them on the felt (VR). */
-  private buildRack() {
-    const y = RAIL_Y - 0.07,
-      z = OUT.d / 2 - 0.06;
-    const COLORS = [0xf2f0ea, 0xc0262d, 0x1e7a3a, 0x1b1b1f, 0x6b2f8f, 0xe4b833, 0x8a4f22];
-    const perStack = 10;
-    const rack = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0195, 0.0195, CHIP_HEIGHT, 20), new THREE.MeshStandardMaterial({ roughness: 0.45 }), CHIP_DENOMS.length * perStack);
-    const tmp = new THREE.Object3D();
-    CHIP_DENOMS.forEach((d, i) => {
-      const x = SHOOTER.x - 0.62 + i * 0.07;
-      for (let k = 0; k < perStack; k++) {
-        tmp.position.set(x, y + CHIP_HEIGHT * (k + 0.5), z);
-        tmp.updateMatrix();
-        rack.setMatrixAt(i * perStack + k, tmp.matrix);
-        rack.setColorAt(i * perStack + k, new THREE.Color(COLORS[i]));
-      }
-      const top = new THREE.Vector3(x, y + perStack * CHIP_HEIGHT, z);
-      this.grabbables.push({
-        at: () => this.group.localToWorld(top.clone()),
-        radius: 0.07,
-        enabled: () => this.phase === 'betting',
-        grab: () => {
-          const chip = makeChip(d);
-          chip.position.copy(this.group.localToWorld(top.clone()));
-          this.ctx.sound.play('chip', chip, { volume: 0.5 });
-          return chip;
-        },
-        drag: (_h, pos) => this.setHover(this.betAtWorld(pos), d),
-        release: (_h, pos, carried) => {
-          carried?.removeFromParent();
-          const id = this.betAtWorld(pos);
-          this.setHover(null);
-          if (id) this.bet(id, d);
-        },
-      });
+  /** Your chips in the rail groove in front of you: they always add up to your balance. */
+  private buildRail(): ChipRail {
+    const rail = new ChipRail({
+      parent: this.group,
+      denoms: CHIP_DENOMS,
+      sound: this.ctx.sound,
+      spacing: 0.055,
+      balance: () => this.ctx.bankroll.balance,
+      away: () => this.away,
+      visible: () => this.ctx.hud.station === 'craps',
+      canGrab: () => this.phase === 'betting',
+      place: (world, amount) => {
+        const id = this.betAtWorld(world);
+        return !!id && this.bet(id, amount);
+      },
+      hover: (world, d) => this.setHover(world ? this.betAtWorld(world) : null, d),
+      spots: () => {
+        const out = [];
+        for (const id of this.game.bets.keys()) {
+          const st = this.stacks.get(id);
+          if (!st || !this.game.canRemove(id)) continue;
+          const at = this.group.localToWorld(st.position.clone().setY(st.position.y + st.children.length * CHIP_HEIGHT + 0.01));
+          out.push({ at, take: () => this.takeDown(id) });
+        }
+        return out;
+      },
+      interaction: this.ctx.interaction,
+      onPick: (d) => this.selectChip(d),
+      selected: () => this.chip,
     });
-    rack.raycast = () => {};
-    this.group.add(dynamic(rack));
+    rail.group.position.set(SHOOTER.x - 0.35, RAIL_Y - 0.07, OUT.d / 2 - 0.06);
+    for (const g of rail.grabbables) this.grabbables.push(g);
+    return rail;
+  }
 
-    // The dice: pick them up and throw them at the far wall.
+  /**
+   * Your chips (and the VR panel beside them) follow you along the near rail,
+   * wherever you stand to play: chips a little to your left, panel to your right.
+   */
+  standAt(feet: THREE.Vector3) {
+    const l = this.group.worldToLocal(feet.clone());
+    if (l.z < HZ || Math.abs(l.x) > OUT.w / 2) return;
+    const want = THREE.MathUtils.clamp(l.x - 0.3, -HX + 0.25, SHOOTER.x - 0.35);
+    const p = this.rail.group.position;
+    if (Math.abs(want - p.x) > 0.35 && this.rail.held === 0) {
+      p.x = want;
+      this.panel.mesh.position.x = want + PANEL_FROM_RAIL;
+    }
+  }
+
+  /** Picks one of your bets back up off the layout (if the rules let it come down). Returns what came back. */
+  private takeDown(id: string): number {
+    if (this.phase !== 'betting' || !this.game.canRemove(id)) return 0;
+    this.undoStack = this.undoStack.filter((u) => u.id !== id);
+    const back = this.game.removeBet(id);
+    this.syncStacks();
+    this.panel.redraw();
+    return back;
+  }
+
+  /** The dice: pick them up (VR) and throw them at the far wall. */
+  private buildDiceGrab() {
     const samples: { t: number; p: THREE.Vector3 }[] = [];
     this.grabbables.push({
       at: () => this.group.localToWorld(this.dice[0].position.clone()),
@@ -583,19 +596,23 @@ export class CrapsTable {
     this.panel.mesh.visible = v;
   }
 
-  bet(id: string, amount: number = this.chip) {
-    if (this.phase !== 'betting') return;
+  /** Places a bet through the game's rules (click, button or chips set down by hand). True if it took. */
+  bet(id: string, amount: number = this.chip): boolean {
+    if (this.phase !== 'betting') return false;
+    let ok = false;
     try {
       this.game.placeBet(id, amount);
       this.undoStack.push({ id, amount });
       this.refreshStack(id, true);
       this.ctx.sound.play('chip', this.stacks.get(id), { volume: 0.9, rate: 0.95 + Math.random() * 0.1 });
+      ok = true;
     } catch (e) {
       if (!(e instanceof CrapsBetRejected)) throw e;
       this.ctx.hud.toast(e.message, 'warn');
       this.ctx.sound.play('denied', this.panel.mesh, { volume: 0.6 });
     }
     this.panel.redraw();
+    return ok;
   }
 
   get canUndo() {
@@ -783,6 +800,8 @@ export class CrapsTable {
     const result = this.game.resolve(dice);
     const returned = result.results.reduce((s, r) => s + r.returned, 0);
     this.ctx.hud.setPending('craps', returned);
+    // Already credited, but it reaches your rail when the dealers push it to you.
+    this.away = returned;
     let plan: DicePlan | null = null;
     // The simulation throws toward −x; a throw from the −x end toward +x runs mirrored.
     const mirror = start.x < 0 && (!velocity || velocity.x > 0);
@@ -867,7 +886,10 @@ export class CrapsTable {
           const starts = items.map((o) => o.position.clone());
           this.tweens.add(0.9, (k) => {
             items.forEach((o, i) => o.position.lerpVectors(starts[i], player.clone().add(new THREE.Vector3(i * 0.04, 0, 0)), easeInOut(k)));
-          }, () => items.forEach((o) => this.group.remove(o)));
+          }, () => {
+            items.forEach((o) => this.group.remove(o));
+            this.away = Math.max(0, this.away - res.returned);
+          });
         });
         delay += 0.25;
       }
@@ -877,6 +899,7 @@ export class CrapsTable {
     this.later(Math.max(2.2, delay + 1.6), () => {
       this.homeDice(true);
       this.syncStacks();
+      this.away = 0;
       this.phase = 'betting';
       this.panel.redraw();
     });
@@ -928,6 +951,7 @@ export class CrapsTable {
 
   update(dt: number) {
     this.tweens.update(dt);
+    this.rail.update(dt);
     const r = this.roll;
     if (!r) return;
     r.t += dt;

@@ -9,12 +9,13 @@ import {
   type Pocket,
 } from '../../rules/roulette';
 import { makeChip, makeChipStack, CHIP_HEIGHT } from '../chips';
+import { ChipRail } from '../chiprail';
 import { bakeStatic, dynamic } from '../merge';
 import { assets } from '../assets';
 import { easeInOut, money, Tweens, type GameContext } from '../game';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from '../panel';
 import type { Viewpoint } from '../player';
-import { CHIP_DENOMS, chipFace, radial, toTexture, wood, type ChipDenom } from '../textures';
+import { CHIP_DENOMS, radial, toTexture, wood, type ChipDenom } from '../textures';
 import { aimFor, sampleAt, simulateSpin, type SpinPlan } from './ballsim';
 import { describeSpot, FELT, FELT_SIZE, feltTexture, spotAnchor, spotAt, WHEEL_CENTER } from './layout';
 
@@ -38,6 +39,10 @@ export class RouletteTable {
   private dolly: THREE.Mesh;
   chip: ChipDenom = 5;
   private panel: CanvasPanel;
+  /** Your chips on the rail (VR: pick them up and set them on the layout). */
+  rail!: ChipRail;
+  /** Winnings already credited but still being pushed across to you. */
+  private away = 0;
 
   /** The floating 3D control panel is for VR; screens use the on-screen controls. */
   setPanelVisible(v: boolean) {
@@ -377,45 +382,16 @@ export class RouletteTable {
           ? `${describeSpot(hover)}  ·  pays ${hover.payout} to 1`
           : this.lastResult
             ? `Last: ${pocketLabel(this.lastResult.pocket)} ${pocketColor(this.lastResult.pocket)}  ·  ${this.lastResult.net >= 0 ? 'won' : 'lost'} ${money(Math.abs(this.lastResult.net))}`
-            : 'Choose a chip, then tap the layout to bet';
+            : 'Place your bets';
       ctx.fillText(msg, p.pxW / 2, 60);
+      ctx.textAlign = 'left';
+      ctx.font = `italic 30px ${SERIF}`;
+      ctx.fillStyle = '#a99670';
+      ctx.fillText('Your chips are on the rail to your left: pick', 40, 150);
+      ctx.fillText('some up and set them on the layout. Pick a bet', 40, 192);
+      ctx.fillText('back up to take it down.', 40, 234);
     };
 
-    const chipTex = new Map<ChipDenom, HTMLCanvasElement>();
-    for (const d of CHIP_DENOMS) chipTex.set(d, chipFace(d, 160));
-    CHIP_DENOMS.forEach((d, i) => {
-      p.add({
-        id: `chip-${d}`,
-        x: 40 + i * 125,
-        y: 120,
-        w: 115,
-        h: 115,
-        label: '',
-        active: () => this.chip === d,
-        onPress: () => {
-          this.chip = d;
-          this.ctx.sound.play('click', p.mesh, { volume: 0.5 });
-          p.redraw();
-        },
-        paint: (ctx, b, s) => {
-          const r = b.w / 2;
-          ctx.save();
-          if (s.active || s.hover) {
-            ctx.shadowColor = s.active ? '#ffe39a' : '#ffffff';
-            ctx.shadowBlur = s.active ? 30 : 16;
-          }
-          ctx.drawImage(chipTex.get(d)!, b.x, b.y + (s.active ? -10 : 0), b.w, b.h);
-          ctx.restore();
-          if (s.active) {
-            ctx.strokeStyle = GOLD_LIGHT;
-            ctx.lineWidth = 5;
-            ctx.beginPath();
-            ctx.arc(b.x + r, b.y + r - 10, r + 4, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-        },
-      });
-    });
     const btn = (id: string, x: number, label: string, onPress: () => void, enabled: () => boolean, w = 180) =>
       p.add({ id, x, y: 270, w, h: 110, label, onPress, enabled });
     const betting = () => this.game.phase === 'betting';
@@ -493,13 +469,16 @@ export class RouletteTable {
   // Betting
   // ---------------------------------------------------------------------------
 
-  private bet(spotId: string, amount: number = this.chip, silent = false) {
+  /** Places a bet through the game's rules (click, button or chips set down by hand). True if it took. */
+  private bet(spotId: string, amount: number = this.chip, silent = false): boolean {
+    let ok = false;
     try {
       this.game.placeBet(spotId, amount);
       this.undoStack.push({ spotId, amount });
       this.dolly.visible = false;
       this.refreshStack(spotId, true);
       if (!silent) this.ctx.sound.play('chip', this.stacks.get(spotId), { volume: 0.9, rate: 0.95 + Math.random() * 0.1 });
+      ok = true;
     } catch (e) {
       if (e instanceof BetRejected) {
         this.ctx.hud.toast(e.message, 'warn');
@@ -507,6 +486,17 @@ export class RouletteTable {
       } else throw e;
     }
     this.panel.redraw();
+    return ok;
+  }
+
+  /** Picks one of your bets back up off the layout (before the spin). Returns what came back. */
+  private takeDown(spotId: string): number {
+    if (this.game.phase !== 'betting') return 0;
+    this.undoStack = this.undoStack.filter((u) => u.spotId !== spotId);
+    const back = this.game.removeBet(spotId);
+    this.refreshStack(spotId);
+    this.panel.redraw();
+    return back;
   }
 
   undo() {
@@ -633,51 +623,41 @@ export class RouletteTable {
   readonly grabbables: import('../hands').Grabbable[] = [];
 
   private buildRack() {
-    const y = TOP + 0.09,
-      z = 0.47;
-    const tray = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.02, 0.09), new THREE.MeshStandardMaterial({ color: 0x2a1408, roughness: 0.4 }));
-    tray.position.set(-0.62, y - 0.01, z);
-    this.group.add(tray);
-    const chipGeo = new THREE.CylinderGeometry(0.0195, 0.0195, 0.0033, 20);
-    const perStack = 12;
-    const rack = new THREE.InstancedMesh(chipGeo, new THREE.MeshStandardMaterial({ roughness: 0.45 }), CHIP_DENOMS.length * perStack);
-    const tmp = new THREE.Object3D();
-    const COLORS = [0xf2f0ea, 0xc0262d, 0x1e7a3a, 0x1b1b1f, 0x6b2f8f, 0xe4b833, 0x8a4f22];
-    CHIP_DENOMS.forEach((d, i) => {
-      const x = -0.86 + i * 0.08;
-      for (let k = 0; k < perStack; k++) {
-        tmp.position.set(x, y + 0.0017 + k * 0.0033, z);
-        tmp.updateMatrix();
-        rack.setMatrixAt(i * perStack + k, tmp.matrix);
-        rack.setColorAt(i * perStack + k, new THREE.Color(COLORS[i]));
-      }
-      const top = new THREE.Vector3(x, y + perStack * 0.0033, z);
-      this.grabbables.push({
-        at: () => this.group.localToWorld(top.clone()),
-        radius: 0.085,
-        enabled: () => this.game.phase === 'betting',
-        grab: () => {
-          const chip = makeChip(d);
-          chip.position.copy(this.group.localToWorld(top.clone()));
-          this.ctx.sound.play('chip', chip, { volume: 0.5 });
-          return chip;
-        },
-        drag: (_h, pos) => {
-          const l = this.group.worldToLocal(pos.clone());
-          this.setHover(l.y > TOP - 0.05 && l.y < TOP + 0.35 ? spotAt(l.x, l.z)?.id ?? null : null, d);
-        },
-        release: (_h, pos, carried) => {
-          carried?.removeFromParent();
-          const l = this.group.worldToLocal(pos.clone());
-          const spot = l.y > TOP - 0.05 && l.y < TOP + 0.35 ? spotAt(l.x, l.z) : null;
-          this.setHover(null);
-          if (spot) this.bet(spot.id, d);
-          else this.ctx.sound.play('chip', this.panel.mesh, { volume: 0.3 });
-        },
-      });
+    const atLayout = (world: THREE.Vector3) => {
+      const l = this.group.worldToLocal(world.clone());
+      return l.y > TOP - 0.05 && l.y < TOP + 0.35 ? spotAt(l.x, l.z) : null;
+    };
+    this.rail = new ChipRail({
+      parent: this.group,
+      denoms: CHIP_DENOMS,
+      sound: this.ctx.sound,
+      spacing: 0.055,
+      tray: true,
+      balance: () => this.ctx.bankroll.balance,
+      away: () => this.away,
+      visible: () => this.ctx.hud.station === 'roulette',
+      canGrab: () => this.game.phase === 'betting',
+      place: (world, amount) => {
+        const spot = atLayout(world);
+        return !!spot && this.bet(spot.id, amount);
+      },
+      hover: (world, d) => this.setHover(world ? atLayout(world)?.id ?? null : null, d),
+      spots: () => {
+        const out = [];
+        for (const id of this.game.bets.keys()) {
+          const st = this.stacks.get(id);
+          if (!st) continue;
+          const at = this.group.localToWorld(st.position.clone().setY(st.position.y + st.children.length * CHIP_HEIGHT + 0.01));
+          out.push({ at, take: () => this.takeDown(id) });
+        }
+        return out;
+      },
+      interaction: this.ctx.interaction,
+      onPick: (d) => this.selectChip(d),
+      selected: () => this.chip,
     });
-    rack.raycast = () => {};
-    this.group.add(dynamic(rack));
+    this.rail.group.position.set(-0.66, TOP + 0.09, 0.47);
+    for (const g of this.rail.grabbables) this.grabbables.push(g);
   }
 
   /**
@@ -736,6 +716,7 @@ export class RouletteTable {
 
   private beginSpin(target: Pocket, seed: number, rotorSpeed: number) {
     this.onSpin?.();
+    this.away = 0;
     // The dealer spins the rotor up and launches the ball against it; the
     // motion is simulated in advance and turned so it ends in the chosen pocket.
     const plan = simulateSpin({ rotorSpeed, seed });
@@ -756,6 +737,8 @@ export class RouletteTable {
   private finishSpin() {
     const result = this.game.settle();
     this.spin = null;
+    // Credited now; it reaches your rail when it's pushed across to you.
+    this.away = result.totalReturned;
     this.ballLoop.stop();
     const net = result.totalReturned - result.totalStaked;
     this.onResult?.(result.pocket, result.totalStaked, result.totalReturned);
@@ -799,6 +782,7 @@ export class RouletteTable {
             stack.position.lerpVectors(from, to, e);
             pay.position.lerpVectors(from.clone().add(new THREE.Vector3(0.045, 0, 0)), to.clone().add(new THREE.Vector3(0.045, 0, 0)), e);
           }, () => {
+            this.away = Math.max(0, this.away - r.returned);
             this.group.remove(stack, pay);
             this.ctx.sound.play('chips', this.panel.mesh, { volume: 0.8 });
           });
@@ -812,6 +796,7 @@ export class RouletteTable {
 
   update(dt: number) {
     this.tweens.update(dt);
+    this.rail.update(dt);
 
     const sp = this.spin;
     if (sp) {

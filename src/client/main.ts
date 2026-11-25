@@ -306,6 +306,7 @@ async function main() {
         bankroll,
         toast: (text, kind) => hud.toast(text, kind ?? 'info'),
         haptic: (side, s, ms) => buzz(side, s, ms),
+        interaction,
         name: () => me.name,
         onResult: (staked, returned) => {
           if (session && returned >= Math.max(staked * 2.5, 250)) session.bigWin('blackjack', returned);
@@ -1536,6 +1537,7 @@ async function main() {
     boxing?.update(dt);
     mirror?.update(dt);
     // Walk up to craps in VR and the stickman slides you the dice.
+    if (hud.station === 'craps') craps.standAt(feet);
     if (player.inXR && hud.station === 'craps') craps.offerDice(feet);
     {
       const on = player.inXR;

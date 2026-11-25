@@ -46,3 +46,46 @@ export function makeChipStack(amount: number): THREE.Group {
 export function preloadChips() {
   for (const d of CHIP_DENOMS) chipMaterials(d);
 }
+
+let chipMaterial: THREE.MeshStandardMaterial | null = null;
+
+/**
+ * Chip face: an inlay ring and six edge spots in white over the chip's colour
+ * (the instance colour). The cylinder's sides sample a slice through the same
+ * picture, which reads as the stripes round a chip's edge.
+ */
+export function chipMat(): THREE.MeshStandardMaterial {
+  if (chipMaterial) return chipMaterial;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#fff';
+  for (let k = 0; k < 6; k++) {
+    g.beginPath();
+    g.moveTo(32, 32);
+    g.arc(32, 32, 32, (k / 6) * Math.PI * 2 - 0.2, (k / 6) * Math.PI * 2 + 0.2);
+    g.closePath();
+    g.fill();
+  }
+  g.fillStyle = '#000';
+  g.beginPath();
+  g.arc(32, 32, 21, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = '#fff';
+  g.lineWidth = 2;
+  g.beginPath();
+  g.arc(32, 32, 17, 0, Math.PI * 2);
+  g.stroke();
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.45 });
+  // The texture is a mask: white where the chip shows its white inlay, else the chip's colour.
+  m.onBeforeCompile = (sh) => {
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <map_fragment>', 'float chipMask = texture2D( map, vMapUv ).r;')
+      .replace('#include <color_fragment>', '#ifdef USE_COLOR\n diffuseColor.rgb *= mix( vColor.rgb, vec3( 0.95 ), chipMask );\n#endif');
+  };
+  m.customProgramCacheKey = () => 'bjChips';
+  return (chipMaterial = m);
+}
