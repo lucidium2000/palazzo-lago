@@ -35,6 +35,7 @@ import { Hands } from './hands';
 import { Hud, type NavItem } from './hud';
 import { Interaction } from './interaction';
 import { Drink, Lounge } from './lounge';
+import { WaiterTrays } from './waitertray';
 import { BAR as POOL_BAR } from './areas/pool';
 import { Crowd, POSE, randomLook, staffLook, type Person } from './people';
 import { saveComfort, Player, type Viewpoint } from './player';
@@ -464,14 +465,19 @@ async function main() {
     scene.add(proxy);
     interaction.register({
       object: proxy,
-      label: 'Take a glass of champagne',
+      label: () => (waiterTrays.glasses(w) > 0 ? 'Take a glass of champagne' : 'Her tray is empty (back from the bar soon)'),
+      enabled: () => !w.tray || waiterTrays.glasses(w) > 0,
       onSelect: () => {
-        lounge.offerChampagne();
-        w.pause = 1.5;
+        // A glass off her tray (no rig, no tray: one appears in your hand as before).
+        if (w.tray) waiterTrays.serve(w);
+        else lounge.offerChampagne();
+        w.pause = Math.max(w.pause, 1.5);
         lastOffer = performance.now() / 1000;
       },
     });
   }
+  // Their trays hold real glasses: reach out and take one.
+  const waiterTrays = new WaiterTrays({ crowd, lounge, hands, inXR: () => player.inXR, feet: () => player.feet() }, waiters);
   // Your crew for the night, and the shape of the night.
   const crew = new Crew(crowd, world, player, hud, sound, randomLook);
   // People are solid: you squeeze past them, and push them if you keep going.
@@ -1765,13 +1771,14 @@ async function main() {
     const now = performance.now() / 1000;
     for (const w of waiters) {
       const d = w.pos.distanceTo(feet);
-      if (d < 1.4 && now - lastOffer > 45 && !lounge.holdingDrink && w.pause <= 0) {
+      if (d < 1.4 && now - lastOffer > 45 && !lounge.holdingDrink && w.pause <= 0 && (!w.tray || waiterTrays.glasses(w) > 0)) {
+        // She stops and turns to you (waiterTrays turns her, smoothly: the tray stays put on her hand).
         w.pause = 4;
-        w.yaw = Math.atan2(feet.x - w.pos.x, feet.z - w.pos.z);
         lastOffer = now;
-        hud.toast('“Champagne?” Click the waiter (or point and trigger) to take a glass.', 'info');
+        hud.toast(player.inXR ? '“Champagne?” Reach out and take a glass from her tray.' : '“Champagne?” Click a glass on her tray to take it.', 'info');
       }
     }
+    waiterTrays.update(dt);
     // Outside: the room tone fades and the fountains swell with the show.
     // (Only the lakeside terrace counts here; the pool deck has its own party.)
     const outside = Math.abs(feet.x) < 14 ? THREE.MathUtils.clamp((-14 - feet.z) / 2, 0, 1) : 0;
@@ -1812,7 +1819,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { Drink, hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { Drink, waiterTrays, hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
 }
 
 main().catch((e) => {

@@ -9,6 +9,19 @@ import { dry, linkRoutes, pathTo } from './routes';
 
 // Bone offsets for poses the clips don't have (tuned against the Quaternius rig).
 export const POSE = { sitThigh: 1.5, sitShin: -1.6, sitHips: 0.95, trayUpper: 0.9, trayLower: 1.2, trayAxis: 'x' as 'x' | 'z' };
+/** Where a server holds the tray: the hand ahead of the shoulder, out and down, in arm lengths. */
+export const CARRY = { fwd: 0.6, out: 0.1, down: 0.24 };
+/** The waiter's tray: radius, and thickness under its top surface. */
+export const TRAY_R = 0.17;
+export const TRAY_UNDER = 0.012;
+
+/** Remembers the right arm's bind pose (the tray carry starts from it every frame). */
+function keepArmRest(rig: { bones: Record<string, THREE.Object3D> }) {
+  for (const n of ['UpperArmR', 'LowerArmR', 'WristR']) {
+    const bn = rig.bones[n];
+    if (bn) bn.userData.carryRest ??= bn.quaternion.clone();
+  }
+}
 
 /**
  * The casino's guests and staff. Every body part is one InstancedMesh shared by
@@ -580,11 +593,10 @@ export class Crowd {
         a.time = Math.random() * a.getClip().duration;
       }
       if (role === 'waiter') {
-        const tray = new THREE.Mesh(this.trays.geometry, this.trays.material);
-        tray.raycast = () => {};
-        p.tray = tray;
-        // Rides on the body (level, turning with them); placed on the palm each frame.
-        rig.root.add(tray);
+        // A real tray (the drinks on it are real glasses you can take: see waitertray.ts).
+        // It rides on her right hand: see carryTray.
+        p.tray = this.makeTray();
+        keepArmRest(rig);
       }
       for (const part of Object.values(this.parts)) part.mesh.visible = false;
     }
@@ -602,7 +614,12 @@ export class Crowd {
     }
     p.rig = rig;
     (p as { look: Look }).look = look;
-    if (p.tray) rig.root.add(p.tray);
+    if (p.tray) {
+      // Re-seated on the new body's hand on the next pose.
+      p.tray.removeFromParent();
+      delete p.tray.userData.onHand;
+      keepArmRest(rig);
+    }
     this.group.add(rig.root);
   }
 
@@ -624,6 +641,16 @@ export class Crowd {
   randomNode(): THREE.Vector3 {
     const n = this.nodes[Math.floor(rnd() * this.nodes.length)];
     return new THREE.Vector3(n.x, 0, n.y);
+  }
+
+  /** Sends a walker (a waiter back to the bar) the shortest way to the walkable spot nearest (x, z). */
+  headTo(p: Person, x: number, z: number): boolean {
+    if (this.nodes.length === 0) return false;
+    if (p.target === null) p.target = this.nearestNode(p.pos.x, p.pos.z);
+    const path = pathTo(this.edges, p.target, this.nearestNode(x, z));
+    if (!path) return false;
+    p.route = path;
+    return true;
   }
 
   private nearestNode(x: number, z: number) {
@@ -1052,7 +1079,7 @@ export class Crowd {
         b['Spine']?.rotateX(-0.06 * l);
       }
     }
-    if (p.tray) this.carryTray(p, sc);
+    if (p.tray) this.carryTray(p);
     // Look at the player / glance around.
     b.Head?.rotateY(p.headYaw * 0.8);
     b.Head?.rotateX(-p.headPitch);
@@ -1101,12 +1128,16 @@ export class Crowd {
   private static STRAIGHT = [0, 0, 0.12, 0.14, 0.1];
 
   /**
-   * A server's carry: elbow by the side, forearm forward and about level, the
-   * hand open and palm up, and the tray resting level on the palm (centred
-   * between the wrist and the knuckles, just clear of the highest point of the
-   * hand). Measured from the character's own skinned hand, so it fits every model.
+   * A server's carry, posed fresh every frame after the clips run: the right
+   * arm starts from its bind pose (nothing the walk, idle or wave clips did to
+   * it survives), the elbow hangs low by the side, the forearm comes forward and
+   * up so the hand is open, flat and palm up in front of the chest, and the tray
+   * rides on that hand. The tray is a child of the wrist bone, placed once on
+   * top of the palm (measured from the character's own skinned hand, so it fits
+   * every model): hand and tray can't drift apart or pass through each other,
+   * on any frame, including the ones far-away people skip.
    */
-  private carryTray(p: Person, sc: number) {
+  private carryTray(p: Person) {
     const rig = p.rig!,
       b = rig.bones,
       tray = p.tray!;
@@ -1116,45 +1147,83 @@ export class Crowd {
       // Middle1 is the metacarpal (it starts at the wrist); Middle2 starts at the knuckle.
       mid = b['Middle2R'] ?? b['Middle1R'];
     if (!up || !lo || !wr || !mid) return;
+    for (const bn of [up, lo, wr]) {
+      const r = bn.userData.carryRest as THREE.Quaternion | undefined;
+      if (r) bn.quaternion.copy(r);
+    }
     rig.root.updateMatrixWorld(true);
     const [S, E, W, T, F, R] = this.tv;
     up.getWorldPosition(S);
     lo.getWorldPosition(E);
     wr.getWorldPosition(W);
-    const a = S.distanceTo(E),
-      fl = E.distanceTo(W);
+    const L = S.distanceTo(E) + E.distanceTo(W);
     const fwd = F.set(Math.sin(p.yaw), 0, Math.cos(p.yaw));
     const right = R.set(-Math.cos(p.yaw), 0, Math.sin(p.yaw));
-    // Elbow under the shoulder (a touch forward and out); the forearm reaches
-    // forward and a little in, rising slightly to the wrist.
-    T.copy(S).addScaledVector(fwd, a * 0.22).addScaledVector(right, 0.02);
-    T.y -= a * 0.96;
-    T.addScaledVector(fwd, fl * 0.96).addScaledVector(right, -fl * 0.12);
-    T.y += fl * 0.16;
-    const pole = E.copy(S).addScaledVector(right, 0.35).addScaledVector(fwd, -0.35);
-    pole.y -= 0.6;
+    // The hand: in front of the shoulder and a little out, at chest height.
+    T.copy(S).addScaledVector(fwd, CARRY.fwd * L).addScaledVector(right, CARRY.out * L);
+    T.y -= CARRY.down * L;
+    // The elbow hangs down by the side, a touch out and back.
+    const pole = E.copy(S).addScaledVector(right, 0.25).addScaledVector(fwd, -0.12);
+    pole.y -= 0.8;
     reach(up, lo, wr, T, pole, 1);
-    // Fingers flat, palm up, pointing ahead (turned in a little, as hands go).
-    setFingers(b, 'R', Crowd.FLAT);
-    // The rest pose curls the fingers a little: straighten them out flat under the tray.
-    for (const f of Crowd.FINGERS) for (let seg = 2; seg <= 4; seg++) b[f + seg + 'R']?.rotateX(-FINGER.sign.R * Crowd.STRAIGHT[seg]);
+    this.flatHand(b);
+    // Palm up, pointing ahead (turned in a little, as hands go), knuckles level.
     const point = T.copy(fwd).addScaledVector(right, -0.25).normalize();
     orientHand(b, 'R', point, Crowd.UP);
     this.levelHand(b, point, right);
-    // The palm's middle, and the top of the hand under the tray.
-    wr.getWorldPosition(W);
-    mid.getWorldPosition(S);
-    const cx = (W.x + S.x) / 2,
-      cz = (W.z + S.z) / 2;
-    const top = this.handTop(p, cx, cz, Math.max(W.y, S.y));
-    const c = T.set(cx, top + 0.012 + 0.006, cz);
-    rig.root.worldToLocal(c);
-    tray.position.copy(c);
-    tray.quaternion.identity();
-    tray.scale.setScalar(1 / sc);
+    if (!tray.userData.onHand || tray.parent !== wr) {
+      // Once: find the top of the open hand (skin, not bones) over the palm's middle
+      // and seat the tray there, on the wrist.
+      rig.root.updateMatrixWorld(true);
+      rig.mesh?.skeleton.update();
+      wr.getWorldPosition(W);
+      mid.getWorldPosition(S);
+      const cx = (W.x + S.x) / 2,
+        cz = (W.z + S.z) / 2;
+      const top = this.handTop(p, cx, cz, Math.max(W.y, S.y));
+      const c = T.set(cx, top + TRAY_UNDER + 0.004, cz);
+      wr.add(tray);
+      wr.worldToLocal(c);
+      tray.position.copy(c);
+      tray.userData.onHand = true;
+    }
+    // Level, square to the body, and real size (whatever the bone's scale).
+    wr.getWorldQuaternion(this.lq[2]);
+    tray.quaternion.setFromAxisAngle(Crowd.UP, p.yaw).premultiply(this.lq[2].invert());
+    wr.getWorldScale(W);
+    tray.scale.set(1 / W.x, 1 / W.y, 1 / W.z);
+    tray.updateMatrixWorld(true);
+  }
+
+  /** The right hand open and flat (every finger joint from its rest pose: nothing builds up). */
+  private flatHand(b: Record<string, THREE.Object3D>) {
+    setFingers(b, 'R', Crowd.FLAT);
+    // The rest pose curls the fingers a little: straighten them out flat under the tray.
+    for (const f of Crowd.FINGERS)
+      for (let seg = 2; seg <= 4; seg++) {
+        const bn = b[f + seg + 'R'];
+        if (!bn) continue;
+        if (seg === 4) bn.quaternion.copy((bn.userData.rest ??= bn.quaternion.clone().normalize()) as THREE.Quaternion);
+        bn.rotateX(-FINGER.sign.R * Crowd.STRAIGHT[seg]);
+      }
+  }
+
+  /** A round silver tray with a rim; its top surface is at y = 0 (drinks stand on it there). */
+  private makeTray(): THREE.Group {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0xd9c08a, metalness: 0.9, roughness: 0.25 });
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(TRAY_R, TRAY_R - 0.01, TRAY_UNDER, 28).translate(0, -TRAY_UNDER / 2, 0), mat);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(TRAY_R - 0.003, 0.006, 6, 36).rotateX(Math.PI / 2), mat);
+    rim.position.y = 0.002;
+    g.add(disc, rim);
+    g.name = 'tray';
+    // It moves with her: thrown things knock off it, they don't land on it.
+    g.userData.loose = true;
+    return g;
   }
 
   private lq = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()];
+  private hv = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   private lm = [new THREE.Matrix4(), new THREE.Matrix4()];
   /**
    * Turns the right hand so it lies level, palm up: the knuckles (index to
@@ -1168,7 +1237,9 @@ export class Crowd {
       ix = b['Index2R'],
       pk = b['Pinky2R'];
     if (!wr || !m || !ix || !pk) return;
-    const [W, M, I, P] = [this.tv[0], this.tv[1], this.tv[2], this.tv[3]];
+    // Scratch of its own: `point` and `right` are the caller's scratch vectors (sharing
+    // them flipped the hand palm-down on some frames, through the tray).
+    const [W, M, I, P] = this.hv;
     wr.getWorldPosition(W);
     m.getWorldPosition(M);
     ix.getWorldPosition(I);
