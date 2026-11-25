@@ -18,7 +18,17 @@ interface Live {
   group: string;
   priority: boolean;
   base: number;
+  /** Who is talking (their mouth moves with this clip), if known. */
+  speaker: object | null;
+  /** Taps the clip (before 3D panning) so mouths follow the actual words. */
+  analyser: AnalyserNode | null;
+  level: number;
+  /** Last analysis (once per frame per speaker). */
+  read: { at: number; level: number; vowel: number } | null;
 }
+
+/** A mouth-position function that also says whose mouth it is (see mouthOf). */
+type MouthAt = (() => THREE.Vector3 | null) & { speaker?: object };
 
 export interface TalkOpts {
   /** Caption speaker name. */
@@ -27,8 +37,10 @@ export interface TalkOpts {
   voice: VoiceId;
   /** Voice to use if `voice` has no recording of this line (e.g. before ElevenLabs takes are in). */
   alt?: VoiceId;
-  /** Where the speaker's mouth is, every frame (null: in your head). */
-  at?: (() => THREE.Vector3 | null) | null;
+  /** Where the speaker's mouth is, every frame (null: in your head). From mouthOf, it also tells whose mouth moves. */
+  at?: MouthAt | null;
+  /** Whose mouth moves with the words (defaults to the person `at` came from). */
+  speaker?: object;
   volume?: number;
   /** Staff, your crew, anyone talking to you: louder, ducks the crowd's chatter. */
   priority?: boolean;
@@ -51,6 +63,8 @@ class Voices {
   private order: string[] = [];
   private live: Live[] = [];
   private pool: THREE.PositionalAudio[] = [];
+  private tbuf = new Float32Array(512);
+  private fbuf = new Uint8Array(256);
   captions = false;
 
   init(sound: Sound, hud: Hud, scene: THREE.Scene) {
@@ -141,7 +155,19 @@ class Voices {
     }
     if (o.group) this.stop(o.group);
     const t0 = now();
-    const entry: Live = { audio: this.voiceAudio(), follow: o.at ?? null, until: Infinity /* until the clip arrives */, group: o.group ?? '', priority: !!o.priority, base: o.volume ?? 1 };
+    const audio = this.voiceAudio();
+    const entry: Live = {
+      audio,
+      follow: o.at ?? null,
+      until: Infinity /* until the clip arrives */,
+      group: o.group ?? '',
+      priority: !!o.priority,
+      base: o.volume ?? 1,
+      speaker: o.speaker ?? o.at?.speaker ?? null,
+      analyser: (audio.userData.analyser as AnalyserNode | undefined) ?? null,
+      level: 0,
+      read: null,
+    };
     this.live.push(entry);
     void this.buffer(o.voice, lineId(o.voice, text)).then((buf) => {
       // Cut off already, or so late it would answer the wrong moment: skip it.
@@ -155,6 +181,14 @@ class Voices {
       a.setVolume(entry.base);
       this.place(entry);
       a.play();
+      // Lip sync: the mouth reads the clip itself (not the panned, distance-faded copy).
+      if (entry.speaker && entry.analyser && a.source) {
+        try {
+          a.source.connect(entry.analyser);
+        } catch {
+          /* no analyser: the mouth falls back to flapping */
+        }
+      }
       entry.until = now() + buf.duration + 0.1;
     });
     return dur;
@@ -174,6 +208,14 @@ class Voices {
       a.setRolloffFactor(1.5);
       a.setMaxDistance(40);
       a.panner.panningModel = 'HRTF';
+      try {
+        const an = a.context.createAnalyser();
+        an.fftSize = 512;
+        an.smoothingTimeConstant = 0.3;
+        a.userData.analyser = an;
+      } catch {
+        /* no analysers here */
+      }
     }
     // Voices limit: the oldest crowd chatter makes way.
     if (this.live.length >= 6) {
@@ -186,6 +228,11 @@ class Voices {
   private release(l: Live) {
     const i = this.live.indexOf(l);
     if (i >= 0) this.live.splice(i, 1);
+    try {
+      if (l.analyser && l.audio.source) l.audio.source.disconnect(l.analyser);
+    } catch {
+      /* never connected */
+    }
     try {
       if (l.audio.isPlaying) l.audio.stop();
     } catch {
@@ -208,6 +255,28 @@ class Voices {
     }
   }
 
+  /**
+   * How loud a person's recorded line is right now (0..1) and how "open" the
+   * sound is (vowels carry their energy in the low mids, consonants hiss
+   * higher up), straight from the playing clip. Null when they aren't saying
+   * a recorded line; level 0 between words.
+   */
+  mouthLevel(speaker: object): { level: number; vowel: number } | null {
+    const l = this.live.find((e) => e.speaker === speaker && e.audio.isPlaying);
+    const an = l?.analyser;
+    if (!l || !an) return null;
+    const t = now();
+    if (l.read && t - l.read.at < 0.008) return l.read;
+    const dt = Math.min(0.1, l.read ? t - l.read.at : 1 / 60);
+    an.getFloatTimeDomainData(this.tbuf);
+    an.getByteFrequencyData(this.fbuf);
+    const f = speechFeatures(this.tbuf, this.fbuf, an.context.sampleRate / an.fftSize);
+    // Opens fast, closes a little slower (jaws do); the same at any frame rate.
+    l.level += (f.level - l.level) * (1 - Math.exp(-dt * (f.level > l.level ? 40 : 18)));
+    l.read = { at: t, level: l.level, vowel: f.vowel };
+    return l.read;
+  }
+
   /** Follows the speakers, ducks the crowd under important voices, cleans up. */
   update() {
     const t = now();
@@ -227,8 +296,31 @@ class Voices {
 
 export const voices = new Voices();
 
-/** A mouth position for a person (a little below the top of the head). */
-export function mouthOf(p: { pos: THREE.Vector3; seated: boolean; look: { height: number } }) {
+/**
+ * A mouth position for a person (a little below the top of the head). It
+ * also carries who the person is, so their mouth moves with the line.
+ */
+export function mouthOf(p: { pos: THREE.Vector3; seated: boolean; look: { height: number } }): MouthAt {
   const v = new THREE.Vector3();
-  return () => v.set(p.pos.x, p.pos.y + (p.seated ? 1.22 : 1.62 * (p.look.height / 1.8)), p.pos.z);
+  return Object.assign(() => v.set(p.pos.x, p.pos.y + (p.seated ? 1.22 : 1.62 * (p.look.height / 1.8)), p.pos.z), { speaker: p });
+}
+
+/**
+ * Loudness (0..1, from the waveform's RMS) and vowel-ness (0..1: the share of
+ * spectrum energy in the ~250–1000 Hz vowel band against 1–6 kHz, where
+ * consonants hiss) of one analyser frame. `bin` is Hz per frequency bin.
+ */
+export function speechFeatures(wave: ArrayLike<number>, spectrum: ArrayLike<number>, bin: number): { level: number; vowel: number } {
+  let sum = 0;
+  for (let i = 0; i < wave.length; i++) sum += wave[i] * wave[i];
+  const rms = Math.sqrt(sum / Math.max(1, wave.length));
+  const level = Math.min(1, Math.max(0, (rms - 0.01) * 5));
+  let lo = 0,
+    hi = 1;
+  for (let i = 1; i < spectrum.length; i++) {
+    const f = i * bin;
+    if (f > 250 && f < 1000) lo += spectrum[i];
+    else if (f >= 1000 && f < 6000) hi += spectrum[i];
+  }
+  return { level, vowel: Math.min(1, (lo / (lo + hi)) * 1.6) };
 }

@@ -47,6 +47,7 @@ import type { Control } from './hud';
 import { CHIP_COLORS, CHIP_DENOMS, chipLabel } from './textures';
 import { CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
 import { mouthOf, voices } from './voices';
+import { Faces } from './faces';
 import { Throwables } from './throwables';
 import { DrinkPhysics } from './drinkphysics';
 import { Listener } from './listen';
@@ -128,6 +129,8 @@ async function main() {
 
   const ctx: GameContext = { scene, interaction, sound, bankroll, hud, rng: new CryptoRng(), quality };
   const crowd = new Crowd(scene, quality, world, assets.people);
+  // Faces up close: lips that follow the words, blinking, eyes that look at you.
+  const faces = new Faces(crowd.group, { radius: 6, max: quality.name === 'desktop' ? 10 : 6, level: (p) => voices.mouthLevel(p) });
   // Beyond the casino floor: hotel corridor, elevator lobby, pool deck, Suite 3201.
   const areas = buildAreas({ scene, quality, interaction, sound, player, world, toast: (t) => hud.toast(t, 'info') });
 
@@ -1166,6 +1169,7 @@ async function main() {
     loose.update(dt);
     bodies.update(dt);
     crowd.update(dt, t, feet, head);
+    faces.update(dt, t, crowd.people, head);
     beachBalls.update(dt);
     casino.update(t, feet);
     areas.update(dt, t, feet);
@@ -1275,7 +1279,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks };
+  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, faces, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks };
 }
 
 main().catch((e) => {

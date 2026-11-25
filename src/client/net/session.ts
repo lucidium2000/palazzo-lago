@@ -283,6 +283,8 @@ export class Session {
       const look = avatarLook(Math.floor(Number(s.look) || 0));
       const at = new THREE.Vector3(Number(s.x) || 0, 0, Number(s.z) || 0);
       const person = this.d.crowd.add('buddy', look, at, s.yaw);
+      // Their mouth follows their voice (embody); faces.ts gives them blinks and glances.
+      if (person) person.ownMouth = true;
       r = {
         id,
         state: s,

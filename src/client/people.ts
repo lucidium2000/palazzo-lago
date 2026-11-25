@@ -81,6 +81,8 @@ export class Person {
   onUpdate?: (p: Person, dt: number) => void;
   /** Driven by a real player over the network: no automatic head turning. */
   driven = false;
+  /** Has a mouth of its own (a friend's avatar, mouth driven by their voice): faces.ts leaves it alone. */
+  ownMouth = false;
   /** Runs after the animation pose each frame (arms reaching for real hands, the mouth talking). */
   onPose?: (p: Person) => void;
   /** The animated character (when the people assets loaded). */
