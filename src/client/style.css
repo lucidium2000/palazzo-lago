@@ -895,3 +895,13 @@ body.touch #prompt {
   min-width: 1.4em;
   color: #fff3d0;
 }
+
+/* Voice replies: a little mic badge while someone is listening for your answer. */
+body.listening #replies::before {
+  content: '🎤 listening…';
+  display: block;
+  font: italic 600 14px Georgia, serif;
+  color: #f3d58a;
+  margin-bottom: 4px;
+  text-align: center;
+}

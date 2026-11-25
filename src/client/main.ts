@@ -46,6 +46,7 @@ import { CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
 import { mouthOf, voices } from './voices';
 import { Throwables } from './throwables';
 import { DrinkPhysics } from './drinkphysics';
+import { Listener } from './listen';
 import { DrinkSync } from './net/drinksync';
 import { Boxing } from './net/boxing';
 import { BUMP_LINES, Bodies, friendShove } from './bodies';
@@ -333,7 +334,18 @@ async function main() {
   const night = new Night(scene, hud, sound, crew, crowd, bankroll);
   // Guests talk among themselves, and to you when you stop and look at them.
   const startChips = bankroll.balance;
+  // Answer people out loud (voice replies): browser speech recognition, or offline Vosk on Quest.
+  const listener = new Listener();
+  let listenHint = 0;
+  listener.onState = (st) => {
+    document.body.classList.toggle('listening', st === 'listening');
+    if (st === 'listening' && performance.now() - listenHint > 20000) {
+      listenHint = performance.now();
+      hud.toast('🎤 Listening… answer out loud (or pick a reply)', 'info');
+    }
+  };
   const dialogue = new Dialogue({
+    listener,
     scene,
     camera,
     crowd,
@@ -808,6 +820,8 @@ async function main() {
     toggleSound: () => document.getElementById('sound')!.click(),
     musicOn: () => document.getElementById('music')!.textContent === 'Music on',
     soundOn: () => !sound.muted,
+    voiceReplies: () => listener.enabled,
+    toggleVoiceReplies: () => listener.setEnabled(!listener.enabled),
     comfort: () => player.comfort,
     setComfort: (c) => {
       Object.assign(player.comfort, c);

@@ -5,7 +5,9 @@ import type { Hud } from './hud';
 import type { Interaction } from './interaction';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Audience, type Ctx, type Exchange, type Node, type Reply } from './dialogueLines';
-import { CONVO_BYE, STAFF, guestVoice, sceneVoice, type VoiceId } from './speech';
+import { CONVO_BYE, HUH_LINES, STAFF, guestVoice, sceneVoice, type VoiceId } from './speech';
+import { interpret, vocabulary } from './understand';
+import type { Listener } from './listen';
 import { mouthOf, voices } from './voices';
 
 /**
@@ -59,6 +61,8 @@ export interface DialogueDeps {
   ctx(): Ctx;
   /** Places the conversation can't happen from (e.g. while riding an elevator). */
   enabled?(): boolean;
+  /** Listens for your spoken answers (voice replies). */
+  listener?: Listener;
 }
 
 /**
@@ -244,6 +248,7 @@ export class Dialogue {
         if (c.replies && c.waitingSince === 0) {
           c.waitingSince = this.time;
           this.showReplies(c.replies);
+          this.listenFor(c, 2);
         }
         if (c.replies && this.time - c.waitingSince > 15) return this.endConvo(CONVO_BYE.timedOut);
       }
@@ -311,9 +316,44 @@ export class Dialogue {
     if (c.ending) c.readyAt = this.time + dur;
   }
 
+  /**
+   * Voice replies: while the replies are up, listen for your answer. A clear
+   * answer picks that reply; something they didn't catch gets a laugh-it-off
+   * line and they carry on as if you'd said one of the replies.
+   */
+  private listenFor(c: Convo, tries: number) {
+    const l = this.d.listener;
+    const replies = c.replies;
+    if (!l?.enabled || !replies) return;
+    void l.listen(vocabulary(replies), 7).then((heard) => {
+      if (this.convo !== c || c.replies !== replies) return;
+      if (heard === null) return; // can't listen here: the reply buttons still work
+      if (!heard) {
+        if (tries > 1) this.listenFor(c, tries - 1);
+        return;
+      }
+      const i = interpret(heard, replies);
+      if (i !== null) return this.pick(replies[i]);
+      // Didn't catch it: roll with it.
+      const huh = HUH_LINES[Math.floor(Math.random() * HUH_LINES.length)];
+      this.hideReplies();
+      c.replies = null;
+      const dur = this.line(c.npc, huh, { voice: true, priority: true });
+      const r = replies[Math.floor(Math.random() * replies.length)];
+      setTimeout(() => {
+        if (this.convo !== c) return;
+        // Carry on down a random branch (its follow-up line), or wrap up.
+        if (r.next) this.say(r.next);
+        else this.endConvo(null);
+      }, (dur + 0.3) * 1000);
+      c.readyAt = this.time + dur + 9;
+    });
+  }
+
   private pick(r: Reply) {
     const c = this.convo;
     if (!c) return;
+    this.d.listener?.stop();
     this.hideReplies();
     if (voices.captions) this.d.hud.say('You', r.label);
     c.replies = null;
@@ -337,6 +377,7 @@ export class Dialogue {
     if (!c) return;
     if (last) this.line(c.npc, last, { voice: c.npc.pos.distanceTo(this.d.feet()) < 4, priority: true });
     c.npc.attendUntil = this.d.crowd.now + 1.2;
+    this.d.listener?.stop();
     this.convo = null;
     this.hideReplies();
     this.globalCd = 12 + Math.random() * 10;
