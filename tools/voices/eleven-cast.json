@@ -1,0 +1,179 @@
+{
+ "el_vinnie": {
+  "voice_id": "QzTKubutNn9TjrB7Xb2Q",
+  "name": "Jerry B. - New York Italian Mobster",
+  "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45,
+  "public_owner_id": "a39978ae1a3df0f45fdab1322b8c5a8723fa4e2909858fd3c6bb5ab836cc50de"
+ },
+ "el_dale": {
+  "voice_id": "0hh7H4ZVAtaGpm1VZyEN",
+  "name": "David - Deep, Southern, Cowboy",
+  "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy",
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "style": 0.3,
+  "public_owner_id": "fd99b11504e8c1aac6e847ea61616cd450db4e2b1b8aaa196c35d58c85fd9f28"
+ },
+ "el_marcus": {
+  "voice_id": "kSvMZug5ZFM9sKGpLAei",
+  "name": "James - Smooth, Steady, and Southern",
+  "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45,
+  "public_owner_id": "7a18cf43d0dd02c343a3132084219bd648299cbd0c7670223cb87a8cd7a105c9"
+ },
+ "el_reggie": {
+  "voice_id": "7cOBG34AiHrAzs842Rdi",
+  "name": "Tarquin - Posh & English RP",
+  "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined",
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "style": 0.3,
+  "public_owner_id": "2485825829f9fa49abed561fe8e7e7cd78cbc8acdac91837122e6aba40a231a6"
+ },
+ "el_tommy": {
+  "voice_id": "mrQhZWGbb2k9qWJb5qeA",
+  "name": "Timmy - Anxious Nerd",
+  "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy",
+  "stability": 0.4,
+  "similarity_boost": 0.8,
+  "style": 0.38,
+  "public_owner_id": "ca7a37685a7b3db61009bfe4c5c1fcc2e4c2097e6c59d75a543927c3e8204a7f"
+ },
+ "el_sal": {
+  "voice_id": "wAGzRVkxKEs8La0lmdrE",
+  "name": "Sully - Mature, Deep and Intriguing",
+  "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York",
+  "stability": 0.4,
+  "similarity_boost": 0.8,
+  "style": 0.38,
+  "public_owner_id": "4c70de23dafb03ed39c93f321b71fbf03de8d7b000ebcf26d0b75777ff704efb"
+ },
+ "el_margo": {
+  "voice_id": "MHPwHxLx0nmGIb5Jnbly",
+  "name": "Empress - Smoky, Breathy, and Neutral",
+  "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American",
+  "stability": 0.4,
+  "similarity_boost": 0.8,
+  "style": 0.38,
+  "public_owner_id": "1d0dd652d18ed32384750738d142308160a41f4c9c8b4e353ab54afcfd8f416f"
+ },
+ "el_priya": {
+  "voice_id": "EXAVITQu4vr4xnSDxMaL",
+  "name": "Sarah - Mature, Reassuring, Confident",
+  "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful",
+  "stability": 0.4,
+  "similarity_boost": 0.8,
+  "style": 0.38
+ },
+ "el_destiny": {
+  "voice_id": "uYXf8XasLslADfZ2MB4u",
+  "name": "Hope - Bubbly, Gossipy and Girly",
+  "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45,
+  "public_owner_id": "7d272ea0221fbc9ce382a3eaf4d7f907179558360d93b351ec7d344d30023cf9"
+ },
+ "el_eleanor": {
+  "voice_id": "kkPJzQOWz2Oz9cUaEaQd",
+  "name": "Beatrice - Mature, Gentle and Engaging",
+  "brief": "older woman, refined British accent, elegant, calm, low, dry humour",
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "style": 0.3,
+  "public_owner_id": "e21da557bd3d3d214ca0cd46cb06720331c223a478ee711c3b62b8965330ec9d"
+ },
+ "el_kayla": {
+  "voice_id": "9JqF6OmJtGjHTDODKG2c",
+  "name": "Kerrigan - Midwestern, Warm and Relaxing",
+  "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful",
+  "stability": 0.4,
+  "similarity_boost": 0.8,
+  "style": 0.38,
+  "public_owner_id": "ced90c832fd221c9fcf53362df44f93b43c3b03f13c630d913bb1469f67a1074"
+ },
+ "el_rosa": {
+  "voice_id": "oWjuL7HSoaEJRMDMP3HD",
+  "name": "Lina - Confident, Dynamic and Strong",
+  "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious",
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "style": 0.3,
+  "public_owner_id": "c21e3f961fa9831eda02ff781cf8d62290cc46429b7d243e4f7e8c13299fc9e5"
+ },
+ "el_bartender": {
+  "voice_id": "Gvx1qZk9R4BUiBfsNPBU",
+  "name": "Jessica (New York)",
+  "brief": "woman in her thirties, warm, smooth, friendly, slight Italian-American New York",
+  "stability": 0.4,
+  "similarity_boost": 0.8,
+  "style": 0.38,
+  "public_owner_id": "a69313124cacd2b9236fdf460060b6d07a28d2240c1ba3c16e3ca60a1d11454f"
+ },
+ "el_croupier": {
+  "voice_id": "K8nDX2f6wjv6bCh5UeZi",
+  "name": "Jamie - French Accent & Charismatic",
+  "brief": "man, refined, calm, slight French accent, crisp announcer",
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "style": 0.3,
+  "public_owner_id": "e0b730cdf914e6d32ba2344235d302782c648d3cefa4a6f6b77e1bdf2cf93910"
+ },
+ "el_stickman": {
+  "voice_id": "kWjdIkuzqBCnHbyAOYlF",
+  "name": "Dylan - Brash and Interesting",
+  "brief": "man, Brooklyn accent, energetic, fast, rhythmic, carnival barker",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45
+ },
+ "el_dealer": {
+  "voice_id": "XrExE9yKIg1WjnnlVkGX",
+  "name": "Matilda - Knowledgable, Professional",
+  "brief": "woman, professional, friendly, clear American",
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "style": 0.3
+ },
+ "el_waiter": {
+  "voice_id": "mNDAlXbiDkuVNwYWVP7R",
+  "name": "Alistair Drake - Warm, Charming Narrator",
+  "brief": "young man, polished, charming, soft British or neutral American",
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "style": 0.3,
+  "public_owner_id": "a82f07b5046a9e4ddc4ec6a897f81002eb71477dbf562ba4cb9a12d405dbf65c"
+ },
+ "el_crew_rocco": {
+  "voice_id": "erLaZvTFBCJD969knK8N",
+  "name": "Chicago Mike - Tour Guide Storyteller",
+  "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45,
+  "public_owner_id": "37317a1db8adc7ee5579466938ac666fd3c92708097c5c80cf983fda730618eb"
+ },
+ "el_crew_dev": {
+  "voice_id": "Myb1gsDenT3mlMlj7vib",
+  "name": "James - Sarcastic, Casual and Skeptical",
+  "brief": "man in his thirties, dry sarcastic humour, quick, American",
+  "stability": 0.4,
+  "similarity_boost": 0.8,
+  "style": 0.38,
+  "public_owner_id": "80d7693e324afa7af605bcfefa2f133087ab8fcc6d0d4cda1e3fd4be0d2a0c54"
+ },
+ "el_crew_mikey": {
+  "voice_id": "wGkprrTXgBM5EC3Znt6U",
+  "name": "Gus - Natural Goofy Best Friend",
+  "brief": "young man, sweet, excitable, a little high-pitched, goofy, American",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45,
+  "public_owner_id": "107dfe05a48663a1f414120c8d74ae4536e91c7143f18853a80133e5a8d23e21"
+ }
+}
