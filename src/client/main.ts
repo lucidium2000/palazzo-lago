@@ -1414,6 +1414,46 @@ async function main() {
   let first = true;
   const head = new THREE.Vector3();
   let casinoThings: THREE.Object3D[] | null = null;
+  // Zone culling: only draw the parts of the resort you could possibly see from here.
+  const zoneCulling = (feet: THREE.Vector3) => {
+    if (!casinoThings) {
+      casinoThings = scene.children.filter(
+        (o) => o.type === 'Group' && !o.name && o !== player.rig && o !== crowd.group && o !== selfBody.root && Math.abs(o.position.x) < 18 && Math.abs(o.position.z) < 14,
+      );
+    }
+    {
+      const fx = feet.x;
+      const show = (name: string, v: boolean) => {
+        const g = scene.getObjectByName(name);
+        if (g && g.visible !== v) g.visible = v;
+      };
+      const inSuite = fx > 500;
+      const onDeck = fx > 21 && feet.z < -0.2 && !inSuite;
+      show('suite', inSuite);
+      show('skyline', !inSuite);
+      show('pool', !inSuite && fx > 16);
+      show('hotel', !inSuite && fx > 4);
+      show('casino', !inSuite && !onDeck);
+      const inCasino = !inSuite && !onDeck;
+      for (const o of casinoThings) if (o.visible !== inCasino) o.visible = inCasino;
+      // The poker room's furniture, table and lights: only from the west side of the floor (or inside).
+      const pokerOn = inCasino && fx < 3;
+      if (pokerRoom.interior.visible !== pokerOn) pokerRoom.interior.visible = pokerOn;
+    }
+  };
+  // Each area's own reflections, captured once behind the loading screen (people and your body hidden).
+  {
+    if (loadingSub) loadingSub.textContent = 'Polishing the marble…';
+    try {
+      const ms = await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root]);
+      (window as unknown as { __envCaptureMs: number }).__envCaptureMs = Math.round(ms);
+      console.info(`reflections captured in ${Math.round(ms)} ms`);
+    } catch (e) {
+      // Keep the generic HDRI reflections rather than fail to open.
+      console.warn('reflection capture failed', e);
+    }
+    zoneCulling(player.feet());
+  }
   renderer.setAnimationLoop(() => {
     timer.update();
     const dt = Math.min(timer.getDelta(), 0.05);
@@ -1547,30 +1587,7 @@ async function main() {
     casino.update(t, feet);
     areas.update(dt, t, feet);
     swim.update(dt, player.underwater);
-    // Zone culling: only draw the parts of the resort you could possibly see from here.
-    if (!casinoThings) {
-      casinoThings = scene.children.filter(
-        (o) => o.type === 'Group' && !o.name && o !== player.rig && o !== crowd.group && o !== selfBody.root && Math.abs(o.position.x) < 18 && Math.abs(o.position.z) < 14,
-      );
-    }
-    {
-      const fx = feet.x;
-      const show = (name: string, v: boolean) => {
-        const g = scene.getObjectByName(name);
-        if (g && g.visible !== v) g.visible = v;
-      };
-      const inSuite = fx > 500;
-      const onDeck = fx > 21 && feet.z < -0.2 && !inSuite;
-      show('suite', inSuite);
-      show('pool', !inSuite && fx > 16);
-      show('hotel', !inSuite && fx > 4);
-      show('casino', !inSuite && !onDeck);
-      const inCasino = !inSuite && !onDeck;
-      for (const o of casinoThings) if (o.visible !== inCasino) o.visible = inCasino;
-      // The poker room's furniture, table and lights: only from the west side of the floor (or inside).
-      const pokerOn = inCasino && fx < 3;
-      if (pokerRoom.interior.visible !== pokerOn) pokerRoom.interior.visible = pokerOn;
-    }
+    zoneCulling(feet);
     hud.update(camera);
     crew.update(dt);
     dialogue.update(dt);
@@ -1664,7 +1681,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
 }
 
 main().catch((e) => {
