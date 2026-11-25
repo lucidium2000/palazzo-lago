@@ -4,12 +4,13 @@ import { type Action, type Card, handValue, isPair, packSteps, RANKS, Shoe, SUIT
 import type { Rng } from '../rules/rng';
 import type { Sound } from './audio';
 import { type HandSample, type Signal, SignalReader } from './bjgesture';
-import { makeChip } from './chips';
+import { chipMat } from './chips';
+import { ChipRail } from './chiprail';
 import { money } from './game';
 import { envelope, handTo } from './gestures';
 import type { Grabbable } from './hands';
 import type { Control } from './hud';
-import type { Interactable } from './interaction';
+import type { Interactable, Interaction } from './interaction';
 import type { Person } from './people';
 import { DISCARD_AT, type PitTable, SHOE_AT, spotAngle, TOP } from './pit';
 import { CHIP_COLORS, chipBreakdown, chipLabel, type ChipDenom } from './textures';
@@ -71,48 +72,8 @@ interface Cue {
 }
 
 let cardMaterial: THREE.MeshStandardMaterial | null = null;
-let chipMaterial: THREE.MeshStandardMaterial | null = null;
 
-/**
- * Chip face: an inlay ring and six edge spots in white over the chip's colour
- * (the instance colour). The cylinder's sides sample a slice through the same
- * picture, which reads as the stripes round a chip's edge.
- */
-export function chipMat(): THREE.MeshStandardMaterial {
-  if (chipMaterial) return chipMaterial;
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d')!;
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, 64, 64);
-  g.fillStyle = '#fff';
-  for (let k = 0; k < 6; k++) {
-    g.beginPath();
-    g.moveTo(32, 32);
-    g.arc(32, 32, 32, (k / 6) * Math.PI * 2 - 0.2, (k / 6) * Math.PI * 2 + 0.2);
-    g.closePath();
-    g.fill();
-  }
-  g.fillStyle = '#000';
-  g.beginPath();
-  g.arc(32, 32, 21, 0, Math.PI * 2);
-  g.fill();
-  g.strokeStyle = '#fff';
-  g.lineWidth = 2;
-  g.beginPath();
-  g.arc(32, 32, 17, 0, Math.PI * 2);
-  g.stroke();
-  const t = new THREE.CanvasTexture(c);
-  const m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.45 });
-  // The texture is a mask: white where the chip shows its white inlay, else the chip's colour.
-  m.onBeforeCompile = (sh) => {
-    sh.fragmentShader = sh.fragmentShader
-      .replace('#include <map_fragment>', 'float chipMask = texture2D( map, vMapUv ).r;')
-      .replace('#include <color_fragment>', '#ifdef USE_COLOR\n diffuseColor.rgb *= mix( vColor.rgb, vec3( 0.95 ), chipMask );\n#endif');
-  };
-  m.customProgramCacheKey = () => 'bjChips';
-  return (chipMaterial = m);
-}
+export { chipMat };
 
 /** Card faces: 13 ranks x 4 suits, and a back. Readable big ranks for VR. */
 function cardAtlas(): THREE.CanvasTexture {
@@ -261,6 +222,8 @@ export interface BlackjackCtx {
   toast?(text: string, kind?: 'info' | 'win' | 'warn'): void;
   /** Buzz a VR controller. */
   haptic?(side: 'left' | 'right', strength: number, ms: number): void;
+  /** Clicks on your chip rail (screens) pick the chip size. */
+  interaction?: Interaction;
   /** Your name (shown to your friend). */
   name?(): string;
   /** A round you played is settled: total staked and returned. */
@@ -345,7 +308,8 @@ export class BlackjackPlay {
   // --- VR and screen controls ---
   readonly grabbables: Grabbable[] = [];
   readonly target: Interactable;
-  private rack: THREE.Group;
+  /** Your chips on the rail in front of your seat. */
+  readonly rail: ChipRail;
   private marker: THREE.Mesh;
   private label: { mesh: THREE.Mesh; g: CanvasRenderingContext2D; tex: THREE.CanvasTexture; text: string };
   private readers = { left: new SignalReader(), right: new SignalReader() };
@@ -413,7 +377,7 @@ export class BlackjackPlay {
     for (const s of seats) if (s.person) s.person.onPose = pose(s.person);
     this.nextAuto = 2 + Math.random() * 6;
 
-    this.rack = this.buildRack();
+    this.rail = this.buildRail();
     // Your turn: a soft gold ring around the hand being played.
     this.marker = new THREE.Mesh(new THREE.RingGeometry(0.062, 0.07, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false }));
     this.marker.visible = false;
@@ -526,49 +490,47 @@ export class BlackjackPlay {
   // Your chips: the rack (VR) and the circle
   // ===========================================================================
 
-  private buildRack(): THREE.Group {
-    const g = new THREE.Group();
-    const tray = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.012, 0.06), new THREE.MeshStandardMaterial({ color: 0x2a1408, roughness: 0.4 }));
-    tray.position.y = 0.006;
-    g.add(tray);
-    const per = 10;
-    const inst = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0195, 0.0195, 0.0033, 18), new THREE.MeshStandardMaterial({ roughness: 0.45 }), this.denoms.length * per);
-    const tmp = new THREE.Object3D();
-    this.denoms.forEach((d, i) => {
-      const x = (i - (this.denoms.length - 1) / 2) * 0.055;
-      for (let k = 0; k < per; k++) {
-        tmp.position.set(x, 0.012 + 0.0017 + k * 0.0033, 0);
-        tmp.updateMatrix();
-        inst.setMatrixAt(i * per + k, tmp.matrix);
-        inst.setColorAt(i * per + k, new THREE.Color(chipHex(d)));
-      }
-      const top = new THREE.Vector3(x, 0.012 + per * 0.0033, 0);
-      this.grabbables.push({
-        at: () => g.localToWorld(top.clone()),
-        radius: 0.05,
-        enabled: () => g.visible,
-        grab: () => {
-          if (!this.ctx.bankroll?.canAfford(d)) {
-            this.ctx.sound.play('denied', g, { volume: 0.4 });
-            return null;
-          }
-          const chip = makeChip(d);
-          chip.position.copy(g.localToWorld(top.clone()));
-          this.ctx.sound.play('chip', chip, { volume: 0.5 });
-          return chip;
-        },
-        release: (_h, pos, carried) => {
-          carried?.removeFromParent();
-          this.dropChip(d, pos);
-        },
-      });
+  /**
+   * Your chips at the rail in front of your seat: they always add up to your
+   * balance. Pick some up and set them in your circle to bet (or beside your
+   * bet on your turn to double / split); pick your bet back up to take it back.
+   */
+  private buildRail(): ChipRail {
+    const rail = new ChipRail({
+      parent: this.table.group,
+      denoms: this.denoms,
+      sound: this.ctx.sound,
+      spacing: 0.055,
+      tray: true,
+      balance: () => this.ctx.bankroll?.balance ?? 0,
+      // Chips set beside your bet on your turn are still yours until you double.
+      away: () => this.side,
+      visible: () => this.mySeat !== null,
+      canGrab: () => this.canBet() || this.isMyTurn,
+      place: (world, amount) => this.dropChips(amount, world),
+      spots: () => {
+        const k = this.mySeat;
+        if (k === null || !this.canBet() || this.myPending <= 0) return [];
+        const at = this.table.group.localToWorld(this.stackAt(k, 0, 'bet').setY(TOP + 0.02));
+        return [
+          {
+            at,
+            take: () => {
+              // The dealer hands your bet back (at once at your own table; a friend's host confirms it a moment later).
+              const before = this.ctx.bankroll?.balance ?? 0;
+              this.clearBet();
+              return Math.max(0, (this.ctx.bankroll?.balance ?? 0) - before);
+            },
+          },
+        ];
+      },
+      interaction: this.ctx.interaction,
+      onPick: (d) => (this.chip = d),
+      selected: () => this.chip,
     });
-    inst.raycast = () => {};
-    g.add(inst);
-    g.visible = false;
-    g.userData.dynamic = true;
-    this.table.group.add(g);
-    return g;
+    rail.group.visible = false;
+    for (const g of rail.grabbables) this.grabbables.push(g);
+    return rail;
   }
 
   /** Can you put chips in your circle right now? (Not while your hand is being played.) */
@@ -656,41 +618,47 @@ export class BlackjackPlay {
     this.request({ a: 'deal' });
   }
 
-  /** A chip let go of in VR: into your circle (a bet), beside it on your turn (double / split), else back to the rack. */
-  dropChip(d: ChipDenom, world: THREE.Vector3) {
+  /**
+   * Chips let go of in VR: into your circle (a bet), beside it on your turn
+   * (double / split). True if they went down; false sends them back to the rail.
+   */
+  dropChips(amount: number, world: THREE.Vector3): boolean {
     const k = this.mySeat;
-    if (k === null) return;
+    if (k === null) return false;
     const l = this.table.group.worldToLocal(world.clone());
     const near = (p: THREE.Vector3, r: number) => Math.hypot(l.x - p.x, l.z - p.z) < r && l.y > TOP - 0.05 && l.y < TOP + 0.3;
-    if (this.isMyTurn && this.waiting && near(this.stackAt(k, 0, 'bet'), 0.24)) {
-      this.addSide(d);
-      return;
-    }
-    if (near(this.stackAt(k, 0, 'bet'), 0.1) && this.canBet()) {
-      this.addBet(d);
-      return;
-    }
-    this.ctx.sound.play('chip', world, { volume: 0.3, rate: 0.8 });
+    if (this.isMyTurn && this.waiting && near(this.stackAt(k, 0, 'bet'), 0.24)) return this.addSide(amount);
+    if (near(this.stackAt(k, 0, 'bet'), 0.1) && this.canBet()) return this.addBet(amount);
+    return false;
   }
 
   /** Chips beside your bet on your turn: once they match it, that's a double (or a split, on a pair). */
-  private addSide(d: number) {
+  private addSide(amount: number): boolean {
     const w = this.waiting!;
     const bet = this.handBet(w.seat, w.hand);
     const legal = this.legal();
     if (!legal.double && !legal.split) {
       this.ctx.toast?.(this.ctx.bankroll?.canAfford(bet) ? 'You can only double on your first two cards' : 'Not enough chips to double', 'info');
       this.ctx.sound.play('chip', this.table.group.localToWorld(this.stackAt(w.seat, w.hand, 'side')), { volume: 0.3, rate: 0.8 });
-      return;
+      return false;
     }
-    this.side += d;
+    // Never more beside the bet than you hold.
+    const bank = this.ctx.bankroll?.balance ?? 0;
+    if (this.side + amount > bank) {
+      this.ctx.toast?.('Not enough chips', 'warn');
+      return false;
+    }
+    this.side += amount;
     const p = this.stackAt(w.seat, w.hand, 'side');
-    const tr: Track = { id: chipHex(d as ChipDenom), keys: [{ t: this.clock, p: new THREE.Vector3(p.x, TOP + CHIP_H / 2 + this.sideTracks.length * CHIP_H, p.z), ry: 0, face: 0 }], gone: Infinity };
-    this.sideTracks.push(tr);
-    this.chipTracks.push(tr);
+    for (const d of chipBreakdown(amount)) {
+      const tr: Track = { id: chipHex(d), keys: [{ t: this.clock, p: new THREE.Vector3(p.x, TOP + CHIP_H / 2 + this.sideTracks.length * CHIP_H, p.z), ry: 0, face: 0 }], gone: Infinity };
+      this.sideTracks.push(tr);
+      this.chipTracks.push(tr);
+    }
     this.ctx.sound.play('chip', this.table.group.localToWorld(p), { volume: 0.5 });
     if (this.side >= bet) this.decide(legal.split ? 'split' : 'double');
     else this.ctx.toast?.(`${money(bet - this.side)} more to ${legal.split ? 'split' : 'double'}`, 'info');
+    return true;
   }
 
   private clearSide() {
@@ -785,17 +753,16 @@ export class BlackjackPlay {
       this.betTotal = 0;
       this.creditedRefund = 0;
       this.request({ a: 'sit', k });
-      const [u, t] = this.frame(k);
-      this.rack.position.set(u.x * 0.925, TOP + 0.002, u.z * 0.925);
-      this.rack.rotation.y = Math.atan2(-t.z, t.x);
+      const [u] = this.frame(k);
+      this.rail.group.position.set(u.x * 0.925, TOP + 0.006, u.z * 0.925);
+      // Stacks run left to right as you sit; the count label faces you.
+      this.rail.group.rotation.y = Math.atan2(u.x, u.z);
       this.ctx.toast?.(`Blackjack ${money(this.min)}–${money(this.max)} · place your bet`, 'info');
     }
-    this.rack.visible = false;
   }
 
-  /** Show the chip rack (VR only; screens use the chip picker). */
+  /** VR or a screen? (Your chip rail shows whenever you're seated; screens can also click it.) */
   showRack(v: boolean) {
-    this.rack.visible = v && this.mySeat !== null;
     this.vr = v;
   }
 
@@ -1533,6 +1500,7 @@ export class BlackjackPlay {
 
   update(dt: number, playerPos: THREE.Vector3) {
     this.live = playerPos.distanceTo(this.center) < LIVE_DIST || this.owners.size > 0 || this.myRoundSeat !== null || this.mySeat !== null;
+    this.rail.update(dt);
     if (!this.live) return;
     this.clock += Math.min(dt, 0.1);
     const t = this.clock;
