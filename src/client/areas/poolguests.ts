@@ -9,11 +9,11 @@ const onDeck = (x: number, z: number) => x > DECK.x0 && x < DECK.x1 && z > DECK.
  * The pool party's guests: sunbathers lying back on the loungers, friends
  * standing waist-deep in the shallow end chatting, a couple of slow swimmers
  * doing loops in the deep end (who turn back rather than swim into you),
- * dancers by the DJ, drinkers at the pool bar and in the cabanas. Most wear
+ * dancers on the floor by the DJ, drinkers at the pool bar and in the cabanas. Most wear
  * beachwear. Added before the floor's wanderers, most visible first, so a
  * smaller crowd (Quest, phones) keeps the best of it.
  */
-export function populatePool(crowd: Crowd, pool: PoolArea): Person[] {
+export function populatePool(crowd: Crowd, pool: PoolArea, dancers: Person[] = []): Person[] {
   const people: Person[] = [];
   const keep = (p: Person | null) => {
     if (p) people.push(p);
@@ -34,6 +34,12 @@ export function populatePool(crowd: Crowd, pool: PoolArea): Person[] {
     waders.push(p);
   }
   crowd.converse(waders);
+
+  // Dancing on the LED floor in front of the DJ (party/index.ts makes them dance to the beat).
+  pool.stands.forEach((s, k) => {
+    const p = keep(crowd.add('watch', k % 2 ? poolLook() : randomLook(), s.pos, s.yaw));
+    if (p) dancers.push(p);
+  });
 
   // Slow loops in the deep end.
   pool.laps.forEach((lap, k) => {
@@ -65,10 +71,6 @@ export function populatePool(crowd: Crowd, pool: PoolArea): Person[] {
   if (lead) lead.haunt = onDeck;
   for (const p of [lead, friend]) if (p) keep(p);
 
-  // The dance floor in front of the DJ.
-  pool.stands.slice(0, 6).forEach((s, k) => {
-    keep(crowd.add('watch', k % 2 ? poolLook() : randomLook(), s.pos, s.yaw));
-  });
   // Two friends by the hot tub.
   const pair = pool.chats.map((s) => keep(crowd.add('chat', poolLook(), s.pos, s.yaw))).filter((p): p is Person => !!p);
   crowd.converse(pair);

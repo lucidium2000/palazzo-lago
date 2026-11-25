@@ -535,6 +535,8 @@ export class Session {
 
   /** Extra fields published with your state (e.g. the drink in your hand). */
   extraState: (() => Partial<PlayerState>) | null = null;
+  /** Poses a friend's avatar dancing (party/index.ts), before their real hands take the arms. */
+  dancer: ((p: Person, s: PlayerState, tracked: boolean) => void) | null = null;
 
   /** Extra event handlers (game mirroring, drinks…): `on('kind', (friend, data) => …)`. */
   private handlers = new Map<string, (friend: Friend, d: Record<string, unknown>) => void>();
@@ -735,6 +737,7 @@ export class Session {
     const sc = p.look.height / (female ? 1.72 : 1.82);
     if (!r.mouth && b.Head) r.mouth = makeMouth(b.Head, rig.root, p.yaw, sc, rig.mesh);
     if (r.mouth) setOpen(r.mouth, r.open);
+    this.dancer?.(p, r.state, !!(r.hands.l || r.hands.r));
     const fwd = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
     const left = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
     // Their real hands (same hand models you see on your own controllers), placed at their wrists.
