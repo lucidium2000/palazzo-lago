@@ -225,6 +225,13 @@ export class Lounge {
   static readonly COUNTER_Z1 = 12.4;
   static readonly TOP = 1.1;
 
+  /** On the guests' side of the bar counter, close enough to be served across it. */
+  static nearBar(x: number, z: number): boolean {
+    const dz = z < Lounge.COUNTER_Z0 ? Lounge.COUNTER_Z0 - z : z > Lounge.COUNTER_Z1 ? z - Lounge.COUNTER_Z1 : 0;
+    const dx = x - Lounge.COUNTER_X;
+    return dx > 0 && dx < 2.2 && dz < 0.8;
+  }
+
   constructor(private d: LoungeDeps) {
     d.scene.add(this.bar, this.piano);
     // The bartender's bottle (or shaker) and the stream of the pour.
@@ -607,21 +614,32 @@ export class Lounge {
     if (this.bartender) this.bartender.cheer = 0.8;
   }
 
-  /** Makes a drink sitting somewhere pick-up-able: click on desktop, grab in VR. */
-  private makeTakeable(drink: Drink): Grabbable {
+  /**
+   * Makes a drink sitting somewhere pick-up-able: click on desktop, grab in VR.
+   * `opts.on` says where else it may rest and still be taken (a waiter's tray),
+   * besides standing loose in the scene; `opts.label` is the click label there.
+   */
+  private makeTakeable(drink: Drink, opts: { on?: () => boolean; label?: string } = {}): Grabbable {
+    const resting = () => drink.group.parent === this.d.scene || !!opts.on?.();
     // One interactable covers both states: on a surface (pick it up) and in your hand (sip).
     this.d.interaction.register({
       object: drink.group,
       kind: 'button',
-      enabled: () => this.desktopDrink === drink || (drink.group.parent === this.d.scene && !this.desktopDrink && !this.otherHeld()),
+      enabled: () => this.desktopDrink === drink || (resting() && !this.desktopDrink && !this.otherHeld()),
       label: () =>
-        this.desktopDrink === drink ? (drink.level > 0 ? 'Sip (F)' : 'Empty glass · Q to set it down') : `Pick up the ${drink.kind.name}`,
+        this.desktopDrink === drink
+          ? drink.level > 0
+            ? 'Sip (F)'
+            : 'Empty glass · Q to set it down'
+          : opts.label && opts.on?.()
+            ? opts.label
+            : `Pick up the ${drink.kind.name}`,
       onSelect: () => (this.desktopDrink === drink ? this.sip(drink) : this.pickUpDesktop(drink)),
     });
     const grab: Grabbable = {
       at: () => drink.group.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.06, 0)),
       radius: 0.12,
-      enabled: () => drink.group.parent === this.d.scene,
+      enabled: resting,
       grab: () => {
         if (this.waiting === drink) this.waiting = null;
         this.falling = this.falling.filter((f) => f.obj !== drink.group);
@@ -782,13 +800,33 @@ export class Lounge {
   offerChampagne() {
     const drink = new Drink(DRINKS.find((d) => d.section === 'Champagne')!);
     this.d.scene.add(drink.group);
-    const grab = this.makeTakeable(drink);
+    if (!this.handOver(drink, this.makeTakeable(drink))) drink.group.removeFromParent();
+  }
+
+  /**
+   * A glass on a waiter's tray: grab it off the tray in VR (or click it on
+   * desktop) and it's an ordinary drink in your hand, to sip, pour and throw.
+   * `onTray` says whether it's still standing on the tray.
+   */
+  trayGlass(drink: Drink, onTray: () => boolean): Grabbable {
+    return this.makeTakeable(drink, { on: onTray, label: `Take a ${drink.kind.name} from the tray` });
+  }
+
+  /**
+   * Puts a glass straight into your hand (a free VR hand, or your desktop hand,
+   * setting down what you held). False if there was no hand for it.
+   */
+  handOver(drink: Drink, grab: Grabbable): boolean {
     if (this.d.player.inXR) {
-      if (!this.d.hands.give(drink.group, grab)) drink.group.removeFromParent();
-    } else {
-      if (this.desktopDrink) this.putDownDesktop();
-      this.pickUpDesktop(drink);
+      if (!this.d.hands.give(drink.group, grab)) return false;
+      this.d.throwables.catch(drink.group);
+      this.vrHeld = drink;
+      this.d.sound.play('clink', drink.group, { volume: 0.4 });
+      return true;
     }
+    if (this.desktopDrink) this.putDownDesktop();
+    this.pickUpDesktop(drink);
+    return this.desktopDrink === drink;
   }
 
   /** Sip the glass you are holding (phone button / F key). */
