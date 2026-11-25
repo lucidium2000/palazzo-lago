@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Quality } from './quality';
 import type { World } from './world';
 import { spawnCharacter, type PeopleLib } from './assets';
+import type { Paint, Surface } from './peopleshade';
 import { FINGER, orientHand, reach, setFingers } from './net/embody';
 import { lieLegs, sitLegs, standLegs } from './sitpose';
 import { dry, linkRoutes, pathTo } from './routes';
@@ -30,7 +31,9 @@ export interface Talk {
 
 export interface Look {
   dress: boolean;
+  /** Top garment colour (jacket, dress, shirt…), sRGB hex. */
   main: number;
+  /** Shirt / blouse under it. */
   second: number;
   skin: number;
   hair: number;
@@ -38,6 +41,21 @@ export interface Look {
   height: number;
   /** Which character model to wear (see assets.ts). */
   kind?: string;
+  // --- Outfit details (peopleshade.ts); sensible defaults per kind when left out.
+  /** Trousers / skirt / shorts (defaults to `main`: a suit or a dress). */
+  bottom?: number;
+  shoes?: number;
+  /** Tie, the shorts' print, the sneakers' trim. */
+  accent?: number;
+  topSurf?: Surface;
+  bottomSurf?: Surface;
+  shirtSurf?: Surface;
+  shoeSurf?: Surface;
+  accentSurf?: Surface;
+  /** Jewellery / watch metal, and whether it catches the light. */
+  jewel?: number;
+  glint?: boolean;
+  lipstick?: number;
 }
 
 export class Person {
@@ -126,15 +144,79 @@ export class Person {
   ) {}
 }
 
-const SKIN = [0xf1c9a5, 0xe0ac86, 0xc68a62, 0x9a6440, 0x6e4528, 0xf6d6bc];
-const HAIR = [0x1a120c, 0x2e1d12, 0x5a3a22, 0x8a6a40, 0xc9a86a, 0x6a6a6a, 0x3a1a0a];
-const SUITS = [0x1a1d2a, 0x121212, 0x2a2e36, 0x3a2a1e, 0x1e2a3a, 0x4a4a52];
-const DRESSES = [0x8a0f1e, 0x0f4a3a, 0xc8a050, 0x14142a, 0x6a1a5a, 0xe8e0d0, 0x1a3a6a];
-const SHIRTS = [0xf4f0e8, 0xdfe6ee, 0xf0e2d0];
+// Palettes (sRGB). A Vegas night: black tie and dark suits, jewel-toned and
+// metallic cocktail dresses, smart-casual and resort wear; no clashing brights.
+const SKIN = [0xf4d8c4, 0xecc4a6, 0xe2b08c, 0xd29b74, 0xc08660, 0xa8714c, 0x8e5a3a, 0x7a4a30, 0x6a3f28, 0x5a3523];
+const HAIR_YOUNG = [0x120d0b, 0x1e1510, 0x2e1f15, 0x45301f, 0x5e3f26, 0x6e3a20, 0x8a6a46, 0xb8955e, 0xd8c49a, 0x3a2416];
+const HAIR_GREY = [0x8a847c, 0xb4aea6, 0xd2cdc4, 0x5e5650];
+const SUITS = [0x0c0c0e, 0x101524, 0x161c30, 0x232428, 0x34363b, 0x1c2235, 0x2b211a, 0x3a3d44];
+const SHIRTS = [0xf4f2ec, 0xf4f2ec, 0xece4d4, 0xd2dde9, 0xe9d7d4, 0x121214];
+const TIES = [0x0e0e10, 0x4e1220, 0x1a2342, 0x7c7e84, 0x2e3a2a, 0x5a4220];
+const DRESSES: [number, Surface][] = [
+  [0x0d0d10, 'satin'], [0x0d0d10, 'sequin'], [0x7c0e1c, 'satin'], [0x0c4030, 'satin'], [0x14306a, 'satin'], [0xcdb07c, 'sequin'],
+  [0xa88440, 'sequin'], [0xb4b4ba, 'sequin'], [0x4c0e1e, 'velvet'], [0x401640, 'satin'], [0xc8968c, 'satin'], [0x151a34, 'velvet'],
+  [0xe8e2d6, 'satin'], [0x1a1a1e, 'velvet'], [0x6a1426, 'sequin'],
+];
+const DRESS_SHOES = [0x0c0b0b, 0x0c0b0b, 0xb88e70, 0x6a0e18, 0xa8844a];
+const PANTSUITS = [0x0e0e10, 0x141a2c, 0xe4dccc, 0x9c7a54, 0x4a1020, 0x1c3a30, 0xf0ece4, 0x2c2c30];
+const BLOUSES = [0xf4f0e8, 0x0e0e10, 0xd8c09a, 0xe6cfc6, 0xc8ccd4];
+const CASUAL_TOPS = [0xf2efe8, 0xe8dcc8, 0xc86e5e, 0xa6c0d8, 0x101012, 0x96a486, 0xd8b0a8, 0x2a3a5a, 0xb8504a];
+const CASUAL_BOTTOMS = [0xefebe2, 0x121214, 0x3a4a68, 0xae9870, 0x1e2a44, 0x50553a, 0x2a3550];
+// male_casual_2 wears a fitted tee: cotton mostly, now and then a black silk shirt.
+const TEES: [number, Surface][] = [[0xf0eee8, 'cotton'], [0x121214, 'cotton'], [0x1e2842, 'cotton'], [0x8a8c90, 'cotton'], [0x4a4a32, 'cotton'], [0x4a1620, 'cotton'], [0xb8a688, 'cotton'], [0x0e0e10, 'silk'], [0x2c4a5a, 'cotton']];
+const JEANS: [number, Surface][] = [[0x27324e, 'denim'], [0x1b2030, 'denim'], [0x151517, 'denim'], [0x5a5d64, 'denim'], [0xa69470, 'cotton'], [0x2a2a2e, 'wool']];
+const SNEAKERS = [0xeceae4, 0xeceae4, 0x141414, 0x4a2e1c, 0x2a3450];
+const RESORT_SHIRTS = [0xf2efe6, 0xb8cce0, 0xe0b8b2, 0xa8cab6, 0x1e2a44, 0xd0806a, 0x2f747c, 0xd8bf72, 0xe8e0cc];
+const SHORTS = [0x1e2a44, 0xece8de, 0xae9a72, 0x6a1c26, 0x2a7e8c, 0x161618, 0x6a7a5a];
+const LIPSTICKS = [0x8a1e28, 0x9a4a4a, 0x6a1a26, 0xa85a58];
+const GOLD = 0xd8b46a;
+const SILVER = 0xd4d4da;
 
 let seedN = 7;
 const rnd = () => ((seedN = (seedN * 16807) % 2147483647) / 2147483647);
 const pick = <T>(a: readonly T[]) => a[Math.floor(rnd() * a.length)];
+
+function hairFor(): number {
+  return rnd() < 0.16 ? pick(HAIR_GREY) : pick(HAIR_YOUNG);
+}
+
+/** An outfit for a character model: its colours and fabrics. */
+function outfit(kind: string, pool = false): Partial<Look> & { main: number; second: number } {
+  const metal = rnd() < 0.6 ? GOLD : SILVER;
+  switch (kind) {
+    case 'male_suit': {
+      const tux = rnd() < 0.3;
+      const main = tux ? 0x0a0a0c : pick(SUITS);
+      return { main, second: tux ? 0xf6f4ee : pick(SHIRTS), accent: tux ? 0x08080a : pick(TIES), accentSurf: tux ? 'satin' : 'silk', topSurf: 'wool', bottomSurf: 'wool', shirtSurf: 'cotton', shoes: rnd() < 0.8 ? 0x0c0a09 : 0x3a2214, shoeSurf: tux ? 'patent' : 'leather', jewel: metal, glint: rnd() < 0.35 };
+    }
+    case 'female_formal': {
+      const [main, surf] = pool ? [pick([0xe8e2d6, 0xc8968c, 0x2f747c, 0x14306a, 0xd8bf72]), 'silk' as Surface] : pick(DRESSES);
+      return { main, second: main, topSurf: surf, bottomSurf: surf, shoes: pick(DRESS_SHOES), shoeSurf: 'patent', jewel: metal, glint: rnd() < 0.7, lipstick: rnd() < 0.55 ? pick(LIPSTICKS) : undefined };
+    }
+    case 'female_suit': {
+      const main = pick(PANTSUITS);
+      return { main, second: pick(BLOUSES), topSurf: 'wool', bottomSurf: 'wool', shirtSurf: 'silk', shoes: rnd() < 0.7 ? 0x0c0b0b : 0xb88e70, shoeSurf: 'patent', jewel: metal, glint: rnd() < 0.5, lipstick: rnd() < 0.4 ? pick(LIPSTICKS) : undefined };
+    }
+    case 'female_casual': {
+      const top = pick(pool ? RESORT_SHIRTS : CASUAL_TOPS);
+      let bottom = pick(CASUAL_BOTTOMS);
+      if (bottom === top) bottom = 0x121214;
+      return { main: top, second: top, bottom, topSurf: rnd() < 0.4 ? 'silk' : 'cotton', bottomSurf: bottom === 0x3a4a68 || bottom === 0x2a3550 ? 'denim' : 'cotton', shoes: pick([0xeceae4, 0xb88e70, 0x121212, 0xc8a878]), shoeSurf: 'leather', jewel: metal, glint: false };
+    }
+    case 'male_casual_2': {
+      const [main, topSurf] = pick(TEES);
+      const [bottom, bottomSurf] = pick(JEANS);
+      const shoes = pick(SNEAKERS);
+      return { main, second: main, bottom, topSurf, bottomSurf, shoes, shoeSurf: shoes === 0x4a2e1c ? 'leather' : 'cotton', jewel: metal, glint: false };
+    }
+    case 'male_beach': {
+      const main = pick(RESORT_SHIRTS);
+      const bottom = pick(SHORTS);
+      return { main, second: main, bottom, accent: rnd() < 0.5 ? 0xf2efe6 : bottom, accentSurf: 'cotton', topSurf: rnd() < 0.5 ? 'silk' : 'cotton', bottomSurf: 'cotton', shoes: pick([0x161414, 0x4a3020, 0x1e2a44]), shoeSurf: 'rubber', jewel: metal, glint: false };
+    }
+  }
+  return { main: pick(SUITS), second: pick(SHIRTS) };
+}
 
 export function randomLook(): Look {
   const dress = rnd() < 0.45;
@@ -144,10 +226,9 @@ export function randomLook(): Look {
   return {
     kind,
     dress,
-    main: dress ? pick(DRESSES) : pick(SUITS),
-    second: pick(SHIRTS),
+    ...outfit(kind),
     skin: pick(SKIN),
-    hair: pick(HAIR),
+    hair: hairFor(),
     hairStyle: dress ? (rnd() < 0.6 ? 'long' : 'bun') : rnd() < 0.15 ? 'bald' : 'short',
     height: (dress ? 1.66 : 1.78) + (rnd() - 0.5) * 0.14,
   };
@@ -157,10 +238,12 @@ export function randomLook(): Look {
 export function poolLook(): Look {
   const base = randomLook();
   const dress = rnd() < 0.45;
+  const kind = dress ? (rnd() < 0.25 ? 'female_formal' : 'female_casual') : 'male_beach';
   return {
     ...base,
+    ...outfit(kind, true),
     dress,
-    kind: dress ? 'female_casual' : 'male_beach',
+    kind,
     hairStyle: dress ? (rnd() < 0.5 ? 'long' : 'bun') : rnd() < 0.15 ? 'bald' : 'short',
     height: (dress ? 1.66 : 1.78) + (rnd() - 0.5) * 0.14,
   };
@@ -168,10 +251,38 @@ export function poolLook(): Look {
 
 export function staffLook(kind: 'dealer' | 'bar' | 'waiter' | 'pianist'): Look {
   const base = randomLook();
-  if (kind === 'dealer') return { ...base, dress: false, main: 0x14100e, second: 0xf6f2ea, hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle, kind: 'male_suit', height: 1.8 };
-  if (kind === 'bar') return { ...base, dress: false, main: 0x5a0e18, second: 0xf6f2ea, kind: 'female_suit', height: 1.7 };
-  if (kind === 'pianist') return { ...base, dress: false, main: 0x0c0c10, second: 0xf6f2ea, kind: 'male_suit', height: 1.8 };
-  return { ...base, dress: false, main: 0xf0ead8, second: 0x14100e, hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle, kind: 'female_formal', height: 1.7 };
+  const uniform = { jewel: SILVER, glint: false, shoes: 0x0a0909, shoeSurf: 'leather' as Surface, shirtSurf: 'cotton' as Surface, topSurf: 'wool' as Surface, bottomSurf: 'wool' as Surface };
+  const hair = base.hair;
+  // Dealers: black waistcoat look, white shirt, the house's burgundy tie.
+  if (kind === 'dealer') return { ...base, ...uniform, hair, dress: false, main: 0x14100e, second: 0xf6f2ea, bottom: 0x0e0c0b, accent: 0x5a0e18, accentSurf: 'silk', hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle, kind: 'male_suit', height: 1.8 };
+  // Bartenders: the house burgundy jacket over a white shirt, black trousers.
+  if (kind === 'bar') return { ...base, ...uniform, dress: false, main: 0x5a0e18, second: 0xf6f2ea, bottom: 0x0e0c0b, kind: 'female_suit', height: 1.7 };
+  if (kind === 'pianist') return { ...base, ...uniform, dress: false, main: 0x0a0a0c, second: 0xf6f4ee, bottom: 0x0a0a0c, accent: 0x08080a, accentSurf: 'satin', shoeSurf: 'patent', kind: 'male_suit', height: 1.8 };
+  // Cocktail waitresses: an ivory satin dress.
+  return { ...base, ...uniform, dress: false, main: 0xf0ead8, second: 0xf0ead8, bottom: 0xf0ead8, topSurf: 'satin', bottomSurf: 'satin', shoeSurf: 'patent', jewel: GOLD, hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle, kind: 'female_formal', height: 1.7 };
+}
+
+/** What a look paints on its character (peopleshade.ts), with defaults for anything left out. */
+export function lookPaint(look: Look): Paint {
+  const kind = look.kind ?? (look.dress ? 'female_formal' : 'male_suit');
+  const casual = kind === 'female_casual' || kind === 'male_casual_2' || kind === 'male_beach';
+  return {
+    skin: look.skin,
+    hair: look.hair,
+    top: look.main,
+    topSurf: look.topSurf ?? (casual ? 'cotton' : kind === 'female_formal' ? 'satin' : 'wool'),
+    bottom: look.bottom ?? (casual ? (kind === 'male_beach' ? 0x1e2a44 : 0x27324e) : look.main),
+    bottomSurf: look.bottomSurf ?? look.topSurf ?? (casual ? 'denim' : kind === 'female_formal' ? 'satin' : 'wool'),
+    shirt: look.second,
+    shirtSurf: look.shirtSurf ?? 'cotton',
+    shoes: look.shoes ?? 0x0c0a09,
+    shoeSurf: look.shoeSurf ?? (kind === 'male_beach' ? 'rubber' : 'leather'),
+    accent: look.accent ?? (kind === 'male_beach' ? 0xf2efe6 : 0x1a1a1e),
+    accentSurf: look.accentSurf ?? 'silk',
+    jewel: look.jewel ?? GOLD,
+    glint: look.glint ?? false,
+    lipstick: look.lipstick,
+  };
 }
 
 // Body proportions for a 1.75 m person (scaled per height).
@@ -460,7 +571,7 @@ export class Crowd {
     this.shadowMesh.count = this.people.length;
     for (const part of Object.values(this.parts)) if (part.mesh.instanceColor) part.mesh.instanceColor.needsUpdate = true;
     if (this.lib) {
-      const rig = spawnCharacter(this.lib, look.kind ?? (look.dress ? 'female_formal' : 'male_suit'));
+      const rig = spawnCharacter(this.lib, look.kind ?? (look.dress ? 'female_formal' : 'male_suit'), lookPaint(look));
       p.rig = rig;
       this.group.add(rig.root);
       for (const [name, a] of Object.entries(rig.actions)) {
@@ -484,7 +595,7 @@ export class Crowd {
   setLook(p: Person, look: Look) {
     if (!this.lib || !p.rig) return;
     this.group.remove(p.rig.root);
-    const rig = spawnCharacter(this.lib, look.kind ?? 'male_suit');
+    const rig = spawnCharacter(this.lib, look.kind ?? 'male_suit', lookPaint(look));
     for (const [name, a] of Object.entries(rig.actions)) {
       a.play();
       a.setEffectiveWeight(name === 'Idle_Neutral' ? 1 : 0);

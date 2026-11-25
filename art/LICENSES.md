@@ -14,5 +14,5 @@ All current third-party assets are CC0 1.0 (public domain); no attribution is re
 | Ballroom HDRI (1K) | https://polyhaven.com/a/ballroom | Sergej Majboroda | CC0 1.0 | Environment reflections (`tex/ballroom.hdr`) |
 | Ultimate Modular Men & Women: Suit, Casual 2, Beach (male); Formal, Suit, Casual (female) | https://quaternius.com (copies from github.com/LuanDucate/Ducz.CharacterCreator, `public/models/LICENSE-Quaternius.txt`) | Quaternius | CC0 1.0 | Guests, staff and your crew (`public/assets/people/*`, sources in `art/source/people/`) |
 
-Built people assets come from `scripts/build-people.mjs` (props removed, colours baked to vertex colours, meshopt-compressed).
+Built people assets come from `scripts/build-people.mjs` (props removed, colours baked to vertex colours with each body region in the alpha, flat-shaded normals smoothed with creases, meshopt-compressed).
 Everything else (carpet pattern, backlit onyx, damask, felt layout, chips, slot symbols, sounds, music) is generated in code.
