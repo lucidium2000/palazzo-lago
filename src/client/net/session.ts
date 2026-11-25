@@ -34,7 +34,7 @@ interface Remote {
   person: Person | null;
   lastEvent: number;
   tag: THREE.Sprite;
-  mouth: THREE.Mesh | null;
+  mouth: THREE.Object3D | null;
   open: number;
   talkUntil: number;
   bodyYaw: number;
@@ -664,9 +664,17 @@ export class Session {
         const target = sent ?? ([0.1 + 0.8 * g, 0.1 + 0.85 * g, 0.15 + 0.85 * g, 0.15 + 0.85 * g, 0.15 + 0.8 * g] as FingerPose);
         blendPose(r.pose[side], target, Math.min(1, dt * 16));
       }
+      // Their mouth follows the voice you hear (analysed here, so it's in sync),
+      // or the mic level they send; typed chat makes them "talk" too.
       const talkFlap = this.time < r.talkUntil ? 0.35 + 0.35 * Math.sin(this.time * 17) * Math.sin(this.time * 7.3) : 0;
-      const want = Math.max((Number(s.mo) || 0) / 9, talkFlap);
-      r.open += (want - r.open) * Math.min(1, dt * 20);
+      const heard = this.voice.remoteLevel(r.id);
+      let speech = heard ? heard.level * (0.45 + 0.75 * heard.vowel) : (Number(s.mo) || 0) / 9;
+      if (!heard && speech > 0.05) speech *= 0.55 + 0.45 * Math.abs(Math.sin(this.time * 11.3 + Math.sin(this.time * 3.1) * 2));
+      const want = Math.max(speech, talkFlap);
+      // Jaws open fast and close a touch slower.
+      r.open += (want - r.open) * Math.min(1, dt * (want > r.open ? 28 : 16));
+      // A talking head moves a little: small nods with the emphasis.
+      if (want > 0.15) p.headPitch += Math.sin(this.time * 5.3) * 0.0035 * want;
       const top = p.pos.y + (seated ? 1.45 : 2.0);
       this.voice.update(r.id, new THREE.Vector3(p.pos.x, top - 0.25, p.pos.z));
       r.tag.position.set(p.pos.x, top + 0.12, p.pos.z);

@@ -18,7 +18,7 @@ import { VrMenu } from './vrmenu';
 import { SelfBody } from './selfbody';
 import { SwimFX } from './areas/swim';
 import { OPEN, type FingerPose } from './fingers';
-import { FINGER, THUMB, curlFingers, setFingers } from './net/embody';
+import { FINGER, THUMB, curlFingers, makeMouth, setFingers, setOpen } from './net/embody';
 import { bakeStatic } from './merge';
 import { buildBlackjack } from './pit';
 import { SlotRows } from './decor';
@@ -1125,7 +1125,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen };
 }
 
 main().catch((e) => {

@@ -12,7 +12,9 @@ import { skinTone } from './posedhand';
  * walking when you move. Look down and it's you.
  */
 /** How far (metres, at your size) the body sits behind your eyes. */
-export const BODY_BACK = 0.13;
+// 13 cm plus 5% of the body's height: far enough that looking down you see the
+// outside of your chest and shoulders, never down your own collar.
+export const BODY_BACK = 0.13 + 0.05 * 1.8;
 /** Size of the character's own (hidden) hand inside the real one. */
 const HIDDEN_HAND = 0.001;
 /** The forearm runs this far into the hand model (past its open wrist), metres. */

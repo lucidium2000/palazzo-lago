@@ -65,53 +65,103 @@ export function reach(upper: THREE.Object3D, lower: THREE.Object3D, end: THREE.O
 }
 
 /**
- * A simple mouth on the character's face (a dark rounded opening with lips)
- * attached to the head bone so it follows every nod. Scale it with `setOpen`.
+ * A mouth on the character's face (lips, a dark opening, a hint of teeth),
+ * attached to the head bone so it follows every nod. It sits where the
+ * character's own mouth is: found from the face's profile (between the chin
+ * and the tip of the nose). Open it with `setOpen`.
  */
-export function makeMouth(head: THREE.Object3D, root: THREE.Object3D, yaw: number, scale: number, skin?: THREE.SkinnedMesh | null): THREE.Mesh {
-  const shape = new THREE.Shape();
-  shape.absellipse(0, 0, 0.022, 0.012, 0, Math.PI * 2, false, 0);
-  const geo = new THREE.ShapeGeometry(shape, 16);
-  const mat = new THREE.MeshBasicMaterial({ color: 0x3a0e10, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4 });
-  const mouth = new THREE.Mesh(geo, mat);
-  mouth.raycast = () => {};
-  // Place on the face in the rest pose, then keep it in the head bone's frame.
+export function makeMouth(head: THREE.Object3D, root: THREE.Object3D, yaw: number, scale: number, skin?: THREE.SkinnedMesh | null): THREE.Object3D {
+  const mouth = new THREE.Group();
+  const flat = (shape: THREE.Shape, color: number, offset: number) => {
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(shape, 18), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: offset, polygonOffsetUnits: offset }));
+    m.raycast = () => {};
+    return m;
+  };
+  const ellipse = (rx: number, ry: number) => {
+    const sh = new THREE.Shape();
+    sh.absellipse(0, 0, rx, ry, 0, Math.PI * 2, false, 0);
+    return sh;
+  };
+  // Lips: a ring (outer ellipse with the opening cut out).
+  // Full lips with a closed seam: the dark opening is a thin line until the jaw drops.
+  const lips = flat(ellipse(0.022, 0.0075), 0x9a5a52, -4);
+  const inner = flat(ellipse(0.0185, 0.006), 0x240808, -5);
+  inner.position.z = 0.0003;
+  const teethShape = new THREE.Shape();
+  teethShape.moveTo(-0.012, 0);
+  teethShape.lineTo(0.012, 0);
+  teethShape.lineTo(0.011, -0.0035);
+  teethShape.lineTo(-0.011, -0.0035);
+  teethShape.closePath();
+  const teeth = flat(teethShape, 0xeee8dc, -6);
+  teeth.position.set(0, 0.0045, 0.0004);
+  mouth.add(inner, lips, teeth);
+  mouth.userData.parts = { lips, inner, teeth };
+
   root.updateMatrixWorld(true);
   const H = head.getWorldPosition(new THREE.Vector3());
   const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
   const right = new THREE.Vector3(-Math.cos(yaw), 0, Math.sin(yaw));
-  // The mouth sits ~7.5 cm above the head bone (which is at the base of the skull);
-  // find the front of the face at that height from the character's own mesh.
-  const up = 0.075 * scale;
-  let front = 0.12 * scale;
+  let up = 0.022 * scale;
+  let front = 0.11 * scale;
   if (skin) {
+    // The face's profile near the centre line, per centimetre of height.
     const pos = skin.geometry.attributes.position as THREE.BufferAttribute;
     const v = new THREE.Vector3();
-    let best = -1;
+    const prof = new Map<number, number>();
     for (let i = 0; i < pos.count; i++) {
       skin.getVertexPosition(i, v);
       v.applyMatrix4(skin.matrixWorld).sub(H);
-      if (Math.abs(v.y - up) > 0.02 * scale || Math.abs(v.dot(right)) > 0.03 * scale) continue;
-      best = Math.max(best, v.dot(fwd));
+      if (Math.abs(v.dot(right)) > 0.025 * scale) continue;
+      const y = v.y / scale;
+      if (y < -0.06 || y > 0.12) continue;
+      const k = Math.round(y * 100);
+      prof.set(k, Math.max(prof.get(k) ?? -1, v.dot(fwd) / scale));
     }
-    if (best > 0.04 && best < 0.25) front = best;
+    // Nose tip: the most forward point between the head bone and 10 cm up.
+    let nose = -1,
+      noseZ = 0;
+    for (const [k, z] of prof) if (k >= 0 && k <= 10 && z > noseZ) (nose = k), (noseZ = z);
+    // Chin: the lowest point below the nose that's still the front of the face.
+    let chin = nose;
+    for (const [k, z] of prof) if (k < chin && k >= -5 && z > noseZ - 0.04) chin = k;
+    if (nose > 0 && noseZ > 0.06) {
+      const mk = chin + (nose - chin) * 0.45;
+      up = (mk / 100) * scale;
+      // The face's front at that height (nearest measured centimetres).
+      // The face's front around that height (the lips sit on the most forward part).
+      const near = [Math.floor(mk) - 1, Math.floor(mk), Math.ceil(mk), Math.ceil(mk) + 1].map((k) => prof.get(k) ?? -1).filter((z) => z > 0.05);
+      if (near.length) front = Math.max(...near) * scale;
+    }
   }
-  const world = H.clone().addScaledVector(fwd, front + 0.004).add(new THREE.Vector3(0, up, 0));
+  const world = H.clone().addScaledVector(fwd, front + 0.005 * scale).add(new THREE.Vector3(0, up, 0));
   const worldQ = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), fwd);
   head.add(mouth);
   mouth.position.copy(head.worldToLocal(world));
   const hq = head.getWorldQuaternion(new THREE.Quaternion()).invert();
   mouth.quaternion.copy(hq.multiply(worldQ));
   const hs = head.getWorldScale(new THREE.Vector3());
-  mouth.scale.set(scale / hs.x, (scale * 0.25) / hs.y, scale / hs.z);
-  mouth.userData.base = mouth.scale.clone();
+  mouth.scale.set(scale / hs.x, scale / hs.y, scale / hs.z);
+  setOpen(mouth, 0);
   return mouth;
 }
 
-export function setOpen(mouth: THREE.Mesh, open: number) {
-  const base = mouth.userData.base as THREE.Vector3;
+/**
+ * Opens the mouth (0 closed … 1 wide). Small values part the lips; louder
+ * sound opens the jaw (the opening grows taller and rounder, the teeth show).
+ */
+export function setOpen(mouth: THREE.Object3D, open: number) {
+  const parts = mouth.userData.parts as { lips: THREE.Mesh; inner: THREE.Mesh; teeth: THREE.Mesh } | undefined;
+  if (!parts) return;
   const k = THREE.MathUtils.clamp(open, 0, 1);
-  mouth.scale.set(base.x * (1 - k * 0.15), base.y * (1 + k * 3.2), base.z);
+  // Lips stretch taller and a little narrower as the jaw drops.
+  parts.lips.scale.set(1 - k * 0.18, 1 + k * 1.3, 1);
+  parts.lips.position.y = -k * 0.004;
+  // Closed: a thin dark seam between the lips; open: a dark rounded mouth.
+  parts.inner.scale.set(1 - k * 0.22, 0.12 + k * 1.9, 1);
+  parts.inner.position.y = -k * 0.005;
+  parts.teeth.visible = k > 0.25;
+  parts.teeth.scale.set(1 - k * 0.2, 1, 1);
 }
 
 /** Finger bend axis in the finger bones' local frame (Quaternius rig), and its sign per side. */

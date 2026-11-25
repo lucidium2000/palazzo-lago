@@ -17,6 +17,9 @@ interface Link {
   el: HTMLAudioElement | null;
   parts: Map<string, string[]>;
   started: boolean;
+  /** Listens to their incoming voice (drives their avatar's mouth, in sync with what you hear). */
+  analyser: AnalyserNode | null;
+  level: number;
 }
 
 export class Voice {
@@ -81,6 +84,37 @@ export class Voice {
   }
 
   /** How loud you're talking right now, 0..1 (0 when muted). */
+  private rbuf = new Float32Array(512);
+  private fbuf = new Uint8Array(256);
+
+  /**
+   * How loud your friend is speaking right now (0..1) and how "open" the
+   * sound is (vowels carry more low-mid energy than consonants), from the
+   * voice you're hearing. Null when there's no audio from them.
+   */
+  remoteLevel(id: string): { level: number; vowel: number } | null {
+    const l = this.links.get(id);
+    const an = l?.analyser;
+    if (!an) return null;
+    an.getFloatTimeDomainData(this.rbuf);
+    let sum = 0;
+    for (const v of this.rbuf) sum += v * v;
+    const rms = Math.sqrt(sum / this.rbuf.length);
+    const target = Math.min(1, Math.max(0, (rms - 0.008) * 10));
+    l.level += (target - l.level) * (target > l.level ? 0.75 : 0.4);
+    an.getByteFrequencyData(this.fbuf);
+    // Share of energy in the vowel band (~300–1000 Hz) vs. everything above it.
+    const bin = this.listener.context.sampleRate / an.fftSize;
+    let lo = 0,
+      hi = 1;
+    for (let i = 1; i < this.fbuf.length; i++) {
+      const f = i * bin;
+      if (f > 250 && f < 1000) lo += this.fbuf[i];
+      else if (f >= 1000 && f < 6000) hi += this.fbuf[i];
+    }
+    return { level: l.level, vowel: Math.min(1, lo / (lo + hi) * 1.6) };
+  }
+
   level(): number {
     if (!this.analyser || this.muted) return (this.smooth *= 0.6);
     this.analyser.getFloatTimeDomainData(this.buf);
@@ -114,7 +148,7 @@ export class Voice {
 
   private makeLink(id: string): Link {
     const pc = new RTCPeerConnection({ iceServers: ICE });
-    const link: Link = { pc, audio: null, el: null, parts: new Map(), started: false };
+    const link: Link = { pc, audio: null, el: null, parts: new Map(), started: false, analyser: null, level: 0 };
     for (const t of this.stream?.getAudioTracks() ?? []) pc.addTrack(t, this.stream!);
     pc.ontrack = (ev) => {
       const stream = ev.streams[0] ?? new MediaStream([ev.track]);
@@ -129,6 +163,15 @@ export class Voice {
       audio.setRolloffFactor(0.8);
       audio.setDistanceModel('inverse');
       audio.setVolume(1.6);
+      // Tap their voice (before distance attenuation) to move their mouth.
+      try {
+        const an = this.listener.context.createAnalyser();
+        an.fftSize = 512;
+        (audio.source as AudioNode).connect(an);
+        link.analyser = an;
+      } catch {
+        /* no analyser: falls back to the level they send */
+      }
       this.scene.add(audio);
       link.audio = audio;
       link.el = el;
