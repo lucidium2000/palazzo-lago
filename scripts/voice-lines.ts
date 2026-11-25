@@ -5,7 +5,7 @@
 import { writeFileSync } from 'node:fs';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Ctx, type Node } from '../src/client/dialogueLines';
 import {
-  BARTENDER_LINES, CHEERS_LINES, CONVO_BYE, CREW_LINES, CREW_VOICES, CROUPIER_LINES, GUEST_ALL, PACE, STAFF,
+  BARTENDER_LINES, CHEERS_LINES, CONVO_BYE, HUH_LINES, CREW_LINES, CREW_VOICES, CROUPIER_LINES, GUEST_ALL, PACE, STAFF,
   TIPSY_LINES, lineId, orderLine, rouletteCall, sceneVoice, type Prep,
 } from '../src/client/speech';
 import { stickCall } from '../src/rules/craps';
@@ -32,6 +32,7 @@ for (const v of GUEST_ALL) {
   for (const t of CHEERS_LINES) add(v, t);
   add(v, CONVO_BYE.walkedOff);
   add(v, CONVO_BYE.timedOut);
+  for (const t of HUH_LINES) add(v, t);
 }
 
 // Conversation trees, every branch, every context.
@@ -62,6 +63,7 @@ for (const [aud, nodes] of Object.entries(OPENERS)) for (const n of nodes) for (
 for (const v of [STAFF.bartender, STAFF.waiter, STAFF.dealer, STAFF.croupier, STAFF.stickman]) {
   add(v, CONVO_BYE.walkedOff);
   add(v, CONVO_BYE.timedOut);
+  for (const t of HUH_LINES) add(v, t);
 }
 
 // Your crew.

@@ -107,6 +107,18 @@ export const CHEERS_LINES = ['Cheers!', 'Salute!', 'To Vegas!', 'Bottoms up!'];
 /** Conversation ends that aren't in a tree. */
 export const CONVO_BYE = { walkedOff: 'Alright, enjoy your night!', timedOut: 'No worries. Have a good one!' };
 
+/** When someone didn't catch what you said (voice replies): they roll with it. */
+export const HUH_LINES = [
+  "Ha! I'll take that as a yes.",
+  "Sorry, it's so loud in here! Anyway.",
+  "I have no idea what you just said, but I like your energy.",
+  "You know what? Same.",
+  "Say that again? Actually, never mind. Good luck out there!",
+  "Right on. Right on.",
+  "Ha, totally. Vegas, am I right?",
+  "Sure thing, my friend.",
+];
+
 export const BARTENDER_LINES = {
   hello: 'Evening! What can I get you?',
   regular: 'Good to see you again, my friend. The usual, or something new?',
