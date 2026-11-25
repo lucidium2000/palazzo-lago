@@ -37,6 +37,7 @@ import { Interaction } from './interaction';
 import { Drink, Lounge } from './lounge';
 import { WaiterTrays } from './waitertray';
 import { Napkins } from './napkins';
+import { showVersion } from './version';
 import { BAR as POOL_BAR } from './areas/pool';
 import { Crowd, POSE, randomLook, staffLook, type Person } from './people';
 import { saveComfort, Player, type Viewpoint } from './player';
@@ -118,6 +119,7 @@ async function main() {
   // Photo textures, the HDRI and the people (all CC0). Falls back to procedural art if anything fails.
   const loadingSub = document.querySelector('#loading .sub');
   // Loading progress: three steps (assets, building the resort, lighting each area), a bar, time, tips.
+  showVersion();
   const loadT0 = performance.now();
   const loadBar = document.querySelector('#loading .bar i') as HTMLElement | null;
   const loadMeta = document.querySelector('#loading .meta');

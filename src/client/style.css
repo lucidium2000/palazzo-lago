@@ -994,3 +994,17 @@ body.listening #replies::before {
 #loading .bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #b8893a, #f3d58a); border-radius: 3px; transition: width 0.4s ease; }
 #loading .meta { display: block; font: 13px Georgia, serif; color: rgba(243, 230, 196, 0.7); }
 #loading .tip { display: block; max-width: min(420px, 80vw); margin: 18px auto 0; font: italic 14px Georgia, serif; color: rgba(243, 230, 196, 0.55); }
+
+/* The build's version, small in the top-right corner (it goes up with every change). */
+#version {
+  position: fixed;
+  top: 3px;
+  right: 8px;
+  z-index: 10000;
+  font: 600 10px/1 Georgia, serif;
+  letter-spacing: 0.04em;
+  color: rgba(246, 231, 193, 0.62);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  user-select: none;
+}

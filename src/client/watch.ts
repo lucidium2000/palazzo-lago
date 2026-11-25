@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Hands } from './hands';
 import type { Interaction } from './interaction';
+import { VERSION } from './version';
 
 /**
  * A gold wristwatch on your left wrist (VR). Turn your wrist to look at it:
@@ -155,6 +156,11 @@ export class Watch {
       g.font = 'italic 18px Georgia, serif';
       g.fillText('tap for menu', c, 176);
     }
+    // The build's version, small, at the bottom of the dial.
+    g.textAlign = 'center';
+    g.fillStyle = '#7d6f55';
+    g.font = '600 15px Georgia, serif';
+    g.fillText(VERSION, c, FACE - 20);
     this.tex.needsUpdate = true;
   }
 }
