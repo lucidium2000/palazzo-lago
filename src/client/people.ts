@@ -338,7 +338,8 @@ export class Crowd {
 
   /** Extra guests for the pool deck, on top of the floor's `people`. */
   static poolShare(people: number) {
-    return Math.min(32, Math.round(people * 0.5));
+    // Headsets and phones (smaller crowds) get a lighter pool party: CPU, not draw calls, is their limit.
+    return people >= 60 ? Math.min(32, Math.round(people * 0.5)) : Math.min(18, Math.round(people * 0.3));
   }
 
   /**
