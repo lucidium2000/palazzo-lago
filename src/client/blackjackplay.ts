@@ -78,7 +78,7 @@ let chipMaterial: THREE.MeshStandardMaterial | null = null;
  * (the instance colour). The cylinder's sides sample a slice through the same
  * picture, which reads as the stripes round a chip's edge.
  */
-function chipMat(): THREE.MeshStandardMaterial {
+export function chipMat(): THREE.MeshStandardMaterial {
   if (chipMaterial) return chipMaterial;
   const c = document.createElement('canvas');
   c.width = c.height = 64;
@@ -199,7 +199,7 @@ function cardAtlas(): THREE.CanvasTexture {
   return t;
 }
 
-function cardMat(): THREE.MeshStandardMaterial {
+export function cardMat(): THREE.MeshStandardMaterial {
   if (cardMaterial) return cardMaterial;
   const m = new THREE.MeshStandardMaterial({ map: cardAtlas(), roughness: 0.55, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
   m.onBeforeCompile = (sh) => {

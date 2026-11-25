@@ -17,6 +17,13 @@ odds, Place bets (9:5, 7:5, 7:6), a Field paying double on 2 and triple on 12, B
 the one-roll props, $10 table minimum. The dice are thrown with real rigid-body physics (19 mm cubes
 off the felt and the rubber pyramids on the back wall); in VR you pick them up and throw them yourself.
 
+**Poker room:** a private card salon through a doorway in the west wall: no-limit Texas Hold'em,
+$5/$10 blinds, a dealer and six-seat oval table where regulars (each with their own style: loose,
+tight, aggressive, a bluffer) fill every chair a player isn't in. Buy in from your chips, cash out
+when you stand. In VR it's all hands: cup your cards to peek, knock twice to check, sweep them to the
+dealer to fold, push chips over the line to call or raise. With friends, the host deals and seals each
+player's hole cards so only they can read them (`net/pokerkeys.ts`); cards show at the showdown.
+
 **Two players:** pick a character on the start screen (cycle through them or hit Random), then play
 solo, **host** a room (you get a code like `LAGO-7K2F`) or **join** a friend's room with their code. You
 see each other on the floor with name tags and chat bubbles (press T), big wins are announced, and
@@ -94,6 +101,7 @@ to force a quality tier.
 ```
 src/rules/      pure game logic, no graphics (runs unchanged on a future server)
   roulette.ts   American wheel, every bet type, limits, settlement
+  poker.ts      Hold'em: hand ranking, blinds, no-limit betting, side pots, NPC decisions
   slots.ts      slot engine, exact RTP analysis, free spins, pick bonus
   machines.ts   the three machines' reel strips and paytables
   bankroll.ts   shared play-money balance and stats

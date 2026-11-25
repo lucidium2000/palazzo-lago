@@ -598,6 +598,16 @@ button.primary {
 .ctl.primary:disabled {
   opacity: 0.5;
 }
+.ctl.slider {
+  flex: 1 1 160px;
+  min-width: 140px;
+  padding: 0 6px;
+}
+.ctl.slider input {
+  width: 100%;
+  accent-color: #d8b25a;
+  height: 28px;
+}
 
 /* ---------- Crew subtitles, big moments, goals ---------- */
 #subtitle {
