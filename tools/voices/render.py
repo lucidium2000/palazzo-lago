@@ -55,7 +55,7 @@ def main():
             continue
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         lang = 'en-gb' if v.startswith('b') else 'en-us'
-        samples, sr = tts.create(l['text'], voice=v, speed=l.get('speed', 1.0), lang=lang)
+        samples, sr = tts.create(l.get('say', l['text']), voice=v, speed=l.get('speed', 1.0), lang=lang)
         with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
             wav = f.name
         sf.write(wav, samples, sr)

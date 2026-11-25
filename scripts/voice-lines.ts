@@ -12,12 +12,14 @@ import { stickCall } from '../src/rules/craps';
 import { pocketColor, pocketLabel } from '../src/rules/roulette';
 import { DRINKS } from '../src/client/bar';
 
-const out = new Map<string, { id: string; voice: string; text: string; speed: number }>();
+const out = new Map<string, { id: string; voice: string; text: string; say?: string; speed: number }>();
 const add = (voice: string, text: string) => {
   text = text.trim();
   if (!text) return;
   const id = lineId(voice, text);
-  out.set(voice + '/' + id, { id, voice, text, speed: PACE[voice] ?? 1 });
+  // Kokoro reads [tags] aloud: it gets the words only (the id stays the game's text).
+  const say = text.replace(/\s*\[[^\]]+\]\s*/g, ' ').replace(/\s+/g, ' ').trim();
+  out.set(voice + '/' + id, { id, voice, text, ...(say !== text ? { say } : {}), speed: PACE[voice] ?? 1 });
 };
 
 // Ambient scenes: each part in its male and female voice.
@@ -88,6 +90,24 @@ for (let a = 1; a <= 6; a++)
       const t = a + b;
       add(STAFF.stickman, stickCall([a, b], point === null, point, point !== null && t === 7, point !== null && t === point));
     }
+
+// The regulars' own lines in their stand-in voices (until their ElevenLabs takes are in), and the
+// shared lines they can say (already recorded for every guest voice above).
+{
+  const { GUESTS } = await import('../src/client/cast');
+  const walkK = (n: Node, voice: string) => {
+    const texts = typeof n.say === 'function' ? ctxs.map((c) => (n.say as (c: Ctx) => string)(c)) : [n.say];
+    texts.forEach((t) => add(voice, t));
+    for (const r of n.replies ?? []) {
+      if (r.end) add(voice, r.end);
+      if (r.next) walkK(r.next, voice);
+    }
+  };
+  for (const ch of GUESTS) {
+    for (const n of ch.openers) walkK(n, ch.fallback);
+    for (const t of [...ch.quips, ...ch.win, ...ch.cheers, ...ch.huh, ch.bye.walkedOff, ch.bye.timedOut]) add(ch.fallback, t);
+  }
+}
 
 const lines = [...out.values()].sort((x, y) => (x.voice + x.id).localeCompare(y.voice + y.id));
 writeFileSync('tools/voices/lines.json', JSON.stringify(lines, null, 1));

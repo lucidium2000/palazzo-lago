@@ -39,12 +39,23 @@ def call(method, path, body=None, raw=False, tries=6):
             if e.code in (429, 500, 502, 503) and i < tries - 1:
                 time.sleep(2 ** i)
                 continue
+            if b'quota_exceeded' in msg or b'insufficient' in msg.lower():
+                raise OutOfQuota(msg)
             raise RuntimeError(f'{method} {path}: HTTP {e.code} {msg!r}')
 
 
 def quota():
-    s = call('GET', '/v1/user/subscription')
+    """Characters left (None if the key may not read the account: then we record until ElevenLabs says stop)."""
+    try:
+        s = call('GET', '/v1/user/subscription')
+    except RuntimeError as e:
+        print('cannot read the quota (key lacks User Read?):', e)
+        return None, {}
     return s['character_limit'] - s['character_count'], s
+
+
+class OutOfQuota(Exception):
+    pass
 
 
 def propose_cast():
@@ -122,8 +133,8 @@ def main():
     todo.sort(key=lambda l: (l.get('p', 1), l['voice']))
     need = sum(len(l['text']) for l in todo)
     left, _ = quota()
-    print(f'{len(todo)} lines to record, {need} characters; {left} left on the account')
-    if need > left * a.budget:
+    print(f'{len(todo)} lines to record, {need} characters; {left if left is not None else "unknown"} left on the account')
+    if left is not None and need > left * a.budget:
         cut, n = [], 0
         for l in todo:
             if n + len(l['text']) > left * a.budget:
@@ -133,10 +144,20 @@ def main():
         print(f'over budget: recording the first {len(cut)} lines ({n} characters) by priority')
         todo = cut
     done = 0
+    stop = []
+    def job(l):
+        if stop:
+            raise OutOfQuota('stopped')
+        return render_one(l, cast, a.model)
     with cf.ThreadPoolExecutor(a.jobs) as ex:
-        for fut in cf.as_completed([ex.submit(render_one, l, cast, a.model) for l in todo]):
+        for fut in cf.as_completed([ex.submit(job, l) for l in todo]):
             try:
                 line, dur = fut.result()
+            except OutOfQuota as e:
+                if not stop:
+                    print('out of characters on the account: stopping', e)
+                stop.append(1)
+                continue
             except Exception as e:
                 print('failed:', e)
                 continue

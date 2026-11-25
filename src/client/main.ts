@@ -113,9 +113,37 @@ async function main() {
 
   // Photo textures, the HDRI and the people (all CC0). Falls back to procedural art if anything fails.
   const loadingSub = document.querySelector('#loading .sub');
-  await assets.load(renderer, (k) => {
-    if (loadingSub) loadingSub.textContent = `Opening the doors… ${Math.round(k * 100)}%`;
-  });
+  // Loading progress: three steps (assets, building the resort, lighting each area), a bar, time, tips.
+  const loadT0 = performance.now();
+  const loadBar = document.querySelector('#loading .bar i') as HTMLElement | null;
+  const loadMeta = document.querySelector('#loading .meta');
+  const loadTip = document.querySelector('#loading .tip');
+  const TIPS = [
+    'Tip: in VR, look at the watch on your left wrist and tap it for the menu.',
+    'Tip: press buttons by touching them with your index finger.',
+    'Tip: answer people out loud: "yes", "no", or a reply\'s words.',
+    'Tip: swing and let go to throw a drink. Glasses break!',
+    'Tip: host a room and up to 3 friends can join with the code.',
+    'Tip: the poker room is through the gilded door on the west side of the casino.',
+    'Tip: the pool party has a DJ. Throw your hands up on the drop.',
+  ];
+  let tipIx = Math.floor(Math.random() * TIPS.length);
+  if (loadTip) loadTip.textContent = TIPS[tipIx];
+  const tipTimer = setInterval(() => {
+    tipIx = (tipIx + 1) % TIPS.length;
+    if (loadTip) loadTip.textContent = TIPS[tipIx];
+  }, 5000);
+  /** Overall progress 0..1 with a step label: shows %, elapsed and (once it can tell) time left. */
+  const loadProgress = (k: number, label: string) => {
+    if (loadingSub) loadingSub.textContent = label;
+    if (loadBar) loadBar.style.width = `${Math.round(k * 100)}%`;
+    const el = (performance.now() - loadT0) / 1000;
+    const left = k > 0.15 ? Math.max(1, Math.round((el / k) * (1 - k))) : null;
+    if (loadMeta) loadMeta.textContent = `${Math.round(k * 100)}% · ${Math.round(el)} s${left !== null ? ` · about ${left} s to go` : ''}`;
+  };
+  await assets.load(renderer, (k) => loadProgress(k * 0.35, 'Step 1 of 3 · Opening the doors'));
+  loadProgress(0.36, 'Step 2 of 3 · Building the resort');
+  await new Promise((r) => setTimeout(r, 30));
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.03, 400);
@@ -1443,9 +1471,12 @@ async function main() {
   };
   // Each area's own reflections, captured once behind the loading screen (people and your body hidden).
   {
-    if (loadingSub) loadingSub.textContent = 'Polishing the marble…';
+    const AREA_NAMES: Record<string, string> = { casino: 'the casino floor', hotel: 'the hotel lobby', terrace: 'the terrace and fountains', pool: 'the pool deck', suite: 'the suite' };
+    loadProgress(0.55, 'Step 3 of 3 · Lighting the rooms');
     try {
-      const ms = await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root]);
+      const ms = await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root], undefined, (i, n, zone) =>
+        loadProgress(0.55 + (0.45 * i) / n, `Step 3 of 3 · Lighting ${AREA_NAMES[zone] ?? zone} (${i + 1} of ${n})`),
+      );
       (window as unknown as { __envCaptureMs: number }).__envCaptureMs = Math.round(ms);
       console.info(`reflections captured in ${Math.round(ms)} ms`);
     } catch (e) {
@@ -1453,6 +1484,8 @@ async function main() {
       console.warn('reflection capture failed', e);
     }
     zoneCulling(player.feet());
+    loadProgress(1, 'Ready');
+    clearInterval(tipTimer);
   }
   renderer.setAnimationLoop(() => {
     timer.update();

@@ -198,6 +198,12 @@
   "speed": 1
  },
  {
+  "id": "00ff25ff",
+  "voice": "af_heart",
+  "text": "I could get used to this.",
+  "speed": 1
+ },
+ {
   "id": "04ab2d2f",
   "voice": "af_heart",
   "text": "No way! Drinks are on you, then!",
@@ -210,6 +216,12 @@
   "speed": 1
  },
  {
+  "id": "0a19cc0e",
+  "voice": "af_heart",
+  "text": "Oh, hi there! Sorry, I'm just looking at the ceiling. Isn't it the prettiest thing you ever saw?",
+  "speed": 1
+ },
+ {
   "id": "0d2e92e7",
   "voice": "af_heart",
   "text": "Alright, enjoy your night!",
@@ -219,6 +231,12 @@
   "id": "0d3acbfb",
   "voice": "af_heart",
   "text": "Take your time. This place is something else, isn't it?",
+  "speed": 1
+ },
+ {
+  "id": "1236da4c",
+  "voice": "af_heart",
+  "text": "Oh, holy cow!",
   "speed": 1
  },
  {
@@ -249,6 +267,12 @@
   "id": "2534c318",
   "voice": "af_heart",
   "text": "Excuse me, do you know where the pool party is?",
+  "speed": 1
+ },
+ {
+  "id": "26d1bd74",
+  "voice": "af_heart",
+  "text": "Oh, good for you!",
   "speed": 1
  },
  {
@@ -291,6 +315,12 @@
   "id": "38ab7a91",
   "voice": "af_heart",
   "text": "Ha, totally. Vegas, am I right?",
+  "speed": 1
+ },
+ {
+  "id": "38dc61a9",
+  "voice": "af_heart",
+  "text": "Cheers, hon!",
   "speed": 1
  },
  {
@@ -372,6 +402,12 @@
   "speed": 1
  },
  {
+  "id": "6bdfaeb2",
+  "voice": "af_heart",
+  "text": "Okay, bye now! Have fun!",
+  "speed": 1
+ },
+ {
   "id": "7187d5e0",
   "voice": "af_heart",
   "text": "Whoa! Did you see that?",
@@ -408,6 +444,13 @@
   "speed": 1
  },
  {
+  "id": "8d00755b",
+  "voice": "af_heart",
+  "text": "Oh, you're tough to impress! [laughs] Well, I love it.",
+  "say": "Oh, you're tough to impress! Well, I love it.",
+  "speed": 1
+ },
+ {
   "id": "8d0118ce",
   "voice": "af_heart",
   "text": "Happy anniversary, by the way.",
@@ -423,6 +466,19 @@
   "id": "921d4fd2",
   "voice": "af_heart",
   "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "92d81d68",
+  "voice": "af_heart",
+  "text": "[laughs] Ya, ya, sure.",
+  "say": "Ya, ya, sure.",
+  "speed": 1
+ },
+ {
+  "id": "96874408",
+  "voice": "af_heart",
+  "text": "Can I ask you something? Is it okay to sit at a slot machine if I'm not playing? My feet are killing me.",
   "speed": 1
  },
  {
@@ -498,6 +554,12 @@
   "speed": 1
  },
  {
+  "id": "b3e40e2d",
+  "voice": "af_heart",
+  "text": "Right? I'm gonna take like a hundred pictures. Don't judge me.",
+  "speed": 1
+ },
+ {
   "id": "b4de0897",
   "voice": "af_heart",
   "text": "I'm holding you to that!",
@@ -522,6 +584,18 @@
   "speed": 1
  },
  {
+  "id": "bee9d72c",
+  "voice": "af_heart",
+  "text": "Oh, hi there!",
+  "speed": 1
+ },
+ {
+  "id": "c04a893f",
+  "voice": "af_heart",
+  "text": "Oh my gosh, it's so warm in here, ya?",
+  "speed": 1
+ },
+ {
   "id": "c095cbbb",
   "voice": "af_heart",
   "text": "The pigs? Alright, I'll give it a shot!",
@@ -543,6 +617,12 @@
   "id": "c4c2fdd2",
   "voice": "af_heart",
   "text": "No worries. I'll follow the music.",
+  "speed": 1
+ },
+ {
+  "id": "c4cef5ed",
+  "voice": "af_heart",
+  "text": "Oh, thank goodness. Ya, these shoes were a mistake.",
   "speed": 1
  },
  {
@@ -600,6 +680,12 @@
   "speed": 1
  },
  {
+  "id": "dbd3dcd6",
+  "voice": "af_heart",
+  "text": "Oh, sorry, hon, it's so noisy! You betcha.",
+  "speed": 1
+ },
+ {
   "id": "dbdeb9b0",
   "voice": "af_heart",
   "text": "Cheers!",
@@ -636,6 +722,18 @@
   "speed": 1
  },
  {
+  "id": "ea9c9ea7",
+  "voice": "af_heart",
+  "text": "Oh, cheers! This is fun!",
+  "speed": 1
+ },
+ {
+  "id": "f0264f5e",
+  "voice": "af_heart",
+  "text": "Oh, okay! The bar it is then. Thanks, hon!",
+  "speed": 1
+ },
+ {
   "id": "f23ed2f9",
   "voice": "af_heart",
   "text": "Is this your first time in Vegas?",
@@ -651,6 +749,12 @@
   "id": "fb9d61f2",
   "voice": "af_heart",
   "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "fd7f1c02",
+  "voice": "af_heart",
+  "text": "Oh, okay! Take care, hon.",
   "speed": 1
  },
  {
@@ -1170,9 +1274,21 @@
   "speed": 1
  },
  {
+  "id": "2f0d3427",
+  "voice": "af_kore",
+  "text": "Hm. Lucky.",
+  "speed": 1
+ },
+ {
   "id": "3b0cf81a",
   "voice": "af_kore",
   "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "3b715f34",
+  "voice": "af_kore",
+  "text": "Not bad.",
   "speed": 1
  },
  {
@@ -1191,6 +1307,12 @@
   "id": "4cc0264e",
   "voice": "af_kore",
   "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "4f260229",
+  "voice": "af_kore",
+  "text": "Mm. See you around.",
   "speed": 1
  },
  {
@@ -1236,6 +1358,12 @@
   "speed": 1
  },
  {
+  "id": "69151be1",
+  "voice": "af_kore",
+  "text": "Do you want to know the secret to winning here?",
+  "speed": 1
+ },
+ {
   "id": "69261b99",
   "voice": "af_kore",
   "text": "Steakhouse or the buffet?",
@@ -1257,6 +1385,12 @@
   "id": "774cfcb5",
   "voice": "af_kore",
   "text": "Sure thing, my friend.",
+  "speed": 1
+ },
+ {
+  "id": "77671afa",
+  "voice": "af_kore",
+  "text": "Interesting night.",
   "speed": 1
  },
  {
@@ -1284,6 +1418,12 @@
   "speed": 1
  },
  {
+  "id": "8796bfac",
+  "voice": "af_kore",
+  "text": "To quiet winnings.",
+  "speed": 1
+ },
+ {
   "id": "8855b116",
   "voice": "af_kore",
   "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
@@ -1299,6 +1439,12 @@
   "id": "8f91a789",
   "voice": "af_kore",
   "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "92ab87a4",
+  "voice": "af_kore",
+  "text": "Leave while you're ahead. Nobody ever does.",
   "speed": 1
  },
  {
@@ -1326,6 +1472,12 @@
   "speed": 1
  },
  {
+  "id": "a065171a",
+  "voice": "af_kore",
+  "text": "Ciao.",
+  "speed": 1
+ },
+ {
   "id": "a0dcf753",
   "voice": "af_kore",
   "text": "This pool party is insane, right?",
@@ -1350,6 +1502,12 @@
   "speed": 1
  },
  {
+  "id": "ad01f374",
+  "voice": "af_kore",
+  "text": "Mm.",
+  "speed": 1
+ },
+ {
   "id": "ad131957",
   "voice": "af_kore",
   "text": "Ha! Fair enough. Cheers!",
@@ -1365,6 +1523,18 @@
   "id": "aef827b6",
   "voice": "af_kore",
   "text": "You said that last year.",
+  "speed": 1
+ },
+ {
+  "id": "afc6df5a",
+  "voice": "af_kore",
+  "text": "You've been watching the tables. Counting?",
+  "speed": 1
+ },
+ {
+  "id": "b31d04bd",
+  "voice": "af_kore",
+  "text": "Salud.",
   "speed": 1
  },
  {
@@ -1410,9 +1580,41 @@
   "speed": 1
  },
  {
+  "id": "c8a21023",
+  "voice": "af_kore",
+  "text": "[laughs softly] Then keep your face still, cariño.",
+  "say": "Then keep your face still, cariño.",
+  "speed": 1
+ },
+ {
   "id": "c8d92631",
   "voice": "af_kore",
   "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "cb949c8d",
+  "voice": "af_kore",
+  "text": "[laughs softly] Say it again. No? Fine.",
+  "say": "Say it again. No? Fine.",
+  "speed": 1
+ },
+ {
+  "id": "d2e0434f",
+  "voice": "af_kore",
+  "text": "Smart. Secrets are expensive.",
+  "speed": 1
+ },
+ {
+  "id": "d36c1113",
+  "voice": "af_kore",
+  "text": "Mm. That's what they all say.",
+  "speed": 1
+ },
+ {
+  "id": "d3fe9d04",
+  "voice": "af_kore",
+  "text": "They're watching the cameras. Smile.",
   "speed": 1
  },
  {
@@ -1506,6 +1708,12 @@
   "speed": 1
  },
  {
+  "id": "f8e6352d",
+  "voice": "af_kore",
+  "text": "I didn't hear you. That's okay.",
+  "speed": 1
+ },
+ {
   "id": "f91cc423",
   "voice": "af_kore",
   "text": "Hang in there. The night is young!",
@@ -1527,6 +1735,13 @@
   "id": "fc8270fb",
   "voice": "af_kore",
   "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "03bdc931",
+  "voice": "af_nicole",
+  "text": "Is that what you're wearing tonight? [laughs] Kidding. Mostly. Having fun?",
+  "say": "Is that what you're wearing tonight? Kidding. Mostly. Having fun?",
   "speed": 1
  },
  {
@@ -1554,6 +1769,12 @@
   "speed": 1
  },
  {
+  "id": "1975fde3",
+  "voice": "af_nicole",
+  "text": "Suit yourself, sugar. Learn the hard way like the rest of us.",
+  "speed": 1
+ },
+ {
   "id": "1c00c679",
   "voice": "af_nicole",
   "text": "Take your time. This place is something else, isn't it?",
@@ -1569,6 +1790,13 @@
   "id": "227e598f",
   "voice": "af_nicole",
   "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "234c36de",
+  "voice": "af_nicole",
+  "text": "[laughs] Speak up, honey, I'm not getting any younger.",
+  "say": "Speak up, honey, I'm not getting any younger.",
   "speed": 1
  },
  {
@@ -1650,6 +1878,12 @@
   "speed": 1
  },
  {
+  "id": "378f75bd",
+  "voice": "af_nicole",
+  "text": "Ta-ta, darling.",
+  "speed": 1
+ },
+ {
   "id": "38cd1ee0",
   "voice": "af_nicole",
   "text": "Ha! Famous last words. Good luck!",
@@ -1674,9 +1908,21 @@
   "speed": 1
  },
  {
+  "id": "4055664c",
+  "voice": "af_nicole",
+  "text": "Mm. The strong silent type. Bye now.",
+  "speed": 1
+ },
+ {
   "id": "40c6be23",
   "voice": "af_nicole",
   "text": "Dry heat, though.",
+  "speed": 1
+ },
+ {
+  "id": "40e2dafa",
+  "voice": "af_nicole",
+  "text": "Then get a drink and get on the dance floor, darling.",
   "speed": 1
  },
  {
@@ -1716,6 +1962,19 @@
   "speed": 1
  },
  {
+  "id": "4bdf726a",
+  "voice": "af_nicole",
+  "text": "Never chase your losses, never trust a man in a fedora, and always tip the bartender. [laughs]",
+  "say": "Never chase your losses, never trust a man in a fedora, and always tip the bartender.",
+  "speed": 1
+ },
+ {
+  "id": "531f8f57",
+  "voice": "af_nicole",
+  "text": "Honey, I danced on that stage for twenty years. You want some advice about this town?",
+  "speed": 1
+ },
+ {
   "id": "5a52767a",
   "voice": "af_nicole",
   "text": "Classic. I'm getting one of those.",
@@ -1734,6 +1993,12 @@
   "speed": 1
  },
  {
+  "id": "63252bc3",
+  "voice": "af_nicole",
+  "text": "To bad decisions and good stories.",
+  "speed": 1
+ },
+ {
   "id": "64e2d600",
   "voice": "af_nicole",
   "text": "That's what I like to hear. Where's the action?",
@@ -1749,6 +2014,12 @@
   "id": "6fc222ff",
   "voice": "af_nicole",
   "text": "Which one?",
+  "speed": 1
+ },
+ {
+  "id": "71a711cb",
+  "voice": "af_nicole",
+  "text": "Encore, darling!",
   "speed": 1
  },
  {
@@ -1797,6 +2068,12 @@
   "id": "82602013",
   "voice": "af_nicole",
   "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "85bd9b92",
+  "voice": "af_nicole",
+  "text": "Sweetheart, I didn't hear a word. Yes, yes, lovely.",
   "speed": 1
  },
  {
@@ -1860,6 +2137,18 @@
   "speed": 1
  },
  {
+  "id": "a982c66a",
+  "voice": "af_nicole",
+  "text": "Now THAT is a showstopper!",
+  "speed": 1
+ },
+ {
+  "id": "a9babb48",
+  "voice": "af_nicole",
+  "text": "Cheers, darling.",
+  "speed": 1
+ },
+ {
   "id": "ab726ae6",
   "voice": "af_nicole",
   "text": "Keep your eyes open, it happens all night.",
@@ -1896,9 +2185,22 @@
   "speed": 1
  },
  {
+  "id": "c3b89804",
+  "voice": "af_nicole",
+  "text": "Evening, gorgeous.",
+  "speed": 1
+ },
+ {
   "id": "c59bf1e4",
   "voice": "af_nicole",
   "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "c62a81ca",
+  "voice": "af_nicole",
+  "text": "[laughs] Look at you.",
+  "say": "Look at you.",
   "speed": 1
  },
  {
@@ -1911,6 +2213,12 @@
   "id": "c835e3c5",
   "voice": "af_nicole",
   "text": "She started it.",
+  "speed": 1
+ },
+ {
+  "id": "ca7d94fd",
+  "voice": "af_nicole",
+  "text": "In my day, this was all sawdust and cigarettes.",
   "speed": 1
  },
  {
@@ -1965,6 +2273,12 @@
   "id": "e8cb5bcf",
   "voice": "af_nicole",
   "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "eccbde41",
+  "voice": "af_nicole",
+  "text": "Good. That's the only rule that matters.",
   "speed": 1
  },
  {
@@ -2028,6 +2342,13 @@
   "speed": 1
  },
  {
+  "id": "0e30c30d",
+  "voice": "af_nova",
+  "text": "[giggles] I have no idea what you said but I love it.",
+  "say": "I have no idea what you said but I love it.",
+  "speed": 1
+ },
+ {
   "id": "10fa0b93",
   "voice": "af_nova",
   "text": "Ha! I'll take that as a yes.",
@@ -2037,6 +2358,13 @@
   "id": "14f4cbf7",
   "voice": "af_nova",
   "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "171656a1",
+  "voice": "af_nova",
+  "text": "To love! [giggles]",
+  "say": "To love!",
   "speed": 1
  },
  {
@@ -2082,6 +2410,13 @@
   "speed": 1
  },
  {
+  "id": "2a879cbb",
+  "voice": "af_nova",
+  "text": "Will you take a picture of us? [giggles] Wait, where did my girls go?",
+  "say": "Will you take a picture of us? Wait, where did my girls go?",
+  "speed": 1
+ },
+ {
   "id": "308c03e2",
   "voice": "af_nova",
   "text": "The one with the piano.",
@@ -2106,9 +2441,22 @@
   "speed": 1
  },
  {
+  "id": "4115101a",
+  "voice": "af_nova",
+  "text": "Woo! Bachelorette!",
+  "speed": 1
+ },
+ {
   "id": "44d93427",
   "voice": "af_nova",
   "text": "I'm cutting myself off after this one.",
+  "speed": 1
+ },
+ {
+  "id": "4dd89e9b",
+  "voice": "af_nova",
+  "text": "[giggles] Hi!",
+  "say": "Hi!",
   "speed": 1
  },
  {
@@ -2121,6 +2469,12 @@
   "id": "4fa45b3e",
   "voice": "af_nova",
   "text": "Say that again? Actually, never mind. Good luck out there!",
+  "speed": 1
+ },
+ {
+  "id": "51883c5b",
+  "voice": "af_nova",
+  "text": "I'm getting married! Did I mention that?",
   "speed": 1
  },
  {
@@ -2157,6 +2511,12 @@
   "id": "630ac2c6",
   "voice": "af_nova",
   "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "66b571bb",
+  "voice": "af_nova",
+  "text": "Okay! Bye, new friend!",
   "speed": 1
  },
  {
@@ -2208,6 +2568,18 @@
   "speed": 1
  },
  {
+  "id": "7d40a4ae",
+  "voice": "af_nova",
+  "text": "Thank you! Oh my gosh, you're so nice. Come to the wedding!",
+  "speed": 1
+ },
+ {
+  "id": "7ef466fa",
+  "voice": "af_nova",
+  "text": "Me too! Woo! Okay, I need another drink.",
+  "speed": 1
+ },
+ {
   "id": "808cbbc7",
   "voice": "af_nova",
   "text": "Alright, enjoy your night!",
@@ -2256,6 +2628,12 @@
   "speed": 1
  },
  {
+  "id": "a230d6e7",
+  "voice": "af_nova",
+  "text": "Yes! Wait. What? Yes!",
+  "speed": 1
+ },
+ {
   "id": "a5e12bdb",
   "voice": "af_nova",
   "text": "Was it good?",
@@ -2274,6 +2652,12 @@
   "speed": 1
  },
  {
+  "id": "a8face42",
+  "voice": "af_nova",
+  "text": "Totally fine! I love you anyway! Bye!",
+  "speed": 1
+ },
+ {
   "id": "a9abd276",
   "voice": "af_nova",
   "text": "Ha! There's a shop in the lobby. Think about it.",
@@ -2286,6 +2670,13 @@
   "speed": 1
  },
  {
+  "id": "aa505835",
+  "voice": "af_nova",
+  "text": "Oh my gosh, hi! I'm getting MARRIED! [giggles] Are you having the best night?",
+  "say": "Oh my gosh, hi! I'm getting MARRIED! Are you having the best night?",
+  "speed": 1
+ },
+ {
   "id": "aba3fac4",
   "voice": "af_nova",
   "text": "Living large!",
@@ -2295,6 +2686,12 @@
   "id": "acabc8e8",
   "voice": "af_nova",
   "text": "Classic. I'm getting one of those.",
+  "speed": 1
+ },
+ {
+  "id": "acd2965e",
+  "voice": "af_nova",
+  "text": "Yay! Okay, I'll find them. Don't move! Actually, move. Have fun!",
   "speed": 1
  },
  {
@@ -2328,6 +2725,12 @@
   "speed": 1
  },
  {
+  "id": "b7e48667",
+  "voice": "af_nova",
+  "text": "Woooo!",
+  "speed": 1
+ },
+ {
   "id": "b9735c51",
   "voice": "af_nova",
   "text": "Then that's where I'm headed. Good luck!",
@@ -2358,6 +2761,12 @@
   "speed": 1
  },
  {
+  "id": "c839d26d",
+  "voice": "af_nova",
+  "text": "Oh my gosh, YES!",
+  "speed": 1
+ },
+ {
   "id": "c94967d2",
   "voice": "af_nova",
   "text": "This pool party is insane, right?",
@@ -2373,6 +2782,12 @@
   "id": "d3c40985",
   "voice": "af_nova",
   "text": "Bottoms up!",
+  "speed": 1
+ },
+ {
+  "id": "d65e992b",
+  "voice": "af_nova",
+  "text": "Cheers to me! I mean, to us!",
   "speed": 1
  },
  {
@@ -2403,6 +2818,12 @@
   "id": "e80697cb",
   "voice": "af_nova",
   "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "e8cf3174",
+  "voice": "af_nova",
+  "text": "Byeee! Love you!",
   "speed": 1
  },
  {
@@ -2904,6 +3325,18 @@
   "speed": 1
  },
  {
+  "id": "001f30ac",
+  "voice": "af_sarah",
+  "text": "Wow. Okay. You and my friends can have a group chat.",
+  "speed": 1
+ },
+ {
+  "id": "034a2ddb",
+  "voice": "af_sarah",
+  "text": "Right?! The blue one when it gets fat? Chef's kiss.",
+  "speed": 1
+ },
+ {
   "id": "0bb0c215",
   "voice": "af_sarah",
   "text": "That's what I like to hear. Where's the action?",
@@ -2919,6 +3352,18 @@
   "id": "0cb684bd",
   "voice": "af_sarah",
   "text": "Lucky!",
+  "speed": 1
+ },
+ {
+  "id": "0d84514d",
+  "voice": "af_sarah",
+  "text": "Don't tell anyone, but I've spent an hour on the pig slot. The pigs! Have you played it?",
+  "speed": 1
+ },
+ {
+  "id": "0e966ed1",
+  "voice": "af_sarah",
+  "text": "Yes! Called it!",
   "speed": 1
  },
  {
@@ -3006,6 +3451,12 @@
   "speed": 1
  },
  {
+  "id": "375c1451",
+  "voice": "af_sarah",
+  "text": "Data doesn't lie!",
+  "speed": 1
+ },
+ {
   "id": "3963c247",
   "voice": "af_sarah",
   "text": "Excuse me, do you know where the pool party is?",
@@ -3015,6 +3466,12 @@
   "id": "3f830c1b",
   "voice": "af_sarah",
   "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "4038b8ff",
+  "voice": "af_sarah",
+  "text": "I'm up three hundred and I'm not stopping.",
   "speed": 1
  },
  {
@@ -3048,9 +3505,27 @@
   "speed": 1
  },
  {
+  "id": "530eaf42",
+  "voice": "af_sarah",
+  "text": "Thank you! Basic strategy! Someone gets it.",
+  "speed": 1
+ },
+ {
+  "id": "542b53e2",
+  "voice": "af_sarah",
+  "text": "Cheers! To winning.",
+  "speed": 1
+ },
+ {
   "id": "575ce231",
   "voice": "af_sarah",
   "text": "This pool party is insane, right?",
+  "speed": 1
+ },
+ {
+  "id": "606faac8",
+  "voice": "af_sarah",
+  "text": "To girls' trips!",
   "speed": 1
  },
  {
@@ -3072,6 +3547,12 @@
   "speed": 1
  },
  {
+  "id": "6a68467e",
+  "voice": "af_sarah",
+  "text": "Okay, quick question. Do you hit on sixteen against a ten? My friends say no. My friends are wrong.",
+  "speed": 1
+ },
+ {
   "id": "6d428dbc",
   "voice": "af_sarah",
   "text": "Through the hotel lobby, past the elevators.",
@@ -3087,6 +3568,12 @@
   "id": "707a83e0",
   "voice": "af_sarah",
   "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "78a4096e",
+  "voice": "af_sarah",
+  "text": "Okay, bye! Good luck!",
   "speed": 1
  },
  {
@@ -3126,6 +3613,12 @@
   "speed": 1
  },
  {
+  "id": "8d9a916a",
+  "voice": "af_sarah",
+  "text": "Has anyone seen my friends? They were just here.",
+  "speed": 1
+ },
+ {
   "id": "9095adbd",
   "voice": "af_sarah",
   "text": "Hey there! Having a good night?",
@@ -3159,6 +3652,13 @@
   "id": "99fd58d0",
   "voice": "af_sarah",
   "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
+  "speed": 1
+ },
+ {
+  "id": "9e6446fd",
+  "voice": "af_sarah",
+  "text": "[laughs] Totally. Wait, what?",
+  "say": "Totally. Wait, what?",
   "speed": 1
  },
  {
@@ -3234,6 +3734,12 @@
   "speed": 1
  },
  {
+  "id": "c22056fb",
+  "voice": "af_sarah",
+  "text": "Hey!",
+  "speed": 1
+ },
+ {
   "id": "c52b2e78",
   "voice": "af_sarah",
   "text": "Then that's where I'm headed. Good luck!",
@@ -3273,6 +3779,12 @@
   "id": "d3617030",
   "voice": "af_sarah",
   "text": "Tell her you want something smoky. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "d795040e",
+  "voice": "af_sarah",
+  "text": "Sorry, didn't catch that. I'll assume you agree with me.",
   "speed": 1
  },
  {
@@ -3330,6 +3842,12 @@
   "speed": 1
  },
  {
+  "id": "f79d4178",
+  "voice": "af_sarah",
+  "text": "Cool, cool. I'll be at the tables.",
+  "speed": 1
+ },
+ {
   "id": "fa533175",
   "voice": "af_sarah",
   "text": "Sorry, it's so loud in here! Anyway.",
@@ -3348,15 +3866,40 @@
   "speed": 1
  },
  {
+  "id": "ffd608ae",
+  "voice": "af_sarah",
+  "text": "Go. Now. Thank me later.",
+  "speed": 1
+ },
+ {
   "id": "0016f199",
   "voice": "am_echo",
   "text": "Tell her you want something smoky. Trust me.",
   "speed": 1
  },
  {
+  "id": "00604130",
+  "voice": "am_echo",
+  "text": "Come again? Ah, never mind. Ain't important.",
+  "speed": 1
+ },
+ {
+  "id": "029d032d",
+  "voice": "am_echo",
+  "text": "Well, then we oughta play sometime. Bring your wallet. [chuckles]",
+  "say": "Well, then we oughta play sometime. Bring your wallet.",
+  "speed": 1
+ },
+ {
   "id": "0493a6cf",
   "voice": "am_echo",
   "text": "To Vegas!",
+  "speed": 1
+ },
+ {
+  "id": "05a84c91",
+  "voice": "am_echo",
+  "text": "Cheers, partner.",
   "speed": 1
  },
  {
@@ -3369,6 +3912,12 @@
   "id": "06d5a1ea",
   "voice": "am_echo",
   "text": "I just watched a lady win twelve grand on a penny slot.",
+  "speed": 1
+ },
+ {
+  "id": "07f14843",
+  "voice": "am_echo",
+  "text": "Now ain't that somethin'.",
   "speed": 1
  },
  {
@@ -3438,6 +3987,12 @@
   "speed": 1
  },
  {
+  "id": "254c3e7f",
+  "voice": "am_echo",
+  "text": "You ever play poker? Real poker, not that machine nonsense.",
+  "speed": 1
+ },
+ {
   "id": "2796c521",
   "voice": "am_echo",
   "text": "We should go out on the terrace for the fountains.",
@@ -3498,6 +4053,18 @@
   "speed": 1
  },
  {
+  "id": "475dfbed",
+  "voice": "am_echo",
+  "text": "Evenin'.",
+  "speed": 1
+ },
+ {
+  "id": "4f9f5c8e",
+  "voice": "am_echo",
+  "text": "Bar's thataway, tables are yonder, pool's out back. Can't miss it.",
+  "speed": 1
+ },
+ {
   "id": "52e336da",
   "voice": "am_echo",
   "text": "Rough night at the tables? Happens to all of us.",
@@ -3534,6 +4101,12 @@
   "speed": 1
  },
  {
+  "id": "5d338030",
+  "voice": "am_echo",
+  "text": "Here's mud in your eye.",
+  "speed": 1
+ },
+ {
   "id": "60cc0a1e",
   "voice": "am_echo",
   "text": "Somebody's having a night!",
@@ -3549,6 +4122,12 @@
   "id": "64d1786a",
   "voice": "am_echo",
   "text": "Exactly. The night's just starting.",
+  "speed": 1
+ },
+ {
+  "id": "6700b285",
+  "voice": "am_echo",
+  "text": "Alright. Happy trails.",
   "speed": 1
  },
  {
@@ -3597,6 +4176,12 @@
   "id": "79a0f89c",
   "voice": "am_echo",
   "text": "I need coffee.",
+  "speed": 1
+ },
+ {
+  "id": "7ef467b0",
+  "voice": "am_echo",
+  "text": "Y'all take care now.",
   "speed": 1
  },
  {
@@ -3654,6 +4239,12 @@
   "speed": 1
  },
  {
+  "id": "97b66999",
+  "voice": "am_echo",
+  "text": "Don't rush, son. Vegas'll wait.",
+  "speed": 1
+ },
+ {
   "id": "9b82f71d",
   "voice": "am_echo",
   "text": "The bartender here is a legend. Ask for something off menu.",
@@ -3690,6 +4281,12 @@
   "speed": 1
  },
  {
+  "id": "aafd7f0a",
+  "voice": "am_echo",
+  "text": "Well, I'll be.",
+  "speed": 1
+ },
+ {
   "id": "ab1b62bb",
   "voice": "am_echo",
   "text": "At night? Is the pool even open?",
@@ -3699,6 +4296,12 @@
   "id": "afbb102d",
   "voice": "am_echo",
   "text": "I'm telling you, the dealer at table four is cold.",
+  "speed": 1
+ },
+ {
+  "id": "b17f2b05",
+  "voice": "am_echo",
+  "text": "Hot enough outside to fry an egg on the sidewalk.",
   "speed": 1
  },
  {
@@ -3741,6 +4344,18 @@
   "id": "c23fa24a",
   "voice": "am_echo",
   "text": "Even with my snoring?",
+  "speed": 1
+ },
+ {
+  "id": "c6afeecc",
+  "voice": "am_echo",
+  "text": "Lesson one: never bet more than your boots are worth.",
+  "speed": 1
+ },
+ {
+  "id": "c7336b77",
+  "voice": "am_echo",
+  "text": "Alright then. Holler if you need anything, partner.",
   "speed": 1
  },
  {
@@ -3807,6 +4422,12 @@
   "id": "de2d54a1",
   "voice": "am_echo",
   "text": "How much?",
+  "speed": 1
+ },
+ {
+  "id": "e1bd2f44",
+  "voice": "am_echo",
+  "text": "Well, howdy. You look about as lost as I was my first time here. Need a hand findin' somethin'?",
   "speed": 1
  },
  {
@@ -3879,6 +4500,13 @@
   "id": "fb04d097",
   "voice": "am_echo",
   "text": "Was it good?",
+  "speed": 1
+ },
+ {
+  "id": "fdf87bfe",
+  "voice": "am_echo",
+  "text": "[chuckles] Didn't quite catch that, but I reckon you're right.",
+  "say": "Didn't quite catch that, but I reckon you're right.",
   "speed": 1
  },
  {
@@ -4656,6 +5284,18 @@
   "speed": 1
  },
  {
+  "id": "08b198cf",
+  "voice": "am_liam",
+  "text": "Let's gooo! Meet us at the pool in twenty!",
+  "speed": 1
+ },
+ {
+  "id": "0a38e11d",
+  "voice": "am_liam",
+  "text": "Let's gooo! That's a W!",
+  "speed": 1
+ },
+ {
   "id": "0bd6dd37",
   "voice": "am_liam",
   "text": "I'm holding you to that!",
@@ -4674,9 +5314,33 @@
   "speed": 1
  },
  {
+  "id": "1001fe12",
+  "voice": "am_liam",
+  "text": "This is my first time in Vegas. Is it okay that I'm a little terrified?",
+  "speed": 1
+ },
+ {
+  "id": "114917d8",
+  "voice": "am_liam",
+  "text": "I've spent forty dollars. Forty!",
+  "speed": 1
+ },
+ {
   "id": "1177680d",
   "voice": "am_liam",
   "text": "Right on. Right on.",
+  "speed": 1
+ },
+ {
+  "id": "12f36cf1",
+  "voice": "am_liam",
+  "text": "Oh my gosh! Oh my gosh!",
+  "speed": 1
+ },
+ {
+  "id": "132ce9e1",
+  "voice": "am_liam",
+  "text": "Tonight's gonna be legendary, I'm calling it.",
   "speed": 1
  },
  {
@@ -4704,6 +5368,12 @@
   "speed": 1
  },
  {
+  "id": "1b9f678b",
+  "voice": "am_liam",
+  "text": "Ayyy, what's good!",
+  "speed": 1
+ },
+ {
   "id": "1bc3b2db",
   "voice": "am_liam",
   "text": "The pigs? Alright, I'll give it a shot!",
@@ -4719,6 +5389,18 @@
   "id": "212b1073",
   "voice": "am_liam",
   "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "21604b39",
+  "voice": "am_liam",
+  "text": "All good. Go have fun!",
+  "speed": 1
+ },
+ {
+  "id": "221b36fa",
+  "voice": "am_liam",
+  "text": "Oh! Hi. Sorry. Hi.",
   "speed": 1
  },
  {
@@ -4746,9 +5428,28 @@
   "speed": 1
  },
  {
+  "id": "2ae0a711",
+  "voice": "am_liam",
+  "text": "Statistically that shouldn't happen! Amazing!",
+  "speed": 1
+ },
+ {
+  "id": "2c1ac032",
+  "voice": "am_liam",
+  "text": "[laughs] This place is wild.",
+  "say": "This place is wild.",
+  "speed": 1
+ },
+ {
   "id": "2f3af7a8",
   "voice": "am_liam",
   "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "2f715407",
+  "voice": "am_liam",
+  "text": "It's fine, it's fine. He always turns up. Usually at the buffet.",
   "speed": 1
  },
  {
@@ -4770,9 +5471,21 @@
   "speed": 1
  },
  {
+  "id": "3588ce27",
+  "voice": "am_liam",
+  "text": "Cheers, my guy!",
+  "speed": 1
+ },
+ {
   "id": "3963fa4c",
   "voice": "am_liam",
   "text": "Ha! Fair enough. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "3a573df6",
+  "voice": "am_liam",
+  "text": "You wanna join the bachelor party? Pool, then the club. You look like you know how to have a good time.",
   "speed": 1
  },
  {
@@ -4812,9 +5525,21 @@
   "speed": 1
  },
  {
+  "id": "48533105",
+  "voice": "am_liam",
+  "text": "Okay. Okay! You're right. Yolo, right? Is that what people say?",
+  "speed": 1
+ },
+ {
   "id": "495b20a5",
   "voice": "am_liam",
   "text": "That's a system?",
+  "speed": 1
+ },
+ {
+  "id": "4a821e42",
+  "voice": "am_liam",
+  "text": "Okay! Bye! Good luck!",
   "speed": 1
  },
  {
@@ -4833,6 +5558,12 @@
   "id": "618e82fe",
   "voice": "am_liam",
   "text": "Say that again? Actually, never mind. Good luck out there!",
+  "speed": 1
+ },
+ {
+  "id": "62155926",
+  "voice": "am_liam",
+  "text": "Oh. Okay. Nice talking! Sort of!",
   "speed": 1
  },
  {
@@ -4866,6 +5597,12 @@
   "speed": 1
  },
  {
+  "id": "711f6df8",
+  "voice": "am_liam",
+  "text": "Phew. Okay. I'm gonna try the slots. Small steps.",
+  "speed": 1
+ },
+ {
   "id": "713c9eb0",
   "voice": "am_liam",
   "text": "Sorry, it's so loud in here! Anyway.",
@@ -4875,6 +5612,12 @@
   "id": "72cdbb06",
   "voice": "am_liam",
   "text": "Perfect, thank you! Maybe see you down there.",
+  "speed": 1
+ },
+ {
+  "id": "75e65751",
+  "voice": "am_liam",
+  "text": "Of course he's at the bar! Appreciate you, man.",
   "speed": 1
  },
  {
@@ -4896,6 +5639,12 @@
   "speed": 1
  },
  {
+  "id": "7bb508c8",
+  "voice": "am_liam",
+  "text": "Cheers! Oh, careful, my glass is full.",
+  "speed": 1
+ },
+ {
   "id": "7ccb60be",
   "voice": "am_liam",
   "text": "That's what I like to hear. Where's the action?",
@@ -4914,9 +5663,28 @@
   "speed": 1
  },
  {
+  "id": "7fb2f3d4",
+  "voice": "am_liam",
+  "text": "Ha, sorry, I didn't catch that. It's so loud!",
+  "speed": 1
+ },
+ {
+  "id": "801d1ee1",
+  "voice": "am_liam",
+  "text": "[laughs] Say less. I got you.",
+  "say": "Say less. I got you.",
+  "speed": 1
+ },
+ {
   "id": "83579b91",
   "voice": "am_liam",
   "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "881a4a4c",
+  "voice": "am_liam",
+  "text": "Catch you later, man!",
   "speed": 1
  },
  {
@@ -4935,6 +5703,12 @@
   "id": "8dc488f2",
   "voice": "am_liam",
   "text": "That's the guy from before!",
+  "speed": 1
+ },
+ {
+  "id": "8fb3588a",
+  "voice": "am_liam",
+  "text": "To the groom! Wherever he is!",
   "speed": 1
  },
  {
@@ -5010,6 +5784,24 @@
   "speed": 1
  },
  {
+  "id": "add6266a",
+  "voice": "am_liam",
+  "text": "Hi! Sorry. Do you know the house edge on double zero roulette? It's five point two six percent. I looked it up. Is that bad?",
+  "speed": 1
+ },
+ {
+  "id": "b4c75a3d",
+  "voice": "am_liam",
+  "text": "Fun. Yes. I can do fun. I think.",
+  "speed": 1
+ },
+ {
+  "id": "beccd30c",
+  "voice": "am_liam",
+  "text": "The odds on that are terrible, by the way.",
+  "speed": 1
+ },
+ {
   "id": "bf7f07d9",
   "voice": "am_liam",
   "text": "Is this your first time in Vegas?",
@@ -5019,6 +5811,18 @@
   "id": "c36a41c5",
   "voice": "am_liam",
   "text": "A regular! What's your game?",
+  "speed": 1
+ },
+ {
+  "id": "c5bf97d7",
+  "voice": "am_liam",
+  "text": "Bet. Offer stands all night, my guy.",
+  "speed": 1
+ },
+ {
+  "id": "c6667201",
+  "voice": "am_liam",
+  "text": "Okay, okay, I see you!",
   "speed": 1
  },
  {
@@ -5043,6 +5847,12 @@
   "id": "cd7e9731",
   "voice": "am_liam",
   "text": "Ha, totally. Vegas, am I right?",
+  "speed": 1
+ },
+ {
+  "id": "cd94d8a1",
+  "voice": "am_liam",
+  "text": "I knew it. I'm playing anyway. Wish me luck!",
   "speed": 1
  },
  {
@@ -5091,6 +5901,12 @@
   "id": "dc9e1560",
   "voice": "am_liam",
   "text": "So, down a hundred.",
+  "speed": 1
+ },
+ {
+  "id": "dd4e4104",
+  "voice": "am_liam",
+  "text": "Sorry, what? I'm so sorry. Yes. Probably yes.",
   "speed": 1
  },
  {
@@ -5148,6 +5964,13 @@
   "speed": 1
  },
  {
+  "id": "eac20cf4",
+  "voice": "am_liam",
+  "text": "Yo! Have you seen a guy in a sash that says 'groom'? [laughs] I lost my groom. Again.",
+  "say": "Yo! Have you seen a guy in a sash that says 'groom'? I lost my groom. Again.",
+  "speed": 1
+ },
+ {
   "id": "eae2eeca",
   "voice": "am_liam",
   "text": "Somebody's having a night!",
@@ -5157,6 +5980,12 @@
   "id": "ee0ed7c0",
   "voice": "am_liam",
   "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "f1c69fab",
+  "voice": "am_liam",
+  "text": "To... to fun!",
   "speed": 1
  },
  {
@@ -5175,6 +6004,12 @@
   "id": "fab3c0a6",
   "voice": "am_liam",
   "text": "Your loss! It's perfect.",
+  "speed": 1
+ },
+ {
+  "id": "fe6f5cf9",
+  "voice": "am_liam",
+  "text": "Bro, I can't hear a thing in here. But yeah!",
   "speed": 1
  },
  {
@@ -5556,6 +6391,18 @@
   "speed": 1
  },
  {
+  "id": "0404dbf4",
+  "voice": "am_onyx",
+  "text": "You play craps? Because I just made the point four times in a row. Four! You believe that?",
+  "speed": 1
+ },
+ {
+  "id": "058bce43",
+  "voice": "am_onyx",
+  "text": "Now that's music!",
+  "speed": 1
+ },
+ {
   "id": "065f1dd4",
   "voice": "am_onyx",
   "text": "Alright, enjoy your night!",
@@ -5646,9 +6493,22 @@
   "speed": 1
  },
  {
+  "id": "227a4a24",
+  "voice": "am_onyx",
+  "text": "Your loss! [laughs] I'm kidding. Have a good one.",
+  "say": "Your loss! I'm kidding. Have a good one.",
+  "speed": 1
+ },
+ {
   "id": "23085faf",
   "voice": "am_onyx",
   "text": "Teach me your ways!",
+  "speed": 1
+ },
+ {
+  "id": "24f9a03c",
+  "voice": "am_onyx",
+  "text": "Eh, you're a quiet one. I like that. Take care.",
   "speed": 1
  },
  {
@@ -5688,6 +6548,13 @@
   "speed": 1
  },
  {
+  "id": "2d14b7b0",
+  "voice": "am_onyx",
+  "text": "Hey! My friend! [laughs] You look like a winner. You feeling lucky tonight?",
+  "say": "Hey! My friend! You look like a winner. You feeling lucky tonight?",
+  "speed": 1
+ },
+ {
   "id": "2db19200",
   "voice": "am_onyx",
   "text": "Red or black, the classic.",
@@ -5697,6 +6564,12 @@
   "id": "304c83e0",
   "voice": "am_onyx",
   "text": "Ha! I'll take that as a yes.",
+  "speed": 1
+ },
+ {
+  "id": "305f0192",
+  "voice": "am_onyx",
+  "text": "Later, sure. I'll be here. I'm always here.",
   "speed": 1
  },
  {
@@ -5730,9 +6603,21 @@
   "speed": 1
  },
  {
+  "id": "391aabac",
+  "voice": "am_onyx",
+  "text": "My friend! Good to see ya.",
+  "speed": 1
+ },
+ {
   "id": "3e479358",
   "voice": "am_onyx",
   "text": "What are you drinking? That looks good.",
+  "speed": 1
+ },
+ {
+  "id": "40be5d4f",
+  "voice": "am_onyx",
+  "text": "They don't build them like this anymore. Oh wait, they just did.",
   "speed": 1
  },
  {
@@ -5748,9 +6633,23 @@
   "speed": 1
  },
  {
+  "id": "49c586ea",
+  "voice": "am_onyx",
+  "text": "[whistles] Look at this place, huh?",
+  "say": "Look at this place, huh?",
+  "speed": 1
+ },
+ {
   "id": "4a4e780d",
   "voice": "am_onyx",
   "text": "You know what? Same.",
+  "speed": 1
+ },
+ {
+  "id": "4c8905a3",
+  "voice": "am_onyx",
+  "text": "[laughs] My ears ain't what they used to be. Sure, sure.",
+  "say": "My ears ain't what they used to be. Sure, sure.",
   "speed": 1
  },
  {
@@ -5781,6 +6680,12 @@
   "id": "51667016",
   "voice": "am_onyx",
   "text": "Then that's where I'm headed. Good luck!",
+  "speed": 1
+ },
+ {
+  "id": "5281f136",
+  "voice": "am_onyx",
+  "text": "Oh, now THAT'S how you do it!",
   "speed": 1
  },
  {
@@ -5826,6 +6731,12 @@
   "speed": 1
  },
  {
+  "id": "66234953",
+  "voice": "am_onyx",
+  "text": "Big night tonight, I can feel it in my bones.",
+  "speed": 1
+ },
+ {
   "id": "68d9be12",
   "voice": "am_onyx",
   "text": "You look like you need a drink. The bar's amazing.",
@@ -5868,6 +6779,24 @@
   "speed": 1
  },
  {
+  "id": "7345782e",
+  "voice": "am_onyx",
+  "text": "Ha! A skeptic. I like you. Come watch next time.",
+  "speed": 1
+ },
+ {
+  "id": "75795ab5",
+  "voice": "am_onyx",
+  "text": "You like the piano player? I taught him that song. Well, I sang it at him once.",
+  "speed": 1
+ },
+ {
+  "id": "75e4b26f",
+  "voice": "am_onyx",
+  "text": "Salud, kid.",
+  "speed": 1
+ },
+ {
   "id": "75fde806",
   "voice": "am_onyx",
   "text": "You are already dressed up.",
@@ -5892,6 +6821,12 @@
   "speed": 1
  },
  {
+  "id": "8aaa59fe",
+  "voice": "am_onyx",
+  "text": "Anytime, my friend. Anytime.",
+  "speed": 1
+ },
+ {
   "id": "8b4142c4",
   "voice": "am_onyx",
   "text": "Bottoms up!",
@@ -5910,6 +6845,12 @@
   "speed": 1
  },
  {
+  "id": "90d804cd",
+  "voice": "am_onyx",
+  "text": "Ring-a-ding-ding!",
+  "speed": 1
+ },
+ {
   "id": "997ffca2",
   "voice": "am_onyx",
   "text": "A regular! What's your game?",
@@ -5922,6 +6863,12 @@
   "speed": 1
  },
  {
+  "id": "99cc03c6",
+  "voice": "am_onyx",
+  "text": "Stay classy, kid.",
+  "speed": 1
+ },
+ {
   "id": "9b6b07cb",
   "voice": "am_onyx",
   "text": "Salute!",
@@ -5931,6 +6878,18 @@
   "id": "9d3ebe97",
   "voice": "am_onyx",
   "text": "Which bar? There are five.",
+  "speed": 1
+ },
+ {
+  "id": "9de34788",
+  "voice": "am_onyx",
+  "text": "That's what I'm talking about! Go get 'em, champ.",
+  "speed": 1
+ },
+ {
+  "id": "a0eb9258",
+  "voice": "am_onyx",
+  "text": "To you, champ!",
   "speed": 1
  },
  {
@@ -5952,6 +6911,13 @@
   "speed": 1
  },
  {
+  "id": "af1140c8",
+  "voice": "am_onyx",
+  "text": "[hums softly] Fly me to the moon...",
+  "say": "Fly me to the moon...",
+  "speed": 1
+ },
+ {
   "id": "b4b9ab67",
   "voice": "am_onyx",
   "text": "When's the next one?",
@@ -5961,6 +6927,13 @@
   "id": "b4daed68",
   "voice": "am_onyx",
   "text": "A dice man. Respect.",
+  "speed": 1
+ },
+ {
+  "id": "b6e4ea44",
+  "voice": "am_onyx",
+  "text": "[laughs] An honest one. Don't tell him I agree.",
+  "say": "An honest one. Don't tell him I agree.",
   "speed": 1
  },
  {
@@ -5994,15 +6967,33 @@
   "speed": 1
  },
  {
+  "id": "c2b77e62",
+  "voice": "am_onyx",
+  "text": "Good evening, good evening.",
+  "speed": 1
+ },
+ {
   "id": "c30621b4",
   "voice": "am_onyx",
   "text": "He's playing all night. Grab a lounger before they're gone!",
   "speed": 1
  },
  {
+  "id": "c39a2d9d",
+  "voice": "am_onyx",
+  "text": "Salute, my friend!",
+  "speed": 1
+ },
+ {
   "id": "c4123ffe",
   "voice": "am_onyx",
   "text": "Penny slot? On what bet?",
+  "speed": 1
+ },
+ {
+  "id": "c52fcd30",
+  "voice": "am_onyx",
+  "text": "What? It's loud in here. Anyway, you're a good guy.",
   "speed": 1
  },
  {
@@ -6030,9 +7021,28 @@
   "speed": 1
  },
  {
+  "id": "d000cbcc",
+  "voice": "am_onyx",
+  "text": "He's alright. He's got time to get great.",
+  "speed": 1
+ },
+ {
   "id": "d094f103",
   "voice": "am_onyx",
   "text": "Sorry, it's so loud in here! Anyway.",
+  "speed": 1
+ },
+ {
+  "id": "d81d39cf",
+  "voice": "am_onyx",
+  "text": "Sinatra once borrowed my lighter and never gave it back. [laughs] Best night of my life.",
+  "say": "Sinatra once borrowed my lighter and never gave it back. Best night of my life.",
+  "speed": 1
+ },
+ {
+  "id": "d8b4a8c8",
+  "voice": "am_onyx",
+  "text": "What's that? Eh, beautiful.",
   "speed": 1
  },
  {
@@ -6042,9 +7052,29 @@
   "speed": 1
  },
  {
+  "id": "db255eb0",
+  "voice": "am_onyx",
+  "text": "[hums] Ah, you should've seen this town in seventy-six, kid. You want to hear a story?",
+  "say": "Ah, you should've seen this town in seventy-six, kid. You want to hear a story?",
+  "speed": 1
+ },
+ {
   "id": "ddd02794",
   "voice": "am_onyx",
   "text": "No way! Drinks are on you, then!",
+  "speed": 1
+ },
+ {
+  "id": "e08a1016",
+  "voice": "am_onyx",
+  "text": "Ehh, luck's a lady, she comes around. You want a tip? Craps table. Trust me.",
+  "speed": 1
+ },
+ {
+  "id": "e1752aa2",
+  "voice": "am_onyx",
+  "text": "Swear on my mother. [laughs] Drinks are on me later.",
+  "say": "Swear on my mother. Drinks are on me later.",
   "speed": 1
  },
  {
@@ -6054,15 +7084,45 @@
   "speed": 1
  },
  {
+  "id": "e4fad362",
+  "voice": "am_onyx",
+  "text": "To the good old days. And these ones.",
+  "speed": 1
+ },
+ {
   "id": "e5eb336b",
   "voice": "am_onyx",
   "text": "Lucky!",
   "speed": 1
  },
  {
+  "id": "ea867657",
+  "voice": "am_onyx",
+  "text": "Ha! Whatever you said, I agree.",
+  "speed": 1
+ },
+ {
+  "id": "eb62be81",
+  "voice": "am_onyx",
+  "text": "Alright, off you go. Break a leg.",
+  "speed": 1
+ },
+ {
   "id": "f48e27de",
   "voice": "am_onyx",
   "text": "Winners all around.",
+  "speed": 1
+ },
+ {
+  "id": "f518bf4b",
+  "voice": "am_onyx",
+  "text": "Alright, alright. Go get rich!",
+  "speed": 1
+ },
+ {
+  "id": "f955b846",
+  "voice": "am_onyx",
+  "text": "Somebody's eating steak tonight!",
   "speed": 1
  },
  {
@@ -6642,6 +7702,12 @@
   "speed": 1
  },
  {
+  "id": "0560f46d",
+  "voice": "bf_emma",
+  "text": "Your health, dear.",
+  "speed": 1
+ },
+ {
   "id": "077b09fb",
   "voice": "bf_emma",
   "text": "Rough night at the tables? Happens to all of us.",
@@ -6699,6 +7765,12 @@
   "id": "1d805135",
   "voice": "bf_emma",
   "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "21d25e0d",
+  "voice": "bf_emma",
+  "text": "Tell the bartender it's on Eleanor. She knows.",
   "speed": 1
  },
  {
@@ -6774,6 +7846,12 @@
   "speed": 1
  },
  {
+  "id": "3b3eed04",
+  "voice": "bf_emma",
+  "text": "How marvellous.",
+  "speed": 1
+ },
+ {
   "id": "48ca1830",
   "voice": "bf_emma",
   "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
@@ -6789,6 +7867,12 @@
   "id": "55250fd7",
   "voice": "bf_emma",
   "text": "No worries. Have a good one!",
+  "speed": 1
+ },
+ {
+  "id": "570579ee",
+  "voice": "bf_emma",
+  "text": "Wise. Watching is free. Playing is educational.",
   "speed": 1
  },
  {
@@ -6816,9 +7900,27 @@
   "speed": 1
  },
  {
+  "id": "716186d6",
+  "voice": "bf_emma",
+  "text": "Hm. Yes, I expect so.",
+  "speed": 1
+ },
+ {
   "id": "74965eab",
   "voice": "bf_emma",
   "text": "Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "778b9424",
+  "voice": "bf_emma",
+  "text": "My late husband loved this place. He was terrible at blackjack. Absolutely hopeless. Would you like a drink?",
+  "speed": 1
+ },
+ {
+  "id": "7abeefec",
+  "voice": "bf_emma",
+  "text": "Good evening. Do you play cards, or do you merely watch them, like most people?",
   "speed": 1
  },
  {
@@ -6831,6 +7933,12 @@
   "id": "7d205eb2",
   "voice": "bf_emma",
   "text": "You too!",
+  "speed": 1
+ },
+ {
+  "id": "7ed6471f",
+  "voice": "bf_emma",
+  "text": "I'm sorry, dear, I didn't quite hear. Never mind.",
   "speed": 1
  },
  {
@@ -6894,6 +8002,18 @@
   "speed": 1
  },
  {
+  "id": "88601036",
+  "voice": "bf_emma",
+  "text": "Of course. Sobriety suits some people.",
+  "speed": 1
+ },
+ {
+  "id": "8a8ed1b4",
+  "voice": "bf_emma",
+  "text": "Never let them see you count, dear.",
+  "speed": 1
+ },
+ {
   "id": "8b8de80c",
   "voice": "bf_emma",
   "text": "Take your time. This place is something else, isn't it?",
@@ -6921,6 +8041,12 @@
   "id": "9c8ee334",
   "voice": "bf_emma",
   "text": "You look like you're on a heater. Up big tonight?",
+  "speed": 1
+ },
+ {
+  "id": "a0a53558",
+  "voice": "bf_emma",
+  "text": "Then I hope we never sit at the same table. For your sake, dear.",
   "speed": 1
  },
  {
@@ -6960,6 +8086,12 @@
   "speed": 1
  },
  {
+  "id": "b9da08e7",
+  "voice": "bf_emma",
+  "text": "Good evening.",
+  "speed": 1
+ },
+ {
   "id": "ba53929d",
   "voice": "bf_emma",
   "text": "Hey there! Having a good night?",
@@ -6972,9 +8104,27 @@
   "speed": 1
  },
  {
+  "id": "bdaafcb0",
+  "voice": "bf_emma",
+  "text": "Chin chin.",
+  "speed": 1
+ },
+ {
   "id": "c010a5de",
   "voice": "bf_emma",
   "text": "Ha! I'll take that as a yes.",
+  "speed": 1
+ },
+ {
+  "id": "c0a0b1e9",
+  "voice": "bf_emma",
+  "text": "Mm. Rather crowded tonight.",
+  "speed": 1
+ },
+ {
+  "id": "c1167047",
+  "voice": "bf_emma",
+  "text": "Well. Do enjoy yourself.",
   "speed": 1
  },
  {
@@ -6999,6 +8149,12 @@
   "id": "cfdb2364",
   "voice": "bf_emma",
   "text": "And?",
+  "speed": 1
+ },
+ {
+  "id": "d2c6804d",
+  "voice": "bf_emma",
+  "text": "Well done, you.",
   "speed": 1
  },
  {
@@ -7092,9 +8248,21 @@
   "speed": 1
  },
  {
+  "id": "f9f5c30b",
+  "voice": "bf_emma",
+  "text": "Goodnight, dear.",
+  "speed": 1
+ },
+ {
   "id": "fb74aa32",
   "voice": "bf_emma",
   "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "02a780b7",
+  "voice": "bm_daniel",
+  "text": "Good evening.",
   "speed": 1
  },
  {
@@ -7107,6 +8275,12 @@
   "id": "04d6bdad",
   "voice": "bm_daniel",
   "text": "Hang in there. The night is young!",
+  "speed": 1
+ },
+ {
+  "id": "07bb6c78",
+  "voice": "bm_daniel",
+  "text": "Splendid. I shall endeavour to keep up.",
   "speed": 1
  },
  {
@@ -7188,9 +8362,21 @@
   "speed": 1
  },
  {
+  "id": "1bcebff5",
+  "voice": "bm_daniel",
+  "text": "Forgive me. Is it always this... enthusiastic in here? In London we gamble quietly and feel guilty about it.",
+  "speed": 1
+ },
+ {
   "id": "1c077b21",
   "voice": "bm_daniel",
   "text": "Have you tried the new piggy bank slot?",
+  "speed": 1
+ },
+ {
+  "id": "1cd11c27",
+  "voice": "bm_daniel",
+  "text": "Cheers, old sport.",
   "speed": 1
  },
  {
@@ -7251,6 +8437,12 @@
   "id": "2fd1eb13",
   "voice": "bm_daniel",
   "text": "Say that again? Actually, never mind. Good luck out there!",
+  "speed": 1
+ },
+ {
+  "id": "30a2c4db",
+  "voice": "bm_daniel",
+  "text": "I beg your pardon? Ah. Never mind, I'm sure you're right.",
   "speed": 1
  },
  {
@@ -7320,6 +8512,12 @@
   "speed": 1
  },
  {
+  "id": "522fa360",
+  "voice": "bm_daniel",
+  "text": "Quite right. One shouldn't know these things on holiday.",
+  "speed": 1
+ },
+ {
   "id": "54bae3c7",
   "voice": "bm_daniel",
   "text": "No worries. Have a good one!",
@@ -7329,6 +8527,12 @@
   "id": "554809ce",
   "voice": "bm_daniel",
   "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "59ef909a",
+  "voice": "bm_daniel",
+  "text": "Remarkable ceiling. Utterly unnecessary. I love it.",
   "speed": 1
  },
  {
@@ -7386,6 +8590,12 @@
   "speed": 1
  },
  {
+  "id": "7b6ed9ff",
+  "voice": "bm_daniel",
+  "text": "Would you happen to know if the roulette here is single zero? I refuse to play double zero on principle.",
+  "speed": 1
+ },
+ {
   "id": "7c1cda2d",
   "voice": "bm_daniel",
   "text": "Or two.",
@@ -7395,6 +8605,12 @@
   "id": "80f7fc70",
   "voice": "bm_daniel",
   "text": "A stomach ache from the buffet.",
+  "speed": 1
+ },
+ {
+  "id": "842602ac",
+  "voice": "bm_daniel",
+  "text": "Barbaric. I shall play anyway, naturally.",
   "speed": 1
  },
  {
@@ -7437,6 +8653,12 @@
   "id": "8bede19e",
   "voice": "bm_daniel",
   "text": "Ha, totally. Vegas, am I right?",
+  "speed": 1
+ },
+ {
+  "id": "8e95556f",
+  "voice": "bm_daniel",
+  "text": "One more drink and I shall be unbearable.",
   "speed": 1
  },
  {
@@ -7488,9 +8710,28 @@
   "speed": 1
  },
  {
+  "id": "aae3fefd",
+  "voice": "bm_daniel",
+  "text": "Ah. Then I've picked my night rather well.",
+  "speed": 1
+ },
+ {
+  "id": "ae4eb23b",
+  "voice": "bm_daniel",
+  "text": "Do enjoy your evening.",
+  "speed": 1
+ },
+ {
   "id": "b2a207f8",
   "voice": "bm_daniel",
   "text": "She started it.",
+  "speed": 1
+ },
+ {
+  "id": "b3a5e079",
+  "voice": "bm_daniel",
+  "text": "[chuckles] I shall take that as a yes.",
+  "say": "I shall take that as a yes.",
   "speed": 1
  },
  {
@@ -7530,6 +8771,12 @@
   "speed": 1
  },
  {
+  "id": "c065dcfe",
+  "voice": "bm_daniel",
+  "text": "I say. Bravo.",
+  "speed": 1
+ },
+ {
   "id": "c2948c12",
   "voice": "bm_daniel",
   "text": "Alright, enjoy your night!",
@@ -7539,6 +8786,12 @@
   "id": "c2b3deb0",
   "voice": "bm_daniel",
   "text": "Look at this ceiling. All glass.",
+  "speed": 1
+ },
+ {
+  "id": "c515410c",
+  "voice": "bm_daniel",
+  "text": "Your very good health.",
   "speed": 1
  },
  {
@@ -7587,6 +8840,12 @@
   "id": "d22f54b4",
   "voice": "bm_daniel",
   "text": "I do love casinos.",
+  "speed": 1
+ },
+ {
+  "id": "d4387b66",
+  "voice": "bm_daniel",
+  "text": "Oh, well played.",
   "speed": 1
  },
  {
@@ -7683,6 +8942,12 @@
   "id": "fdbdf47c",
   "voice": "bm_daniel",
   "text": "Ha! When in Vegas. Cheers!",
+  "speed": 1
+ },
+ {
+  "id": "fe6551f0",
+  "voice": "bm_daniel",
+  "text": "Quite. Well, carry on.",
   "speed": 1
  },
  {

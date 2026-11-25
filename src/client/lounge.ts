@@ -1143,7 +1143,7 @@ export class Lounge {
       const ch = characterFor(with_.seed, female);
       const pool = Math.random() < 0.7 ? ch.cheers : CHEERS_LINES;
       const text = pool[Math.floor(Math.random() * pool.length)];
-      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt: guestVoice(with_.seed, female), at: mouthOf(with_), priority: true });
+      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt: voices.pick(text, ch.fallback, guestVoice(with_.seed, female)), at: mouthOf(with_), priority: true });
       this.d.crowd.speak(with_, dur);
     } else if (voices.captions) this.d.hud.say('You', 'Cheers!');
     if (with_) {

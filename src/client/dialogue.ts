@@ -5,7 +5,7 @@ import type { Hud } from './hud';
 import type { Interaction } from './interaction';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Audience, type Ctx, type Exchange, type Node, type Reply } from './dialogueLines';
-import { CONVO_BYE, HUH_LINES, STAFF, guestVoice, sceneVoice, type VoiceId } from './speech';
+import { CONVO_BYE, HUH_LINES, STAFF, sceneVoice, type VoiceId } from './speech';
 import { interpret, vocabulary } from './understand';
 import { characterFor, elVoice, spoken, type Character } from './cast';
 import type { Listener } from './listen';
@@ -197,7 +197,7 @@ export class Dialogue {
       if (!who) return done();
       // Everyone within earshot talks out loud (3D sound does the rest); the
       // crowd quiets under staff, your crew and anyone talking to you.
-      const voice = voices.pick(text, elVoice(this.character(who).id), sceneVoice(s.key, k, isFemale(who)));
+      const voice = voices.pick(text, elVoice(this.character(who).id), this.character(who).fallback, sceneVoice(s.key, k, isFemale(who)));
       const recorded = voices.has(voice, text);
       let dur = voices.duration(voice, text) ?? lineTime(text);
       if (recorded && d < 9) dur = voices.talk({ who: 'Guest', text, voice, at: mouthOf(who), volume: 0.85, captionFallback: false });
@@ -443,7 +443,8 @@ export class Dialogue {
       const a = this.audience(p);
       return a === 'dealer-roulette' ? [elVoice('croupier'), STAFF.croupier] : a === 'dealer-craps' ? [elVoice('stickman'), STAFF.stickman] : [elVoice('dealer'), STAFF.dealer];
     }
-    return [elVoice(this.character(p).id), guestVoice(p.seed, isFemale(p))];
+    const ch = this.character(p);
+    return [elVoice(ch.id), ch.fallback];
   }
 
   /** The regular a guest is played by (their personality and lines). */

@@ -75,7 +75,7 @@ export interface Casino {
    * `setZone` must show/hide the resort's parts as the frame loop's zone culling would for a
    * viewer standing at that spot; `hide` are things never to reflect (people, your own body).
    */
-  captureReflections(setZone: (feet: THREE.Vector3) => void, hide: THREE.Object3D[], only?: EnvZone): Promise<number>;
+  captureReflections(setZone: (feet: THREE.Vector3) => void, hide: THREE.Object3D[], only?: EnvZone, onProgress?: (i: number, n: number, zone: EnvZone) => void): Promise<number>;
 }
 
 /** The areas that get their own captured reflections. */
@@ -699,7 +699,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     doorsOpen: () => doors.open,
     fountainLevel: () => fountains.userData.level as number,
     fountainAnchor: fountains,
-    async captureReflections(setZone, hide, only) {
+    async captureReflections(setZone, hide, only, onProgress) {
       const t0 = performance.now();
       const pmrem = new THREE.PMREMGenerator(renderer);
       // Same size as the HDRI's prefiltered map, so every swap keeps the compiled shaders.
@@ -713,8 +713,11 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
         kc = key.color.clone();
       try {
         (fountains.userData.update as (t: number) => void)(4);
-        for (const zone of Object.keys(ENV_PROBES) as EnvZone[]) {
-          if (only && zone !== only) continue;
+        const zones = (Object.keys(ENV_PROBES) as EnvZone[]).filter((z) => !only || z === only);
+        for (const [i, zone] of zones.entries()) {
+          onProgress?.(i, zones.length, zone);
+          // Let the loading screen redraw between areas.
+          await new Promise((r) => setTimeout(r, 0));
           const p = ENV_PROBES[zone];
           setZone(p);
           // Light the area as it is lit when you're there, reflecting the HDRI on the first bounce.
