@@ -57,13 +57,13 @@ const staffFor: Record<string, string[]> = {
   pool: GUEST_ALL,
   bar: GUEST_ALL,
   bartender: [STAFF.bartender],
-  waiter: [STAFF.waiter],
+  waiter: [STAFF.waiter, STAFF.waitress],
   croupier: [STAFF.dealer],
   'dealer-roulette': [STAFF.croupier],
   'dealer-craps': [STAFF.stickman],
 };
 for (const [aud, nodes] of Object.entries(OPENERS)) for (const n of nodes) for (const v of staffFor[aud]) walk(n, v);
-for (const v of [STAFF.bartender, STAFF.waiter, STAFF.dealer, STAFF.croupier, STAFF.stickman]) {
+for (const v of [STAFF.bartender, STAFF.waiter, STAFF.waitress, STAFF.dealer, STAFF.croupier, STAFF.stickman]) {
   add(v, CONVO_BYE.walkedOff);
   add(v, CONVO_BYE.timedOut);
   for (const t of HUH_LINES) add(v, t);
@@ -182,6 +182,10 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
       for (const n of OPENERS.croupier) walkEl(n, v);
     },
     waiter: (v) => {
+      for (const n of OPENERS.waiter) walkEl(n, v);
+    },
+    // The cocktail waitresses (the same lines in a woman's voice).
+    waitress: (v) => {
       for (const n of OPENERS.waiter) walkEl(n, v);
     },
   };

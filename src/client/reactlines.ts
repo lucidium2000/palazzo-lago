@@ -98,6 +98,12 @@ export const REACTIONS: Record<string, ReactLines> = {
     doused: ["[composed, annoyed] I'll... just fetch a towel, then.", "[sighs] That will not be reflected well in your tip, I imagine.", "Charming. Truly."],
     hit: ['[startled] Oh! Who threw that?', 'Ow! Please, sir!', "[annoyed] We do not throw things in the Palazzo."],
   },
+  waitress: {
+    pushed: ['Oh! Careful, hon, careful!', '[startled] Whoa, mind the tray!', 'Easy there, sweetie.'],
+    punched: ["[cries out] OW! Are you kidding me?!", "[yelling] OUCH! Security! Now!", '[groans] Ow! Oh, you are SO cut off.'],
+    doused: ["[gasps] Seriously?! I just got this dress cleaned!", "[annoyed] Wow. That's coming out of your tip.", "Real classy. Real classy, hon."],
+    hit: ['[startled] Hey! Who threw that?', 'Ow! Watch it!', "[annoyed] Not at the staff, please!"],
+  },
   croupier: {
     pushed: ['Pardon, monsieur.', '[stiffly] Please, keep your distance from the wheel.', 'Careful, s\'il vous plait.'],
     punched: ["[shouting] OW! Mon dieu! Security!", "[yelling] OUCH! This is a disgrace!", '[groans] Ah! You will be escorted out, monsieur!'],

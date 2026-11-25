@@ -2539,6 +2539,12 @@
   "speed": 1
  },
  {
+  "id": "1a91ff1e",
+  "voice": "af_nicole",
+  "text": "Of course. Jump in whenever you like.",
+  "speed": 1
+ },
+ {
   "id": "1c00c679",
   "voice": "af_nicole",
   "text": "Take your time. This place is something else, isn't it?",
@@ -2573,6 +2579,12 @@
   "id": "277e6198",
   "voice": "af_nicole",
   "text": "Somebody's having a night!",
+  "speed": 1
+ },
+ {
+  "id": "27ac9928",
+  "voice": "af_nicole",
+  "text": "Please mind the table.",
   "speed": 1
  },
  {
@@ -2709,6 +2721,20 @@
   "speed": 1
  },
  {
+  "id": "43b40f1a",
+  "voice": "af_nicole",
+  "text": "[cries out] OW! Security! Now, please!",
+  "say": "OW! Security! Now, please!",
+  "speed": 1
+ },
+ {
+  "id": "4585c470",
+  "voice": "af_nicole",
+  "text": "[annoyed] I'm going to need a minute.",
+  "say": "I'm going to need a minute.",
+  "speed": 1
+ },
+ {
   "id": "4683cb50",
   "voice": "af_nicole",
   "text": "That's the guy from before!",
@@ -2796,9 +2822,29 @@
   "speed": 1
  },
  {
+  "id": "642a1257",
+  "voice": "af_nicole",
+  "text": "Not cool. Not cool at all.",
+  "speed": 1
+ },
+ {
   "id": "64e2d600",
   "voice": "af_nicole",
   "text": "That's what I like to hear. Where's the action?",
+  "speed": 1
+ },
+ {
+  "id": "66d48a1c",
+  "voice": "af_nicole",
+  "text": "[groans] Ow! You are done at this table.",
+  "say": "Ow! You are done at this table.",
+  "speed": 1
+ },
+ {
+  "id": "68004cf1",
+  "voice": "af_nicole",
+  "text": "[sighs] Well. That happened.",
+  "say": "Well. That happened.",
   "speed": 1
  },
  {
@@ -2839,10 +2885,23 @@
   "speed": 1
  },
  {
+  "id": "753ee8c1",
+  "voice": "af_nicole",
+  "text": "[firm] Next one gets you escorted out.",
+  "say": "Next one gets you escorted out.",
+  "speed": 1
+ },
+ {
   "id": "75792b3c",
   "voice": "af_nicole",
   "text": "[angry] Excuse me?! Did you throw that at me?",
   "say": "Excuse me?! Did you throw that at me?",
+  "speed": 1
+ },
+ {
+  "id": "762816b7",
+  "voice": "af_nicole",
+  "text": "Oh! Careful, please.",
   "speed": 1
  },
  {
@@ -2907,9 +2966,22 @@
   "speed": 1
  },
  {
+  "id": "89a3beb0",
+  "voice": "af_nicole",
+  "text": "Ten dollars, sir. Five hundred straight up.",
+  "speed": 1
+ },
+ {
   "id": "8d3e044b",
   "voice": "af_nicole",
   "text": "You look like you need a drink. The bar's amazing.",
+  "speed": 1
+ },
+ {
+  "id": "8fa7c68b",
+  "voice": "af_nicole",
+  "text": "[startled] Hey! Not at the table!",
+  "say": "Hey! Not at the table!",
   "speed": 1
  },
  {
@@ -3016,6 +3088,13 @@
   "speed": 1
  },
  {
+  "id": "c40e79cd",
+  "voice": "af_nicole",
+  "text": "[yelling] OUCH! What is wrong with you?!",
+  "say": "OUCH! What is wrong with you?!",
+  "speed": 1
+ },
+ {
   "id": "c59bf1e4",
   "voice": "af_nicole",
   "text": "Perfect, thank you! Maybe see you down there.",
@@ -3056,6 +3135,12 @@
   "id": "cf53755a",
   "voice": "af_nicole",
   "text": "It's Vegas! Late is when it gets good.",
+  "speed": 1
+ },
+ {
+  "id": "cfc6e9ac",
+  "voice": "af_nicole",
+  "text": "Good evening. Welcome to the table. Can I get you some chips?",
   "speed": 1
  },
  {
@@ -3114,6 +3199,18 @@
   "speed": 1
  },
  {
+  "id": "e96c9150",
+  "voice": "af_nicole",
+  "text": "Between us, the house always has an edge. But tonight feels lucky.",
+  "speed": 1
+ },
+ {
+  "id": "ecad7e2a",
+  "voice": "af_nicole",
+  "text": "Ow! Please stop.",
+  "speed": 1
+ },
+ {
   "id": "eccbde41",
   "voice": "af_nicole",
   "text": "Good. That's the only rule that matters.",
@@ -3153,6 +3250,13 @@
   "id": "fbc582f9",
   "voice": "af_nicole",
   "text": "It's worked for thirty years.",
+  "speed": 1
+ },
+ {
+  "id": "fd6b533e",
+  "voice": "af_nicole",
+  "text": "[calm] Easy there.",
+  "say": "Easy there.",
   "speed": 1
  },
  {
@@ -3842,6 +3946,13 @@
   "speed": 1
  },
  {
+  "id": "1699bec9",
+  "voice": "af_river",
+  "text": "[startled] Whoa, mind the tray!",
+  "say": "Whoa, mind the tray!",
+  "speed": 1
+ },
+ {
   "id": "1a2247ac",
   "voice": "af_river",
   "text": "Your loss! It's perfect.",
@@ -3872,6 +3983,19 @@
   "speed": 1
  },
  {
+  "id": "2837f2a1",
+  "voice": "af_river",
+  "text": "Ow! Watch it!",
+  "speed": 1
+ },
+ {
+  "id": "294ffed5",
+  "voice": "af_river",
+  "text": "[annoyed] Wow. That's coming out of your tip.",
+  "say": "Wow. That's coming out of your tip.",
+  "speed": 1
+ },
+ {
   "id": "2a638431",
   "voice": "af_river",
   "text": "You too!",
@@ -3884,9 +4008,28 @@
   "speed": 1
  },
  {
+  "id": "2b0ded1e",
+  "voice": "af_river",
+  "text": "Of course. Let me know if you change your mind.",
+  "speed": 1
+ },
+ {
   "id": "2b1c2225",
   "voice": "af_river",
   "text": "Sold out. We'll find something better.",
+  "speed": 1
+ },
+ {
+  "id": "2b8b585b",
+  "voice": "af_river",
+  "text": "[startled] Hey! Who threw that?",
+  "say": "Hey! Who threw that?",
+  "speed": 1
+ },
+ {
+  "id": "2ce54787",
+  "voice": "af_river",
+  "text": "Champagne, sir? Compliments of the house.",
   "speed": 1
  },
  {
@@ -3977,6 +4120,13 @@
   "id": "57aebd32",
   "voice": "af_river",
   "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "5bf87a7d",
+  "voice": "af_river",
+  "text": "[cries out] OW! Are you kidding me?!",
+  "say": "OW! Are you kidding me?!",
   "speed": 1
  },
  {
@@ -4118,9 +4268,22 @@
   "speed": 1
  },
  {
+  "id": "ac2ca1d6",
+  "voice": "af_river",
+  "text": "Enjoy your evening!",
+  "speed": 1
+ },
+ {
   "id": "af5d11b0",
   "voice": "af_river",
   "text": "Sure thing, my friend.",
+  "speed": 1
+ },
+ {
+  "id": "b01e897f",
+  "voice": "af_river",
+  "text": "[yelling] OUCH! Security! Now!",
+  "say": "OUCH! Security! Now!",
   "speed": 1
  },
  {
@@ -4142,9 +4305,29 @@
   "speed": 1
  },
  {
+  "id": "c6398521",
+  "voice": "af_river",
+  "text": "[groans] Ow! Oh, you are SO cut off.",
+  "say": "Ow! Oh, you are SO cut off.",
+  "speed": 1
+ },
+ {
   "id": "cacb3e51",
   "voice": "af_river",
   "text": "I'm holding you to that!",
+  "speed": 1
+ },
+ {
+  "id": "cb6a79eb",
+  "voice": "af_river",
+  "text": "[annoyed] Not at the staff, please!",
+  "say": "Not at the staff, please!",
+  "speed": 1
+ },
+ {
+  "id": "ce3cd205",
+  "voice": "af_river",
+  "text": "Easy there, sweetie.",
   "speed": 1
  },
  {
@@ -4184,6 +4367,18 @@
   "speed": 1
  },
  {
+  "id": "d9d7d6d8",
+  "voice": "af_river",
+  "text": "Real classy. Real classy, hon.",
+  "speed": 1
+ },
+ {
+  "id": "d9f22a39",
+  "voice": "af_river",
+  "text": "Oh! Careful, hon, careful!",
+  "speed": 1
+ },
+ {
   "id": "db3f8f94",
   "voice": "af_river",
   "text": "Rough night at the tables? Happens to all of us.",
@@ -4205,6 +4400,13 @@
   "id": "e889ffdf",
   "voice": "af_river",
   "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "ed67b037",
+  "voice": "af_river",
+  "text": "[gasps] Seriously?! I just got this dress cleaned!",
+  "say": "Seriously?! I just got this dress cleaned!",
   "speed": 1
  },
  {
@@ -11956,169 +12158,5 @@
   "voice": "bm_george",
   "text": "Twelve, red.",
   "speed": 0.96
- },
- {
-  "id": "00778b36",
-  "voice": "bm_lewis",
-  "text": "Ow! Please stop.",
-  "speed": 1
- },
- {
-  "id": "042c58de",
-  "voice": "bm_lewis",
-  "text": "I have no idea what you just said, but I like your energy.",
-  "speed": 1
- },
- {
-  "id": "0c30aca1",
-  "voice": "bm_lewis",
-  "text": "Alright, enjoy your night!",
-  "speed": 1
- },
- {
-  "id": "0cb6f00b",
-  "voice": "bm_lewis",
-  "text": "Not cool. Not cool at all.",
-  "speed": 1
- },
- {
-  "id": "12ffb4c0",
-  "voice": "bm_lewis",
-  "text": "[groans] Ow! You are done at this table.",
-  "say": "Ow! You are done at this table.",
-  "speed": 1
- },
- {
-  "id": "178c9c93",
-  "voice": "bm_lewis",
-  "text": "Ha, totally. Vegas, am I right?",
-  "speed": 1
- },
- {
-  "id": "2101e6f8",
-  "voice": "bm_lewis",
-  "text": "Good evening. Welcome to the table. Can I get you some chips?",
-  "speed": 1
- },
- {
-  "id": "30df0f25",
-  "voice": "bm_lewis",
-  "text": "[firm] Next one gets you escorted out.",
-  "say": "Next one gets you escorted out.",
-  "speed": 1
- },
- {
-  "id": "34ccec9f",
-  "voice": "bm_lewis",
-  "text": "[startled] Hey! Not at the table!",
-  "say": "Hey! Not at the table!",
-  "speed": 1
- },
- {
-  "id": "424f6073",
-  "voice": "bm_lewis",
-  "text": "Oh! Careful, please.",
-  "speed": 1
- },
- {
-  "id": "53e18d91",
-  "voice": "bm_lewis",
-  "text": "[yelling] OUCH! What is wrong with you?!",
-  "say": "OUCH! What is wrong with you?!",
-  "speed": 1
- },
- {
-  "id": "6b7ed934",
-  "voice": "bm_lewis",
-  "text": "Between us, the house always has an edge. But tonight feels lucky.",
-  "speed": 1
- },
- {
-  "id": "6ef67b37",
-  "voice": "bm_lewis",
-  "text": "Right on. Right on.",
-  "speed": 1
- },
- {
-  "id": "74256934",
-  "voice": "bm_lewis",
-  "text": "Please mind the table.",
-  "speed": 1
- },
- {
-  "id": "7532b310",
-  "voice": "bm_lewis",
-  "text": "Say that again? Actually, never mind. Good luck out there!",
-  "speed": 1
- },
- {
-  "id": "9680137c",
-  "voice": "bm_lewis",
-  "text": "Sure thing, my friend.",
-  "speed": 1
- },
- {
-  "id": "9afaa05d",
-  "voice": "bm_lewis",
-  "text": "Ha! I'll take that as a yes.",
-  "speed": 1
- },
- {
-  "id": "9f0fe842",
-  "voice": "bm_lewis",
-  "text": "Of course. Jump in whenever you like.",
-  "speed": 1
- },
- {
-  "id": "adeb301d",
-  "voice": "bm_lewis",
-  "text": "[sighs] Well. That happened.",
-  "say": "Well. That happened.",
-  "speed": 1
- },
- {
-  "id": "b0014a1a",
-  "voice": "bm_lewis",
-  "text": "[calm] Easy there.",
-  "say": "Easy there.",
-  "speed": 1
- },
- {
-  "id": "c2585294",
-  "voice": "bm_lewis",
-  "text": "[annoyed] I'm going to need a minute.",
-  "say": "I'm going to need a minute.",
-  "speed": 1
- },
- {
-  "id": "c598d288",
-  "voice": "bm_lewis",
-  "text": "You know what? Same.",
-  "speed": 1
- },
- {
-  "id": "d0c41bd4",
-  "voice": "bm_lewis",
-  "text": "No worries. Have a good one!",
-  "speed": 1
- },
- {
-  "id": "e368e4fe",
-  "voice": "bm_lewis",
-  "text": "[cries out] OW! Security! Now, please!",
-  "say": "OW! Security! Now, please!",
-  "speed": 1
- },
- {
-  "id": "e816ac96",
-  "voice": "bm_lewis",
-  "text": "Sorry, it's so loud in here! Anyway.",
-  "speed": 1
- },
- {
-  "id": "ebb864a4",
-  "voice": "bm_lewis",
-  "text": "Ten dollars, sir. Five hundred straight up.",
-  "speed": 1
  }
 ]

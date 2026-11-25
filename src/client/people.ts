@@ -262,12 +262,14 @@ export function poolLook(): Look {
   };
 }
 
-export function staffLook(kind: 'dealer' | 'bar' | 'waiter' | 'pianist'): Look {
+export function staffLook(kind: 'dealer' | 'dealerF' | 'bar' | 'waiter' | 'pianist'): Look {
   const base = randomLook();
   const uniform = { jewel: SILVER, glint: false, shoes: 0x0a0909, shoeSurf: 'leather' as Surface, shirtSurf: 'cotton' as Surface, topSurf: 'wool' as Surface, bottomSurf: 'wool' as Surface };
   const hair = base.hair;
   // Dealers: black waistcoat look, white shirt, the house's burgundy tie.
   if (kind === 'dealer') return { ...base, ...uniform, hair, dress: false, main: 0x14100e, second: 0xf6f2ea, bottom: 0x0e0c0b, accent: 0x5a0e18, accentSurf: 'silk', hairStyle: base.hairStyle === 'long' ? 'bun' : base.hairStyle, kind: 'male_suit', height: 1.8 };
+  // Women dealers (blackjack, poker): the same black waistcoat and burgundy tie, hair up.
+  if (kind === 'dealerF') return { ...base, ...uniform, dress: true, main: 0x14100e, second: 0xf6f2ea, bottom: 0x0e0c0b, accent: 0x5a0e18, accentSurf: 'silk', hairStyle: 'bun', kind: 'female_suit', height: 1.7 };
   // Bartenders: the house burgundy jacket over a white shirt, black trousers.
   if (kind === 'bar') return { ...base, ...uniform, dress: false, main: 0x5a0e18, second: 0xf6f2ea, bottom: 0x0e0c0b, kind: 'female_suit', height: 1.7 };
   if (kind === 'pianist') return { ...base, ...uniform, dress: false, main: 0x0a0a0c, second: 0xf6f4ee, bottom: 0x0a0a0c, accent: 0x08080a, accentSurf: 'satin', shoeSurf: 'patent', kind: 'male_suit', height: 1.8 };

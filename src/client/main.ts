@@ -298,7 +298,7 @@ async function main() {
     bakeStatic(t.group, { shadows: quality.shadows });
     world.addLocalBox(t.group, 0, 0.37, 2.3, 1.36, 'table');
     for (const st of t.seats) world.addSeat(st.pos.x, st.pos.z, SEAT_R, 0.745, st.yaw, 'table stool');
-    const dealer = crowd.add('croupier', staffLook('dealer'), t.dealer.pos, t.dealer.yaw);
+    const dealer = crowd.add('croupier', staffLook('dealerF'), t.dealer.pos, t.dealer.yaw);
     const players: { seat: number; person: Person | null }[] = [];
     for (const k of quality.name === 'quest2' || quality.name === 'mobile' ? [1, 4] : [0, 2, 3, 5]) {
       const st = t.seats[k];
@@ -355,7 +355,7 @@ async function main() {
   scene.add(pokerRoom.interior);
   bakeStatic(pokerRoom.shell, { shadows: quality.shadows });
   bakeStatic(pokerRoom.interior, { shadows: quality.shadows });
-  const pokerDealer = crowd.add('croupier', staffLook('dealer'), pokerRoom.dealer.pos, pokerRoom.dealer.yaw);
+  const pokerDealer = crowd.add('croupier', staffLook('dealerF'), pokerRoom.dealer.pos, pokerRoom.dealer.yaw);
   const pokerGuests = pokerRoom.seats.map((s) => {
     const look = randomLook();
     const p = crowd.add('patron', look, s.pos, s.yaw);

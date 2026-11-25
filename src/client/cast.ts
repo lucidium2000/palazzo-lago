@@ -393,6 +393,7 @@ export const SPEAKERS: { id: string; name: string; bio: string; voiceHint: strin
   { id: 'croupier', name: 'Laurent', bio: 'The roulette croupier: elegant, precise, a touch of Monte Carlo.', voiceHint: 'man, refined, calm, slight French accent, crisp announcer' },
   { id: 'stickman', name: 'Benny', bio: 'The craps stickman: fast-talking, rhythmic, pure hype.', voiceHint: 'man, Brooklyn accent, energetic, fast, rhythmic, carnival barker' },
   { id: 'dealer', name: 'Grace', bio: 'Blackjack dealer: friendly, professional, unflappable.', voiceHint: 'woman, professional, friendly, clear American' },
+  { id: 'waitress', name: 'Mia', bio: 'Cocktail waitress: bright, quick, warm, a little flirty with the regulars.', voiceHint: 'woman in her twenties, bright, warm, friendly, upbeat American' },
   { id: 'waiter', name: 'Theo', bio: 'Cocktail server: polished, charming, discreet.', voiceHint: 'young man, polished, charming, soft British or neutral American' },
   { id: 'crew_rocco', name: 'Rocco', bio: "Your crew's loud leader: big laugh, big heart, always hyping you up.", voiceHint: 'man in his thirties, loud, booming, Boston or Chicago, big laugh' },
   { id: 'crew_dev', name: 'Dev', bio: "Your crew's joker: sarcastic, quick, roasts everyone with love.", voiceHint: 'man in his thirties, dry sarcastic humour, quick, American' },

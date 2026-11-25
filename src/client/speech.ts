@@ -12,9 +12,10 @@ export type VoiceId = string;
 export const STAFF = {
   croupier: 'bm_george', // roulette
   stickman: 'am_puck', // craps
-  dealer: 'bm_lewis', // blackjack and other dealers
+  dealer: 'af_nicole', // blackjack, poker and other dealers (Grace)
   bartender: 'af_bella',
   waiter: 'bm_fable',
+  waitress: 'af_river',
 } as const;
 
 export const CREW_VOICES: VoiceId[] = ['am_michael', 'am_fenrir', 'am_eric'];

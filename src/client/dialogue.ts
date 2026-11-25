@@ -505,7 +505,7 @@ export class Dialogue {
   /** A person's voices: their own (ElevenLabs) first, then the stand-in recorded before it. */
   voicesOf(p: Person): [VoiceId, VoiceId] {
     if (p.role === 'bartender') return [elVoice('bartender'), STAFF.bartender];
-    if (p.role === 'waiter') return [elVoice('waiter'), STAFF.waiter];
+    if (p.role === 'waiter') return isFemale(p) ? [elVoice('waitress'), STAFF.waitress] : [elVoice('waiter'), STAFF.waiter];
     if (p.role === 'croupier') {
       const a = this.audience(p);
       return a === 'dealer-roulette' ? [elVoice('croupier'), STAFF.croupier] : a === 'dealer-craps' ? [elVoice('stickman'), STAFF.stickman] : [elVoice('dealer'), STAFF.dealer];

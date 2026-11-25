@@ -63,7 +63,8 @@ export class Crew {
     ];
     const start = player.feet();
     names.forEach((name, i) => {
-      const look = { ...lookFor(), ...LOOKS[i], dress: false, height: 1.76 + i * 0.04 };
+      // The boys are men (their voices are): never a gown from the random look.
+      const look = { ...lookFor(), ...LOOKS[i], kind: (['male_suit', 'male_casual_2', 'male_suit'] as const)[i % 3], dress: false, height: 1.76 + i * 0.04 };
       const p = crowd.add('buddy', look, start.clone().add(new THREE.Vector3(slots[i][0], 0, slots[i][1])), player.rig.rotation.y);
       if (!p) return;
       const b: Buddy = { person: p, name, slot: slots[i], voiceId: CREW_VOICES[i % CREW_VOICES.length], ...tones[i] };
