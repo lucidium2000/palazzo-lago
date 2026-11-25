@@ -233,7 +233,7 @@ export class DrinkPhysics {
       if (q.culled) continue;
       const dx = p.x - q.pos.x,
         dz = p.z - q.pos.z;
-      if (dx * dx + dz * dz > 0.2 * 0.2) continue;
+      if (dx * dx + dz * dz > 0.26 * 0.26) continue;
       const top = q.pos.y + (q.seated ? 1.35 : 1.85 * (q.look.height / 1.8));
       if (p.y < top && p.y > q.pos.y + 0.3) return q;
     }

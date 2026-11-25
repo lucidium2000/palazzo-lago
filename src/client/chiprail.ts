@@ -148,6 +148,8 @@ export class ChipRail {
       opts.interaction.register({
         object: hit,
         kind: 'surface',
+        // VR: tap a stack with a fingertip to choose that chip (then tap a bet to place it).
+        pokeable: true,
         enabled: () => g.visible,
         label: (e) => `Bet ${money(which(e.local.x))} chips`,
         onSelect: (e) => {

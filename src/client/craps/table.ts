@@ -110,6 +110,8 @@ export class CrapsTable {
     ctx.interaction.register({
       object: this.felt,
       kind: 'surface',
+      // VR: tap a bet with your fingertip to put the chosen chip there (tap a rail stack to choose).
+      pokeable: true,
       enabled: () => this.phase === 'betting',
       label: (e) => {
         const id = this.betFor(this.regionFromLocal(e.local));
@@ -406,9 +408,9 @@ export class CrapsTable {
       ctx.textAlign = 'left';
       ctx.font = `italic 30px ${SERIF}`;
       ctx.fillStyle = '#a99670';
-      ctx.fillText('Your chips are on the rail below: pick some up', 40, 150);
-      ctx.fillText('and set them down on a bet. Pick a bet back up', 40, 192);
-      ctx.fillText('to take it down.', 40, 234);
+      ctx.fillText('Tap a chip stack on the rail, then tap a bet to', 40, 150);
+      ctx.fillText('place it. Or pick chips up and set them down on', 40, 192);
+      ctx.fillText('a bet. Pick a bet back up to take it down.', 40, 234);
     };
     const btn = (id: string, x: number, label: string, onPress: () => void, enabled: () => boolean) => p.add({ id, x, y: 270, w: 200, h: 110, label, onPress, enabled });
     btn('undo', 40, 'Undo', () => this.undo(), () => this.canUndo);
@@ -479,6 +481,12 @@ export class CrapsTable {
       p.x = want;
       this.panel.mesh.position.x = want + PANEL_FROM_RAIL;
     }
+  }
+
+  /** Are you standing at the table's rail (anywhere along it, not only at the shooter's spot)? */
+  atRail(feet: THREE.Vector3): boolean {
+    const l = this.group.worldToLocal(feet.clone());
+    return Math.abs(l.x) < OUT.w / 2 + 0.8 && Math.abs(l.z) < OUT.d / 2 + 0.8;
   }
 
   /** Picks one of your bets back up off the layout (if the rules let it come down). Returns what came back. */

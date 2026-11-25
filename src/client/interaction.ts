@@ -18,6 +18,8 @@ export interface SelectEvent {
 export interface Interactable {
   object: THREE.Object3D;
   kind?: 'button' | 'surface' | 'floor';
+  /** A surface you can tap with a fingertip (e.g. a betting layout): pokes reach it whatever its size. */
+  pokeable?: boolean;
   onSelect?(e: SelectEvent): void;
   onHover?(e: SelectEvent | null): void;
   enabled?(): boolean;
@@ -273,7 +275,9 @@ export class Interaction {
       const dir = move.divideScalar(len);
       // Buttons and panels near the fingertip only.
       const near = this.items.filter((i) => {
-        if (i.kind === 'surface' || i.kind === 'floor' || !i.object.visible || !(i.enabled?.() ?? true)) return false;
+        if (!i.object.visible || !(i.enabled?.() ?? true)) return false;
+        if (i.pokeable) return true;
+        if (i.kind === 'surface' || i.kind === 'floor') return false;
         // Big things (a whole counter, a table) aren't buttons to poke.
         const r = (i.object.userData.pokeR ??= new THREE.Box3().setFromObject(i.object).getBoundingSphere(new THREE.Sphere()).radius) as number;
         if (r > 0.8) return false;

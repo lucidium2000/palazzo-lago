@@ -1586,7 +1586,7 @@ async function main() {
     const feet = player.feet();
 
     // Which game are you at? Sitting, or standing close in VR / free mode.
-    const at = player.seated?.id ?? nearestSeat(player.inXR ? 1.6 : 1.3)?.vp.id ?? null;
+    const at = player.seated?.id ?? nearestSeat(player.inXR ? 1.6 : 1.3)?.vp.id ?? (player.inXR && craps.atRail(feet) ? 'craps' : null);
     if (at !== hud.station) hud.setStation(at);
     if (!player.inXR) {
       let label = interaction.hoverLabel();
