@@ -58,6 +58,9 @@ import { elVoice } from './cast';
 import { DrinkSync } from './net/drinksync';
 import { LooseObjects } from './loose';
 import { LooseSync } from './net/loosesync';
+import { Party } from './party';
+import { renderPartyTrack } from './party/track';
+import { DJ } from './areas/pool';
 import { Boxing } from './net/boxing';
 import { BUMP_LINES, Bodies, friendShove } from './bodies';
 
@@ -474,6 +477,23 @@ async function main() {
 
   // The pool party has its own share of the crowd (see Crowd: it's out of sight of the floor and vice versa).
   areas.populate(crowd);
+  // The DJ's set, the beat, the lights and the dancing (party/index.ts).
+  const party = new Party({
+    scene,
+    renderer,
+    camera,
+    sound,
+    crowd,
+    dj: DJ,
+    lights: areas.pool.party,
+    poles: [
+      [42, -34],
+      [58, -34],
+    ],
+    dancers: areas.dancers,
+    where: (p) => areas.where(p),
+    toast: (t) => hud.toast(t, 'info'),
+  });
 
   // A living floor: friends chatting in circles (drinks in hand), people snapping
   // photos of the glass ceiling and the fountains, and pairs strolling together.
@@ -827,6 +847,7 @@ async function main() {
     drinkSync = new DrinkSync(session, lounge, scene, (c) => drinkPhysics.soaked(c));
     looseSync?.dispose();
     looseSync = new LooseSync(session, loose, scene);
+    party.connect(session);
     bjSync?.dispose();
     bjSync = new BlackjackSync(session, blackjacks);
     (window as unknown as { casino: Record<string, unknown> }).casino.bjSync = bjSync;
@@ -935,6 +956,7 @@ async function main() {
   hands.posed.left.root.userData.noLand = true;
   hands.posed.right.root.userData.noLand = true;
   selfBody.onSkin = (c) => hands.setSkin(c);
+  selfBody.onDance = (rig, yaw, dt) => party.danceSelf(rig, yaw, dt);
   selfBody.setAvatar(me.avatar);
   const fingerPoses = () => {
     const gp = (side: string) => interaction.gamepads().find((g) => g.handedness === side)?.gamepad;
@@ -1305,7 +1327,7 @@ async function main() {
         hands.poseHands(fingerPoses());
         const head = camera.getWorldPosition(new THREE.Vector3());
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
-        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.swimming ? Math.max(player.speed, player.swimSpeed) : player.speed, swim: player.swimming ? 1 : 0, seat: player.stool });
+        selfBody.update(dt, { on, head, dir, floorY: player.rig.position.y, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.swimming ? Math.max(player.speed, player.swimSpeed) : player.speed, swim: player.swimming ? 1 : 0, seat: player.stool, eyeY: party.selfEye(head.y) });
       } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, poses: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose }, speed: 0 });
     }
     for (const m of machines) m.update(dt);
@@ -1345,6 +1367,18 @@ async function main() {
     drinkPhysics.update(dt);
     loose.update(dt);
     bodies.update(dt);
+    party.update(dt, {
+      feet,
+      head,
+      hands: player.inXR ? { l: hands.wrist('left'), r: hands.wrist('right') } : null,
+      xr: player.inXR,
+      dancingAllowed: !player.seated && !player.stool && !player.swimming,
+    });
+    {
+      const db = party.deskBob();
+      player.danceBob = db.bob;
+      player.danceRoll = db.roll;
+    }
     crowd.update(dt, t, feet, head);
     faces.update(dt, t, crowd.people, head);
     beachBalls.update(dt);
@@ -1431,7 +1465,8 @@ async function main() {
     sound.setAmbience(1 - outside * 0.75);
     // Music: lively on the floor, softer by the piano and outside.
     const byPiano = THREE.MathUtils.clamp(1 - feet.distanceTo(lounge.piano.position) / 7, 0, 1);
-    sound.setMusicLevel(Math.max(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8), 0.45 * areas.musicLevel(feet)));
+    // Out at the pool party the DJ takes over: the casino's groove ducks out.
+    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence));
     if (outside > 0.5) {
       if (!finaleSeen && casino.fountainLevel() > 0.8) {
         finaleSeen = true;
@@ -1462,7 +1497,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera };
+  (window as unknown as { casino: unknown }).casino = { party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera };
 }
 
 main().catch((e) => {

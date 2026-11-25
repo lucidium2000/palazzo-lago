@@ -8,7 +8,7 @@ import type { World } from '../world';
 import { Elevators, type LandingId } from './elevators';
 import { buildHotel, CORR, LOBBY, LOBBY_CARS, registerHotel } from './hotel';
 import { mats } from './kit';
-import { buildPool, DECK, LIFT, registerPool } from './pool';
+import { buildPool, DECK, LIFT, registerPool, type PoolArea } from './pool';
 import { populatePool } from './poolguests';
 import { buildSuite, registerSuite, SUITE, SUITE_CAR } from './suite';
 
@@ -86,6 +86,10 @@ export interface Areas {
   populate(crowd: Crowd): Person[];
   where(feet: THREE.Vector3): 'casino' | 'hotel' | 'pool' | 'suite';
   elevators: Elevators;
+  /** The pool deck (the party's lights drive its water and LED wall). */
+  pool: PoolArea;
+  /** The guests on the dance floor (filled by populate). */
+  dancers: Person[];
 }
 
 export function buildAreas(deps: {
@@ -101,6 +105,7 @@ export function buildAreas(deps: {
   const m = mats(q);
   buildHotel(scene, q, m);
   const pool = buildPool(scene, q, m);
+  const dancers: Person[] = [];
   buildSuite(scene, q, m);
   // Night mood: the areas' materials carried a lot of self-lighting ("emissive fill") so
   // they read without lamps; the hemisphere fill now does that per zone, so keep only
@@ -154,6 +159,8 @@ export function buildAreas(deps: {
       lifts.update(dt);
       pool.update(t);
     },
+    pool,
+    dancers,
     musicLevel(f) {
       if (where(f) !== 'pool') return 0;
       const d = Math.hypot(f.x - 50, f.z + 31);
@@ -163,7 +170,7 @@ export function buildAreas(deps: {
       return where(f) === 'pool' ? 1 : 0;
     },
     populate(crowd) {
-      return populatePool(crowd, pool);
+      return populatePool(crowd, pool, dancers);
     },
   };
 }

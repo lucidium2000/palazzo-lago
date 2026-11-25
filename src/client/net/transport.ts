@@ -67,6 +67,8 @@ export interface PlayerState {
   rf?: string;
   /** Chips won (+) or lost (−) tonight. */
   nt?: number;
+  /** Dancing: move × 10 + how much (1-9); move 0 = legs only (a VR player's real hands do the arms). */
+  dn?: number;
   /** Acks: for each friend (their id), the last event number handled from them. */
   a?: Record<string, number>;
   /** Host only: the colour slot of each guest (by id); the host is slot 0. */

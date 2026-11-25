@@ -47,8 +47,9 @@ export function loungerSpots(): { x: number; z: number; yaw: number }[] {
 
 /** An umbrella beside every fourth lounger. */
 function umbrellaSpots(): [number, number][] {
+  // (Not the one by the DJ: that's the dance floor's edge.)
   return loungerSpots()
-    .filter((_, i) => i % 4 === 0)
+    .filter((s, i) => i % 4 === 0 && !(s.x > DJ.x - 3 && s.yaw === 0))
     .map((s) => [s.x + 1.3, s.z + (s.yaw === 0 ? -1.2 : 1.2)]);
 }
 
@@ -140,6 +141,8 @@ export interface PoolArea {
   /** A pair chatting on the deck. */
   chats: { pos: THREE.Vector3; yaw: number }[];
   bartender: { pos: THREE.Vector3; yaw: number };
+  /** What the party's lights drive: the water's and the basin's colour, the deck glow, the LED wall. */
+  party: { water: THREE.ShaderMaterial; led: THREE.ShaderMaterial; tile: THREE.MeshStandardMaterial; floor: THREE.MeshStandardMaterial; glow: THREE.MeshBasicMaterial };
 }
 
 export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
@@ -215,8 +218,9 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     [P.x + P.w / 2, P.z, 0.05, P.d],
   ]) b.box(tile, x, -1.07, z, w, 2.14, d);
   // Floor following the depth profile (shallow end, a smooth slope, the deep end).
+  const poolFloorMat = new THREE.MeshStandardMaterial({ color: 0x2aa0c8, roughness: 0.4, emissive: 0x0c7fa8, emissiveIntensity: 0.9 });
   {
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2aa0c8, roughness: 0.4, emissive: 0x0c7fa8, emissiveIntensity: 0.9 });
+    const floorMat = poolFloorMat;
     const fg = new THREE.PlaneGeometry(P.w, P.d, 36, 1);
     fg.rotateX(-Math.PI / 2);
     const fp = fg.attributes.position as THREE.BufferAttribute;
@@ -255,9 +259,9 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     for (let k = 0; k < 4; k++) b.box(chrome, LADDER.x - 0.1, -0.25 - k * 0.32, LADDER.z, 0.06, 0.03, 0.56);
   }
   // The lit water throws turquoise light onto the deck around it.
+  const poolGlow = new THREE.MeshBasicMaterial({ map: toTexture(radial(128, 'rgba(255,255,255,0.45)', 'rgba(255,255,255,0)')), color: 0x3cc8e6, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
   {
-    const glowTex = toTexture(radial(128, 'rgba(60,200,230,0.45)', 'rgba(20,120,160,0)'));
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(POOL.w + 7, POOL.d + 7), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(POOL.w + 7, POOL.d + 7), poolGlow);
     glow.rotation.x = -Math.PI / 2;
     glow.position.set(POOL.x, 0.015, POOL.z);
     glow.raycast = () => {};
@@ -375,7 +379,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     stools.push({ pos: new THREE.Vector3(x, 0, z), yaw, seatY: 0.74 });
   }
 
-  // DJ booth with an LED wall and moving beams.
+  // DJ booth with an LED wall (the moving beams, lasers and dance floor are the party's: party/lights.ts).
   b.box(m.darkMarble, DJ.x, 0.3, DJ.z - 0.3, 6, 0.6, 2.6);
   b.box(new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3 }), DJ.x, 1.0, DJ.z + 0.5, 2.4, 0.9, 0.7);
   for (const s of [-1, 1]) b.box(new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.5 }), DJ.x + s * 2.6, 1.4, DJ.z - 0.5, 0.9, 2.2, 0.8);
@@ -384,16 +388,6 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   led.position.set(DJ.x, 2.2, DJ.z - 1.55);
   led.raycast = () => {};
   root.add(led);
-  const beamMat = new THREE.MeshBasicMaterial({ color: 0x66aaff, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-  const beams: THREE.Mesh[] = [];
-  const beamGeo = new THREE.ConeGeometry(0.9, 14, 16, 1, true).translate(0, -7, 0).rotateX(Math.PI);
-  for (let k = 0; k < 4; k++) {
-    const beam = new THREE.Mesh(beamGeo, beamMat.clone());
-    beam.position.set(DJ.x - 2.2 + k * 1.45, 3.7, DJ.z - 1.2);
-    beam.raycast = () => {};
-    root.add(beam);
-    beams.push(beam);
-  }
   const djSign = textSign('Pool Party', { width: 3.2, px: 130, sub: 'DJ  ·  TONIGHT', bg: 'rgba(10,4,20,0.85)' });
   djSign.position.set(DJ.x, 4.2, DJ.z - 1.5);
   root.add(djSign);
@@ -505,11 +499,8 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     update(t: number) {
       waterMat.uniforms.time.value = t;
       ledMat.uniforms.time.value = t;
-      beams.forEach((beam, k) => {
-        beam.rotation.set(Math.sin(t * 0.7 + k) * 0.6, 0, Math.cos(t * 0.9 + k * 1.3) * 0.5);
-        (beam.material as THREE.MeshBasicMaterial).color.setHSL((t * 0.08 + k * 0.25) % 1, 0.9, 0.6);
-      });
     },
+    party: { water: waterMat, led: ledMat, tile, floor: poolFloorMat, glow: poolGlow },
   };
 }
 
@@ -519,12 +510,15 @@ function waterMaterial() {
     transparent: true,
     side: THREE.DoubleSide,
     depthWrite: false,
-    uniforms: { time: { value: 0 } },
+    // tint / tintAmt: the party's underwater lights shifting colour (party/lights.ts).
+    uniforms: { time: { value: 0 }, tint: { value: new THREE.Color(0.1, 0.7, 0.9) }, tintAmt: { value: 0 } },
     vertexShader: /* glsl */ `
       varying vec3 vW;
       void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: /* glsl */ `
       uniform float time;
+      uniform vec3 tint;
+      uniform float tintAmt;
       varying vec3 vW;
       void main() {
         vec2 p = vW.xz * 1.3;
@@ -536,6 +530,7 @@ function waterMaterial() {
         vec3 deep = vec3(0.02, 0.32, 0.52);
         vec3 shallow = vec3(0.12, 0.78, 0.9);
         vec3 body = mix(deep, shallow, 0.55 + 0.15 * sin(c)) + caustic * vec3(0.5, 0.8, 0.85);
+        body = mix(body, tint * (0.75 + 0.25 * sin(c)) + caustic * tint * 0.9, tintAmt);
         // Ripple normal from the same wave field, then a Fresnel mix with the night sky.
         vec3 n = normalize(vec3(cos(p.x * 2.1 + time * 1.3) * 0.08, 1.0, cos(p.y * 2.6 - time * 1.1) * 0.08));
         vec3 v = normalize(cameraPosition - vW);
@@ -555,16 +550,19 @@ function waterMaterial() {
 /** Animated LED wall behind the DJ: sweeping colour bars and an equaliser. */
 function ledMaterial() {
   return new THREE.ShaderMaterial({
-    uniforms: { time: { value: 0 } },
+    // pulse / level: the equaliser jumps with the kick and follows the music's intensity (party/lights.ts).
+    uniforms: { time: { value: 0 }, pulse: { value: 0 }, level: { value: 0.6 } },
     vertexShader: /* glsl */ `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: /* glsl */ `
       uniform float time;
+      uniform float pulse;
+      uniform float level;
       varying vec2 vUv;
       vec3 hue(float h) { return clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0); }
       void main() {
         float bars = floor(vUv.x * 24.0);
-        float level = 0.35 + 0.35 * sin(time * 3.0 + bars * 0.7) * sin(time * 1.7 + bars * 0.31) + 0.2 * sin(time * 8.0 + bars);
-        float lit = step(vUv.y, level) * step(0.15, fract(vUv.x * 24.0));
+        float lv = (0.2 + 0.3 * level) + 0.3 * sin(time * 3.0 + bars * 0.7) * sin(time * 1.7 + bars * 0.31) + 0.15 * sin(time * 8.0 + bars) + pulse * 0.35 * (1.0 - abs(bars - 11.5) / 12.0);
+        float lit = step(vUv.y, lv) * step(0.15, fract(vUv.x * 24.0));
         vec3 col = hue(fract(bars / 24.0 + time * 0.05)) * lit * 1.6;
         col += hue(fract(time * 0.1 + vUv.y)) * 0.08;
         gl_FragColor = vec4(col, 1.0);
