@@ -91,8 +91,32 @@ export class Drink {
   }
   /** The drink's colour. */
   get color() {
-    return this.kind.liquid;
+    return this.mixed ?? this.kind.liquid;
   }
+  /** What's in it after pouring something else in (a mix of colours), if anything was. */
+  private mixed: number | null = null;
+
+  /**
+   * Pours some of another drink in (glass-fulls): the level rises and the colour mixes by how much
+   * of each is in there. Returns how much fitted (the rest runs over the rim).
+   */
+  addLiquid(amount: number, color: number): number {
+    const room = Math.max(0, 1 - this.level);
+    const add = Math.min(room, amount);
+    if (add <= 0) return 0;
+    const was = this.level;
+    const c = this.level > 0.02 ? new THREE.Color(this.color).lerp(new THREE.Color(color), add / (was + add)) : new THREE.Color(color);
+    this.mixed = c.getHex();
+    const m = this.liquid.material as THREE.MeshPhysicalMaterial;
+    if (!this.ownLiquid) {
+      this.liquid.material = m.clone();
+      this.ownLiquid = true;
+    }
+    (this.liquid.material as THREE.MeshPhysicalMaterial).color.copy(c);
+    this.setLevel(was + add);
+    return add;
+  }
+  private ownLiquid = false;
   private liquid: THREE.Mesh;
   private liquidTop: number;
   private liquidBottom: number;

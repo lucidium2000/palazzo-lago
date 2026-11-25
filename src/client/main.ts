@@ -34,7 +34,7 @@ import { money, type GameContext } from './game';
 import { Hands } from './hands';
 import { Hud, type NavItem } from './hud';
 import { Interaction } from './interaction';
-import { Lounge } from './lounge';
+import { Drink, Lounge } from './lounge';
 import { BAR as POOL_BAR } from './areas/pool';
 import { Crowd, POSE, randomLook, staffLook, type Person } from './people';
 import { saveComfort, Player, type Viewpoint } from './player';
@@ -1812,7 +1812,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { Drink, hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
 }
 
 main().catch((e) => {

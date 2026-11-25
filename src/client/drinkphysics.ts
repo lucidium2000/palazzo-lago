@@ -19,6 +19,9 @@ import type { World } from './world';
  */
 
 interface Drop {
+  /** How much drink it carries (glass-fulls) and where it came from (it can't land back in there). */
+  amt?: number;
+  src?: object;
   p: THREE.Vector3;
   v: THREE.Vector3;
   color: THREE.Color;
@@ -65,6 +68,7 @@ const SMASH_SPEED = 3.2;
 
 export class DrinkPhysics {
   private drops: Drop[] = [];
+  private tq = new THREE.Quaternion();
   private mesh: THREE.InstancedMesh;
   private tmp = new THREE.Object3D();
   private pairCool = new Map<string, number>();
@@ -171,7 +175,7 @@ export class DrinkPhysics {
       const v = side.clone().multiplyScalar(0.25 + Math.random() * 0.15).add(new THREE.Vector3((Math.random() - 0.5) * 0.08, -0.2, (Math.random() - 0.5) * 0.08));
       const hv = this.d.throwables.velocityOf(dr.group);
       if (hv) v.add(hv);
-      this.drops.push({ p: rim.clone().addScaledVector(v, Math.random() * dt), v, color, landY, t: 0, mine });
+      this.drops.push({ p: rim.clone().addScaledVector(v, Math.random() * dt), v, color, landY, t: 0, mine, amt: ((rate * dt) / n) * (dr.capacity ?? 1), src: dr });
     }
     if (Math.random() < dt * 4) this.d.sound.play('pour', rim, { volume: 0.25 + tilt * 0.3, rate: 1.2 });
   }
@@ -189,10 +193,40 @@ export class DrinkPhysics {
     const h = Math.min(dt, 0.05);
     let k = 0;
     const eye = this.d.camera.getWorldPosition(new THREE.Vector3());
+    // Glasses standing upright that a pour can land in (their mouths, this frame).
+    const mouths: { dr: Drink; c: THREE.Vector3; r: number }[] = [];
+    if (this.drops.length) {
+      const up = new THREE.Vector3();
+      for (const dr of Drink.all) {
+        if (dr.remote || !dr.group.parent || dr.level >= 0.999) continue;
+        up.set(0, 1, 0).applyQuaternion(dr.group.getWorldQuaternion(this.tq));
+        if (up.y < 0.75) continue;
+        mouths.push({ dr, c: dr.group.localToWorld(new THREE.Vector3(0, dr.rimHeight, 0)), r: dr.rimRadius * 0.95 });
+      }
+    }
     for (const dp of this.drops) {
       dp.t += dt;
       dp.v.y -= 9.81 * h;
+      const prevY = dp.p.y;
       dp.p.addScaledVector(dp.v, dt);
+      // Into another glass: it fills up, and the colours mix.
+      if (dp.amt && dp.v.y < 0) {
+        let caught = false;
+        for (const m of mouths) {
+          if (m.dr === dp.src || prevY < m.c.y - 0.02 || dp.p.y > m.c.y) continue;
+          const dx = dp.p.x - m.c.x,
+            dz = dp.p.z - m.c.z;
+          if (dx * dx + dz * dz > m.r * m.r) continue;
+          const took = m.dr.addLiquid(dp.amt, dp.color.getHex());
+          if (took > 0) {
+            dp.t = 99;
+            caught = true;
+            if (Math.random() < 0.15) this.d.sound.play('pour', m.c, { volume: 0.15, rate: 1.2 + Math.random() * 0.3 });
+          }
+          break;
+        }
+        if (caught) continue;
+      }
       // On someone? (heads and shoulders first)
       const who = this.personAt(dp.p);
       if (who) {
