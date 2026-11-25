@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Comfort } from './player';
 import { money } from './game';
 import type { Hud, NavItem } from './hud';
 import type { Interaction } from './interaction';
@@ -36,6 +37,8 @@ export interface VrMenuDeps {
   toggleSound(): void;
   musicOn(): boolean;
   soundOn(): boolean;
+  comfort(): Comfort;
+  setComfort(c: Partial<Comfort>): void;
   captionsOn(): boolean;
   toggleCaptions(): void;
   resetChips(): void;
@@ -139,12 +142,20 @@ export class VrMenu {
         ['music', () => (d.musicOn() ? 'Music on' : 'Music off'), () => d.toggleMusic()],
         ['sound', () => (d.soundOn() ? 'Sound on' : 'Sound off'), () => d.toggleSound()],
         ['captions', () => (d.captionsOn() ? 'Captions on' : 'Captions off'), () => d.toggleCaptions()],
+        ['turn', () => (d.comfort().smoothTurn ? 'Turning: smooth' : 'Turning: snap'), () => d.setComfort({ smoothTurn: !d.comfort().smoothTurn })],
+        ['tspeed', () => (d.comfort().smoothTurn ? `Turn speed: ${['slow', 'medium', 'fast'][speedIx(d.comfort().turnSpeed)]}` : `Snap: ${Math.round((d.comfort().snapAngle * 180) / Math.PI)}°`), () => {
+          const c = d.comfort();
+          if (c.smoothTurn) d.setComfort({ turnSpeed: [1.4, 2.2, 3.2][(speedIx(c.turnSpeed) + 1) % 3] });
+          else d.setComfort({ snapAngle: Math.abs(c.snapAngle - Math.PI / 6) < 0.01 ? Math.PI / 4 : Math.abs(c.snapAngle - Math.PI / 4) < 0.01 ? Math.PI / 8 : Math.PI / 6 });
+        }],
+        ['vignette', () => (d.comfort().vignette ? 'Comfort vignette: on' : 'Comfort vignette: off'), () => d.setComfort({ vignette: !d.comfort().vignette })],
+        ['lasers', () => (d.comfort().lasers ? 'Laser pointers: on' : 'Hands only (no lasers)'), () => d.setComfort({ lasers: !d.comfort().lasers })],
         ['help', () => 'Help', () => this.toggleHelp()],
         ['reset', () => 'Reset chips', () => d.resetChips()],
         ['exit', () => 'Exit VR', () => d.exitVR()],
       ];
       items.forEach(([id, label, fn], i) =>
-        w.add({ id, x: 40, y: 218 + i * 92, w: w.pxW - 80, h: 78, label, onPress: () => {
+        w.add({ id, x: col(i), y: 218 + Math.floor(i / 2) * 84, w: cw(), h: 72, label, onPress: () => {
           fn();
           this.build();
         } }),
@@ -288,4 +299,8 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): strin
   }
   if (line) lines.push(line);
   return lines;
+}
+
+function speedIx(v: number) {
+  return v < 1.8 ? 0 : v < 2.7 ? 1 : 2;
 }

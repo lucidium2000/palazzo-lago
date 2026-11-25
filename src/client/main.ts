@@ -28,7 +28,7 @@ import { Hud, type NavItem } from './hud';
 import { Interaction } from './interaction';
 import { Lounge } from './lounge';
 import { Crowd, POSE, randomLook, staffLook, type Person } from './people';
-import { Player, type Viewpoint } from './player';
+import { saveComfort, Player, type Viewpoint } from './player';
 import { detectTier } from './quality';
 import { WHEEL_CENTER } from './roulette/layout';
 import { RouletteTable } from './roulette/table';
@@ -719,6 +719,25 @@ async function main() {
     { vr: vrCapable },
   );
   // --- Your own body in VR ------------------------------------------------------
+  // Touch to press (VR): a pointing index finger presses buttons and menu panels it pushes into.
+  interaction.pokers = () => {
+    if (!player.inXR) return [];
+    const poses = fingerPoses();
+    const out: { id: 'left' | 'right'; tip: THREE.Vector3; extended: boolean }[] = [];
+    for (const side of ['left', 'right'] as const) {
+      const tip = hands.fingertip(side);
+      if (tip) out.push({ id: side, tip, extended: poses[side === 'left' ? 'l' : 'r'][1] < 0.45 });
+    }
+    return out;
+  };
+  interaction.lasersOn = () => player.comfort.lasers;
+  interaction.onPoke = (side) => {
+    for (const { handedness, gamepad } of interaction.gamepads()) {
+      if (handedness !== side) continue;
+      (gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(0.35, 25);
+    }
+    sound.playLocal('click', 0.35);
+  };
   // VR swimming: your hands' motion drives your strokes (grip positions are in the rig's frame).
   player.strokes = () => {
     if (!player.inXR) return [];
@@ -789,6 +808,11 @@ async function main() {
     toggleSound: () => document.getElementById('sound')!.click(),
     musicOn: () => document.getElementById('music')!.textContent === 'Music on',
     soundOn: () => !sound.muted,
+    comfort: () => player.comfort,
+    setComfort: (c) => {
+      Object.assign(player.comfort, c);
+      saveComfort(player.comfort);
+    },
     captionsOn: () => voices.captions,
     toggleCaptions: () => document.getElementById('captions')!.click(),
     resetChips: () => document.getElementById('reset')!.click(),

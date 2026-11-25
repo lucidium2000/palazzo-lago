@@ -65,6 +65,16 @@ export class Hands {
     return !!hs?.joints?.['wrist']?.visible;
   }
 
+  /** Your index fingertip (world), from hand tracking or the hand on the controller. */
+  fingertip(side: 'left' | 'right'): THREE.Vector3 | null {
+    const hs = this.handSpace(side) as (THREE.Object3D & { joints?: Record<string, THREE.Object3D> }) | undefined;
+    const j = hs?.joints?.['index-finger-tip'];
+    if (j?.visible) return j.getWorldPosition(new THREE.Vector3());
+    const ph = this.posed[side];
+    if (!ph.visible || !ph.ready) return null;
+    return ph.jointWorld('index-finger-tip');
+  }
+
   /** The wrist's world pose (for the avatar's forearm, and for your friend's view of you). */
   wristPose(side: 'left' | 'right'): { p: THREE.Vector3; q: THREE.Quaternion } | null {
     const hs = this.handSpace(side) as (THREE.Object3D & { joints?: Record<string, THREE.Object3D> }) | undefined;

@@ -207,6 +207,8 @@ export class Interaction {
         ctrl.userData.suppressSelect = false;
         return;
       }
+      // Hands only: with the lasers off, things are pressed by touch, not pointed at.
+      if (!this.lasersOn()) return;
       this.updateControllerRay(entry);
       const r = this.cast(pointer);
       if (r) {
@@ -241,13 +243,73 @@ export class Interaction {
     c.pointer.ray.direction.set(0, 0, -1).applyMatrix4(this.tmpMat);
   }
 
+  /**
+   * Fingertips that can press things by touch (VR): each frame the game says
+   * where your index fingertips are and whether the finger is pointing.
+   */
+  /** Laser pointers on? (Off by default: real hands, touch and grab.) */
+  lasersOn: () => boolean = () => true;
+  pokers: (() => { id: 'left' | 'right'; tip: THREE.Vector3; extended: boolean }[]) | null = null;
+  /** A fingertip pressed something (buzz that hand). */
+  onPoke: ((id: 'left' | 'right') => void) | null = null;
+  private pokePrev = new Map<string, THREE.Vector3>();
+  private pokeCool = new Map<string, number>();
+  private pokeRay = new THREE.Raycaster();
+  private tmpV = new THREE.Vector3();
+
+  /**
+   * Touch to press: a pointing fingertip that pushes into a button or a menu
+   * panel (face first) presses it, at the spot it touched.
+   */
+  private updatePokes() {
+    const now = performance.now() / 1000;
+    for (const f of this.pokers?.() ?? []) {
+      const prev = this.pokePrev.get(f.id);
+      this.pokePrev.set(f.id, f.tip.clone());
+      if (!prev || !f.extended || now < (this.pokeCool.get(f.id) ?? 0)) continue;
+      const move = f.tip.clone().sub(prev);
+      const len = move.length();
+      if (len < 0.002 || len > 0.25) continue;
+      const dir = move.divideScalar(len);
+      // Buttons and panels near the fingertip only.
+      const near = this.items.filter((i) => {
+        if (i.kind === 'surface' || i.kind === 'floor' || !i.object.visible || !(i.enabled?.() ?? true)) return false;
+        // Big things (a whole counter, a table) aren't buttons to poke.
+        const r = (i.object.userData.pokeR ??= new THREE.Box3().setFromObject(i.object).getBoundingSphere(new THREE.Sphere()).radius) as number;
+        if (r > 0.8) return false;
+        return i.object.getWorldPosition(this.tmpV).distanceTo(f.tip) < 1.2;
+      });
+      if (!near.length) continue;
+      this.pokeRay.set(prev.clone().addScaledVector(dir, -0.01), dir);
+      this.pokeRay.far = len + 0.022;
+      const hits = this.pokeRay.intersectObjects(
+        near.map((i) => i.object),
+        true,
+      );
+      for (const hit of hits) {
+        let o: THREE.Object3D | null = hit.object;
+        while (o && !o.userData.interactable) o = o.parent;
+        if (!o) continue;
+        const n = hit.face?.normal.clone().transformDirection(hit.object.matrixWorld);
+        // Pressing into the face (not grazing along it, not from behind).
+        if (n && Math.abs(n.dot(dir)) < 0.3) continue;
+        const item = o.userData.interactable as Interactable;
+        this.pokeCool.set(f.id, now + 0.4);
+        this.fire({ item, hit }, 'xr');
+        this.onPoke?.(f.id);
+        break;
+      }
+    }
+  }
+
   /** Per-frame hover update for mouse and VR pointers. */
   update() {
     if (this.renderer.xr.isPresenting) {
+      this.updatePokes();
       for (const c of this.controllers) {
         if (!c.ctrl.userData.connected) continue;
         this.updateControllerRay(c);
-        if (c.ctrl.userData.grabbing || c.ctrl.userData.nearGrab) {
+        if (c.ctrl.userData.grabbing || c.ctrl.userData.nearGrab || !this.lasersOn()) {
           // Hand is busy holding or reaching for something: hide the laser.
           c.laser.visible = false;
           c.reticle.visible = false;

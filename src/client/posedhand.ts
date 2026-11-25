@@ -136,6 +136,12 @@ export class PosedHand {
     else this.calibrated = apply;
   }
 
+  /** A joint's world position (e.g. 'index-finger-tip'), once loaded. */
+  jointWorld(name: string, out = new THREE.Vector3()): THREE.Vector3 | null {
+    const b = this.bones[name];
+    return b ? b.getWorldPosition(out) : null;
+  }
+
   /** The wrist joint's world pose. */
   wristPoseWorld(): { p: THREE.Vector3; q: THREE.Quaternion } | null {
     const w = this.bones['wrist'];

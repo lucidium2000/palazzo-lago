@@ -64,6 +64,8 @@ export class Player {
   private tween: { from: Viewpoint; to: Viewpoint; t: number; dur: number } | null = null;
   private keys = new Set<string>();
   private snapReady = true;
+  /** VR comfort settings (saved per device; see the VR menu). */
+  readonly comfort = loadComfort();
   private stride = 0;
   private bob = 0;
   private speedNow = 0;
@@ -763,10 +765,16 @@ export class Player {
       if (a && !this.aWas) this.jump();
       this.aWas = a;
     }
-    // Snap turn on the right stick.
-    if (Math.abs(turnX) > 0.7 && this.snapReady) {
+    // Turning on the right stick: snap (default) or smooth, as chosen in comfort settings.
+    if (this.comfort.smoothTurn) {
+      if (Math.abs(turnX) > 0.15) {
+        const k = (Math.abs(turnX) - 0.15) / 0.85;
+        this.rotateAround(this.headWorld(), -Math.sign(turnX) * k * this.comfort.turnSpeed * dt);
+        this.turnFlash = Math.max(this.turnFlash, 0.08 * k);
+      }
+    } else if (Math.abs(turnX) > 0.7 && this.snapReady) {
       this.snapReady = false;
-      this.rotateAround(this.headWorld(), turnX > 0 ? -Math.PI / 6 : Math.PI / 6);
+      this.rotateAround(this.headWorld(), (turnX > 0 ? -1 : 1) * this.comfort.snapAngle);
       this.turnFlash = 0.25;
     } else if (Math.abs(turnX) < 0.3) {
       this.snapReady = true;
@@ -814,9 +822,38 @@ export class Player {
     }
     this.updateStool(this.headWorld());
     this.turnFlash = Math.max(0, this.turnFlash - dt);
-    const want = Math.min(0.9, (speed / WALK) * 0.75 + this.turnFlash * 3);
+    const want = this.comfort.vignette ? Math.min(0.9, (speed / WALK) * 0.75 + this.turnFlash * 3) : 0;
     const mat = this.vignette.material as THREE.MeshBasicMaterial;
     mat.opacity += (want - mat.opacity) * Math.min(1, dt * 8);
     this.vignette.visible = mat.opacity > 0.02;
+  }
+}
+
+export interface Comfort {
+  smoothTurn: boolean;
+  /** Smooth turn speed, radians per second. */
+  turnSpeed: number;
+  /** Snap turn step, radians. */
+  snapAngle: number;
+  /** Darken the edges of your view while moving/turning. */
+  vignette: boolean;
+  /** Show laser pointers (off: you do everything with your hands, by touch). */
+  lasers: boolean;
+}
+
+export function loadComfort(): Comfort {
+  const d: Comfort = { smoothTurn: false, turnSpeed: 2.2, snapAngle: Math.PI / 6, vignette: true, lasers: false };
+  try {
+    return { ...d, ...JSON.parse(localStorage.getItem('palazzo-lago.comfort') || '{}') };
+  } catch {
+    return d;
+  }
+}
+
+export function saveComfort(c: Comfort) {
+  try {
+    localStorage.setItem('palazzo-lago.comfort', JSON.stringify(c));
+  } catch {
+    /* private mode */
   }
 }
