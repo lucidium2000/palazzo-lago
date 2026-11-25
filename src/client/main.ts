@@ -44,6 +44,7 @@ import { CHIP_COLORS, CHIP_DENOMS, chipLabel } from './textures';
 import { CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
 import { mouthOf, voices } from './voices';
 import { Throwables } from './throwables';
+import { DrinkPhysics } from './drinkphysics';
 import { DrinkSync } from './net/drinksync';
 import { Boxing } from './net/boxing';
 import { BUMP_LINES, Bodies, friendShove } from './bodies';
@@ -170,6 +171,19 @@ async function main() {
     },
   });
   const lounge = new Lounge({ ...ctx, crowd, hands, player, world, throwables });
+  // Drinks obey physics: pour them, crash them together, splash people.
+  const drinkPhysics = new DrinkPhysics({
+    scene,
+    camera,
+    lounge,
+    throwables,
+    hands,
+    crowd,
+    sound,
+    world,
+    inXR: () => player.inXR,
+    douse: (p, c) => drinkSync?.douse(p, c) ?? false,
+  });
   const slotRows = new SlotRows(ctx, crowd, world);
 
   // Walking routes through the open floor; edges are found automatically.
@@ -640,7 +654,7 @@ async function main() {
       onRoster: (f) => showRoom(f),
     });
     drinkSync?.dispose();
-    drinkSync = new DrinkSync(session, lounge, scene);
+    drinkSync = new DrinkSync(session, lounge, scene, (c) => drinkPhysics.soaked(c));
     boxing?.dispose();
     boxing = new Boxing({
       session,
@@ -1066,6 +1080,7 @@ async function main() {
     slotRows.update(t, feet);
     lounge.update(dt);
     throwables.update(dt);
+    drinkPhysics.update(dt);
     bodies.update(dt);
     crowd.update(dt, t, feet, head);
     casino.update(t, feet);
@@ -1174,7 +1189,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics };
 }
 
 main().catch((e) => {

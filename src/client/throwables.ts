@@ -107,6 +107,8 @@ export class Throwables {
       const m = o as THREE.Mesh;
       if (!m.isMesh || (m as unknown as THREE.SkinnedMesh).isSkinnedMesh || (m as unknown as THREE.InstancedMesh).isInstancedMesh || (o as THREE.Object3D & { isSprite?: boolean }).isSprite) return;
       if (this.d.isSelf?.(o)) return;
+      // Loose things (glasses) aren't furniture: they get knocked, not landed on.
+      for (let q: THREE.Object3D | null = o; q; q = q.parent) if (q.userData.loose) return;
       const g = m.geometry;
       if (!g.boundingSphere) g.computeBoundingSphere();
       s.copy(g.boundingSphere!).applyMatrix4(m.matrixWorld);
@@ -259,17 +261,84 @@ export class Throwables {
       const sv = new THREE.Vector3((Math.random() - 0.5) * 3, 0.8 + Math.random() * 2, (Math.random() - 0.5) * 3).addScaledVector(v, 0.25);
       this.shards.push({ m, v: sv, w: new THREE.Vector3(Math.random() * 20, Math.random() * 20, Math.random() * 20), t: 0, floor: at.y > floor + 0.3 ? at.y - 0.01 : floor });
     }
-    if (liquid !== null) {
-      const m = new THREE.Mesh(
-        new THREE.CircleGeometry(0.16 + Math.random() * 0.08, 18).rotateX(-Math.PI / 2),
-        new THREE.MeshStandardMaterial({ color: liquid, roughness: 0.05, transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
-      );
-      m.position.set(at.x, Math.max(floor, at.y - 0.02) + 0.004, at.z);
-      m.scale.set(1, 1, 0.75 + Math.random() * 0.4);
-      m.raycast = () => {};
-      this.d.scene.add(m);
-      this.spills.push({ m, t: 0 });
+    if (liquid !== null) this.spill(new THREE.Vector3(at.x, Math.max(floor, at.y - 0.02), at.z), liquid, 0.16 + Math.random() * 0.08);
+  }
+
+  /**
+   * A puddle of drink at `at` (on whatever surface is there). Pours keep adding
+   * to the nearest puddle of the same drink, which spreads (up to a limit).
+   */
+  spill(at: THREE.Vector3, liquid: number, size: number) {
+    for (const s of this.spills) {
+      const m = s.m;
+      if (Math.abs(m.position.y - at.y - 0.004) < 0.05 && Math.hypot(m.position.x - at.x, m.position.z - at.z) < m.scale.x * 0.12 + 0.06 && (m.material as THREE.MeshStandardMaterial).color.getHex() === new THREE.Color(liquid).getHex()) {
+        const grow = Math.min(3.2, m.scale.x + size * 3);
+        m.scale.set(grow, 1, grow * (m.scale.z / m.scale.x));
+        s.t = Math.min(s.t, 2);
+        return;
+      }
     }
+    if (this.spills.length > 40) {
+      const old = this.spills.shift()!;
+      old.m.removeFromParent();
+      old.m.geometry.dispose();
+      (old.m.material as THREE.Material).dispose();
+    }
+    const m = new THREE.Mesh(
+      new THREE.CircleGeometry(0.1, 18).rotateX(-Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: liquid, roughness: 0.05, transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
+    );
+    m.position.set(at.x, at.y + 0.004, at.z);
+    const k = size / 0.1;
+    m.scale.set(k, 1, k * (0.75 + Math.random() * 0.4));
+    m.raycast = () => {};
+    this.d.scene.add(m);
+    this.spills.push({ m, t: 0 });
+  }
+
+  private near: { at: THREE.Vector3; t: number; list: THREE.Object3D[] } | null = null;
+
+  /**
+   * The height of the surface under a point (furniture tops, else the floor or
+   * water), for things falling straight down (a poured drink). Nearby furniture
+   * is looked up once and reused while you stay in the same area.
+   */
+  surfaceBelow(p: THREE.Vector3, ignore?: THREE.Object3D): number {
+    const now = performance.now() / 1000;
+    if (!this.near || this.near.at.distanceTo(p) > 3 || now - this.near.t > 6) this.near = { at: p.clone(), t: now, list: this.nearby(p) };
+    let y = this.d.world.groundAt(p.x, p.z);
+    const w = this.d.world.waterAt(p.x, p.z);
+    if (w !== null) y = Math.max(y, w);
+    this.ray.set(new THREE.Vector3(p.x, p.y - 0.02, p.z), new THREE.Vector3(0, -1, 0));
+    this.ray.far = Math.max(0.05, p.y - y + 0.05);
+    (this.ray as THREE.Raycaster & { camera: THREE.Camera }).camera = this.d.camera;
+    for (const h of this.ray.intersectObjects(this.near.list, false)) {
+      if (ignore && isInside(h.object, ignore)) continue;
+      const n = h.face?.normal.clone().transformDirection(h.object.matrixWorld);
+      if (n && n.y < 0.5) continue;
+      return Math.max(y, h.point.y);
+    }
+    return y;
+  }
+
+  /** How fast a flying object is moving (null if it isn't flying). */
+  velocityOf(obj: THREE.Object3D): THREE.Vector3 | null {
+    return this.bodies.find((b) => b.obj === obj)?.v ?? null;
+  }
+
+  /** Everything in flight right now. */
+  get flyingObjects(): { obj: THREE.Object3D; v: THREE.Vector3; liquid: number | null }[] {
+    return this.bodies.map((b) => ({ obj: b.obj, v: b.v, liquid: b.o.liquid ?? null }));
+  }
+
+  /** Breaks an object right now (smashed against something): shards, spill, gone. */
+  smash(obj: THREE.Object3D, v: THREE.Vector3, liquid: number | null) {
+    const b = this.bodies.find((x) => x.obj === obj);
+    this.catch(obj);
+    const at = obj.getWorldPosition(new THREE.Vector3());
+    obj.removeFromParent();
+    this.shatter(at, v, liquid);
+    b?.o.onBreak?.(at);
   }
 
   private updateShards(dt: number) {
@@ -294,8 +363,8 @@ export class Throwables {
     for (const s of [...this.spills]) {
       s.t += dt;
       const mat = s.m.material as THREE.MeshStandardMaterial;
-      if (s.t > 10) mat.opacity = Math.max(0, 0.55 * (1 - (s.t - 10) / 6));
-      if (s.t > 16) {
+      if (s.t > 40) mat.opacity = Math.max(0, 0.55 * (1 - (s.t - 40) / 8));
+      if (s.t > 48) {
         s.m.removeFromParent();
         s.m.geometry.dispose();
         mat.dispose();

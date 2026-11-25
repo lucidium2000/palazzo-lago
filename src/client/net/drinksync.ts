@@ -16,12 +16,15 @@ export class DrinkSync {
     private session: Session,
     private lounge: Lounge,
     private scene: THREE.Scene,
+    /** You got soaked by your friend (their pour or a thrown drink). */
+    private onSoaked: (color: number) => void = () => {},
   ) {
+    session.on('doused', (_f, d) => this.onSoaked(Math.floor(Number(d.c)) || 0xffaa44));
     lounge.onDrinkEvent = (e) => session.emit('drink', e);
     session.on('drink', (f, d) => this.receive(f, d as unknown as DrinkEvent));
     session.extraState = () => {
       const h = lounge.heldDrink();
-      return { dh: h ? [h.kind, Math.round(h.level * 10), h.side === 'l' ? 0 : 1] : null };
+      return { dh: h ? [h.kind, Math.round(h.level * 10), h.side === 'l' ? 0 : 1, h.pouring ? 1 : 0] : null };
     };
   }
 
@@ -60,6 +63,7 @@ export class DrinkSync {
         // They just picked up the drink they ordered: it leaves the counter.
         this.lounge.friendPickedUp();
         s = { drink: new Drink(DRINKS[kind]), kind };
+        s.drink.remote = true;
         s.drink.group.traverse((o) => (o.raycast = () => {}));
         this.scene.add(s.drink.group);
         this.shown.set(f.id, s);
@@ -73,7 +77,7 @@ export class DrinkSync {
         // VR friend: in their real hand (just off the palm, toward the fingers), upright.
         const at = new THREE.Vector3(0, -0.05, -0.065).applyQuaternion(w.q).add(w.p);
         g.position.copy(at).add(new THREE.Vector3(0, -0.06, 0));
-        g.rotation.set(0, f.person.yaw, 0);
+        g.rotation.set(0, f.person.yaw, 0, 'YXZ');
       } else {
         // Desktop/phone friend: the avatar holds it (glass pose), at their right wrist.
         f.person.prop = 'glass';
@@ -81,9 +85,15 @@ export class DrinkSync {
         if (wr) {
           wr.getWorldPosition(g.position);
           g.position.y -= 0.05;
-          g.rotation.set(0, f.person.yaw, 0);
+          g.rotation.set(0, f.person.yaw, 0, 'YXZ');
         } else g.visible = false;
       }
+    }
+    // Pouring: their glass tips forward (the drink physics pours it).
+    for (const f of this.session.friendList()) {
+      const s = this.shown.get(f.id);
+      const dh = f.state.dh;
+      if (s && Array.isArray(dh) && dh[3] === 1) s.drink.group.rotation.x = 2.0;
     }
     for (const [id, s] of this.shown) {
       if (!seen.has(id)) {
@@ -91,6 +101,14 @@ export class DrinkSync {
         this.shown.delete(id);
       }
     }
+  }
+
+  /** You poured on (or threw a drink at) your friend's avatar: they get soaked on their side. */
+  douse(person: import('../people').Person, color: number): boolean {
+    const f = this.session.friendList().find((x) => x.person === person);
+    if (!f) return false;
+    this.session.emit('doused', { c: color });
+    return true;
   }
 
   dispose() {

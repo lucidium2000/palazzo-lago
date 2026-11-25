@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { GameContext } from './game';
-import type { Grabbable, Hands } from './hands';
+import type { Grabbable, Hand, Hands } from './hands';
 import { bakeStatic, dynamic } from './merge';
 import { assets } from './assets';
 import { textSign } from './panel';
@@ -77,6 +77,21 @@ export class Drink {
   level = 1;
   /** Shared id for drinks both players see in the same place (two-player). */
   id: string | null = null;
+  /** Shown for your friend (their glass): pours and splashes, but isn't yours to grab. */
+  remote = false;
+  /** Every glass in the game (physics checks the ones currently in the scene). */
+  static readonly all = new Set<Drink>();
+  /** Height of the rim above the glass's base, and its radius. */
+  get rimHeight() {
+    return this.liquidTop + 0.012;
+  }
+  get rimRadius() {
+    return this.topR;
+  }
+  /** The drink's colour. */
+  get color() {
+    return this.kind.liquid;
+  }
   private liquid: THREE.Mesh;
   private liquidTop: number;
   private liquidBottom: number;
@@ -85,6 +100,8 @@ export class Drink {
   private ice: THREE.Mesh[] = [];
 
   constructor(readonly kind: DrinkKind) {
+    Drink.all.add(this);
+    this.group.userData.loose = true;
     const profile: Record<DrinkKind['glass'], [number, number][]> = {
       rocks: [[0, 0], [0.042, 0], [0.044, 0.004], [0.046, 0.09], [0.044, 0.09], [0.042, 0.008], [0, 0.008]],
       flute: [[0, 0], [0.035, 0], [0.036, 0.004], [0.005, 0.01], [0.004, 0.1], [0.022, 0.13], [0.028, 0.21], [0.026, 0.21], [0.02, 0.13], [0, 0.11]],
@@ -222,6 +239,9 @@ export class Lounge {
     this.stream.visible = false;
     this.stream.raycast = () => {};
     d.scene.add(this.stream);
+    addEventListener('keyup', (e) => {
+      if (e.code === 'KeyP') this.pouringDesktop = false;
+    });
     this.vrMenu = buildVrMenu(
       (k) => this.order(this.menuZ, k),
       () => this.tipBartender(),
@@ -238,6 +258,7 @@ export class Lounge {
     addEventListener('keydown', (e) => {
       if (e.code === 'KeyQ') this.putDownDesktop();
       if (e.code === 'KeyX') this.throwHeld();
+      if (e.code === 'KeyP') this.pouringDesktop = true;
       if (e.code === 'KeyF' && this.desktopDrink) this.sip(this.desktopDrink);
       if (e.code === 'KeyG') this.tryCheers();
     });
@@ -735,14 +756,40 @@ export class Lounge {
   }
 
   /** The drink you're holding (for your friend's view): kind, level, which hand. */
-  heldDrink(): { kind: number; level: number; side: 'l' | 'r' } | null {
-    if (this.desktopDrink) return { kind: DRINKS.indexOf(this.desktopDrink.kind), level: this.desktopDrink.level, side: 'r' };
+  heldDrink(): { kind: number; level: number; side: 'l' | 'r'; pouring: boolean } | null {
+    const tipped = (dr: Drink) => dr.level > 0.01 && new THREE.Vector3(0, 1, 0).applyQuaternion(dr.group.getWorldQuaternion(new THREE.Quaternion())).y < 0.17;
+    if (this.desktopDrink) return { kind: DRINKS.indexOf(this.desktopDrink.kind), level: this.desktopDrink.level, side: 'r', pouring: tipped(this.desktopDrink) };
     if (this.vrHeld) {
       const h = this.d.hands.hands.find((x) => x.carried === this.vrHeld!.group);
-      return { kind: DRINKS.indexOf(this.vrHeld.kind), level: this.vrHeld.level, side: h?.ctrl.userData.handedness === 'left' ? 'l' : 'r' };
+      return { kind: DRINKS.indexOf(this.vrHeld.kind), level: this.vrHeld.level, side: h?.ctrl.userData.handedness === 'left' ? 'l' : 'r', pouring: tipped(this.vrHeld) };
     }
     return null;
   }
+
+  /** Who holds a glass: one of your VR hands, your desktop hand, or nobody. */
+  holder(drink: Drink): { hand: Hand | null; desktop: boolean } | null {
+    if (this.desktopDrink === drink) return { hand: null, desktop: true };
+    const h = this.d.hands.hands.find((x) => x.carried === drink.group);
+    return h ? { hand: h, desktop: false } : null;
+  }
+
+  /** A glass was smashed (against another, or on someone): forget it everywhere. */
+  forget(drink: Drink) {
+    if (this.desktopDrink === drink) this.desktopDrink = null;
+    if (this.vrHeld === drink) this.vrHeld = null;
+    if (this.waiting === drink) this.waiting = null;
+    for (const h of this.d.hands.hands)
+      if (h.carried === drink.group) {
+        h.carried = null;
+        h.held = null;
+        h.ctrl.userData.grabbing = false;
+      }
+    this.falling = this.falling.filter((f) => f.obj !== drink.group);
+    if (drink.id) this.drinks.delete(drink.id);
+  }
+
+  /** Desktop: hold P to tip your glass forward and pour it out. */
+  pouringDesktop = false;
 
   /** Desktop/phone: throw the drink you're holding where you're looking. */
   throwHeld() {
