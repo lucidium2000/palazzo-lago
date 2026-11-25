@@ -47,6 +47,7 @@ import { mouthOf, voices } from './voices';
 import { Throwables } from './throwables';
 import { DrinkPhysics } from './drinkphysics';
 import { Listener } from './listen';
+import { elVoice } from './cast';
 import { DrinkSync } from './net/drinksync';
 import { Boxing } from './net/boxing';
 import { BUMP_LINES, Bodies, friendShove } from './bodies';
@@ -235,7 +236,7 @@ async function main() {
   }
   let crapsBetsTimer = 0;
   const stickSays = (text: string) => {
-    const dur = voices.talk({ who: 'Stickman', text, voice: STAFF.stickman, at: stickman ? mouthOf(stickman) : null, priority: true, group: 'stickman', fallback: { pitch: 1.05, rate: 1.05, voice: 1 } });
+    const dur = voices.talk({ who: 'Stickman', text, voice: elVoice('stickman'), alt: STAFF.stickman, at: stickman ? mouthOf(stickman) : null, priority: true, group: 'stickman', fallback: { pitch: 1.05, rate: 1.05, voice: 1 } });
     if (stickman) crowd.speak(stickman, dur);
   };
   craps.onRoll = () => {
@@ -364,7 +365,7 @@ async function main() {
     if (session && returned > 0 && returned >= Math.max(staked * 10, 250)) session.bigWin(game === 'slots' ? 'the slots' : game, returned);
   };
   const croupierSays = (text: string) => {
-    const dur = voices.talk({ who: 'Croupier', text, voice: STAFF.croupier, at: croupier ? mouthOf(croupier) : null, priority: true, group: 'croupier', fallback: { pitch: 0.9, rate: 0.95, voice: 0 } });
+    const dur = voices.talk({ who: 'Croupier', text, voice: elVoice('croupier'), alt: STAFF.croupier, at: croupier ? mouthOf(croupier) : null, priority: true, group: 'croupier', fallback: { pitch: 0.9, rate: 0.95, voice: 0 } });
     if (croupier) crowd.speak(croupier, dur);
     voiceArbiter.claim(dur);
   };

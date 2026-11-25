@@ -7,6 +7,7 @@ import type { Player } from './player';
 import type { World } from './world';
 import { CREW_LINES, CREW_VOICES, type CrewMoment, type VoiceId } from './speech';
 import { mouthOf, voices } from './voices';
+import { elVoice } from './cast';
 
 /**
  * Your crew for the night: three buddies who stick with you, crowd around
@@ -164,7 +165,7 @@ export class Crew {
 
   /** A buddy says something, in his own voice, from where he stands. */
   say(b: Buddy, line: string) {
-    const dur = voices.talk({ who: b.name, text: line, voice: b.voiceId, at: mouthOf(b.person), priority: true, group: 'crew', fallback: { pitch: b.pitch, rate: b.rate, voice: b.voice } });
+    const dur = voices.talk({ who: b.name, text: line, voice: elVoice('crew_' + b.name.toLowerCase()), alt: b.voiceId, at: mouthOf(b.person), priority: true, group: 'crew', fallback: { pitch: b.pitch, rate: b.rate, voice: b.voice } });
     this.crowd.speak(b.person, dur);
     voiceArbiter.claim(dur);
     return dur;

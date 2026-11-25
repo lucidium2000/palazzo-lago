@@ -16,6 +16,7 @@ import type { Viewpoint } from './player';
 import { voiceArbiter } from './dialogue';
 import { BARTENDER_LINES, CHEERS_LINES, STAFF, guestVoice, orderLine } from './speech';
 import { mouthOf, voices } from './voices';
+import { characterFor, elVoice } from './cast';
 import type { Throwables } from './throwables';
 
 /**
@@ -534,7 +535,7 @@ export class Lounge {
   private greet(line: string, force = false) {
     if (!force && voiceArbiter.busy()) return;
     const b = this.bartender;
-    const dur = voices.talk({ who: 'Bartender', text: line, voice: STAFF.bartender, at: b ? mouthOf(b) : null, priority: true, group: 'bartender', fallback: { pitch: 1.1, rate: 1.02, voice: 2 } });
+    const dur = voices.talk({ who: 'Bartender', text: line, voice: elVoice('bartender'), alt: STAFF.bartender, at: b ? mouthOf(b) : null, priority: true, group: 'bartender', fallback: { pitch: 1.1, rate: 1.02, voice: 2 } });
     if (b) this.d.crowd.speak(b, dur);
     voiceArbiter.claim(dur);
   }
@@ -1152,9 +1153,11 @@ export class Lounge {
     this.cheersCooldown = 2;
     this.d.sound.play('clink', at, { volume: 1, rate: 1.15 });
     if (with_) {
-      const text = CHEERS_LINES[Math.floor(Math.random() * CHEERS_LINES.length)];
       const female = (with_.look.kind ?? '').startsWith('female') || !!with_.look.dress;
-      const dur = voices.talk({ who: 'Guest', text, voice: guestVoice(with_.seed, female), at: mouthOf(with_), priority: true });
+      const ch = characterFor(with_.seed, female);
+      const pool = Math.random() < 0.7 ? ch.cheers : CHEERS_LINES;
+      const text = pool[Math.floor(Math.random() * pool.length)];
+      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt: guestVoice(with_.seed, female), at: mouthOf(with_), priority: true });
       this.d.crowd.speak(with_, dur);
     } else if (voices.captions) this.d.hud.say('You', 'Cheers!');
     if (with_) {

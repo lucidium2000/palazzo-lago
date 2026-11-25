@@ -7,6 +7,7 @@ import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Audience, type Ctx, type Exchange, type Node, type Reply } from './dialogueLines';
 import { CONVO_BYE, HUH_LINES, STAFF, guestVoice, sceneVoice, type VoiceId } from './speech';
 import { interpret, vocabulary } from './understand';
+import { characterFor, elVoice, spoken, type Character } from './cast';
 import type { Listener } from './listen';
 import { mouthOf, voices } from './voices';
 
@@ -118,7 +119,8 @@ export class Dialogue {
     const near = this.d.crowd.people.filter((p) => !p.driven && p.role !== 'buddy' && !p.culled && p.pos.distanceTo(at) < 5 && p !== this.convo?.npc);
     const p = near[Math.floor(Math.random() * near.length)];
     if (!p) return;
-    this.line(p, WIN_REACTIONS[Math.floor(Math.random() * WIN_REACTIONS.length)], { voice: p.pos.distanceTo(this.d.feet()) < 9 });
+    const lines = this.isGuest(p) && Math.random() < 0.7 ? this.character(p).win : WIN_REACTIONS;
+    this.line(p, lines[Math.floor(Math.random() * lines.length)], { voice: p.pos.distanceTo(this.d.feet()) < 9 });
   }
 
   update(dt: number) {
@@ -129,6 +131,7 @@ export class Dialogue {
     const on = this.d.enabled?.() ?? true;
     this.ambient(feet);
     this.updateConvo(dt, feet, on);
+    if (on) this.passBy(dt, feet);
     // Bubbles ride above heads and fade out.
     for (const [p, b] of this.bubbles) {
       const top = p.pos.y + (p.seated ? 1.42 : 1.95 * (p.look.height / 1.8));
@@ -194,7 +197,7 @@ export class Dialogue {
       if (!who) return done();
       // Everyone within earshot talks out loud (3D sound does the rest); the
       // crowd quiets under staff, your crew and anyone talking to you.
-      const voice = sceneVoice(s.key, k, isFemale(who));
+      const voice = voices.pick(text, elVoice(this.character(who).id), sceneVoice(s.key, k, isFemale(who)));
       const recorded = voices.has(voice, text);
       let dur = voices.duration(voice, text) ?? lineTime(text);
       if (recorded && d < 9) dur = voices.talk({ who: 'Guest', text, voice, at: mouthOf(who), volume: 0.85, captionFallback: false });
@@ -216,6 +219,28 @@ export class Dialogue {
       run(s, p.pos.distanceTo(feet), () => {
         s.turn = 999;
       });
+    }
+  }
+
+  private passT = 0;
+  private quipped = new Map<Person, number>();
+
+  /** Walk past a guest and they may say something to you (in character). */
+  private passBy(dt: number, feet: THREE.Vector3) {
+    this.passT -= dt;
+    if (this.passT > 0 || this.convo || voiceArbiter.busy() || voices.priorityBusy) return;
+    this.passT = 0.5;
+    for (const p of this.d.crowd.people) {
+      if (!this.isGuest(p) || p.driven || p.culled || p.talk || p.chatWith) continue;
+      const d = Math.hypot(p.pos.x - feet.x, p.pos.z - feet.z);
+      if (d > 1.9 || d < 0.4) continue;
+      if (this.time < (this.quipped.get(p) ?? -1e9) + 90) continue;
+      this.quipped.set(p, this.time);
+      if (Math.random() > 0.35) continue;
+      const q = this.character(p).quips;
+      p.attendUntil = this.d.crowd.now + 2.5;
+      this.line(p, q[Math.floor(Math.random() * q.length)], { voice: true });
+      return;
     }
   }
 
@@ -242,7 +267,7 @@ export class Dialogue {
     if (c) {
       const d = c.npc.pos.distanceTo(feet);
       c.npc.attendUntil = this.d.crowd.now + 1.5;
-      if (!on || d > 3.6) return this.endConvo(d < 6 ? CONVO_BYE.walkedOff : null);
+      if (!on || d > 3.6) return this.endConvo(d < 6 ? (this.isGuest(c.npc) ? this.character(c.npc).bye.walkedOff : CONVO_BYE.walkedOff) : null);
       if (this.time >= c.readyAt) {
         if (c.ending) return this.endConvo(null);
         if (c.replies && c.waitingSince === 0) {
@@ -250,7 +275,7 @@ export class Dialogue {
           this.showReplies(c.replies);
           this.listenFor(c, 2);
         }
-        if (c.replies && this.time - c.waitingSince > 15) return this.endConvo(CONVO_BYE.timedOut);
+        if (c.replies && this.time - c.waitingSince > 15) return this.endConvo(this.isGuest(c.npc) ? this.character(c.npc).bye.timedOut : CONVO_BYE.timedOut);
       }
       if (c.replies && this.d.inXR()) this.placePanel(c.npc);
       return;
@@ -295,7 +320,10 @@ export class Dialogue {
   }
 
   private startConvo(p: Person) {
-    const list = OPENERS[this.audience(p)];
+    const aud = this.audience(p);
+    // Guests mostly talk like themselves (their own openers), sometimes small talk.
+    const own = this.isGuest(p) && (aud === 'guest' || aud === 'pool' || aud === 'bar') && Math.random() < 0.75;
+    const list = own ? this.character(p).openers : OPENERS[aud];
     const node = list[Math.floor(Math.random() * list.length)];
     this.talkedTo.set(p, this.time);
     this.prefetchTree(node, this.voiceOf(p));
@@ -335,7 +363,8 @@ export class Dialogue {
       const i = interpret(heard, replies);
       if (i !== null) return this.pick(replies[i]);
       // Didn't catch it: roll with it.
-      const huh = HUH_LINES[Math.floor(Math.random() * HUH_LINES.length)];
+      const pool = this.isGuest(c.npc) && Math.random() < 0.7 ? this.character(c.npc).huh : HUH_LINES;
+      const huh = pool[Math.floor(Math.random() * pool.length)];
       this.hideReplies();
       c.replies = null;
       const dur = this.line(c.npc, huh, { voice: true, priority: true });
@@ -386,30 +415,44 @@ export class Dialogue {
 
   /** Someone says a line: their own recorded voice from where they stand (bubble and caption if wanted). */
   private line(p: Person, text: string, o: { voice?: boolean; priority?: boolean; subtitle?: boolean } = {}) {
-    const voice = this.voiceOf(p);
+    const voice = voices.pick(text, ...this.voicesOf(p));
     const recorded = voices.has(voice, text);
     let dur = voices.duration(voice, text) ?? lineTime(text);
     if (recorded && o.voice) {
       dur = voices.talk({ who: this.title(p), text, voice, at: mouthOf(p), priority: o.priority, group: o.priority ? 'convo' : undefined, captionFallback: false });
       if (o.priority) voiceArbiter.claim(dur);
     } else {
-      if (o.subtitle) this.d.hud.say(this.title(p), text);
+      if (o.subtitle) this.d.hud.say(this.title(p), spoken(text));
       if (o.voice && (o.priority || !voiceArbiter.busy())) this.voice(p, text, 1, !!o.priority);
     }
     this.d.crowd.speak(p, dur);
-    if (voices.captions || !recorded) this.bubble(p, text, dur + 0.8);
+    if (voices.captions || !recorded) this.bubble(p, spoken(text), dur + 0.8);
     return dur;
   }
 
   /** The recorded voice a person speaks with (staff by job, guests their own). */
   voiceOf(p: Person): VoiceId {
-    if (p.role === 'bartender') return STAFF.bartender;
-    if (p.role === 'waiter') return STAFF.waiter;
+    return this.voicesOf(p)[0];
+  }
+
+  /** A person's voices: their own (ElevenLabs) first, then the stand-in recorded before it. */
+  voicesOf(p: Person): [VoiceId, VoiceId] {
+    if (p.role === 'bartender') return [elVoice('bartender'), STAFF.bartender];
+    if (p.role === 'waiter') return [elVoice('waiter'), STAFF.waiter];
     if (p.role === 'croupier') {
       const a = this.audience(p);
-      return a === 'dealer-roulette' ? STAFF.croupier : a === 'dealer-craps' ? STAFF.stickman : STAFF.dealer;
+      return a === 'dealer-roulette' ? [elVoice('croupier'), STAFF.croupier] : a === 'dealer-craps' ? [elVoice('stickman'), STAFF.stickman] : [elVoice('dealer'), STAFF.dealer];
     }
-    return guestVoice(p.seed, isFemale(p));
+    return [elVoice(this.character(p).id), guestVoice(p.seed, isFemale(p))];
+  }
+
+  /** The regular a guest is played by (their personality and lines). */
+  character(p: Person): Character {
+    return characterFor(p.seed, isFemale(p));
+  }
+
+  private isGuest(p: Person) {
+    return p.role !== 'bartender' && p.role !== 'waiter' && p.role !== 'croupier' && p.role !== 'buddy';
   }
 
   private prefetchScene(s: Scene) {
@@ -429,7 +472,7 @@ export class Dialogue {
     if (p.role === 'croupier') return 'Dealer';
     if (p.role === 'bartender') return 'Bartender';
     if (p.role === 'waiter') return 'Waiter';
-    return 'Guest';
+    return this.character(p).name;
   }
 
   /** Browser-speech fallback: each person keeps their own voice, pitch and pace. */

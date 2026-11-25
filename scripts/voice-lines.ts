@@ -94,3 +94,80 @@ writeFileSync('tools/voices/lines.json', JSON.stringify(lines, null, 1));
 const per: Record<string, number> = {};
 for (const l of lines) per[l.voice] = (per[l.voice] ?? 0) + 1;
 console.log(lines.length, 'lines;', JSON.stringify(per));
+
+// ---------------------------------------------------------------------------
+// ElevenLabs cast (tools/voices/render_eleven.py): each character's own lines,
+// plus every shared line they can be heard saying, in their voice.
+// ---------------------------------------------------------------------------
+{
+  const { GUESTS, elVoice } = await import('../src/client/cast');
+  // Priority 1: what makes them characters (their own lines, staff, crew); 2: shared small talk.
+  const el = new Map<string, { id: string; voice: string; text: string; p: number }>();
+  const addEl = (voice: string, text: string, p = 1) => {
+    text = text.trim();
+    if (!text) return;
+    const id = lineId(voice, text);
+    const k = voice + '/' + id;
+    el.set(k, { id, voice, text, p: Math.min(p, el.get(k)?.p ?? p) });
+  };
+  const walkEl = (n: Node, voice: string, p = 1) => {
+    const texts = typeof n.say === 'function' ? ctxs.map((c) => (n.say as (c: Ctx) => string)(c)) : [n.say];
+    texts.forEach((t) => addEl(voice, t, p));
+    for (const r of n.replies ?? []) {
+      if (r.end) addEl(voice, r.end, p);
+      if (r.next) walkEl(r.next, voice, p);
+    }
+  };
+  for (const ch of GUESTS) {
+    const v = elVoice(ch.id);
+    for (const n of ch.openers) walkEl(n, v);
+    for (const t of [...ch.quips, ...ch.win, ...ch.cheers, ...ch.huh, ch.bye.walkedOff, ch.bye.timedOut]) addEl(v, t);
+    // Shared lines anyone might say.
+    for (const list of [EXCHANGES, PASSING]) for (const ex of list) for (const [, t] of ex.turns) addEl(v, t, 2);
+    for (const t of [...WIN_REACTIONS, ...CHEERS_LINES, ...HUH_LINES, CONVO_BYE.walkedOff, CONVO_BYE.timedOut]) addEl(v, t, 2);
+    for (const aud of ['guest', 'pool', 'bar'] as const) for (const n of OPENERS[aud]) walkEl(n, v, 2);
+  }
+  const staff: Record<string, (v: string) => void> = {
+    bartender: (v) => {
+      for (const t of Object.values(BARTENDER_LINES)) addEl(v, t);
+      for (const k of DRINKS) addEl(v, orderLine(k.name, k.prep as Prep));
+      for (const n of OPENERS.bartender) walkEl(n, v);
+    },
+    croupier: (v) => {
+      addEl(v, CROUPIER_LINES.noMore);
+      addEl(v, CROUPIER_LINES.place);
+      for (let p = 0; p < 38; p++) addEl(v, rouletteCall(pocketLabel(p), pocketColor(p)));
+      for (const n of OPENERS['dealer-roulette']) walkEl(n, v);
+    },
+    stickman: (v) => {
+      for (let a = 1; a <= 6; a++)
+        for (let b = 1; b <= 6; b++)
+          for (const point of [null, 4, 5, 6, 8, 9, 10]) {
+            const t = a + b;
+            addEl(v, stickCall([a, b], point === null, point, point !== null && t === 7, point !== null && t === point));
+          }
+      for (const n of OPENERS['dealer-craps']) walkEl(n, v);
+    },
+    dealer: (v) => {
+      for (const n of OPENERS.croupier) walkEl(n, v);
+    },
+    waiter: (v) => {
+      for (const n of OPENERS.waiter) walkEl(n, v);
+    },
+  };
+  for (const [k, fn] of Object.entries(staff)) {
+    const v = elVoice(k);
+    fn(v);
+    for (const t of [CONVO_BYE.walkedOff, CONVO_BYE.timedOut, ...HUH_LINES]) addEl(v, t);
+  }
+  for (const name of ['rocco', 'dev', 'mikey']) {
+    const v = elVoice('crew_' + name);
+    for (const list of Object.values(CREW_LINES)) for (const t of list) addEl(v, t);
+    for (const t of TIPSY_LINES) addEl(v, t);
+  }
+  const elLines = [...el.values()].sort((x, y) => (x.voice + x.id).localeCompare(y.voice + y.id));
+  writeFileSync('tools/voices/eleven-lines.json', JSON.stringify(elLines, null, 1));
+  const chars = elLines.reduce((n, l) => n + l.text.length, 0);
+  const p1 = elLines.filter((l) => l.p === 1);
+  console.log('ElevenLabs:', elLines.length, 'lines,', chars, 'characters; priority 1:', p1.length, 'lines,', p1.reduce((n, l) => n + l.text.length, 0), 'characters');
+}

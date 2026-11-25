@@ -74,7 +74,7 @@ def main():
             json.dump({'voices': index}, open(index_path, 'w'), separators=(',', ':'))
     # Drop clips for lines that no longer exist.
     if not args.limit:
-        for v in list(index):
+        for v in [v for v in list(index) if v in names]:  # only Kokoro voices (ElevenLabs takes live alongside)
             for lid in list(index[v]):
                 if (v, lid) not in wanted:
                     del index[v][lid]

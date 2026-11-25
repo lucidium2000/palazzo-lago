@@ -25,6 +25,8 @@ export interface TalkOpts {
   who: string;
   text: string;
   voice: VoiceId;
+  /** Voice to use if `voice` has no recording of this line (e.g. before ElevenLabs takes are in). */
+  alt?: VoiceId;
   /** Where the speaker's mouth is, every frame (null: in your head). */
   at?: (() => THREE.Vector3 | null) | null;
   volume?: number;
@@ -118,15 +120,23 @@ class Voices {
    * Says a line. Returns how long it takes (the recording's length, or an
    * estimate for the fallback voice).
    */
+  /** The first of these voices that has this line recorded (or the first one). */
+  pick(text: string, ...voices: (VoiceId | undefined)[]): VoiceId {
+    const vs = voices.filter((v): v is VoiceId => !!v);
+    return vs.find((v) => this.has(v, text)) ?? vs[0];
+  }
+
   talk(o: TalkOpts): number {
     const text = o.text.trim();
+    if (o.alt && !this.has(o.voice, text) && this.has(o.alt, text)) o = { ...o, voice: o.alt };
     const dur = this.duration(o.voice, text);
-    const est = 0.9 + text.length * 0.06;
-    if (this.captions || (dur === null && o.captionFallback !== false)) this.hud?.say(o.who, text);
+    const shown = text.replace(/\s*\[[^\]]+\]\s*/g, ' ').replace(/\s+/g, ' ').trim();
+    const est = 0.9 + shown.length * 0.06;
+    if (this.captions || (dur === null && o.captionFallback !== false)) this.hud?.say(o.who, shown);
     const s = this.sound;
     if (!s || s.muted) return dur ?? est;
     if (dur === null) {
-      s.say(text, { ...o.fallback, volume: o.volume, interrupt: !!o.group && o.priority });
+      s.say(shown, { ...o.fallback, volume: o.volume, interrupt: !!o.group && o.priority });
       return est;
     }
     if (o.group) this.stop(o.group);
