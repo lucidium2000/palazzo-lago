@@ -75,15 +75,13 @@ export class Mirror {
     s.on('ms', (f, data) => {
       const m = decodeSlotSpin(data, d.machines.map((x) => x.machine));
       if (!m) return;
-      const view = d.machines[m.i];
-      // You're at that machine yourself: it's yours, don't fight over it.
-      if (d.hud.station === view.machine.id) return;
-      view.showRemoteSpin(m.s, m.b, m.x, f.name);
+      // Shown unless you're mid-spin or in a bonus on that machine yourself (standing at it
+      // watching your friend play is exactly when you want to see it).
+      d.machines[m.i].showRemoteSpin(m.s, m.b, m.x, f.name);
     });
     s.on('mp', (f, data) => {
       const spin = decodePiggySpin(data);
-      if (!spin || d.hud.station === d.piggy.machine.id) return;
-      d.piggy.showRemoteSpin(spin, f.name);
+      if (spin) d.piggy.showRemoteSpin(spin, f.name);
     });
 
     // Settle your friend's chips with the same pocket / dice as yours.

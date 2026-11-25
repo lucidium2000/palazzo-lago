@@ -116,6 +116,26 @@ export class Drink {
     this.setLevel(was + add);
     return add;
   }
+  /** The mixed colour, if something else was poured in (null: still the drink's own). */
+  get mixedColor(): number | null {
+    return this.mixed;
+  }
+
+  /** Shows the drink as a given mix (a friend's glass after they poured into it). */
+  tint(color: number | null) {
+    if (color === this.mixed) return;
+    if (color === null) {
+      this.mixed = null;
+      if (this.ownLiquid) (this.liquid.material as THREE.MeshPhysicalMaterial).color.setHex(this.kind.liquid);
+      return;
+    }
+    this.mixed = color;
+    if (!this.ownLiquid) {
+      this.liquid.material = (this.liquid.material as THREE.Material).clone();
+      this.ownLiquid = true;
+    }
+    (this.liquid.material as THREE.MeshPhysicalMaterial).color.setHex(color);
+  }
   private ownLiquid = false;
   private liquid: THREE.Mesh;
   private liquidTop: number;
@@ -772,12 +792,12 @@ export class Lounge {
   }
 
   /** The drink you're holding (for your friend's view): kind, level, which hand. */
-  heldDrink(): { kind: number; level: number; side: 'l' | 'r'; pouring: boolean } | null {
+  heldDrink(): { kind: number; level: number; side: 'l' | 'r'; pouring: boolean; mixed: number | null } | null {
     const tipped = (dr: Drink) => dr.level > 0.01 && new THREE.Vector3(0, 1, 0).applyQuaternion(dr.group.getWorldQuaternion(new THREE.Quaternion())).y < 0.17;
-    if (this.desktopDrink) return { kind: DRINKS.indexOf(this.desktopDrink.kind), level: this.desktopDrink.level, side: 'r', pouring: tipped(this.desktopDrink) };
+    if (this.desktopDrink) return { kind: DRINKS.indexOf(this.desktopDrink.kind), level: this.desktopDrink.level, side: 'r', pouring: tipped(this.desktopDrink), mixed: this.desktopDrink.mixedColor };
     if (this.vrHeld) {
       const h = this.d.hands.hands.find((x) => x.carried === this.vrHeld!.group);
-      return { kind: DRINKS.indexOf(this.vrHeld.kind), level: this.vrHeld.level, side: h?.ctrl.userData.handedness === 'left' ? 'l' : 'r', pouring: tipped(this.vrHeld) };
+      return { kind: DRINKS.indexOf(this.vrHeld.kind), level: this.vrHeld.level, side: h?.ctrl.userData.handedness === 'left' ? 'l' : 'r', pouring: tipped(this.vrHeld), mixed: this.vrHeld.mixedColor };
     }
     return null;
   }

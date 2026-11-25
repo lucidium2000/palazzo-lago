@@ -10,13 +10,15 @@ import type { LooseNet, LooseObjects } from '../loose';
  * arrive as throws; where things finally come to rest arrives as a put.
  */
 export class LooseSync {
-  private shown = new Map<string, { mesh: THREE.InstancedMesh; key: string }>();
+  private shown = new Map<string, { mesh: THREE.InstancedMesh; key: string; last: THREE.Vector3 | null }>();
   private prevExtra: Session['extraState'];
 
   constructor(
     private session: Session,
     private loose: LooseObjects,
     private scene: THREE.Scene,
+    /** A friend rubbing a napkin over a spill here: wipe it up the same (point, radius, how much). */
+    private wipe: ((at: THREE.Vector3, r: number, k: number) => void) | null = null,
   ) {
     loose.onNet = (e) => session.emit('loose', e);
     session.on('loose', (_f, d) => loose.remote(d as unknown as LooseNet));
@@ -34,7 +36,10 @@ export class LooseSync {
       let s = this.shown.get(f.id);
       const ok = Array.isArray(lh) && lh.length === 3 && lh.every((x) => Number.isFinite(x)) && f.person && !f.person.culled;
       if (!ok) {
-        if (s) s.mesh.visible = false;
+        if (s) {
+          s.mesh.visible = false;
+          s.last = null;
+        }
         continue;
       }
       const [kind, color, side] = lh as number[];
@@ -44,7 +49,7 @@ export class LooseSync {
         const mesh = this.loose.makeProxy(kind, color);
         if (!mesh) continue;
         this.scene.add(mesh);
-        s = { mesh, key };
+        s = { mesh, key, last: null };
         this.shown.set(f.id, s);
       }
       const m = s.mesh;
@@ -64,6 +69,12 @@ export class LooseSync {
         m.position.y -= 0.05;
         m.rotation.set(0, f.person!.yaw, 0, 'YXZ');
       }
+      // Their napkin wipes up spills here as it does for them (no messages: it follows their hand).
+      if (this.wipe && this.loose.kinds[kind]?.key === 'napkin') {
+        const moved = s.last ? s.last.distanceTo(m.position) : 0;
+        if (moved > 0.002) this.wipe(m.position.clone().setY(m.position.y - 0.02), 0.06, Math.min(0.5, moved * 6));
+        (s.last ??= new THREE.Vector3()).copy(m.position);
+      } else s.last = null;
     }
     for (const [id, s] of this.shown)
       if (!seen.has(id)) {

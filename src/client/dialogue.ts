@@ -30,6 +30,18 @@ export const voiceArbiter = {
   },
 };
 
+/** A line your game just played out loud, for your friends to hear too (net/npcsync.ts). */
+export interface SpokenLine {
+  /** Who said it (null: you, a reply in a conversation). */
+  p: Person | null;
+  kind: ReactKind | 'gasp' | 'line' | 'reply';
+  text: string;
+  voice: VoiceId;
+  alt?: VoiceId;
+  who: string;
+  volume: number;
+}
+
 /** Roughly how long a line takes to say. */
 export const lineTime = (text: string) => 0.9 + text.length * 0.06;
 
@@ -89,6 +101,8 @@ export class Dialogue {
   private chips: HTMLElement;
   private panel: CanvasPanel;
   private time = 0;
+  /** Called with every line you'd want your friends to hear (reactions, conversation lines, your replies). */
+  onSpeak: ((l: SpokenLine) => void) | null = null;
 
   constructor(private d: DialogueDeps) {
     this.chips = document.createElement('div');
@@ -424,6 +438,7 @@ export class Dialogue {
     const voice = voices.pick(text, ...this.voicesOf(p));
     const recorded = voices.has(voice, text);
     let dur = voices.duration(voice, text) ?? lineTime(text);
+    if (o.priority && o.voice) this.onSpeak?.({ p, kind: 'line', text, voice, alt: this.voicesOf(p)[1], who: this.title(p), volume: 1 });
     if (recorded && o.voice) {
       dur = voices.talk({ who: this.title(p), text, voice, at: mouthOf(p), priority: o.priority, group: o.priority ? 'convo' : undefined, captionFallback: false });
       if (o.priority) voiceArbiter.claim(dur);
@@ -437,13 +452,15 @@ export class Dialogue {
   }
 
   private reactCool = new WeakMap<Person, number>();
+  /** The last reaction line chosen by react() (what your friends were sent). */
+  lastReaction: string | null = null;
 
   /**
    * Someone you got physical with answers back, out loud, in their own voice: a word when bumped or
    * pushed, a loud "ouch" when punched, anger when doused or hit by something thrown. `crew` names
    * one of your boys (rocco, dev, mikey) with their stand-in voice. Returns how long they talk.
    */
-  react(p: Person, kind: ReactKind, crew?: { name: string; voice: VoiceId }): number {
+  react(p: Person, kind: ReactKind, crew?: { name: string; voice: VoiceId }, say?: string): number {
     const t = this.time;
     // One reaction at a time per person (a punch always gets its yell).
     if ((this.reactCool.get(p) ?? -9) > t && kind !== 'punched') return 0;
@@ -467,11 +484,14 @@ export class Dialogue {
     const said = set.filter((l) => voices.has(elVoice(id), l) || voices.has(alt, l));
     if (!said.length) {
       if (kind === 'pushed') return 0;
+      this.onSpeak?.({ p, kind: 'gasp', text: '', voice: alt, who: this.title(p), volume: kind === 'punched' ? 1 : 0.6 });
       this.d.sound.play('gasp', p.pos.clone().setY(p.pos.y + 1.5), { volume: kind === 'punched' ? 1 : 0.6, rate: kind === 'punched' ? 0.9 : 1.1 });
       this.reactCool.set(p, t + 1.2);
       return 0.8;
     }
-    const text = said[Math.floor(Math.random() * said.length)];
+    // `say`: a line already chosen (the same one everyone in the room hears).
+    const text = say && said.includes(say) ? say : said[Math.floor(Math.random() * said.length)];
+    this.lastReaction = text;
     // Offended: whatever you were talking about is over.
     if (kind !== 'pushed' && this.convo?.npc === p) {
       this.hideReplies();
@@ -479,6 +499,7 @@ export class Dialogue {
       this.convo = null;
     }
     const loud = kind === 'punched' ? 1.5 : kind === 'pushed' ? 0.85 : 1.35;
+    this.onSpeak?.({ p, kind, text, voice: elVoice(id), alt, who: this.title(p), volume: loud });
     const dur = voices.talk({ who: this.title(p), text, voice: elVoice(id), alt, at: mouthOf(p), priority: kind !== 'pushed', group: 'react', volume: loud, fallback: { rate: kind === 'punched' ? 1.15 : 1.05, pitch: kind === 'punched' ? 1.15 : 1 } });
     this.reactCool.set(p, t + Math.max(1.2, dur));
     this.d.crowd.speak(p, dur);
@@ -488,12 +509,45 @@ export class Dialogue {
     return dur;
   }
 
+  /**
+   * A line a friend's game played (someone reacting to them, talking to them, or the friend's own
+   * reply): the same recorded take, from that person here (`p`) or else from the spot (`at`, feet).
+   * Returns how long it lasts.
+   */
+  hear(l: { kind: SpokenLine['kind']; text: string; voice: string; alt?: string; who: string; volume: number }, p: Person | null, at: THREE.Vector3, speaker?: Person | null): number {
+    const anchor = p ?? speaker ?? { pos: at, seated: false, look: { height: 1.75 } };
+    if (l.kind === 'gasp') {
+      this.d.sound.play('gasp', anchor.pos.clone().setY(anchor.pos.y + 1.5), { volume: l.volume, rate: l.volume >= 1 ? 0.9 : 1.1 });
+      return 0.8;
+    }
+    const react = l.kind === 'pushed' || l.kind === 'punched' || l.kind === 'doused' || l.kind === 'hit';
+    const dur = voices.talk({
+      who: l.who,
+      text: l.text,
+      voice: l.voice as VoiceId,
+      alt: l.alt as VoiceId | undefined,
+      at: mouthOf(anchor),
+      priority: react && l.kind !== 'pushed',
+      group: 'friend-' + l.kind,
+      volume: l.volume,
+      captionFallback: false,
+      fallback: { rate: l.kind === 'punched' ? 1.15 : 1.05, pitch: l.kind === 'punched' ? 1.15 : 1 },
+    });
+    if (p) {
+      this.d.crowd.speak(p, dur);
+      if (react) this.reactCool.set(p, this.time + Math.max(1.2, dur));
+      if (voices.captions) this.bubble(p, spoken(l.text), dur + 0.8);
+    }
+    return dur;
+  }
+
   /** Your chosen reply, out loud, in your own character's voice (so it's a conversation, not a menu). */
   private sayMine(label: string) {
     const fem = this.d.playerFemale?.() ?? false;
     const voice = elVoice(fem ? PLAYER_VOICES.female : PLAYER_VOICES.male);
     const alt = fem ? PLAYER_STANDIN.female : PLAYER_STANDIN.male;
     if (!voices.has(voice, label) && !voices.has(alt, label)) return 0;
+    this.onSpeak?.({ p: null, kind: 'reply', text: label, voice, alt, who: 'You', volume: 0.75 });
     return voices.talk({ who: 'You', text: label, voice, alt, at: null, volume: 0.75, group: 'me', captionFallback: false });
   }
 
