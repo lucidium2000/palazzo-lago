@@ -5,7 +5,7 @@ import { reach, setFingers } from './net/embody';
 import type { FingerPose } from './fingers';
 import { skinTone } from './posedhand';
 import { POSE, lookPaint } from './people';
-import { hipOnSeat, leanToward, sitLegs, standLegs } from './sitpose';
+import { crouchLegs, hipOnSeat, leanToward, sitLegs, standLegs } from './sitpose';
 import type { Seat } from './world';
 
 /**
@@ -74,14 +74,16 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null; eyeY?: number }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null; eyeY?: number; crouch?: number }) {
     this.root.visible = o.on && !!this.rig;
     const rig = this.rig;
     if (!o.on || !rig) return;
     const female = this.kind.startsWith('female');
     // Scale the character so its eyes sit at your real eye height.
     // (Dancing, your size follows your average head height, not each bob: the knees take the bob.)
-    const eye = Math.max(0.9, (o.eyeY ?? o.head.y) - o.floorY);
+    // (Crouching on the button: your size stays; the knees bend instead.)
+    const crouch = o.crouch ?? 0;
+    const eye = Math.max(0.9, (o.eyeY ?? o.head.y) + crouch - o.floorY);
     // Sitting on a stool: your size stays what it was standing (your real head may be anywhere).
     if (o.seat) this.sitOn = o.seat;
     this.sitBlend += ((o.seat ? 1 : 0) - this.sitBlend) * Math.min(1, dt * 5);
@@ -150,6 +152,8 @@ export class SelfBody {
       this.onDance(rig, this.bodyYaw, dt);
       rig.root.updateMatrixWorld(true);
     }
+    // Crouching: hips down, knees bent, feet still on the floor.
+    if (sit === 0 && this.swimBlend < 0.05 && crouch > 0.005) crouchLegs(rig.root, b, this.bodyYaw, crouch, o.speed > 0.2);
     const left = new THREE.Vector3(Math.cos(this.bodyYaw), 0, -Math.sin(this.bodyYaw));
     for (const [side, S, dir] of [['l', 'L', 1], ['r', 'R', -1]] as const) {
       const w0 = o.wrists?.[side];

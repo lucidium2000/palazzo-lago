@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { hipOnSeat } from '../sitpose';
+import { crouchLegs, hipOnSeat } from '../sitpose';
 import type { Crowd, Person } from '../people';
 import { AVATARS, avatarLook } from './avatars';
 import { Fader } from './fade';
@@ -49,6 +49,8 @@ interface Remote {
   open: number;
   talkUntil: number;
   bodyYaw: number;
+  /** How far they're crouching (m, smoothed). */
+  crouch: number;
   hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null };
   /** Their wrists (smoothed world poses) and the hand models shown there. */
   wrists: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null };
@@ -254,6 +256,7 @@ export class Session {
       v: this.voice?.enabled ?? false,
       hh: Math.round((p.camera.getWorldPosition(new THREE.Vector3()).y - p.rig.position.y) * 100) / 100,
       sw: p.swimming ? 1 : 0,
+      cr: p.crouch.drop > 0.01 && !p.seated && !stool ? Math.round(p.crouch.drop * 100) / 100 : undefined,
       mo: this.voice?.enabled ? Math.round(this.voice.level() * 9) : 0,
       nt: this.d.night ? Math.round(this.d.night()) : undefined,
       a: this.acks(),
@@ -348,6 +351,7 @@ export class Session {
         open: 0,
         talkUntil: 0,
         bodyYaw: Number(s.yaw) || 0,
+        crouch: 0,
         hands: { l: null, r: null },
         wrists: { l: null, r: null },
         posed: null,
@@ -738,6 +742,11 @@ export class Session {
     if (!r.mouth && b.Head) r.mouth = makeMouth(b.Head, rig.root, p.yaw, sc, rig.mesh);
     if (r.mouth) setOpen(r.mouth, r.open);
     this.dancer?.(p, r.state, !!(r.hands.l || r.hands.r));
+    // Crouching: hips down, knees bent, feet on the floor (before the arms reach their real hands).
+    if (r.crouch > 0.005 && !p.seated && p.swimHead === null) {
+      rig.root.updateMatrixWorld(true);
+      crouchLegs(rig.root, b, p.yaw, r.crouch, p.moving > 0.2);
+    }
     const fwd = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
     const left = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
     // Their real hands (same hand models you see on your own controllers), placed at their wrists.
@@ -843,6 +852,9 @@ export class Session {
       p.moving += (speed - p.moving) * Math.min(1, dt * 6);
       p.walkPhase += p.moving * dt * 5.2;
       p.seated = seated;
+      // Crouching (the button crouch; sent as how far their eyes came down).
+      const cr = seated || s.sw ? 0 : THREE.MathUtils.clamp(Number(s.cr) || 0, 0, 0.6);
+      r.crouch += (cr - r.crouch) * Math.min(1, dt * 12);
       // Swimming: their body lies along the surface, head where theirs is.
       p.swimHead = s.sw ? p.pos.y + (Number(s.hh) || 1.6) : null;
       p.seatY = stool > 0 ? p.pos.y + hipOnSeat(stool) : s.seat === 'roulette' ? 0.66 : 0.62;
@@ -900,7 +912,7 @@ export class Session {
       r.open += (want - r.open) * Math.min(1, dt * (want > r.open ? 28 : 16));
       // A talking head moves a little: small nods with the emphasis.
       if (want > 0.15) p.headPitch += Math.sin(this.time * 5.3) * 0.0035 * want;
-      const top = p.pos.y + (seated ? 1.45 : 2.0);
+      const top = p.pos.y + (seated ? 1.45 : 2.0) - r.crouch;
       this.voice.update(r.id, new THREE.Vector3(p.pos.x, top - 0.25, p.pos.z));
       // Name tags stay readable across the room: they grow with distance (keeping their
       // size on screen past a few metres), and a faint copy shows through walls.

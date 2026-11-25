@@ -50,6 +50,8 @@ export interface PlayerState {
   rh?: number[] | null;
   /** Swimming (1) or not. */
   sw?: number;
+  /** Crouching on the button: how far their eyes came down (m). */
+  cr?: number;
   /** Mouth openness 0..9 (from the mic). */
   mo?: number;
   /** Grip squeeze per hand 0..1 (a fist when high). */

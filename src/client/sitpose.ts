@@ -131,3 +131,53 @@ export function leanToward(b: Bones, target: THREE.Vector3, max = 0.6, k = 1) {
   axis.normalize();
   rotateWorld(spine, from, from.clone().applyAxisAngle(axis, ang));
 }
+
+/**
+ * Crouching: lowers the body (rig root) by `drop` metres and bends the knees so
+ * the feet stay where the animation put them (planted on the floor, or mid-step
+ * when walking), knees forward. Call after the
+ * animation mixer, with the rig's root placed and its world matrices current.
+ * `moving`: walking (the ankle's place in the shin is only learnt standing still).
+ */
+export function crouchLegs(root: THREE.Object3D, b: Bones, yaw: number, drop: number, moving = false) {
+  if (drop <= 0.005) return standLegs(b);
+  const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+  const legs = [
+    [b.UpperLegL, b.LowerLegL, b.FootL],
+    [b.UpperLegR, b.LowerLegR, b.FootR],
+  ] as const;
+  // Where each ankle is in the animation (the end of the shin, in the shin's own frame).
+  const ankles = legs.map(([upper, lower, foot]) => {
+    if (!upper || !lower || !foot) return null;
+    // The clips don't move a root-parented foot: start from its standing spot (as sitLegs does).
+    const rest = (foot.userData.restPos ??= foot.position.clone()) as THREE.Vector3;
+    foot.position.copy(rest);
+    foot.updateMatrixWorld(true);
+    const ud = lower.userData as { shinEnd?: THREE.Vector3 };
+    if (!ud.shinEnd && !moving) ud.shinEnd = lower.worldToLocal(foot.getWorldPosition(new THREE.Vector3()));
+    return ud.shinEnd ? lower.localToWorld(ud.shinEnd.clone()) : foot.getWorldPosition(new THREE.Vector3());
+  });
+  root.position.y -= drop;
+  root.updateMatrixWorld(true);
+  legs.forEach(([upper, lower, foot], i) => {
+    const at = ankles[i];
+    if (!upper || !lower || !foot || !at) return;
+    const shinEnd = lower.userData.shinEnd as THREE.Vector3 | undefined;
+    if (shinEnd && foot.parent && foot.parent !== lower) {
+      // Put the (root-parented) foot at the shin's end, so the IK measures the real shin.
+      foot.parent.updateWorldMatrix(true, false);
+      foot.position.copy(foot.parent.worldToLocal(lower.localToWorld(shinEnd.clone())));
+      foot.updateMatrixWorld(true);
+    }
+    const hip = upper.getWorldPosition(new THREE.Vector3());
+    const pole = hip.clone().addScaledVector(fwd, 1).add(new THREE.Vector3(0, 0.2, 0));
+    const end = reach(upper, lower, foot, at, pole, 1);
+    if (end && foot.parent && foot.parent !== lower) {
+      foot.parent.updateWorldMatrix(true, false);
+      foot.position.copy(foot.parent.worldToLocal(end));
+      foot.updateMatrixWorld(true);
+    }
+  });
+  root.updateMatrixWorld(true);
+}
+
