@@ -124,14 +124,14 @@ export function floorTile(size: number, photo?: CanvasImageSource | null): HTMLC
     const [h, hx] = canvas(size / 2);
     hx.drawImage(photo, 0, 0, size / 2, size / 2);
     hx.globalCompositeOperation = 'multiply';
-    hx.fillStyle = '#d9a35a';
+    hx.fillStyle = '#e6bd84';
     hx.fillRect(0, 0, size / 2, size / 2);
     honey = h;
   } else {
     ctx.drawImage(marble(size, 'cream', 3), 0, 0);
     honey = marble(size / 2, 'honey', 5);
   }
-  const b = size * 0.06;
+  const b = size * 0.04;
   ctx.save();
   ctx.fillStyle = ctx.createPattern(honey, 'repeat')!;
   ctx.fillRect(0, 0, size, b);
@@ -143,9 +143,12 @@ export function floorTile(size: number, photo?: CanvasImageSource | null): HTMLC
   ctx.strokeStyle = 'rgba(60,40,30,0.55)';
   ctx.lineWidth = size * 0.004;
   ctx.strokeRect(0, 0, size, size);
-  ctx.strokeStyle = 'rgba(176,134,60,0.9)';
-  ctx.lineWidth = size * 0.006;
+  ctx.strokeStyle = 'rgba(70,44,34,0.7)';
+  ctx.lineWidth = size * 0.008;
   ctx.strokeRect(b, b, size - 2 * b, size - 2 * b);
+  ctx.strokeStyle = 'rgba(196,152,70,0.95)';
+  ctx.lineWidth = size * 0.003;
+  ctx.strokeRect(b + size * 0.008, b + size * 0.008, size - 2 * b - size * 0.016, size - 2 * b - size * 0.016);
   // Centre compass star.
   const cx = size / 2,
     r = size * 0.17;
@@ -170,13 +173,13 @@ export function carpet(size: number): HTMLCanvasElement {
   // Bellagio-style floral: a dark wine ground, gilded acanthus scrolls, and
   // shaded blossoms in coral, saffron, teal and violet. One tile = 2.4 m.
   const [c, g] = canvas(size);
-  g.fillStyle = '#2e0a12';
+  g.fillStyle = '#4a0f1c';
   g.fillRect(0, 0, size, size);
   const S = size;
   let seed = 11;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   // Tone-on-tone ground damask.
-  g.fillStyle = 'rgba(90,20,32,0.55)';
+  g.fillStyle = 'rgba(120,30,44,0.6)';
   for (let i = 0; i < 4; i++)
     for (let j = 0; j < 4; j++) {
       const x = (i + 0.5) * (S / 4) + ((j % 2) * S) / 8,
@@ -210,8 +213,8 @@ export function carpet(size: number): HTMLCanvasElement {
     [[0.75, 0], [0.55, 0.2], [0.95, 0.3], [0.75, 0.5], [0.55, 0.7], [0.95, 0.8], [0.75, 1]],
   ];
   for (const p of paths) {
-    vine(p, S * 0.012, '#5c4a1c');
-    vine(p, S * 0.006, '#b8913e');
+    vine(p, S * 0.016, '#6a521e');
+    vine(p, S * 0.008, '#d6ab52');
   }
   // Acanthus leaves along the vines.
   const leaf = (x: number, y: number, a: number, l: number) =>
@@ -230,7 +233,7 @@ export function carpet(size: number): HTMLCanvasElement {
       g.fill();
       g.restore();
     });
-  for (let k = 0; k < 40; k++) leaf(rnd() * S, rnd() * S, rnd() * 6.28, S * (0.03 + rnd() * 0.03));
+  for (let k = 0; k < 90; k++) leaf(rnd() * S, rnd() * S, rnd() * 6.28, S * (0.025 + rnd() * 0.035));
   // Shaded blossoms.
   const blossom = (x: number, y: number, r: number, cols: string[], petals: number) =>
     wrap((ox, oy) => {
@@ -274,11 +277,11 @@ export function carpet(size: number): HTMLCanvasElement {
     [0, 0.5, 0.04],
   ];
   spots.forEach(([x, y, r], i) => blossom(x * S, y * S, r * S, palettes[i % palettes.length], i < 4 ? 8 : 6));
-  for (let k = 0; k < 26; k++) blossom(rnd() * S, rnd() * S, S * (0.012 + rnd() * 0.012), palettes[k % palettes.length], 5);
+  for (let k = 0; k < 64; k++) blossom(rnd() * S, rnd() * S, S * (0.01 + rnd() * 0.016), palettes[k % palettes.length], 5);
   // Pile: fibre noise and a soft blur so it reads as woven wool.
   const img = g.getImageData(0, 0, S, S);
   for (let i = 0; i < img.data.length; i += 4) {
-    const f = 0.84 + rnd() * 0.24;
+    const f = 0.9 + rnd() * 0.18;
     img.data[i] *= f;
     img.data[i + 1] *= f;
     img.data[i + 2] *= f;
@@ -288,6 +291,43 @@ export function carpet(size: number): HTMLCanvasElement {
   g2.filter = 'blur(0.6px)';
   g2.drawImage(c, 0, 0);
   return c2;
+}
+
+/**
+ * Backlit honey onyx: translucent amber bands with cloudy depth and pale
+ * crystalline veins. Used as an emissive map so it glows like lit stone.
+ */
+export function onyx(w: number, h = w, seed = 7): HTMLCanvasElement {
+  return cached(`onyx-${w}-${h}-${seed}`, () => {
+    const [c, ctx] = canvas(w, h);
+    const img = ctx.createImageData(w, h);
+    const n = makeNoise(seed);
+    const deep = [184, 104, 40],
+      mid = [234, 172, 96],
+      pale = [252, 230, 190];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const u = (x / w) * 4,
+          v = (y / h) * 4 * (h / w);
+        const warp = fbm(n, u * 0.7, v * 0.7, 4, 5);
+        // Sweeping growth bands, warped like real onyx.
+        const band = 0.5 + 0.5 * Math.sin((u * 0.6 + v * 1.4 + warp * 3.2) * 4.2);
+        const fine = 0.5 + 0.5 * Math.sin((u * 0.6 + v * 1.4 + warp * 3.6) * 23);
+        const cloud = fbm(n, u * 2 + 7, v * 2 + 3, 8, 4);
+        let t = 0.2 + band * 0.45 + fine * 0.12 + cloud * 0.4;
+        t = Math.max(0, Math.min(1, t));
+        const vein = Math.pow(Math.max(0, 1 - Math.abs(Math.sin((u * 1.3 - v * 0.4 + warp * 5) * 2.6)) * 9), 2);
+        const i = (y * w + x) * 4;
+        for (let k = 0; k < 3; k++) {
+          const a = t < 0.5 ? deep[k] + (mid[k] - deep[k]) * (t * 2) : mid[k] + (pale[k] - mid[k]) * ((t - 0.5) * 2);
+          img.data[i + k] = Math.min(255, a + vein * 50);
+        }
+        img.data[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c;
+  });
 }
 
 /** Dark mahogany with grain, for table rails and cabinet trim. */
@@ -412,7 +452,7 @@ export function lakeView(w: number, h: number): HTMLCanvasElement {
     ctx.fillRect(rnd() * w, rnd() * H * 0.6, 1 + (rnd() < 0.1 ? 1 : 0), 1);
   }
   const mx = w * 0.78,
-    my = H * 0.18;
+    my = H * 0.3;
   const mg = ctx.createRadialGradient(mx, my, 4, mx, my, 70);
   mg.addColorStop(0, 'rgba(255,250,235,1)');
   mg.addColorStop(0.18, 'rgba(255,245,225,0.9)');
@@ -513,7 +553,7 @@ export function lakeReflection(w: number, h: number): HTMLCanvasElement {
       const f = 1 - y / len;
       ctx.globalAlpha = f * f * (neon ? 0.55 : 0.35) * (0.4 + 0.6 * rnd());
       ctx.fillStyle = col;
-      ctx.fillRect(x + Math.sin(y * 0.3 + x) * 3, y, 2 + rnd() * 4, 1.5);
+      ctx.fillRect(x + Math.sin(y * 0.3 + x) * 3, y, 1 + rnd() * 2.5, 1.5);
     }
   }
   ctx.globalAlpha = 1;

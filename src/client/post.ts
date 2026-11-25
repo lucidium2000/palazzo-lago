@@ -51,7 +51,7 @@ export class PostFX {
       composer.addPass(ao);
       this.ao = ao;
     }
-    const bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), q.post === 'full' ? 0.26 : 0.2, 0.32, 1.25);
+    const bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), q.post === 'full' ? 0.3 : 0.22, 0.34, 1.2);
     composer.addPass(bloom);
     this.bloom = bloom;
     composer.addPass(new OutputPass());

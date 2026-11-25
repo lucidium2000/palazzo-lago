@@ -7,13 +7,14 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 /**
  * Downloaded art (all CC0, see art/LICENSES.md):
- *  - Poly Haven PBR material sets (colour, normal, packed AO/roughness/metal)
+ *  - Poly Haven PBR material sets (colour, normal, packed AO/roughness/metal),
+ *    including a honed limestone paving for the terrace and pool deck
  *  - the Poly Haven "Ballroom" HDRI for reflections
  *  - Quaternius "Ultimate Modular" people, merged to one mesh per person
  * Everything has a procedural fallback, so the casino still opens if a file fails.
  */
 
-export type PbrName = 'marble' | 'darkmarble' | 'walnut' | 'velvet' | 'leather';
+export type PbrName = 'marble' | 'darkmarble' | 'walnut' | 'velvet' | 'leather' | 'limestone';
 
 interface PbrSet {
   map: THREE.Texture;
@@ -56,7 +57,7 @@ class Assets {
   people: PeopleLib | null = null;
 
   async load(renderer: THREE.WebGLRenderer, onProgress: (k: number) => void) {
-    const names: PbrName[] = ['marble', 'darkmarble', 'walnut', 'velvet', 'leather'];
+    const names: PbrName[] = ['marble', 'darkmarble', 'walnut', 'velvet', 'leather', 'limestone'];
     const loader = new THREE.TextureLoader();
     const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     let done = 0;
