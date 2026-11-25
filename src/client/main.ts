@@ -36,6 +36,7 @@ import { Hud, type NavItem } from './hud';
 import { Interaction } from './interaction';
 import { Drink, Lounge } from './lounge';
 import { WaiterTrays } from './waitertray';
+import { Napkins } from './napkins';
 import { BAR as POOL_BAR } from './areas/pool';
 import { Crowd, POSE, randomLook, staffLook, type Person } from './people';
 import { saveComfort, Player, type Viewpoint } from './player';
@@ -251,6 +252,8 @@ async function main() {
   });
   // Loose things to pick up and throw: chips, dice, bottles, fruit, napkins, menus, ashtrays, buckets.
   const hitBy = new WeakMap<object, Person>();
+  // Napkins wipe up spills, your face, and (gently) the person you soaked.
+  let napkins: Napkins | null = null;
   const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics });
   const slotRows = new SlotRows(ctx, crowd, world);
 
@@ -1693,6 +1696,8 @@ async function main() {
     throwables.update(dt);
     drinkPhysics.update(dt);
     loose.update(dt);
+    napkins ??= new Napkins({ loose, throwables, drinkPhysics, sound, crowd, camera, onDab: (p) => (p.attendUntil = Math.min(p.attendUntil, crowd.now + 0.5)) });
+    napkins.update(dt);
     // Things you throw that hit someone: a thump, and they let you know about it.
     for (const b of loose.sim.bodies) {
       if (!b.awake || !b.mine || b.held || b.v.lengthSq() < 4) continue;
@@ -1819,7 +1824,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { Drink, waiterTrays, hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
 }
 
 main().catch((e) => {

@@ -117,6 +117,13 @@ export class DrinkPhysics {
   }
 
   /** Drink poured over YOU (by your friend, or yourself). */
+  /** Wiping your face (a napkin): the drink on your eyes clears fast. True if there was any. */
+  wipeFace(dt: number): boolean {
+    if (this.veilA <= 0.01) return false;
+    this.veilA = Math.max(0, this.veilA - dt * 2.5);
+    return true;
+  }
+
   soaked(color: number) {
     this.veilA = 0.85;
     (this.veil.material as THREE.MeshBasicMaterial).color.set(color).lerp(new THREE.Color(0xffffff), 0.35);

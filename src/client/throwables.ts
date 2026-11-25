@@ -279,6 +279,29 @@ export class Throwables {
    * A puddle of drink at `at` (on whatever surface is there). Pours keep adding
    * to the nearest puddle of the same drink, which spreads (up to a limit).
    */
+  /**
+   * Wipes spills under/around a point (a napkin): shrinks them by `k` (0..1 of their size per call),
+   * cleaning them away when small. Returns the colour soaked up, or null if nothing was there.
+   */
+  wipe(at: THREE.Vector3, r: number, k: number): number | null {
+    let got: number | null = null;
+    for (const s of [...this.spills]) {
+      const m = s.m;
+      if (Math.abs(m.position.y - at.y) > 0.06) continue;
+      if (Math.hypot(m.position.x - at.x, m.position.z - at.z) > m.scale.x * 0.1 + r) continue;
+      got = (m.material as THREE.MeshStandardMaterial).color.getHex();
+      const f = Math.max(0, 1 - k);
+      m.scale.set(m.scale.x * f, 1, m.scale.z * f);
+      if (m.scale.x < 0.12) {
+        m.removeFromParent();
+        m.geometry.dispose();
+        (m.material as THREE.Material).dispose();
+        this.spills.splice(this.spills.indexOf(s), 1);
+      }
+    }
+    return got;
+  }
+
   spill(at: THREE.Vector3, liquid: number, size: number) {
     for (const s of this.spills) {
       const m = s.m;

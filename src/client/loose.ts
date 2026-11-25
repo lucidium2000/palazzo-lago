@@ -239,6 +239,8 @@ function kinds(): KindDef[] {
     {
       key: 'napkin',
       label: 'cocktail napkin',
+      // Stains with whatever it wipes up (see napkins.ts).
+      tinted: true,
       spec: { name: 'napkin', shape: { type: 'box', x: 0.06, y: 0.0015, z: 0.06 }, mass: 0.004, bounce: 0.02, friction: 0.7, drag: 3.2, floats: true, tumble: 0.1 },
       geo: new THREE.BoxGeometry(0.12, 0.003, 0.12).translate(0, 0.0015, 0),
       mat: new THREE.MeshStandardMaterial({ color: 0xf6f1e6, roughness: 0.95 }),
@@ -575,6 +577,19 @@ export class LooseObjects {
     tmpM.compose(it.body.pos, it.body.q, hide ? ZERO : ONE);
     k.mesh.setMatrixAt(it.index, tmpM);
     k.dirty = true;
+  }
+
+  /** Shows an item's colour again after it changed (a stained napkin): where it lies and in a hand. */
+  recolor(it: Item) {
+    const k = it.kind;
+    if (k.mesh.instanceColor) {
+      k.mesh.setColorAt(it.index, it.color);
+      k.mesh.instanceColor.needsUpdate = true;
+    }
+    if (it.proxy?.instanceColor) {
+      it.proxy.setColorAt(0, it.color);
+      it.proxy.instanceColor.needsUpdate = true;
+    }
   }
 
   /** A carryable stand-in (one instance) for an item in someone's hand. */
