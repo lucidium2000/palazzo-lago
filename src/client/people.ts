@@ -3,7 +3,8 @@ import type { Quality } from './quality';
 import type { World } from './world';
 import { spawnCharacter, type PeopleLib } from './assets';
 import { FINGER, orientHand, reach, setFingers } from './net/embody';
-import { sitLegs, standLegs } from './sitpose';
+import { lieLegs, sitLegs, standLegs } from './sitpose';
+import { dry, linkRoutes, pathTo } from './routes';
 
 // Bone offsets for poses the clips don't have (tuned against the Quaternius rig).
 export const POSE = { sitThigh: 1.5, sitShin: -1.6, sitHips: 0.95, trayUpper: 0.9, trayLower: 1.2, trayAxis: 'x' as 'x' | 'z' };
@@ -57,9 +58,19 @@ export class Person {
   headPitch = 0;
   target: number | null = null;
   prev: number | null = null;
+  /** Heading somewhere in particular (the pool, the bar…): the nodes still to walk through. */
+  route: number[] = [];
+  /** Where this guest likes to be (the pool deck…): most of their trips end there. */
+  haunt: ((x: number, z: number) => boolean) | null = null;
   seated = false;
   /** Hip height when seated (bar stools are taller than slot stools). */
   seatY = 0.62;
+  /**
+   * Lying back (a sun lounger): how far the body reclines from upright, radians
+   * (0 = sitting up). Only while seated; the hips go on the seat at seatY, a
+   * little behind pos (toward the backrest).
+   */
+  lie = 0;
   /** Swimming: the height of their head (the body lies flat behind it); null when not swimming. */
   swimHead: number | null = null;
   swimBlend = 0;
@@ -136,6 +147,19 @@ export function randomLook(): Look {
     skin: pick(SKIN),
     hair: pick(HAIR),
     hairStyle: dress ? (rnd() < 0.6 ? 'long' : 'bun') : rnd() < 0.15 ? 'bald' : 'short',
+    height: (dress ? 1.66 : 1.78) + (rnd() - 0.5) * 0.14,
+  };
+}
+
+/** Beachwear for the pool party: board shorts, or a casual summer outfit. */
+export function poolLook(): Look {
+  const base = randomLook();
+  const dress = rnd() < 0.45;
+  return {
+    ...base,
+    dress,
+    kind: dress ? 'female_casual' : 'male_beach',
+    hairStyle: dress ? (rnd() < 0.5 ? 'long' : 'bun') : rnd() < 0.15 ? 'bald' : 'short',
     height: (dress ? 1.66 : 1.78) + (rnd() - 0.5) * 0.14,
   };
 }
@@ -227,8 +251,10 @@ export class Crowd {
     private world: World,
     private lib: PeopleLib | null = null,
   ) {
-    // Three extra slots are always kept for your crew.
-    this.max = q.people + 4; // 3 crew + 1 remote player reserved
+    // Three extra slots are always kept for your crew. The pool party gets its own
+    // share on top of the floor's: it's culled from the casino (and the casino from
+    // the deck) on headsets and phones, so it costs little to draw.
+    this.max = q.people + Crowd.poolShare(q.people) + 4; // 3 crew + 1 remote player reserved
     scene.add(this.group);
     const cloth = new THREE.MeshStandardMaterial({ roughness: 0.75, envMapIntensity: 0.6 });
     const satin = new THREE.MeshStandardMaterial({ roughness: 0.35, envMapIntensity: 1.0 });
@@ -310,6 +336,11 @@ export class Crowd {
     this.cullDist = q.name === 'quest2' ? 14 : q.name === 'mobile' ? 14 : q.name === 'quest3' ? 16 : Infinity;
   }
 
+  /** Extra guests for the pool deck, on top of the floor's `people`. */
+  static poolShare(people: number) {
+    return Math.min(32, Math.round(people * 0.5));
+  }
+
   /**
    * A conversation circle of `n` guests at a free spot near (x, z). Some hold
    * drinks. Returns the members added (fewer if the floor there is crowded).
@@ -335,6 +366,15 @@ export class Crowd {
       this.talks.push(t);
     }
     return members;
+  }
+
+  /** Makes these people a conversation circle (they take turns talking). */
+  converse(members: Person[]): Talk | null {
+    if (members.length < 2) return null;
+    const t: Talk = { members, speaker: 0, nextTurn: this.time + 2 + rnd() * 3, laughUntil: 0 };
+    for (const m of members) m.talk = t;
+    this.talks.push(t);
+    return t;
   }
 
   /** Conversation circles on the floor (the dialogue system scripts what they say). */
@@ -452,30 +492,15 @@ export class Crowd {
     this.group.add(rig.root);
   }
 
-  /** Builds the walking graph: nodes in open floor, edges where the straight line is clear. */
+  /** Builds the walking graph: nodes in open floor, edges where the straight line is clear (and dry). */
   setGraph(points: [number, number][]) {
     this.nodes = points.map(([x, z]) => new THREE.Vector2(x, z));
-    this.edges = this.nodes.map(() => []);
-    for (let i = 0; i < this.nodes.length; i++) {
-      for (let j = i + 1; j < this.nodes.length; j++) {
-        const a = this.nodes[i],
-          b = this.nodes[j];
-        const d = a.distanceTo(b);
-        if (d > 7.5) continue;
-        let clear = true;
-        for (let s = 0; s <= Math.ceil(d / 0.3); s++) {
-          const t = s / Math.ceil(d / 0.3);
-          if (!this.world.isFree(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 0.3, true)) {
-            clear = false;
-            break;
-          }
-        }
-        if (clear) {
-          this.edges[i].push(j);
-          this.edges[j].push(i);
-        }
-      }
-    }
+    this.edges = linkRoutes(this.world, points);
+  }
+
+  /** The walking graph (for tests and debugging). */
+  get graph(): { nodes: readonly THREE.Vector2[]; edges: readonly (readonly number[])[] } {
+    return { nodes: this.nodes, edges: this.edges };
   }
 
   graphInfo() {
@@ -509,8 +534,12 @@ export class Crowd {
     }
   }
 
+  /** Where your feet were at the last update (for guests who keep out of your way). */
+  readonly playerAt = new THREE.Vector3();
+
   update(dt: number, time: number, player: THREE.Vector3, playerHead: THREE.Vector3) {
     this.time = time;
+    this.playerAt.copy(player);
     let trayN = 0;
     this.updateTalks(time);
     let gi = 0,
@@ -673,7 +702,7 @@ export class Crowd {
       const step = Math.min(d, p.moving * dt);
       const nx = p.pos.x + (dx / d) * step,
         nz = p.pos.z + (dz / d) * step;
-      if (this.world.isFree(nx, nz, 0.2, true) || !this.world.isFree(p.pos.x, p.pos.z, 0.2, true)) {
+      if ((this.world.isFree(nx, nz, 0.2, true) && dry(this.world, nx, nz, 0.12)) || !this.world.isFree(p.pos.x, p.pos.z, 0.2, true)) {
         p.pos.x = nx;
         p.pos.z = nz;
       }
@@ -706,6 +735,14 @@ export class Crowd {
     // Phone held up, screen toward the person.
     this.propQ.setFromEuler(this.e.set(-0.25, p.yaw, 0, 'YXZ'));
     return this.m.compose(pos, this.propQ, this.s.set(1, 1, 1)).clone();
+  }
+
+  /** Somewhere to head for: anywhere, or mostly where they like to be. */
+  private pickGoal(p: Person): number {
+    const any = Math.floor(Math.random() * this.nodes.length);
+    if (!p.haunt || Math.random() < 0.25) return any;
+    const liked = this.nodes.map((n, i) => (p.haunt!(n.x, n.y) ? i : -1)).filter((i) => i >= 0);
+    return liked.length ? liked[Math.floor(Math.random() * liked.length)] : any;
   }
 
   private walk(p: Person, dt: number, player: THREE.Vector3) {
@@ -748,10 +785,15 @@ export class Crowd {
       dz = t.y - p.pos.z;
     const d = Math.hypot(dx, dz);
     if (d < 0.25) {
+      // Now and then a guest sets off for somewhere else in the resort (out to the
+      // pool, back to the tables) and walks the shortest way there; otherwise they amble.
+      if (p.route.length === 0 && p.role === 'wander' && Math.random() < 0.08) p.route = pathTo(this.edges, p.target, this.pickGoal(p)) ?? [];
       const options = this.edges[p.target].filter((n) => n !== p.prev);
       const list = options.length ? options : this.edges[p.target];
       p.prev = p.target;
-      p.target = list.length ? list[Math.floor(Math.random() * list.length)] : p.target;
+      const next = p.route.shift();
+      p.target = next !== undefined && this.edges[p.target].includes(next) ? next : list.length ? list[Math.floor(Math.random() * list.length)] : p.target;
+      if (next !== undefined && p.target !== next) p.route = [];
       if (Math.random() < 0.18) p.pause = 1.5 + Math.random() * 3.5;
       return;
     }
@@ -778,7 +820,8 @@ export class Crowd {
         nz += (oz / od) * (0.55 - od) * 0.5;
       }
     }
-    if (this.world.isFree(nx, nz, 0.22, true) || !this.world.isFree(p.pos.x, p.pos.z, 0.22, true)) {
+    // Stay out of furniture and the pool (anyone shoved off the path walks back out).
+    if ((this.world.isFree(nx, nz, 0.22, true) && dry(this.world, nx, nz, 0.12)) || !this.world.isFree(p.pos.x, p.pos.z, 0.22, true) || !dry(this.world, p.pos.x, p.pos.z, 0)) {
       p.pos.x = nx;
       p.pos.z = nz;
     }
@@ -852,8 +895,11 @@ export class Crowd {
       // the seat, knees forward, feet on the floor or the stool's footrest). IK works
       // for every character model, whatever its leg bones' local axes.
       rig.root.position.y = p.seatY - POSE.sitHips * sc;
-      rig.root.updateMatrixWorld(true);
-      sitLegs(b, p.yaw, p.pos.y);
+      if (p.lie > 0) this.recline(p);
+      else {
+        rig.root.updateMatrixWorld(true);
+        sitLegs(b, p.yaw, p.pos.y);
+      }
     } else {
       // A rig that sat before (pooled rigs) gets its feet back under it.
       standLegs(b);
@@ -902,6 +948,36 @@ export class Crowd {
     }
     this.shadowAt(p, i, sc);
     if (p.proxy) p.proxy.position.set(p.pos.x, 1.0, p.pos.z);
+  }
+
+  private hipV = [new THREE.Vector3(), new THREE.Vector3()];
+  /**
+   * Lying back on a lounger: tips the whole body back by `p.lie` about the hips,
+   * puts the hips on the seat (just behind pos, where the backrest starts),
+   * stretches the legs out along the cushion and tilts the head up to look
+   * down the body at the pool.
+   */
+  private recline(p: Person) {
+    const rig = p.rig!,
+      b = rig.bones;
+    rig.root.rotation.x = -p.lie;
+    rig.root.updateMatrixWorld(true);
+    const [l, r] = this.hipV;
+    const ul = b['UpperLegL'],
+      ur = b['UpperLegR'];
+    if (ul && ur) {
+      ul.getWorldPosition(l);
+      ur.getWorldPosition(r);
+      l.add(r).multiplyScalar(0.5);
+      const back = 0.1;
+      rig.root.position.x += p.pos.x - Math.sin(p.yaw) * back - l.x;
+      rig.root.position.y += p.pos.y + p.seatY - l.y;
+      rig.root.position.z += p.pos.z - Math.cos(p.yaw) * back - l.z;
+      rig.root.updateMatrixWorld(true);
+    }
+    lieLegs(b, p.yaw, p.pos.y + p.seatY - 0.1);
+    // Chin down a little: looking along the body at the pool, not at the stars.
+    b.Head?.rotateX(p.lie * 0.45);
   }
 
   private tv = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];

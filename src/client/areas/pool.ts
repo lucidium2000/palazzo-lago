@@ -132,6 +132,12 @@ export interface PoolArea {
   stands: { pos: THREE.Vector3; yaw: number }[];
   /** People standing in the water (pos.y is their feet, on the pool floor). */
   swimmers: { pos: THREE.Vector3; yaw: number }[];
+  /** Swimming loops in the deep end (centre, radii, m/s). */
+  laps: { x: number; z: number; rx: number; rz: number; speed: number }[];
+  /** Loungers with someone on them (`lie`: how far they recline, 0 = sitting up). */
+  loungers: { pos: THREE.Vector3; yaw: number; seatY: number; lie: number }[];
+  /** A pair chatting on the deck. */
+  chats: { pos: THREE.Vector3; yaw: number }[];
   bartender: { pos: THREE.Vector3; yaw: number };
 }
 
@@ -449,26 +455,40 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   root.add(anchor);
 
   // Crowd spots: loungers, bar stools, cabanas, and a dance floor in front of the DJ.
-  const loungerSeats = spots.filter((_, i) => i % 3 === 0).map((s) => ({ pos: new THREE.Vector3(s.x, 0, s.z), yaw: s.yaw, seatY: 0.48 }));
+  // Guests lie back on most of the occupied loungers; one sits up with a drink.
+  const loungerSeats = spots
+    .filter((_, i) => i % 2 === 0 || i === 5 || i === 9)
+    .slice(0, 9)
+    .map((s, k) => ({ pos: new THREE.Vector3(s.x, 0, s.z), yaw: s.yaw, seatY: k === 3 ? 0.48 : 0.47, lie: k === 3 ? 0 : 0.95 }));
   const stands: PoolArea['stands'] = [];
   for (let k = 0; k < 8; k++) {
     stands.push({ pos: new THREE.Vector3(DJ.x - 2.4 + (k % 4) * 1.5 + (k > 3 ? 0.7 : 0), 0, DJ.z + 2.2 + Math.floor(k / 4) * 1.2), yaw: Math.PI });
   }
-  stands.push({ pos: new THREE.Vector3(P.x - 6, 0, P.z + P.d / 2 + 1.0), yaw: Math.PI }, { pos: new THREE.Vector3(P.x - 5.3, 0, P.z + P.d / 2 + 1.0), yaw: Math.PI * 0.8 });
+  // Two friends chatting on the east deck, by the hot tub (clear of the walkways).
+  const chats: PoolArea['chats'] = [
+    { pos: new THREE.Vector3(56.4, 0, -14.6), yaw: Math.PI * 0.75 },
+    { pos: new THREE.Vector3(57.0, 0, -15.3), yaw: -Math.PI * 0.25 },
+  ];
 
-  // A few guests standing in the shallow end, water at their chests.
-  const swimmers: PoolArea['swimmers'] = [
-    { pos: new THREE.Vector3(P.x - 4.2, -1.22, P.z + 2.4), yaw: Math.PI * 0.75 },
-    { pos: new THREE.Vector3(P.x - 3.3, -1.22, P.z + 1.6), yaw: -Math.PI * 0.6 },
-    { pos: new THREE.Vector3(P.x - 4.6, -1.22, P.z + 1.2), yaw: Math.PI * 0.35 },
+  // A few guests standing in the shallow end, the water at their waists, chatting.
+  const at = (x: number, z: number, yaw: number) => ({ pos: new THREE.Vector3(x, poolFloor(x, z), z), yaw });
+  const swimmers: PoolArea['swimmers'] = [at(P.x - 5.6, P.z + 2.3, Math.PI * 0.75), at(P.x - 4.7, P.z + 1.6, -Math.PI * 0.6), at(P.x - 5.9, P.z + 1.2, Math.PI * 0.35)];
+
+  // Laps in the deep end: slow loops (centre and radii), kept well off the walls.
+  const laps: PoolArea['laps'] = [
+    { x: P.x + 4.6, z: P.z, rx: 2.9, rz: 2.6, speed: 0.38 },
+    { x: P.x + 4.9, z: P.z + 0.2, rx: 2.0, rz: 1.7, speed: 0.3 },
   ];
 
   return {
     root,
     anchor,
     swimmers,
-    seats: [...stools.slice(0, 5), ...seats, ...loungerSeats],
+    laps,
+    loungers: loungerSeats,
+    seats: [...stools.slice(0, 5), ...seats],
     stands,
+    chats,
     bartender: { pos: new THREE.Vector3(BAR.x + 1.15, 0, BAR.z), yaw: Math.PI / 2 },
     update(t: number) {
       waterMat.uniforms.time.value = t;
@@ -550,7 +570,8 @@ function loungerGeometry(): THREE.BufferGeometry {
   };
   // Seat (flat part toward the pool, z+), back raised toward z−.
   add(new THREE.BoxGeometry(0.7, 0.1, 1.3), 0, 0.32, 0.35);
-  add(new THREE.BoxGeometry(0.7, 0.1, 0.75), 0, 0.55, -0.55, -0.6);
+  // The backrest rises away from the seat (its low edge meets the seat's end).
+  add(new THREE.BoxGeometry(0.7, 0.1, 0.75), 0, 0.55, -0.55, 0.6);
   for (const [x, z] of [
     [-0.3, 0.9],
     [0.3, 0.9],
