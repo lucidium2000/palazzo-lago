@@ -50,6 +50,7 @@ import { mouthOf, voices } from './voices';
 import { Throwables } from './throwables';
 import { DrinkPhysics } from './drinkphysics';
 import { Listener } from './listen';
+import { Watch } from './watch';
 import { elVoice } from './cast';
 import { DrinkSync } from './net/drinksync';
 import { LooseObjects } from './loose';
@@ -764,6 +765,30 @@ async function main() {
     { vr: vrCapable },
   );
   // --- Your own body in VR ------------------------------------------------------
+  // Your watch (left wrist, VR): time, chips, friends; tap it for the menu.
+  const FRIEND_COLORS = ['#4fd1c5', '#f6ad55', '#b794f4', '#f687b3'];
+  const watch = new Watch({
+    scene,
+    camera,
+    hands,
+    interaction,
+    chips: () => bankroll.balance,
+    friends: () => {
+      if (!session) return [];
+      const me = camera.getWorldPosition(new THREE.Vector3());
+      const look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
+      const myYaw = Math.atan2(-look.x, -look.z);
+      return session.friendList().flatMap((f, i) => {
+        const p = f.person?.pos;
+        if (!p) return [];
+        const dx = p.x - me.x,
+          dz = p.z - me.z;
+        const yaw = Math.atan2(-dx, -dz);
+        return [{ name: f.name, color: FRIEND_COLORS[i % FRIEND_COLORS.length], bearing: Math.atan2(Math.sin(yaw - myYaw), Math.cos(yaw - myYaw)), distance: Math.hypot(dx, dz), talking: (Number(f.state.mo) || 0) > 2 }];
+      });
+    },
+    onTap: () => hud.toggleWrist(),
+  });
   // Touch to press (VR): a pointing index finger presses buttons and menu panels it pushes into.
   interaction.pokers = () => {
     if (!player.inXR) return [];
@@ -1140,6 +1165,7 @@ async function main() {
     craps.update(dt);
     session?.update(dt);
     drinkSync?.update();
+    watch.update(dt, player.inXR);
     looseSync?.update();
     boxing?.update(dt);
     mirror?.update(dt);
@@ -1275,7 +1301,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks };
+  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch };
 }
 
 main().catch((e) => {

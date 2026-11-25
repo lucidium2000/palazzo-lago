@@ -288,6 +288,16 @@ export class Hud {
     w.redraw();
   }
 
+  /** Opens or closes the wrist menu (Y button, or tapping your watch). */
+  toggleWrist(open = !this.wristOpen) {
+    this.wristOpen = open;
+    if (open) this.wristBuilder?.();
+  }
+
+  get wristMenuOpen() {
+    return this.wristOpen;
+  }
+
   /** Per-frame VR placement for the wrist menu and toasts. */
   update(camera: THREE.Camera) {
     if (!this.renderer.xr.isPresenting) return;
@@ -311,10 +321,11 @@ export class Hud {
       (gp as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(0.4, 40);
     }
     this.yWas = y;
-    if (this.wristAttached) this.wrist.mesh.visible = this.wristOpen || !hasY;
-    if (this.wristAttached && hasY && !this.hinted) {
+    // The menu shows when opened (Y, or a tap on your watch).
+    if (this.wristAttached) this.wrist.mesh.visible = this.wristOpen;
+    if (this.wristAttached && !this.hinted) {
       this.hinted = true;
-      this.vrMessage('Press Y on your left controller for the menu', 'info');
+      this.vrMessage(hasY ? 'Look at your watch (left wrist): tap it, or press Y, for the menu' : 'Look at your watch (left wrist) and tap it for the menu', 'info');
     }
 
     const p = this.vrToast.mesh;
