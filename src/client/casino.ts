@@ -77,8 +77,13 @@ export function registerHall(world: import('./world').World, c: Casino) {
   world.addWalkable(-17.7, 17.7, -13.7, 13.7);
   world.addWalkable(-1.45, 1.45, -14.8, -13.2);
   world.addWalkable(TERRACE.x0 + 0.35, TERRACE.x1 - 0.35, TERRACE.z0 + 0.35, -14.35);
-  for (const [x, z] of c.columns) world.addCircle(x, z, 0.5);
-  for (const [x, z] of c.planters) world.addCircle(x, z, 0.45);
+  // Columns stand on square marble plinths (0.95 m); planters are gilded urns.
+  for (const [x, z] of c.columns) world.addBox(x, z, 0.95, 0.95, 0, 'column');
+  for (const [x, z] of c.planters) world.addCircle(x, z, 0.45, 'planter');
+  // Window sills on the north wall (all but the middle bay, which is the doors).
+  for (const wx of [-12, -6, 6, 12]) world.addBox(wx, -HALL.d / 2 + 0.38, 3.7, 0.2, 0, 'wall');
+  // Lanterns either side of the terrace doors.
+  for (const lx of [-2.4, 2.4]) world.addCircle(lx, TERRACE.z1 - 0.3, 0.12, 'lamp');
   world.addSurface('carpet', -12, -3, -11, 6);
   world.addSurface('carpet', 5.6, 13.6, -0.3, 8.7);
   world.addSurface('stone', -12, 12, -20, -14.05);

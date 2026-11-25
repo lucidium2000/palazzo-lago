@@ -4,6 +4,9 @@ import { AVATARS } from './net/avatars';
 import { reach, setFingers } from './net/embody';
 import type { FingerPose } from './fingers';
 import { skinTone } from './posedhand';
+import { POSE } from './people';
+import { hipOnSeat, leanToward, sitLegs, standLegs } from './sitpose';
+import type { Seat } from './world';
 
 /**
  * Your own body in VR: the character you picked, standing under your headset
@@ -26,6 +29,10 @@ export class SelfBody {
   private kind = '';
   private bodyYaw = 0;
   private swimBlend = 0;
+  /** 0..1: how far you've sat down on a stool, the stool, and your size when you sat. */
+  private sitBlend = 0;
+  private sitOn: Seat | null = null;
+  private standScale = 1;
   /** Skin tone of the character you wear (your hands are tinted to match). */
   skin: THREE.Color | null = null;
   /** Called when you change character (to re-tint your hands). */
@@ -65,14 +72,20 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null }) {
     this.root.visible = o.on && !!this.rig;
     const rig = this.rig;
     if (!o.on || !rig) return;
     const female = this.kind.startsWith('female');
     // Scale the character so its eyes sit at your real eye height.
     const eye = Math.max(0.9, o.head.y - o.floorY);
-    const sc = THREE.MathUtils.clamp(eye / ((female ? 1.72 : 1.82) * 0.93), 0.75, 1.25);
+    // Sitting on a stool: your size stays what it was standing (your real head may be anywhere).
+    if (o.seat) this.sitOn = o.seat;
+    this.sitBlend += ((o.seat ? 1 : 0) - this.sitBlend) * Math.min(1, dt * 5);
+    if (this.sitBlend < 0.005 && !o.seat) this.sitBlend = 0;
+    const sit = this.sitOn ? this.sitBlend : 0;
+    if (sit === 0) this.standScale = THREE.MathUtils.clamp(eye / ((female ? 1.72 : 1.82) * 0.93), 0.75, 1.25);
+    const sc = this.standScale;
     rig.root.scale.setScalar(sc);
     // The body turns with you when you look far to one side or walk.
     const headYaw = Math.atan2(o.dir.x, o.dir.z);
@@ -82,6 +95,11 @@ export class SelfBody {
     // Neck under the eyes, set back so the body sits a little behind your
     // point of view (as your real one does) and the chest doesn't fill your view.
     rig.root.position.set(o.head.x, o.floorY, o.head.z).addScaledVector(fwd, -BODY_BACK * sc);
+    if (sit > 0 && this.sitOn) {
+      // Hips on the seat, toward its back edge (the stool swivels: you still face where you look).
+      const seated = new THREE.Vector3(this.sitOn.x, hipOnSeat(this.sitOn.y) - POSE.sitHips * sc, this.sitOn.z).addScaledVector(fwd, -0.07);
+      rig.root.position.lerp(seated, sit);
+    }
     rig.root.rotation.order = 'YXZ';
     rig.root.rotation.y = this.bodyYaw;
     // Swimming: the body lies along the surface behind your head, legs kicking.
@@ -98,12 +116,12 @@ export class SelfBody {
     const a = rig.actions;
     // Walk and run blend with your real speed (strides match the ground you cover).
     const run = THREE.MathUtils.clamp((o.speed - 1.8) / 0.8, 0, 1);
-    let walk = THREE.MathUtils.clamp(o.speed / 0.9, 0, 1) * (1 - run);
+    let walk = THREE.MathUtils.clamp(o.speed / 0.9, 0, 1) * (1 - run) * (1 - sit);
     // A steady flutter kick while swimming (the walk cycle, quick and small).
     if (this.swimBlend > 0.3) walk = Math.max(walk, 0.7);
     a.Idle_Neutral?.setEffectiveWeight(1 - walk - run);
     a.Walk?.setEffectiveWeight(walk);
-    a.Run?.setEffectiveWeight(run);
+    a.Run?.setEffectiveWeight(run * (1 - sit));
     if (a.Walk) a.Walk.timeScale = THREE.MathUtils.clamp(o.speed / (1.15 * sc), 0.45, 1.6);
     if (a.Run) a.Run.timeScale = THREE.MathUtils.clamp(o.speed / (3.2 * sc), 0.6, 1.5);
     rig.mixer.update(dt);
@@ -114,6 +132,17 @@ export class SelfBody {
     // (The neck too: with the body set back you'd look down into it.)
     b.Neck?.scale.setScalar(0.001);
     rig.root.updateMatrixWorld(true);
+    if (sit > 0) {
+      // Seated: thighs along the seat, shins down to the floor; the torso leans
+      // from the hips toward your real head (under and a little behind your eyes).
+      sitLegs(b, this.bodyYaw, o.floorY, sit);
+      const neck = o.head.clone().addScaledVector(fwd, -BODY_BACK * sc).add(new THREE.Vector3(0, -0.14 * sc, 0));
+      leanToward(b, neck, 0.5, sit);
+      rig.root.updateMatrixWorld(true);
+    } else if (this.sitOn) {
+      standLegs(b);
+      this.sitOn = null;
+    }
     const left = new THREE.Vector3(Math.cos(this.bodyYaw), 0, -Math.sin(this.bodyYaw));
     for (const [side, S, dir] of [['l', 'L', 1], ['r', 'R', -1]] as const) {
       const w0 = o.wrists?.[side];

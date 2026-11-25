@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { textSign } from '../panel';
 import type { Quality } from '../quality';
-import type { World } from '../world';
+import { SEAT_R, type World } from '../world';
 import { canvas, radial, toTexture } from '../textures';
 import { Batch, M, nightSky, plane, type Mats } from './kit';
 import { flowers } from './hotel';
@@ -34,22 +34,93 @@ export function poolFloor(x: number, z: number): number {
   return shallow + (deep - shallow) * k * k * (3 - 2 * k);
 }
 
+/** Loungers along both long sides of the pool (yaw 0: the back toward −z). */
+export function loungerSpots(): { x: number; z: number; yaw: number }[] {
+  const spots: { x: number; z: number; yaw: number }[] = [];
+  for (let k = 0; k < 7; k++) {
+    const x = POOL.x - POOL.w / 2 + 1.2 + k * 2.6;
+    spots.push({ x, z: POOL.z - POOL.d / 2 - 2.3, yaw: 0 }, { x, z: POOL.z + POOL.d / 2 + 2.3, yaw: Math.PI });
+  }
+  return spots;
+}
+
+/** An umbrella beside every fourth lounger. */
+function umbrellaSpots(): [number, number][] {
+  return loungerSpots()
+    .filter((_, i) => i % 4 === 0)
+    .map((s) => [s.x + 1.3, s.z + (s.yaw === 0 ? -1.2 : 1.2)]);
+}
+
+const PALMS: [number, number][] = [
+  [24, -3],
+  [24, -12],
+  [24, -22],
+  [24, -33],
+  [31, -34],
+  [40, -34.5],
+  [60, -34],
+  [60.5, -4],
+  [45, -2.4],
+  [53, -2.4],
+  [33, -10],
+  [52, -25],
+];
+const palmScale = (i: number) => 0.9 + ((i * 37) % 10) / 25;
+const URNS: [number, number][] = [
+  [26, -15],
+  [26, -25],
+  [36, -31],
+  [46, -31],
+  [57, -6],
+];
+/** Poles carrying the strings of lights. */
+const LIGHT_POLES: [number, number][] = [
+  [26, -6],
+  [26, -34],
+  [58, -6],
+  [58, -34],
+  [42, -6],
+  [42, -34],
+];
+
+/** Stools around the round pool bar, facing it. */
+function barStools(): { x: number; z: number; yaw: number }[] {
+  const out: { x: number; z: number; yaw: number }[] = [];
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    const x = BAR.x + Math.cos(a) * (BAR.r + 0.55),
+      z = BAR.z + Math.sin(a) * (BAR.r + 0.55);
+    out.push({ x, z, yaw: Math.atan2(BAR.x - x, BAR.z - z) });
+  }
+  return out;
+}
+
 export function registerPool(world: World) {
   world.addWalkable(DECK.x0 + 0.4, DECK.x1 - 0.4, DECK.z0 + 0.5, DECK.z1 - 0.2);
   world.addSurface('stone', DECK.x0, DECK.x1, DECK.z0, DECK.z1);
   // The pool is open: walk in down the steps, jump in, swim, climb out.
   world.addGround(POOL.x - POOL.w / 2, POOL.x + POOL.w / 2, POOL.z - POOL.d / 2, POOL.z + POOL.d / 2, poolFloor);
   world.addWater(POOL.x - POOL.w / 2, POOL.x + POOL.w / 2, POOL.z - POOL.d / 2, POOL.z + POOL.d / 2, WATER_Y);
-  world.addCircle(TUB.x, TUB.z, TUB.r + 0.2);
-  world.addCircle(BAR.x, BAR.z, BAR.r + 0.15);
-  world.addBox(DJ.x, DJ.z - 0.4, 6, 2.2);
+  world.addCircle(TUB.x, TUB.z, TUB.r + 0.35, 'hot tub');
+  world.addCircle(BAR.x, BAR.z, BAR.r + 0.15, 'bar');
+  world.addBox(DJ.x, DJ.z - 0.3, 6.2, 2.6, 0, 'dj booth');
+  // Hedges along both long sides.
+  for (const x of [22.7, 61.3]) world.addBox(x, -18, 1.0, 34, 0, 'hedge');
+  // Loungers (seat and raised back), umbrella poles, palms, urns, light poles.
+  for (const sp of loungerSpots()) world.addBox(sp.x + Math.sin(sp.yaw) * 0.05, sp.z + Math.cos(sp.yaw) * 0.05, 0.74, 1.98, sp.yaw, 'lounger');
+  for (const [x, z] of umbrellaSpots()) world.addCircle(x, z, 0.1, 'umbrella');
+  PALMS.forEach(([x, z], i) => world.addCircle(x + 0.03, z, 0.2 * palmScale(i), 'palm'));
+  for (const [x, z] of URNS) world.addCircle(x, z, 0.42, 'planter');
+  for (const [x, z] of LIGHT_POLES) world.addCircle(x, z, 0.1, 'lamp');
+  // The bar stools are seats: walk onto one and you sit.
+  for (const st of barStools()) world.addSeat(st.x, st.z, SEAT_R, 0.78, st.yaw, 'bar stool');
   // Lift tower (the cabs themselves are walkable, see Elevators).
   // Solid parts of the tower around the two cabs (the cabs are walkable).
-  world.addBox(LIFT.doorX + 1.3, -8.95, 2.9, 0.7);
-  world.addBox(LIFT.doorX + 1.3, -6.3, 2.9, 0.68);
-  world.addBox(LIFT.doorX + 1.3, -3.65, 2.9, 0.7);
-  world.addBox(LIFT.doorX + 2.55, -6.3, 0.5, 6);
-  for (const z of [-30, -24, -18]) world.addBox(59.5, z, 2.6, 3.2);
+  world.addBox(LIFT.doorX + 1.3, -8.95, 2.9, 0.7, 0, 'lift');
+  world.addBox(LIFT.doorX + 1.3, -6.3, 2.9, 0.68, 0, 'lift');
+  world.addBox(LIFT.doorX + 1.3, -3.65, 2.9, 0.7, 0, 'lift');
+  world.addBox(LIFT.doorX + 2.55, -6.3, 0.5, 6, 0, 'lift');
+  for (const z of [-30, -24, -18]) world.addBox(59.5, z, 2.6, 3.2, 0, 'cabana');
 }
 
 export interface PoolArea {
@@ -193,11 +264,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   // Loungers and umbrellas along both long sides.
   const lounger = loungerGeometry();
   const loungerMat = new THREE.MeshStandardMaterial({ color: 0xf2ece0, roughness: 0.7, emissive: 0x2a2620, emissiveIntensity: 0.4 });
-  const spots: { x: number; z: number; yaw: number }[] = [];
-  for (let k = 0; k < 7; k++) {
-    const x = P.x - P.w / 2 + 1.2 + k * 2.6;
-    spots.push({ x, z: P.z - P.d / 2 - 2.3, yaw: 0 }, { x, z: P.z + P.d / 2 + 2.3, yaw: Math.PI });
-  }
+  const spots = loungerSpots();
   const loungers = new THREE.InstancedMesh(lounger, loungerMat, spots.length);
   const tmp = new THREE.Object3D();
   spots.forEach((s, i) => {
@@ -209,28 +276,13 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   loungers.raycast = () => {};
   root.add(loungers);
   const canopy = new THREE.MeshStandardMaterial({ color: 0xf6f0e2, roughness: 0.8, side: THREE.DoubleSide, emissive: 0x302820, emissiveIntensity: 0.5 });
-  spots.forEach((s, i) => {
-    if (i % 4 !== 0) return;
-    const uz = s.z + (s.yaw === 0 ? -1.2 : 1.2);
-    b.add(new THREE.CylinderGeometry(0.03, 0.03, 2.5, 6), m.gold, M(s.x + 1.3, 1.25, uz));
-    b.add(new THREE.ConeGeometry(1.4, 0.5, 10, 1, true), canopy, M(s.x + 1.3, 2.45, uz));
-  });
+  for (const [ux, uz] of umbrellaSpots()) {
+    b.add(new THREE.CylinderGeometry(0.03, 0.03, 2.5, 6), m.gold, M(ux, 1.25, uz));
+    b.add(new THREE.ConeGeometry(1.4, 0.5, 10, 1, true), canopy, M(ux, 2.45, uz));
+  }
 
   // Palms around the deck.
-  const palmSpots: [number, number][] = [
-    [24, -3],
-    [24, -12],
-    [24, -22],
-    [24, -33],
-    [31, -34],
-    [40, -34.5],
-    [60, -34],
-    [60.5, -4],
-    [45, -2.4],
-    [53, -2.4],
-    [33, -10],
-    [52, -25],
-  ];
+  const palmSpots = PALMS;
   const { trunk, crown } = palmGeometry();
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6a5238, roughness: 0.9, emissive: 0x1a120a, emissiveIntensity: 0.5 });
   const crownMat = new THREE.MeshStandardMaterial({ color: 0x2f6a34, roughness: 0.8, side: THREE.DoubleSide, emissive: 0x0c2a10, emissiveIntensity: 0.7 });
@@ -239,7 +291,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   palmSpots.forEach(([x, z], i) => {
     tmp.position.set(x, 0, z);
     tmp.rotation.set(0, i * 1.7, 0);
-    tmp.scale.setScalar(0.9 + ((i * 37) % 10) / 25);
+    tmp.scale.setScalar(palmScale(i));
     tmp.updateMatrix();
     trunks.setMatrixAt(i, tmp.matrix);
     crowns.setMatrixAt(i, tmp.matrix);
@@ -256,13 +308,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   for (let x = DECK.x0 + 1; x < DECK.x1 - 0.5; x += 2) b.box(m.stone, x, 0.5, DECK.z0 + 0.2, 0.18, 0.8, 0.18);
   b.box(m.stone, cx, 0.95, DECK.z0 + 0.2, W, 0.12, 0.35);
   b.box(m.stone, cx, 0.08, DECK.z0 + 0.2, W, 0.16, 0.4);
-  for (const [x, z] of [
-    [26, -15],
-    [26, -25],
-    [36, -31],
-    [46, -31],
-    [57, -6],
-  ]) {
+  for (const [x, z] of URNS) {
     b.add(new THREE.CylinderGeometry(0.4, 0.28, 0.8, 20), m.stone, M(x, 0.4, z));
     flowers(b, m, x, 0.8, z, 0.45, 24);
   }
@@ -305,13 +351,10 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     b.add(new THREE.CylinderGeometry(0.035, 0.04, 0.28, 8), m.glow(bottleCols[i % 5], 0.9), M(BAR.x + Math.cos(a) * 0.82, 1.32 + (i % 2) * 0.4, BAR.z + Math.sin(a) * 0.82));
   }
   const stools: PoolArea['seats'] = [];
-  for (let k = 0; k < 8; k++) {
-    const a = (k / 8) * Math.PI * 2;
-    const x = BAR.x + Math.cos(a) * (BAR.r + 0.55),
-      z = BAR.z + Math.sin(a) * (BAR.r + 0.55);
+  for (const { x, z, yaw } of barStools()) {
     b.add(new THREE.CylinderGeometry(0.2, 0.18, 0.08, 16), cushion, M(x, 0.74, z));
     b.add(new THREE.CylinderGeometry(0.025, 0.025, 0.72, 8), m.gold, M(x, 0.37, z));
-    stools.push({ pos: new THREE.Vector3(x, 0, z), yaw: Math.atan2(BAR.x - x, BAR.z - z), seatY: 0.74 });
+    stools.push({ pos: new THREE.Vector3(x, 0, z), yaw, seatY: 0.74 });
   }
 
   // DJ booth with an LED wall and moving beams.
@@ -338,14 +381,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   root.add(djSign);
 
   // Strings of lights criss-crossing the deck.
-  const poles: [number, number][] = [
-    [26, -6],
-    [26, -34],
-    [58, -6],
-    [58, -34],
-    [42, -6],
-    [42, -34],
-  ];
+  const poles = LIGHT_POLES;
   for (const [x, z] of poles) b.add(new THREE.CylinderGeometry(0.06, 0.08, 5, 8), m.walnut, M(x, 2.5, z));
   const links: [number, number][] = [
     [0, 5],

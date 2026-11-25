@@ -3,6 +3,7 @@ import type { Quality } from './quality';
 import type { World } from './world';
 import { spawnCharacter, type PeopleLib } from './assets';
 import { FINGER, orientHand, reach, setFingers } from './net/embody';
+import { sitLegs, standLegs } from './sitpose';
 
 // Bone offsets for poses the clips don't have (tuned against the Quaternius rig).
 export const POSE = { sitThigh: 1.5, sitShin: -1.6, sitHips: 0.95, trayUpper: 0.9, trayLower: 1.2, trayAxis: 'x' as 'x' | 'z' };
@@ -321,7 +322,7 @@ export class Crowd {
       const a = a0 + (k / n) * Math.PI * 2 + (rnd() - 0.5) * 0.3;
       const px = x + Math.cos(a) * r,
         pz = z + Math.sin(a) * r;
-      if (!this.world.isFree(px, pz, 0.22)) continue;
+      if (!this.world.isFree(px, pz, 0.22, true)) continue;
       const yaw = Math.atan2(x - px, z - pz);
       const p = this.add('chat', randomLook(), new THREE.Vector3(px, 0, pz), yaw);
       if (!p) break;
@@ -464,7 +465,7 @@ export class Crowd {
         let clear = true;
         for (let s = 0; s <= Math.ceil(d / 0.3); s++) {
           const t = s / Math.ceil(d / 0.3);
-          if (!this.world.isFree(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 0.3)) {
+          if (!this.world.isFree(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 0.3, true)) {
             clear = false;
             break;
           }
@@ -672,7 +673,7 @@ export class Crowd {
       const step = Math.min(d, p.moving * dt);
       const nx = p.pos.x + (dx / d) * step,
         nz = p.pos.z + (dz / d) * step;
-      if (this.world.isFree(nx, nz, 0.2) || !this.world.isFree(p.pos.x, p.pos.z, 0.2)) {
+      if (this.world.isFree(nx, nz, 0.2, true) || !this.world.isFree(p.pos.x, p.pos.z, 0.2, true)) {
         p.pos.x = nx;
         p.pos.z = nz;
       }
@@ -777,7 +778,7 @@ export class Crowd {
         nz += (oz / od) * (0.55 - od) * 0.5;
       }
     }
-    if (this.world.isFree(nx, nz, 0.22) || !this.world.isFree(p.pos.x, p.pos.z, 0.22)) {
+    if (this.world.isFree(nx, nz, 0.22, true) || !this.world.isFree(p.pos.x, p.pos.z, 0.22, true)) {
       p.pos.x = nx;
       p.pos.z = nz;
     }
@@ -852,43 +853,10 @@ export class Crowd {
       // for every character model, whatever its leg bones' local axes.
       rig.root.position.y = p.seatY - POSE.sitHips * sc;
       rig.root.updateMatrixWorld(true);
-      const fwd = this.v.set(Math.sin(p.yaw), 0, Math.cos(p.yaw)).clone();
-      const left = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
-      for (const [s, dir] of [['L', 1], ['R', -1]] as const) {
-        const upper = b[`UpperLeg${s}`],
-          lower = b[`LowerLeg${s}`],
-          foot = b[`Foot${s}`];
-        if (!upper || !lower || !foot) continue;
-        // The clips don't move a root-parented foot: start from its standing spot each frame.
-        const rest = (foot.userData.restPos ??= foot.position.clone()) as THREE.Vector3;
-        foot.position.copy(rest);
-        foot.updateMatrixWorld(true);
-        const hip = upper.getWorldPosition(new THREE.Vector3());
-        const knee = lower.getWorldPosition(new THREE.Vector3());
-        const ankle = foot.getWorldPosition(new THREE.Vector3());
-        const thigh = hip.distanceTo(knee),
-          shin = knee.distanceTo(ankle);
-        // Knee straight ahead of the hip (a touch apart), shin hanging down to the floor.
-        const kneeAt = hip.clone().addScaledVector(fwd, thigh * 0.96).addScaledVector(left, 0.04 * dir);
-        const footY = Math.max(p.pos.y + 0.09, kneeAt.y - shin * 0.98);
-        const drop = Math.min(shin * 0.98, kneeAt.y - footY);
-        const ahead = Math.sqrt(Math.max(0, shin * shin * 0.96 - drop * drop));
-        const target = new THREE.Vector3(kneeAt.x, footY, kneeAt.z).addScaledVector(fwd, ahead + 0.03);
-        const pole = hip.clone().addScaledVector(fwd, 1).add(new THREE.Vector3(0, 0.25, 0));
-        const end = reach(upper, lower, foot, target, pole, 1);
-        if (end && foot.parent && foot.parent !== lower) {
-          // Foot bone hangs off the root: carry it to the shin's end, flat on the floor.
-          foot.parent.updateWorldMatrix(true, false);
-          foot.position.copy(foot.parent.worldToLocal(end));
-          foot.updateMatrixWorld(true);
-        }
-      }
+      sitLegs(b, p.yaw, p.pos.y);
     } else {
       // A rig that sat before (pooled rigs) gets its feet back under it.
-      for (const s of ['L', 'R']) {
-        const f = b[`Foot${s}`], r = f?.userData.restPos as THREE.Vector3 | undefined;
-        if (f && r && !f.position.equals(r)) f.position.copy(r);
-      }
+      standLegs(b);
     }
     // Social overlays: talking hands, a drink or phone in hand, laughing.
     if (!p.seated && walk + run < 0.5 && cheer < 0.3) {

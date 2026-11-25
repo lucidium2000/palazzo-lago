@@ -14,7 +14,7 @@ const _qw = new THREE.Quaternion();
 const _qp = new THREE.Quaternion();
 
 /** Turns `bone` (in world space) so the direction `from` becomes `to`. */
-function rotateWorld(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3) {
+export function rotateWorld(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3) {
   if (from.lengthSq() < 1e-10 || to.lengthSq() < 1e-10) return;
   _q.setFromUnitVectors(from.clone().normalize(), to.clone().normalize());
   bone.getWorldQuaternion(_qw);

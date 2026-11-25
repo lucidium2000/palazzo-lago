@@ -24,7 +24,16 @@ export function registerHotel(world: World) {
   world.addWalkable(POOL_DOOR.x0 + 0.3, POOL_DOOR.x1 - 0.3, -3.2, LOBBY.z0 + 0.6);
   world.addSurface('marble', 18, 42, 0, 12);
   // The great flower table in the middle of the lobby.
-  world.addCircle(36, 6, 1.45);
+  world.addCircle(36, 6, 1.45, 'table');
+  // Console tables along the corridor, the lobby's two benches, and its corner planters.
+  for (const x of [21, 27]) world.addBox(x, CORR.z0 + 0.4, 1.45, 0.6, 0, 'table');
+  for (const s of [-1, 1]) world.addBox(32, 6 + s * 3.2, 1.85, 0.65, 0, 'bench');
+  for (const [x, z] of [
+    [30.7, 0.8],
+    [30.7, 11.2],
+    [41.2, 0.8],
+    [41.2, 11.2],
+  ]) world.addCircle(x, z, 0.36, 'planter');
 }
 
 export function buildHotel(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group {
