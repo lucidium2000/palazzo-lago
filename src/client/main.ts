@@ -10,6 +10,8 @@ import { CrapsTable } from './craps/table';
 import { PostFX } from './post';
 import { Dialogue, voiceArbiter } from './dialogue';
 import { AREA_NODES, buildAreas, registerAreas } from './areas';
+import { DECK, POOL, WATER_Y } from './areas/pool';
+import { BeachBalls } from './beachball';
 import { Session } from './net/session';
 import { Mirror } from './net/mirror';
 import { setupLobby } from './net/lobby';
@@ -415,6 +417,9 @@ async function main() {
   };
   setTimeout(() => crew.react('arrive', { force: true }), 2500);
 
+  // The pool party has its own share of the crowd (see Crowd: it's out of sight of the floor and vice versa).
+  areas.populate(crowd);
+
   // A living floor: friends chatting in circles (drinks in hand), people snapping
   // photos of the glass ceiling and the fountains, and pairs strolling together.
   // Groups are added most-visible first, so smaller tiers keep the best ones.
@@ -442,9 +447,21 @@ async function main() {
   for (let i = 0; i < pairs; i++) crowd.addPair(crowd.randomNode());
 
   // Guests wandering the floor fill the rest of the crowd.
-  areas.populate(crowd);
   const wanderers = crowd.capacity - crowd.people.length - 1;
   for (let i = 0; i < wanderers; i++) crowd.add('wander', randomLook(), crowd.randomNode());
+  // Beach balls at the pool party: one floating in the shallow end, one on the deck.
+  const beachBalls = new BeachBalls({
+    scene,
+    world,
+    crowd,
+    player,
+    hands,
+    interaction,
+    camera,
+    sound,
+    spawns: [new THREE.Vector3(POOL.x - 3, WATER_Y + 0.3, POOL.z - 1.2), new THREE.Vector3(34.2, 0.3, -11.6)],
+    home: DECK,
+  });
 
   // VR hands: chips from the rack, the slot lever.
   for (const g of roulette.grabbables) hands.register(g);
@@ -674,6 +691,7 @@ async function main() {
       },
       onRoster: (f) => showRoom(f),
     });
+    beachBalls.connect(session);
     drinkSync?.dispose();
     drinkSync = new DrinkSync(session, lounge, scene, (c) => drinkPhysics.soaked(c));
     looseSync?.dispose();
@@ -1141,6 +1159,7 @@ async function main() {
     loose.update(dt);
     bodies.update(dt);
     crowd.update(dt, t, feet, head);
+    beachBalls.update(dt);
     casino.update(t, feet);
     areas.update(dt, t, feet);
     swim.update(dt, player.underwater);
@@ -1249,7 +1268,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose };
+  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls };
 }
 
 main().catch((e) => {
