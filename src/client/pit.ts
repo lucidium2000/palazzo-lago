@@ -9,8 +9,13 @@ import type { Quality } from './quality';
  * padded rail, chip tray, shoe, discard rack and a lit limit sign.
  */
 
-const R = 1.05; // radius of the players' arc
-const TOP = 0.76;
+export const R = 1.05; // radius of the players' arc
+export const TOP = 0.76;
+/** Angle (table-local, in the x/z plane) of betting spot `k`, first base (dealer's left, +x) first. */
+export const spotAngle = (k: number) => Math.PI / 2 + (k - 3) * 0.36;
+/** Table-local spots the dealer works from (the shoe's mouth and the discard rack). */
+export const SHOE_AT = new THREE.Vector3(0.43, TOP + 0.06, 0.22);
+export const DISCARD_AT = new THREE.Vector3(-0.47, TOP + 0.045, 0.13);
 
 function feltTex(color: string): HTMLCanvasElement {
   const [c, g] = canvas(1024, 520);
@@ -135,7 +140,7 @@ export function buildBlackjack(q: Quality, opts: { x: number; z: number; yaw: nu
   // All chips on the table (tray columns and bets) as one instanced draw.
   const COLORS = [0xf2f0ea, 0xc0262d, 0x1e7a3a, 0x1b1b1f, 0x6b2f8f, 0xe4b833];
   const chipGeo = new THREE.CylinderGeometry(0.0195, 0.0195, 0.0033, 14);
-  const chips = new THREE.InstancedMesh(chipGeo, new THREE.MeshStandardMaterial({ roughness: 0.5 }), 6 * 34 + 4 * 6);
+  const chips = new THREE.InstancedMesh(chipGeo, new THREE.MeshStandardMaterial({ roughness: 0.5 }), 6 * 34);
   const tmpO = new THREE.Object3D();
   let ci = 0;
   COLORS.forEach((c, i) => {
@@ -148,31 +153,15 @@ export function buildBlackjack(q: Quality, opts: { x: number; z: number; yaw: nu
     }
   });
   const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.24), new THREE.MeshStandardMaterial({ color: 0x1c1410, roughness: 0.3 }));
-  shoe.position.set(0.62, TOP + 0.05, 0.18);
+  shoe.position.set(0.47, TOP + 0.05, 0.11);
   shoe.rotation.y = -0.4;
   g.add(shoe);
 
-  // Cards dealt to a few spots and chips in a few circles.
-  const cardMat = new THREE.MeshStandardMaterial({ color: 0xfbf8f0, roughness: 0.6 });
-  const cardGeo = new THREE.BoxGeometry(0.063, 0.001, 0.088);
-  for (let k = 0; k < 7; k++) {
-    if (k % 2) continue;
-    const a = Math.PI / 2 + (k - 3) * 0.36;
-    const r = 0.62;
-    for (let j = 0; j < 2; j++) {
-      const card = new THREE.Mesh(cardGeo, cardMat);
-      card.position.set(Math.cos(a) * r + j * 0.02, TOP + 0.002 + j * 0.001, Math.sin(a) * r + j * 0.015);
-      card.rotation.y = -(a - Math.PI / 2) + 0.1;
-      g.add(card);
-    }
-    for (let j = 0; j < 6; j++) {
-      tmpO.position.set(Math.cos(a) * 0.8 + (j % 2) * 0.002, TOP + 0.0017 + j * 0.0033, Math.sin(a) * 0.8);
-      tmpO.rotation.set(0, 0, 0);
-      tmpO.updateMatrix();
-      chips.setMatrixAt(ci, tmpO.matrix);
-      chips.setColorAt(ci++, new THREE.Color(COLORS[(k + (j > 2 ? 1 : 0)) % COLORS.length]));
-    }
-  }
+  // Discard rack at the dealer's right (the hands in play are dealt live: see blackjackplay.ts).
+  const rack = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 0.13), shoe.material);
+  rack.position.set(DISCARD_AT.x, TOP + 0.025, DISCARD_AT.z);
+  rack.rotation.y = 0.4;
+  g.add(rack);
   chips.count = ci;
   g.add(chips);
   // Lit table-limit sign on a brass post at the dealer's side.
@@ -188,7 +177,7 @@ export function buildBlackjack(q: Quality, opts: { x: number; z: number; yaw: nu
   const seatTop = new THREE.CylinderGeometry(0.2, 0.18, 0.09, 18);
   const stoolPole = new THREE.CylinderGeometry(0.025, 0.025, 0.6, 8);
   for (let k = 0; k < 7; k++) {
-    const a = Math.PI / 2 + (k - 3) * 0.36;
+    const a = spotAngle(k);
     const r = R + 0.42;
     const x = Math.cos(a) * r,
       z = Math.sin(a) * r;
