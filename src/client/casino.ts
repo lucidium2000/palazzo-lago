@@ -728,10 +728,17 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
           // Compile this area's shaders off the main thread first (KHR_parallel_shader_compile), so the
           // loading screen keeps going; they'd otherwise compile in a hitch the first time you walk in.
           await renderer.compileAsync(scene, cam.children[0] as THREE.Camera);
-          cam.update(renderer, scene);
-          const prev = envs[zone];
-          envs[zone] = pmrem.fromCubemap(cubeRT.texture).texture;
-          prev?.dispose();
+          // The capture itself in one go (no frame in between). Off XR's cameras even mid-session.
+          const xrOn = renderer.xr.enabled;
+          renderer.xr.enabled = false;
+          try {
+            cam.update(renderer, scene);
+            const prev = envs[zone];
+            envs[zone] = pmrem.fromCubemap(cubeRT.texture).texture;
+            prev?.dispose();
+          } finally {
+            renderer.xr.enabled = xrOn;
+          }
         }
       } finally {
         pmrem.dispose();
@@ -739,7 +746,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
         for (const o of hidden) o.visible = true;
       }
       // Every area has its own now: the HDRI's maps can go (a re-capture starts from the old capture).
-      if (!only && baseEnv) {
+      if ((!only || (Object.keys(ENV_PROBES) as EnvZone[]).every((z) => envs[z])) && baseEnv) {
         baseEnv.dispose();
         baseEnv = null;
         assets.envHdr?.dispose();

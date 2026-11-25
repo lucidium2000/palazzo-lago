@@ -4,7 +4,7 @@ import { DIAMOND_SEVENS, LAGO_FORTUNA, ROYAL_CONSERVATORY } from '../rules/machi
 import { pocketColor, pocketLabel } from '../rules/roulette';
 import { CryptoRng } from '../rules/rng';
 import { Sound } from './audio';
-import { buildCasino, POSITIONS, registerHall, SLOTS_YAW } from './casino';
+import { buildCasino, envZoneAt, POSITIONS, registerHall, SLOTS_YAW, type EnvZone } from './casino';
 import { preloadChips } from './chips';
 import { CrapsTable } from './craps/table';
 import { PostFX } from './post';
@@ -1475,26 +1475,88 @@ async function main() {
       if (pokerRoom.interior.visible !== pokerOn) pokerRoom.interior.visible = pokerOn;
     }
   };
+  // While an area is being lit in the background the world is mid-change (people hidden, other areas
+  // shown), so the game holds: behind the menu the last frame stays up; in the game a quiet dark
+  // room with a line of text (head-tracked, so VR stays comfortable).
+  let lightingBusy = false;
+  let lightTheRest: (() => Promise<void>) | null = null;
+  const holdScene = new THREE.Scene();
+  holdScene.background = new THREE.Color(0x0b0806);
+  const holdCanvas = document.createElement('canvas');
+  holdCanvas.width = 1024;
+  holdCanvas.height = 128;
+  const holdTex = new THREE.CanvasTexture(holdCanvas);
+  holdTex.colorSpace = THREE.SRGBColorSpace;
+  const holdPanel = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.2), new THREE.MeshBasicMaterial({ map: holdTex, transparent: true, toneMapped: false }));
+  holdScene.add(holdPanel);
+  const holdText = (t: string) => {
+    const g = holdCanvas.getContext('2d')!;
+    g.clearRect(0, 0, 1024, 128);
+    g.fillStyle = '#e8d3a3';
+    g.font = 'italic 52px Georgia, serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(t, 512, 64);
+    holdTex.needsUpdate = true;
+  };
+  const holdFrame = () => {
+    // 2 m ahead of where you look, level.
+    const p = camera.getWorldPosition(new THREE.Vector3());
+    const d = camera.getWorldDirection(new THREE.Vector3()).setY(0);
+    if (d.lengthSq() < 1e-4) d.set(0, 0, -1);
+    d.normalize();
+    holdPanel.position.copy(p).addScaledVector(d, 2);
+    holdPanel.lookAt(p.x, holdPanel.position.y, p.z);
+    renderer.render(holdScene, camera);
+  };
   // Each area's own reflections, captured once behind the loading screen (people and your body hidden).
   {
     const AREA_NAMES: Record<string, string> = { casino: 'the casino floor', hotel: 'the hotel lobby', terrace: 'the terrace and fountains', pool: 'the pool deck', suite: 'the suite' };
-    loadProgress(0.55, 'Step 3 of 3 · Lighting the rooms');
+    // Only where you start, here; the other areas are lit in the background right after (lightTheRest).
+    const startZone = envZoneAt(player.feet());
+    loadProgress(0.55, `Step 3 of 3 · Lighting ${AREA_NAMES[startZone] ?? startZone}`);
     try {
-      const ms = await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root], undefined, (i, n, zone) =>
-        loadProgress(0.55 + (0.45 * i) / n, `Step 3 of 3 · Lighting ${AREA_NAMES[zone] ?? zone} (${i + 1} of ${n})`),
-      );
-      (window as unknown as { __envCaptureMs: number }).__envCaptureMs = Math.round(ms);
-      console.info(`reflections captured in ${Math.round(ms)} ms`);
+      const ms = await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root], startZone);
+      console.info(`reflections (${startZone}) captured in ${Math.round(ms)} ms`);
     } catch (e) {
       // Keep the generic HDRI reflections rather than fail to open.
       console.warn('reflection capture failed', e);
     }
+    const restZones = (['casino', 'hotel', 'terrace', 'pool', 'suite'] as EnvZone[]).filter((z) => z !== startZone);
+    lightTheRest = async () => {
+      const t0 = performance.now();
+      for (const [i, zone] of restZones.entries()) {
+        holdText(`Lighting ${AREA_NAMES[zone] ?? zone}… (${i + 1} of ${restZones.length})`);
+        lightingBusy = true;
+        try {
+          await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root], zone);
+        } catch (e) {
+          console.warn('reflection capture failed', zone, e);
+        } finally {
+          lightingBusy = false;
+          zoneCulling(player.feet());
+        }
+        // Give the game a few frames between areas.
+        await new Promise((r) => setTimeout(r, 120));
+      }
+      const ms = performance.now() - t0;
+      (window as unknown as { __envCaptureMs: number }).__envCaptureMs = Math.round(ms);
+      console.info(`other areas lit in the background in ${Math.round(ms)} ms`);
+    };
     zoneCulling(player.feet());
     loadProgress(1, 'Ready');
     clearInterval(tipTimer);
   }
   renderer.setAnimationLoop(() => {
     timer.update();
+    if (lightingBusy) {
+      // Behind the menu: keep the last frame. In the game (or VR): the holding room.
+      if (enter.classList.contains('done') || renderer.xr.isPresenting) {
+        if (renderer.xr.isPresenting) renderer.xr.updateCamera(camera);
+        holdFrame();
+      }
+      return;
+    }
     const dt = Math.min(timer.getDelta(), 0.05);
     const t = timer.getElapsed();
     if (renderer.xr.isPresenting) renderer.xr.updateCamera(camera);
@@ -1705,6 +1767,7 @@ async function main() {
     post.render(scene, camera);
     if (first) {
       first = false;
+      if (lightTheRest) setTimeout(() => void lightTheRest?.(), 0);
       document.getElementById('loading')!.classList.add('done');
     }
     if (stats) {
