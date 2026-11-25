@@ -23,6 +23,7 @@ import { OPEN, type FingerPose } from './fingers';
 import { FINGER, THUMB, curlFingers, makeMouth, setFingers, setOpen } from './net/embody';
 import { bakeStatic } from './merge';
 import { buildBlackjack } from './pit';
+import { BlackjackPlay } from './blackjackplay';
 import { SlotRows } from './decor';
 import { money, type GameContext } from './game';
 import { Hands } from './hands';
@@ -224,6 +225,7 @@ async function main() {
   const crapsDealers = [cs.boxman, ...cs.dealers].map((d) => crowd.add('croupier', staffLook('dealer'), d.pos, d.yaw));
   for (const w of light ? cs.players.slice(0, 3) : cs.players) crowd.add('watch', randomLook(), w.pos, w.yaw);
   // Blackjack tables in the pit, each with a dealer and a few players.
+  const blackjacks: BlackjackPlay[] = [];
   for (const spec of [
     { x: -11.1, z: -4.4, yaw: 0, felt: '#1d5a3a', min: 25, max: 5000 },
     { x: -3.95, z: -4.4, yaw: 0, felt: '#123f6a', min: 100, max: 10000 },
@@ -233,12 +235,16 @@ async function main() {
     bakeStatic(t.group, { shadows: quality.shadows });
     world.addLocalBox(t.group, 0, 0.37, 2.3, 1.36, 'table');
     for (const st of t.seats) world.addSeat(st.pos.x, st.pos.z, SEAT_R, 0.745, st.yaw, 'table stool');
-    crowd.add('croupier', staffLook('dealer'), t.dealer.pos, t.dealer.yaw);
+    const dealer = crowd.add('croupier', staffLook('dealer'), t.dealer.pos, t.dealer.yaw);
+    const players: { seat: number; person: Person | null }[] = [];
     for (const k of quality.name === 'quest2' || quality.name === 'mobile' ? [1, 4] : [0, 2, 3, 5]) {
       const st = t.seats[k];
       const p = crowd.add('patron', randomLook(), st.pos, st.yaw);
       if (p) p.seatY = 0.72;
+      players.push({ seat: k, person: p ?? null });
     }
+    // The dealer deals real hands to them while you're nearby.
+    blackjacks.push(new BlackjackPlay({ sound }, t, dealer ?? null, players, spec.min));
   }
   let crapsBetsTimer = 0;
   const stickSays = (text: string) => {
@@ -1152,7 +1158,8 @@ async function main() {
     }
     for (const m of machines) m.update(dt);
     piggy.update(dt);
-    slotRows.update(t, feet);
+    slotRows.update(t, feet, camera);
+    for (const b of blackjacks) b.update(dt, feet);
     lounge.update(dt);
     throwables.update(dt);
     drinkPhysics.update(dt);
@@ -1268,7 +1275,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls };
+  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks };
 }
 
 main().catch((e) => {
