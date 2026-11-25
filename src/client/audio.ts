@@ -40,6 +40,8 @@ type SoundName =
   | 'liftHum'
   | 'splash'
   | 'shatter'
+  | 'punch'
+  | 'block'
   | 'thunk'
   | 'swim'
   | 'land';
@@ -324,6 +326,15 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
       return v;
     });
   })();
+  // Boxing: a punch that lands (a meaty low thump with a slap on top) and one that's blocked (dull, muffled).
+  const punch = (() => {
+    const b = hp(0.35);
+    return synth(ctx, 0.35, (t) => Math.sin(2 * Math.PI * (95 - t * 120) * t) * 0.9 * env(t, 0.001, 0.07) + b(rand()) * 0.55 * env(t, 0.0005, 0.018));
+  })();
+  const block = (() => {
+    const l = lp(0.08);
+    return synth(ctx, 0.25, (t) => Math.sin(2 * Math.PI * 140 * t) * 0.5 * env(t, 0.001, 0.035) + l(rand()) * 1.2 * env(t, 0.001, 0.03));
+  })();
   // A glass landing without breaking: a dull knock with a little ring.
   const thunk = synth(ctx, 0.35, (t) => Math.sin(2 * Math.PI * 180 * t) * 0.5 * env(t, 0.001, 0.04) + Math.sin(2 * Math.PI * 2900 * t) * 0.08 * env(t, 0.001, 0.09));
   const pour = (() => {
@@ -366,7 +377,7 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
 
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, denied,
-    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
+    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, punch, block, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
     ding, liftHum, splash, swim, land,
     variants: stepVariants,
   };

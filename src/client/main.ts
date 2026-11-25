@@ -45,6 +45,7 @@ import { CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
 import { mouthOf, voices } from './voices';
 import { Throwables } from './throwables';
 import { DrinkSync } from './net/drinksync';
+import { Boxing } from './net/boxing';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
@@ -571,6 +572,7 @@ async function main() {
     }
   });
   let drinkSync: DrinkSync | null = null;
+  let boxing: Boxing | null = null;
   const startSession = (net: { transport: Transport; host: boolean }, name: string, avatar: number) => {
     mirror?.dispose();
     mirror = null;
@@ -616,6 +618,23 @@ async function main() {
     });
     drinkSync?.dispose();
     drinkSync = new DrinkSync(session, lounge, scene);
+    boxing?.dispose();
+    boxing = new Boxing({
+      session,
+      hands,
+      player,
+      sound,
+      hud,
+      camera,
+      grip: () => gripValues(),
+      haptic: (side, strength, ms) => {
+        for (const { handedness, gamepad } of interaction.gamepads()) {
+          if (handedness !== side) continue;
+          (gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(strength, ms);
+        }
+      },
+    });
+    (window as unknown as { casino: Record<string, unknown> }).casino.boxing = boxing;
     session.onCheers = (at, name) => {
       lounge.cheers(at, undefined, true);
       hud.toast(`Cheers with ${name}!`, 'win');
@@ -703,6 +722,8 @@ async function main() {
       session = null;
       drinkSync?.dispose();
       drinkSync = null;
+      boxing?.dispose();
+      boxing = null;
       roomPill.hidden = true;
       voiceBtn.hidden = true;
       chatForm.hidden = true;
@@ -1001,6 +1022,7 @@ async function main() {
     craps.update(dt);
     session?.update(dt);
     drinkSync?.update();
+    boxing?.update(dt);
     mirror?.update(dt);
     // Walk up to craps in VR and the stickman slides you the dice.
     if (player.inXR && hud.station === 'craps') craps.offerDice(feet);
