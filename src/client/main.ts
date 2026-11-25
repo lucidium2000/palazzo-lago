@@ -32,6 +32,7 @@ import { Hands } from './hands';
 import { Hud, type NavItem } from './hud';
 import { Interaction } from './interaction';
 import { Lounge } from './lounge';
+import { BAR as POOL_BAR } from './areas/pool';
 import { Crowd, POSE, randomLook, staffLook, type Person } from './people';
 import { saveComfort, Player, type Viewpoint } from './player';
 import { detectTier } from './quality';
@@ -54,6 +55,7 @@ import { Throwables } from './throwables';
 import { DrinkPhysics } from './drinkphysics';
 import { Listener } from './listen';
 import { Watch } from './watch';
+import { PhotoCams } from './photocam';
 import { elVoice } from './cast';
 import { DrinkSync } from './net/drinksync';
 import { LooseObjects } from './loose';
@@ -825,6 +827,11 @@ async function main() {
     beachBalls.connect(session);
     drinkSync?.dispose();
     drinkSync = new DrinkSync(session, lounge, scene, (c) => drinkPhysics.soaked(c));
+    // A friend's camera flash.
+    session.on('flash', (_f, d) => {
+      const p = d.p as number[];
+      if (Array.isArray(p) && p.length === 3 && p.every(Number.isFinite)) photoCams.flash(new THREE.Vector3().fromArray(p));
+    });
     looseSync?.dispose();
     looseSync = new LooseSync(session, loose, scene);
     bjSync?.dispose();
@@ -905,6 +912,67 @@ async function main() {
     friends: () => (session ? session.friendDirections().map((f) => ({ name: f.name, color: typeof f.color === 'number' ? '#' + f.color.toString(16).padStart(6, '0') : String(f.color), bearing: -f.bearing, distance: f.distance, area: f.area, talking: f.talking })) : []),
     onTap: () => hud.toggleWrist(),
   });
+  // Cameras to pick up and take photos with (hands first); K on a screen. Photos go on a board by the bar.
+  const boardAt = (() => {
+    const f = world.settle(-10.6, 4.4, 0.9);
+    return { p: new THREE.Vector3(f ? f[0] : -10.6, 0, f ? f[1] : 4.4), yaw: Math.PI / 2 };
+  })();
+  world.addBox(boardAt.p.x, boardAt.p.z, 0.3, 1.7, boardAt.yaw);
+  const photoCams = new PhotoCams(
+    {
+      scene,
+      renderer,
+      camera,
+      hands,
+      interaction,
+      sound,
+      inXR: () => player.inXR,
+      trigger: (side) => !!interaction.gamepads().find((g) => g.handedness === side)?.gamepad.buttons[0]?.pressed,
+      onFlash: (at) => session?.emit('flash', { p: at.toArray().map((v) => Math.round(v * 100) / 100) }),
+      toast: (t) => hud.toast(t, 'info'),
+    },
+    [
+      { p: new THREE.Vector3(Lounge.COUNTER_X + 0.3, Lounge.TOP + 0.038, Lounge.COUNTER_Z0 + 0.5), yaw: Math.PI / 2 },
+      { p: new THREE.Vector3(POOL_BAR.x + POOL_BAR.r + 0.04, 1.2, POOL_BAR.z + 0.4), yaw: Math.PI / 2 },
+    ],
+    boardAt,
+  );
+  addEventListener('keydown', (e) => {
+    if (e.code !== 'KeyK' || e.repeat || player.inXR || e.target instanceof HTMLInputElement) return;
+    const hud0 = document.getElementById('hud');
+    const was = hud0?.style.visibility ?? '';
+    if (hud0) hud0.style.visibility = 'hidden';
+    photoCams.shootView();
+    if (hud0) hud0.style.visibility = was;
+  });
+  // Desktop gallery: your photos, to download.
+  {
+    const btn = document.createElement('button');
+    btn.id = 'photos-btn';
+    btn.textContent = 'Photos';
+    btn.hidden = true;
+    document.querySelector('#hud .actions')?.insertBefore(btn, document.getElementById('help-btn'));
+    const panel = document.createElement('div');
+    panel.id = 'photos';
+    document.body.appendChild(panel);
+    const show = () => {
+      panel.innerHTML = '<div class="card"><h2>Tonight\'s photos</h2><div class="grid"></div><p class="hint">Click a photo to download it · K takes another</p></div>';
+      const grid = panel.querySelector('.grid')!;
+      photoCams.photos.forEach((ph, i) => {
+        const a = document.createElement('a');
+        a.href = ph.url;
+        a.download = `palazzo-lago-${new Date(ph.at).toISOString().slice(0, 19).replace(/[:T]/g, '-')}-${i}.jpg`;
+        a.innerHTML = `<img src="${ph.url}" alt="photo ${i + 1}">`;
+        grid.appendChild(a);
+      });
+      panel.classList.add('open');
+    };
+    btn.addEventListener('click', show);
+    panel.addEventListener('click', (e) => {
+      if (e.target === panel) panel.classList.remove('open');
+    });
+    photoCams.onPhoto = () => (btn.hidden = false);
+  }
   // Touch to press (VR): a pointing index finger presses buttons and menu panels it pushes into.
   interaction.pokers = () => {
     if (!player.inXR) return [];
@@ -999,6 +1067,9 @@ async function main() {
     toggleSound: () => document.getElementById('sound')!.click(),
     musicOn: () => document.getElementById('music')!.textContent === 'Music on',
     soundOn: () => !sound.muted,
+    giveCamera: () => {
+      if (!photoCams.giveCamera(camera.getWorldPosition(new THREE.Vector3()))) hud.toast('No free camera right now (one is on the bar, one at the pool bar)', 'info');
+    },
     voiceReplies: () => listener.enabled,
     toggleVoiceReplies: () => listener.setEnabled(!listener.enabled),
     comfort: () => player.comfort,
@@ -1290,6 +1361,7 @@ async function main() {
       if (player.inXR && (wristT = (wristT + 1) % 2) === 0) vrMenu.redrawRoom();
     }
     drinkSync?.update();
+    photoCams.update(dt);
     watch.update(dt, player.inXR);
     looseSync?.update();
     bjSync?.update(dt);
@@ -1462,7 +1534,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera };
+  (window as unknown as { casino: unknown }).casino = { colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams };
 }
 
 main().catch((e) => {

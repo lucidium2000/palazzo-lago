@@ -46,6 +46,7 @@ export interface VrMenuDeps {
   soundOn(): boolean;
   comfort(): Comfort;
   voiceReplies(): boolean;
+  giveCamera(): void;
   toggleVoiceReplies(): void;
   setComfort(c: Partial<Comfort>): void;
   captionsOn(): boolean;
@@ -165,6 +166,7 @@ export class VrMenu {
         }],
         ['vignette', () => (d.comfort().vignette ? 'Comfort vignette: on' : 'Comfort vignette: off'), () => d.setComfort({ vignette: !d.comfort().vignette })],
         ['lasers', () => (d.comfort().lasers ? 'Laser pointers: on' : 'Hands only (no lasers)'), () => d.setComfort({ lasers: !d.comfort().lasers })],
+        ['camera', () => 'Get a camera', () => d.giveCamera()],
         ['voicereply', () => (d.voiceReplies() ? 'Answer by voice: on' : 'Answer by voice: off'), () => d.toggleVoiceReplies()],
         ['help', () => 'Help', () => this.toggleHelp()],
         ['reset', () => 'Reset chips', () => d.resetChips()],
