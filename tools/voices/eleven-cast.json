@@ -175,5 +175,23 @@
   "similarity_boost": 0.8,
   "style": 0.45,
   "public_owner_id": "107dfe05a48663a1f414120c8d74ae4536e91c7143f18853a80133e5a8d23e21"
+ },
+ "el_you_m": {
+  "voice_id": "XA3P1cj7XJexe6Zq0ATX",
+  "name": "Dan - Friendly, Relaxed & Real",
+  "brief": "man in his thirties, natural, friendly, relaxed, neutral American",
+  "stability": 0.45,
+  "similarity_boost": 0.8,
+  "style": 0.35,
+  "public_owner_id": "f7abfebab9aad55df3484d76355a6a27e767c1b380287888ac2b7c38beb4486b"
+ },
+ "el_you_f": {
+  "voice_id": "kdnRe2koJdOK4Ovxn2DI",
+  "name": "Eryn - Genuine, Friendly and Natural",
+  "brief": "woman in her thirties, natural, friendly, relaxed, neutral American",
+  "stability": 0.45,
+  "similarity_boost": 0.8,
+  "style": 0.35,
+  "public_owner_id": "5c9b187b7fc0fd10cfa6bc6e03699490bacc6f4c5e634b9ffcb1e62bd032fdef"
  }
 }
