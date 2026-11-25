@@ -8,7 +8,7 @@ import { textSign } from './panel';
 import type { Crowd, Person } from './people';
 import { randomLook, staffLook } from './people';
 import type { Player } from './player';
-import { marble, radial, toTexture, wood } from './textures';
+import { marble, onyx, radial, toTexture, wood } from './textures';
 import { SEAT_R, type World } from './world';
 import { BarMenuCard, buildVrMenu, DRINKS, PREP_TIME, SportsTicker, TIP, type DrinkKind } from './bar';
 import type { CanvasPanel } from './panel';
@@ -304,7 +304,9 @@ export class Lounge {
     const wallX = -17.8;
     add(new THREE.BoxGeometry(0.5, 0.95, len), woodMat, wallX + 0.25, 0.475, zc);
     add(new THREE.BoxGeometry(0.55, 0.04, len), top, wallX + 0.27, 0.97, zc);
-    const back = add(new THREE.PlaneGeometry(len, 1.6), new THREE.MeshBasicMaterial({ map: toTexture(radial(256, '#ffd9a0', '#7a4a20')) }), wallX + 0.03, 1.85, zc);
+    // Backlit honey onyx behind the bottles: glows through the stone's bands, brightest in the middle.
+    const backOnyx = toTexture(onyx(512, 128, 13));
+    const back = add(new THREE.PlaneGeometry(len, 1.6), new THREE.MeshBasicMaterial({ map: backOnyx, color: new THREE.Color(0.82, 0.7, 0.56) }), wallX + 0.03, 1.85, zc);
     back.rotation.y = Math.PI / 2;
     const shelfMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, roughness: 0.05, envMapIntensity: 2 });
     const shelves = [1.3, 1.72, 2.14];
@@ -341,38 +343,9 @@ export class Lounge {
     this.bar.add(bottles);
     // A backlit onyx feature wall rising behind the back bar, framed in gold.
     {
-      const [oc, og] = (() => {
-        const cv = document.createElement('canvas');
-        cv.width = 1024;
-        cv.height = 384;
-        return [cv, cv.getContext('2d')!] as const;
-      })();
-      const grd = og.createLinearGradient(0, 0, 1024, 384);
-      grd.addColorStop(0, '#e9a64a');
-      grd.addColorStop(0.5, '#f6cf86');
-      grd.addColorStop(1, '#d98a36');
-      og.fillStyle = grd;
-      og.fillRect(0, 0, 1024, 384);
-      let sd = 9;
-      const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
-      for (let k = 0; k < 90; k++) {
-        og.strokeStyle = `rgba(${120 + rnd() * 60},${60 + rnd() * 40},20,${0.15 + rnd() * 0.3})`;
-        og.lineWidth = 1 + rnd() * 5;
-        og.beginPath();
-        let x = rnd() * 1024,
-          y = rnd() * 384;
-        og.moveTo(x, y);
-        for (let j = 0; j < 6; j++) {
-          x += (rnd() - 0.3) * 200;
-          y += (rnd() - 0.5) * 80;
-          og.quadraticCurveTo(x - 40, y + 30, x, y);
-        }
-        og.stroke();
-      }
-      const onyxTex = new THREE.CanvasTexture(oc);
-      onyxTex.colorSpace = THREE.SRGBColorSpace;
-      const onyx = add(new THREE.PlaneGeometry(len - 0.4, 2.0), new THREE.MeshBasicMaterial({ map: onyxTex, color: new THREE.Color(1.15, 1.05, 0.95) }), wallX + 0.04, 3.9, zc);
-      onyx.rotation.y = Math.PI / 2;
+      const onyxTex = toTexture(onyx(768, 288, 7));
+      const panel = add(new THREE.PlaneGeometry(len - 0.4, 2.0), new THREE.MeshBasicMaterial({ map: onyxTex, color: new THREE.Color(1.0, 0.92, 0.82) }), wallX + 0.04, 3.9, zc);
+      panel.rotation.y = Math.PI / 2;
       const frameMat = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3 });
       for (const y of [2.88, 4.92]) add(new THREE.BoxGeometry(0.06, 0.06, len - 0.3), frameMat, wallX + 0.06, y, zc);
       for (const z of [z0 + 0.15, z1 - 0.15]) add(new THREE.BoxGeometry(0.06, 2.1, 0.06), frameMat, wallX + 0.06, 3.9, z);
@@ -640,7 +613,7 @@ export class Lounge {
     this.d.interaction.register({
       object: drink.group,
       kind: 'button',
-      enabled: () => this.desktopDrink === drink || (drink.group.parent === this.d.scene && !this.desktopDrink),
+      enabled: () => this.desktopDrink === drink || (drink.group.parent === this.d.scene && !this.desktopDrink && !this.otherHeld()),
       label: () =>
         this.desktopDrink === drink ? (drink.level > 0 ? 'Sip (F)' : 'Empty glass · Q to set it down') : `Pick up the ${drink.kind.name}`,
       onSelect: () => (this.desktopDrink === drink ? this.sip(drink) : this.pickUpDesktop(drink)),
@@ -827,8 +800,21 @@ export class Lounge {
     return !!this.desktopDrink;
   }
 
+  /** Desktop: your hand is already full with something else (a bottle, a chip). */
+  otherHeld: () => boolean = () => false;
+
+  /** A swig straight from a bottle (counts like a drink). */
+  swig(units: number) {
+    if (this.sipCooldown > 0) return false;
+    this.sipCooldown = 1.2;
+    this.drank(units);
+    this.d.sound.playLocal('gulp', 0.6);
+    this.onDrinkEvent?.({ k: 'sip' });
+    return true;
+  }
+
   private pickUpDesktop(drink: Drink) {
-    if (this.desktopDrink || this.d.player.inXR) return;
+    if (this.desktopDrink || this.d.player.inXR || this.otherHeld()) return;
     if (this.waiting === drink) this.waiting = null;
     this.d.throwables.catch(drink.group);
     this.desktopDrink = drink;

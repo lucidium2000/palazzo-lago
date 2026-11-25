@@ -12,11 +12,17 @@ export interface Control {
   id: string;
   label: string;
   sub?: string;
-  kind?: 'chip' | 'primary' | 'plain';
+  kind?: 'chip' | 'primary' | 'plain' | 'slider';
   color?: [string, string];
   active?: boolean;
   disabled?: boolean;
   onPress: () => void;
+  /** Sliders: range, step, current value and what to do as it moves. */
+  min?: number;
+  max?: number;
+  step?: number;
+  value?: number;
+  onInput?: (v: number) => void;
 }
 
 export interface Goal {
@@ -98,13 +104,54 @@ export class Hud {
 
   /** On-screen controls for the game you are at (re-rendered only when they change). */
   setControls(list: Control[] | null) {
-    const sig = list ? JSON.stringify(list.map((c) => [c.id, c.label, c.sub, c.active, c.disabled])) : '';
-    for (const c of list ?? []) this.controlsFns.set(c.id, c.onPress);
+    const sig = list ? JSON.stringify(list.map((c) => [c.id, c.label, c.sub, c.active, c.disabled, c.min, c.max])) : '';
+    for (const c of list ?? []) {
+      this.controlsFns.set(c.id, c.onPress);
+      if (c.onInput) this.inputFns.set(c.id, c.onInput);
+    }
     if (sig === this.controlsSig) return;
     this.controlsSig = sig;
+    // Same controls, new labels: update them in place (keeps a slider being dragged alive).
+    const shape = list ? list.map((c) => `${c.id}:${c.kind ?? ''}`).join() : '';
+    if (shape && shape === this.controlsShape) {
+      list!.forEach((c, i) => {
+        const el = this.controlsEl.children[i] as HTMLElement;
+        if (c.kind === 'slider') {
+          const r = el.querySelector('input') as HTMLInputElement;
+          r.min = String(c.min ?? 0);
+          r.max = String(c.max ?? 100);
+          if (document.activeElement !== r) r.value = String(c.value ?? 0);
+          return;
+        }
+        const b = el as HTMLButtonElement;
+        b.className = `ctl ${c.kind ?? 'plain'}${c.active ? ' active' : ''}`;
+        b.disabled = !!c.disabled;
+        b.innerHTML = `<span>${c.label}</span>${c.sub ? `<small>${c.sub}</small>` : ''}`;
+      });
+      return;
+    }
+    this.controlsShape = shape;
     this.controlsEl.innerHTML = '';
     this.controlsEl.classList.toggle('on', !!list);
     for (const c of list ?? []) {
+      if (c.kind === 'slider') {
+        const wrap = document.createElement('label');
+        wrap.className = 'ctl slider';
+        const r = document.createElement('input');
+        r.type = 'range';
+        r.min = String(c.min ?? 0);
+        r.max = String(c.max ?? 100);
+        r.step = String(c.step ?? 1);
+        r.value = String(c.value ?? 0);
+        r.addEventListener('input', (e) => {
+          e.stopPropagation();
+          this.inputFns.get(c.id)?.(Number(r.value));
+        });
+        for (const ev of ['pointerdown', 'click', 'mousedown', 'touchstart'] as const) r.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
+        wrap.appendChild(r);
+        this.controlsEl.appendChild(wrap);
+        continue;
+      }
       const b = document.createElement('button');
       b.className = `ctl ${c.kind ?? 'plain'}${c.active ? ' active' : ''}`;
       b.disabled = !!c.disabled;
@@ -120,6 +167,8 @@ export class Hud {
       this.controlsEl.appendChild(b);
     }
   }
+  private controlsShape = '';
+  private inputFns = new Map<string, (v: number) => void>();
 
   /** A spoken line from a person, shown as a subtitle (and as a toast in VR). */
   say(speaker: string, text: string) {
@@ -288,6 +337,16 @@ export class Hud {
     w.redraw();
   }
 
+  /** Opens or closes the wrist menu (Y button, or tapping your watch). */
+  toggleWrist(open = !this.wristOpen) {
+    this.wristOpen = open;
+    if (open) this.wristBuilder?.();
+  }
+
+  get wristMenuOpen() {
+    return this.wristOpen;
+  }
+
   /** Per-frame VR placement for the wrist menu and toasts. */
   update(camera: THREE.Camera) {
     if (!this.renderer.xr.isPresenting) return;
@@ -311,10 +370,11 @@ export class Hud {
       (gp as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(0.4, 40);
     }
     this.yWas = y;
-    if (this.wristAttached) this.wrist.mesh.visible = this.wristOpen || !hasY;
-    if (this.wristAttached && hasY && !this.hinted) {
+    // The menu shows when opened (Y, or a tap on your watch).
+    if (this.wristAttached) this.wrist.mesh.visible = this.wristOpen;
+    if (this.wristAttached && !this.hinted) {
       this.hinted = true;
-      this.vrMessage('Press Y on your left controller for the menu', 'info');
+      this.vrMessage(hasY ? 'Look at your watch (left wrist): tap it, or press Y, for the menu' : 'Look at your watch (left wrist) and tap it for the menu', 'info');
     }
 
     const p = this.vrToast.mesh;

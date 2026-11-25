@@ -100,7 +100,7 @@ export class Throwables {
   }
 
   /** Furniture near the throw that a glass could land on (small meshes only: the floor comes from the world). */
-  private nearby(at: THREE.Vector3): THREE.Object3D[] {
+  nearby(at: THREE.Vector3): THREE.Object3D[] {
     const out: THREE.Object3D[] = [];
     const s = new THREE.Sphere();
     this.d.scene.traverseVisible((o) => {
@@ -120,6 +120,17 @@ export class Throwables {
 
   /** Height of what's under (x, z) below `fromY`: furniture tops, else the floor. */
   private surfaceUnder(b: Body, x: number, z: number, fromY: number): number {
+    const extra = this.extraTop?.(x, z, fromY + 0.05) ?? -Infinity;
+    return Math.max(extra, this.meshUnder(b, x, z, fromY));
+  }
+
+  /**
+   * Furniture tops declared by the loose-object system (the bar, tables, the
+   * pool bar): merged scenery is too big to raycast, so these fill the gaps.
+   */
+  extraTop: ((x: number, z: number, fromY: number) => number | null) | null = null;
+
+  private meshUnder(b: Body, x: number, z: number, fromY: number): number {
     let y = this.d.world.groundAt(x, z);
     const water = this.d.world.waterAt(x, z);
     if (water !== null) y = Math.min(y, water);
@@ -309,6 +320,7 @@ export class Throwables {
     let y = this.d.world.groundAt(p.x, p.z);
     const w = this.d.world.waterAt(p.x, p.z);
     if (w !== null) y = Math.max(y, w);
+    y = Math.max(y, this.extraTop?.(p.x, p.z, p.y - 0.02) ?? -Infinity);
     this.ray.set(new THREE.Vector3(p.x, p.y - 0.02, p.z), new THREE.Vector3(0, -1, 0));
     this.ray.far = Math.max(0.05, p.y - y + 0.05);
     (this.ray as THREE.Raycaster & { camera: THREE.Camera }).camera = this.d.camera;

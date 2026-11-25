@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 
 /**
- * Voice chat between the two players: a WebRTC audio call whose handshake
+ * Voice chat for the room: a full mesh of WebRTC audio calls, one per friend
+ * (four players = three calls each), each one's handshake
  * (offer/answer, with ICE candidates gathered up front) travels over the
- * game's own connection in small chunks. The friend's voice plays from their
+ * game's own connection in small chunks (addressed to that friend: the others
+ * ignore them). Of each pair, the player with the smaller id places the call.
+ * Each friend's voice plays from their
  * avatar's head as positional audio, so in VR they sound like they're beside
  * you. STUN only (no relay server), so a few very strict networks can't connect.
  */
@@ -38,7 +41,8 @@ export class Voice {
     private send: (k: string, d: unknown) => void,
     private listener: THREE.AudioListener,
     private scene: THREE.Scene,
-    private host: boolean,
+    /** My id as the others see me (decides who calls whom, and which handshakes are mine). */
+    private self: string,
   ) {}
 
   /** Asks for the microphone. Returns an error message, or null when voice is on. */
@@ -133,8 +137,8 @@ export class Voice {
   }
 
   /**
-   * The remote player's voice flag changed (or we just enabled ours): the
-   * host starts the call once both sides have voice on.
+   * A friend's voice flag changed (or we just enabled ours): of the two,
+   * the one with the smaller id starts the call once both have voice on.
    */
   sync(id: string, remoteOn: boolean) {
     const link = this.links.get(id);
@@ -142,7 +146,7 @@ export class Voice {
       if (link) this.drop(id);
       return;
     }
-    if (link || !this.host) return;
+    if (link || !callerOf(this.self, id)) return;
     void this.call(id);
   }
 
@@ -207,6 +211,7 @@ export class Voice {
 
   /** A chunk of the other side's offer/answer arrived. */
   async signal(from: string, me: string | null, d: { to?: string; key: string; type: 'offer' | 'answer'; i: number; n: number; s: string }) {
+    // Every friend hears every chunk: only the ones addressed to me count.
     if (d.to && me && d.to !== me) return;
     if (!this.enabled) return;
     let link = this.links.get(from);
@@ -256,6 +261,11 @@ export class Voice {
     if (l.el) l.el.srcObject = null;
     this.links.delete(id);
   }
+}
+
+/** Of two players, who places the voice call (the other answers): the smaller id. */
+export function callerOf(me: string, them: string) {
+  return me < them;
 }
 
 function gathered(pc: RTCPeerConnection): Promise<void> {

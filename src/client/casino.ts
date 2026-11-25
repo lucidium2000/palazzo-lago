@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import type { Quality } from './quality';
-import { carpet, damask, floorTile, lakeReflection, lakeView, marble, radial, toTexture, wood } from './textures';
+import { carpet, damask, floorTile, lakeReflection, marble, radial, toTexture, wood } from './textures';
+import { buildCity } from './skyline';
 import { textSign } from './panel';
 import { bakeStatic } from './merge';
 import { assets } from './assets';
@@ -19,6 +20,8 @@ export const SLOTS_YAW = -0.8;
 const SLOTS_FWD = new THREE.Vector3(Math.sin(SLOTS_YAW), 0, Math.cos(SLOTS_YAW));
 
 export const ROTUNDA = { x: 0, z: 2, r: 4.6, h: 8.5 };
+/** The doorway in the west wall to the poker room (see pokerroom.ts). */
+export const POKER_DOOR = { z0: -0.8, z1: 0.8, h: 2.6 };
 
 export const POSITIONS = {
   start: new THREE.Vector3(0, 0, 12.6),
@@ -65,6 +68,32 @@ export interface Casino {
   fountainLevel(): number;
   fountainAnchor: THREE.Object3D;
   update(t: number, player?: THREE.Vector3): void;
+  /**
+   * Captures each area's own reflections (a cube render from inside it, prefiltered for PBR)
+   * and uses them as the environment map there instead of the generic HDRI. One-time cost,
+   * behind the loading screen; call again only if an area's lighting changes for good.
+   * `setZone` must show/hide the resort's parts as the frame loop's zone culling would for a
+   * viewer standing at that spot; `hide` are things never to reflect (people, your own body).
+   */
+  captureReflections(setZone: (feet: THREE.Vector3) => void, hide: THREE.Object3D[], only?: EnvZone): Promise<number>;
+}
+
+/** The areas that get their own captured reflections. */
+export type EnvZone = 'casino' | 'hotel' | 'terrace' | 'pool' | 'suite';
+/** Where each area's reflections are captured from (eye height). */
+const ENV_PROBES: Record<EnvZone, THREE.Vector3> = {
+  casino: new THREE.Vector3(0, 1.8, 7.5),
+  hotel: new THREE.Vector3(36, 1.7, 6),
+  terrace: new THREE.Vector3(0, 1.7, -16.4),
+  pool: new THREE.Vector3(36, 1.6, -12),
+  suite: new THREE.Vector3(594, 1.5, 0),
+};
+export function envZoneAt(f: THREE.Vector3): EnvZone {
+  if (f.x > 500) return 'suite';
+  if (f.x > 21 && f.z < -0.2) return 'pool';
+  if (f.x > 17.5) return 'hotel';
+  if (f.z < -14.2) return 'terrace';
+  return 'casino';
 }
 
 /** The terrace sits at floor level outside the French doors; the lake is far below. */
@@ -98,7 +127,11 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
 
   // --- Lighting -----------------------------------------------------------------
   scene.background = new THREE.Color(0x120c08);
-  scene.environment = assets.envHdr ? hdrEnvironment(renderer, assets.envHdr) : warmEnvironment(renderer);
+  // The generic HDRI lights the first capture of each area's own reflections (see captureReflections),
+  // and stays as the fallback.
+  let baseEnv: THREE.Texture | null = assets.envHdr ? hdrEnvironment(renderer, assets.envHdr) : warmEnvironment(renderer);
+  scene.environment = baseEnv;
+  const envs: Partial<Record<EnvZone, THREE.Texture>> = {};
   scene.environmentIntensity = 0.6;
   const hemi = new THREE.HemisphereLight(0xffdcae, 0x3a1810, 0.42);
   scene.add(hemi);
@@ -154,11 +187,33 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   });
   const carpetTex = toTexture(carpet(tex / 2), { aniso });
   carpetTex.wrapS = carpetTex.wrapT = THREE.RepeatWrapping;
-  const carpetMat = new THREE.MeshStandardMaterial({ map: carpetTex, roughness: 0.97, envMapIntensity: 0.3 });
-  const wallTex = toTexture(damask(1024), { aniso });
-  wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
-  wallTex.repeat.set(1, 1);
-  const wallMat = new THREE.MeshPhysicalMaterial({ map: wallTex, roughness: 0.6, sheen: 0.6, sheenRoughness: 0.4, sheenColor: new THREE.Color(0xfff0d0) });
+  // Woven loop pile: a scanned carpet's relief and roughness (Poly Haven "Dirty Carpet", 60 cm per
+  // repeat; carpet UVs are 2.4 m) under the drawn pattern, so it catches the light like real tufts.
+  const pile = assets.pbr('carpetweave', 4) ?? assets.pbr('velvet', 7);
+  const carpetMat = new THREE.MeshStandardMaterial({
+    map: carpetTex,
+    roughness: 1,
+    roughnessMap: pile?.roughnessMap ?? null,
+    envMapIntensity: 0.3,
+    normalMap: pile?.normalMap ?? null,
+    normalScale: new THREE.Vector2(0.9, 0.9),
+  });
+  // Walls: warm plaster framing gilded panels of silk jacquard (Poly Haven "Floral Jacquard",
+  // recoloured to champagne gold), over a raised-panel walnut wainscot. The panels and their
+  // mouldings are real geometry, merged into the fabric, gold and walnut batches.
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf0e4ca, roughness: 0.82, envMapIntensity: 0.45 });
+  const jac = assets.pbr('jacquard', 1);
+  // Lifts the champagne silk so the panels don't darken the room.
+  const FABRIC_TINT = new THREE.Color(1.4, 1.34, 1.24);
+  const fabricMat = jac?.map
+    ? q.name === 'desktop'
+      ? new THREE.MeshPhysicalMaterial({ map: jac.map, color: FABRIC_TINT, roughnessMap: jac.roughnessMap, roughness: 0.9, envMapIntensity: 0.5, sheen: 0.55, sheenRoughness: 0.45, sheenColor: new THREE.Color(0xffe6b8) })
+      : new THREE.MeshStandardMaterial({ map: jac.map, color: FABRIC_TINT, roughnessMap: jac.roughnessMap, roughness: 0.85, envMapIntensity: 0.55 })
+    : (() => {
+        const t = toTexture(damask(1024), { aniso });
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        return new THREE.MeshStandardMaterial({ map: t, roughness: 0.6 });
+      })();
   const woodTex = toTexture(wood(512), { aniso });
   woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping;
   const woodMat = assets.material('walnut', { repeat: [6, 1], rough: 0.7, envIntensity: 0.8, fallback: () => new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.4, envMapIntensity: 0.8 }) });
@@ -172,6 +227,8 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   const goldGlow = new THREE.MeshStandardMaterial({ color: 0xd4a94e, metalness: 1, roughness: 0.3, emissive: 0xb07020, emissiveIntensity: 0.55 });
   const darkMarbleTex = toTexture(marble(256, 'dark', 4), { aniso });
   const darkMarble = assets.material('darkmarble', { repeat: 1, rough: 0.45, tint: 0x9a7a6a, envIntensity: 1.1, fallback: () => new THREE.MeshStandardMaterial({ map: darkMarbleTex, roughness: 0.2 }) });
+  // Column plinths in polished honey marble (they read as black boxes in dark stone).
+  const plinthMat = assets.material('marble', { repeat: [0.7, 0.45], rough: 0.3, normal: 0.3, tint: 0xcfae8c, envIntensity: 1.3, fallback: () => new THREE.MeshStandardMaterial({ map: toTexture(marble(256, 'honey', 6)), roughness: 0.2 }) });
 
   const batch = new Batcher();
   const box = new THREE.BoxGeometry(1, 1, 1);
@@ -180,7 +237,8 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // --- Floor ----------------------------------------------------------------------
   // Polished marble mirrors the room (desktop): a planar reflection at quarter resolution
   // (soft, like real polished stone), faded by a mask so the carpets don't reflect.
-  if (q.name === 'desktop') root.add(marbleReflection(HALL.w, HALL.d));
+  const mirror = q.name === 'desktop' ? marbleReflection(HALL.w, HALL.d) : null;
+  if (mirror) root.add(mirror);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALL.w, HALL.d), floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = q.shadows;
@@ -218,6 +276,51 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (len / 1.6), uv.getY(i) * (h / 1.6));
     batch.add(g, wallMat, M(x, y0 + h / 2, z, ry));
   };
+  // Fabric panels in gilded frames between the pilasters, and raised walnut panels in the
+  // wainscot below them. `along` is world x (ry 0 / π) or z (ry ±π/2); bays are `B` apart from
+  // `o` (the pilaster spacing), clipped to the free stretches of wall.
+  const bays = (ry: number, fixed: number, o: number, B: number, ranges: [number, number][], fabric: boolean, wainscot = true) => {
+    const inward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry);
+    const alongX = Math.abs(inward.z) > 0.5;
+    const at = (a: number, off: number): [number, number] => (alongX ? [a, fixed + inward.z * off] : [fixed + inward.x * off, a]);
+    const hw = B / 2 - 0.45;
+    // A rectangle frame of gilt moulding (or walnut) around a panel.
+    const frame = (a: number, w: number, y0: number, y1: number, off: number, t: number, dep: number, mat: THREE.Material) => {
+      const [cx, cz] = at(a, off);
+      batch.add(box, mat, M(cx, y0 + t / 2, cz, ry, w + t, t, dep));
+      batch.add(box, mat, M(cx, y1 - t / 2, cz, ry, w + t, t, dep));
+      for (const sgn of [-1, 1]) {
+        const [sx, sz] = at(a + (sgn * w) / 2, off);
+        batch.add(box, mat, M(sx, (y0 + y1) / 2, sz, ry, t, y1 - y0, dep));
+      }
+    };
+    for (let k = -1; o + k * B < 40; k++) {
+      const c = o + (k + 0.5) * B;
+      for (const [r0, r1] of ranges) {
+        const a0 = Math.max(c - hw, r0 + 0.25),
+          a1 = Math.min(c + hw, r1 - 0.25);
+        if (a1 - a0 < 1) continue;
+        const a = (a0 + a1) / 2,
+          w = a1 - a0;
+        if (fabric) {
+          for (const [y0, y1] of [[1.38, 4.42], [4.72, 5.42]] as const) {
+            const g = new THREE.PlaneGeometry(w, y1 - y0);
+            const uv = g.attributes.uv as THREE.BufferAttribute;
+            // 0.51 x 0.77 m per repeat of the scan (twice its real size: a bolder, palace-scale damask).
+            for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) - 0.5) * (w / 0.506), (uv.getY(i) * (y1 - y0) + y0) / 0.768);
+            const [cx, cz] = at(a, 0.012);
+            batch.add(g, fabricMat, M(cx, (y0 + y1) / 2, cz, ry));
+            frame(a, w, y0 - 0.03, y1 + 0.03, 0.026, 0.05, 0.03, gold);
+          }
+        }
+        if (!wainscot) continue;
+        // Raised walnut panel in the wainscot, with a fine gilt bead.
+        const [px, pz] = at(a, 0.112);
+        batch.add(box, woodMat, M(px, 0.6, pz, ry, w, 0.56, 0.025));
+        frame(a, w + 0.02, 0.31, 0.89, 0.123, 0.018, 0.014, gold);
+      }
+    }
+  };
   // Wainscot + rails along a wall segment.
   const trim = (x: number, z: number, len: number, ry: number) => {
     const inward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry);
@@ -234,8 +337,17 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // South, east, west walls.
   wallPanel(0, D / 2, W, Math.PI);
   trim(0, D / 2, W, Math.PI);
-  wallPanel(-W / 2, 0, D, Math.PI / 2);
-  trim(-W / 2, 0, D, Math.PI / 2);
+  // West wall, with the doorway to the poker room.
+  {
+    const { z0, z1, h } = POKER_DOOR;
+    wallPanel(-W / 2, (-D / 2 + z0) / 2, z0 + D / 2, Math.PI / 2);
+    trim(-W / 2, (-D / 2 + z0) / 2, z0 + D / 2, Math.PI / 2);
+    wallPanel(-W / 2, (z1 + D / 2) / 2, D / 2 - z1, Math.PI / 2);
+    trim(-W / 2, (z1 + D / 2) / 2, D / 2 - z1, Math.PI / 2);
+    wallPanel(-W / 2, (z0 + z1) / 2, z1 - z0, Math.PI / 2, h, H);
+    batch.add(box, gold, M(-W / 2 + 0.12, H - 0.25, (z0 + z1) / 2, Math.PI / 2, z1 - z0, 0.12, 0.2));
+    batch.add(box, ceilingMat, M(-W / 2 + 0.12, H - 0.1, (z0 + z1) / 2, Math.PI / 2, z1 - z0, 0.2, 0.26));
+  }
   // East wall, with the grand opening to the hotel tower (corridor z 4.6–8.4, 4.2 m high).
   wallPanel(W / 2, (-D / 2 + 4.6) / 2, 4.6 + D / 2, -Math.PI / 2);
   trim(W / 2, (-D / 2 + 4.6) / 2, 4.6 + D / 2, -Math.PI / 2);
@@ -274,6 +386,23 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     batch.add(box, darkMarble, M(wx, winY0 - 0.05, -D / 2 + 0.25, 0, winW + 0.3, 0.1, 0.4));
   }
   wallPanel((edge + W / 2) / 2, -D / 2, W / 2 - edge, 0, winY0, winY1);
+  // Panelling: south (not round the entrance), west (not behind the bar), east (not at the
+  // opening to the hotel), and the piers between the lake windows.
+  bays(Math.PI, D / 2, -W / 2, 3, [[-W / 2, -3.2], [3.2, W / 2]], true);
+  bays(Math.PI / 2, -W / 2, -D / 2, 3.5, [[-D / 2, 4.5]], true);
+  bays(-Math.PI / 2, W / 2, -D / 2, 3.5, [[-D / 2, 3.9], [9.1, D / 2]], true);
+  {
+    const piers: [number, number][] = [];
+    let e = -W / 2;
+    for (const wx of windowsX) {
+      piers.push([e, wx - winW / 2 - 0.1]);
+      e = wx + winW / 2 + 0.1;
+    }
+    piers.push([e, W / 2]);
+    bays(0, -D / 2, -W / 2 + 1.5, 3, piers, true, false);
+    // The wainscot runs on under the windows (not across the doors).
+    bays(0, -D / 2, -W / 2 + 1.5, 3, [[-W / 2, -doorHalf - 0.1], [doorHalf + 0.1, W / 2]], false);
+  }
   trim((-W / 2 - doorHalf - 0.06) / 2, -D / 2, W / 2 - doorHalf - 0.06, 0);
   trim((W / 2 + doorHalf + 0.06) / 2, -D / 2, W / 2 - doorHalf - 0.06, 0);
 
@@ -300,7 +429,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
       [
         { from: [-W / 2, D / 2], to: [W / 2, D / 2], inward: [0, -1], every: 3, skip: (x) => Math.abs(x) < 3.2 },
         { from: [W / 2, -D / 2], to: [W / 2, D / 2], inward: [-1, 0], every: 3.5, skip: (_x, z) => z > 3.9 && z < 9.1 },
-        { from: [-W / 2, -D / 2], to: [-W / 2, D / 2], inward: [1, 0], every: 3.5, skip: (_x, z) => z > 4.5 },
+        { from: [-W / 2, -D / 2], to: [-W / 2, D / 2], inward: [1, 0], every: 3.5, skip: (_x, z) => z > 4.5 || (z > POKER_DOOR.z0 - 0.5 && z < POKER_DOOR.z1 + 0.5) },
       ],
       H,
       { marble: columnMat, gold },
@@ -339,7 +468,8 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   const capital = new THREE.CylinderGeometry(0.46, 0.3, 0.38, 24, 1);
   const baseRing = new THREE.CylinderGeometry(0.42, 0.46, 0.2, 24, 1);
   for (const [x, z] of columnSpots) {
-    batch.add(box, darkMarble, M(x, 0.3, z, 0, 0.95, 0.6, 0.95));
+    batch.add(box, plinthMat, M(x, 0.3, z, 0, 0.95, 0.6, 0.95));
+    batch.add(box, gold, M(x, 0.61, z, 0, 0.99, 0.03, 0.99));
     batch.add(baseRing, gold, M(x, 0.7, z));
     batch.add(shaft, columnMat, M(x, 0.8 + (H - 1.3) / 2, z));
     batch.add(capital, gold, M(x, H - 0.69, z));
@@ -415,7 +545,9 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     [12, -9],
     [-13, -1],
   ];
-  root.add(chandeliers(chandelierSpots, q, gold));
+  const lights = chandeliers(chandelierSpots, q, gold);
+  const sparkle = lights.userData.time as { value: number };
+  root.add(lights);
   // Warm light falling from each chandelier onto the floor below, and its soft reflection
   // in the polished marble: what makes a casino floor glow instead of looking evenly lit.
   {
@@ -435,20 +567,57 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     }
   }
 
+  // Cool moonlight falling in through the tall lake windows: soft blue pools on the floor
+  // (one merged additive draw after baking), against the warm light of the room.
+  {
+    const [mc, mg] = (() => {
+      const cv = document.createElement('canvas');
+      cv.width = 64;
+      cv.height = 128;
+      return [cv, cv.getContext('2d')!] as const;
+    })();
+    const img = mg.createImageData(64, 128);
+    for (let y = 0; y < 128; y++)
+      for (let x = 0; x < 64; x++) {
+        const u = Math.abs(x / 63 - 0.5) * 2,
+          v = y / 127; // 0 at the wall
+        const a = Math.pow(1 - v, 1.6) * (1 - Math.pow(u, 3)) * 0.5;
+        const i = (y * 64 + x) * 4;
+        img.data.set([150, 180, 255, a * 255], i);
+      }
+    mg.putImageData(img, 0, 0);
+    const moonMat = new THREE.MeshBasicMaterial({ map: toTexture(mc), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: new THREE.Color(0.55, 0.62, 0.8) });
+    for (const wx of windowsX) {
+      // The spill skews a little east, as if the moon were low over the lake to the west.
+      const len = wx === 0 ? 4.2 : 3.6;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(winW + 0.6, len), moonMat);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(wx + 0.35, 0.011, -D / 2 + len / 2 + 0.05);
+      root.add(m);
+    }
+  }
+
   // --- Lake view and fountains beyond the windows -------------------------------------
-  const lake = new THREE.Mesh(
-    new THREE.PlaneGeometry(160, 70),
-    new THREE.MeshBasicMaterial({ map: toTexture(lakeView(2048, 900)), toneMapped: false }),
-  );
-  lake.position.set(0, 10, -D / 2 - 70);
-  root.add(lake);
-  const reflTex = toTexture(lakeReflection(1024, 512));
+  // The Strip across the lake: real 3D towers, landmarks and boulevards (two draw calls),
+  // so the view has parallax from the terrace, the windows and the pool deck.
+  // It's its own top-level group: it stays drawn from the pool deck, where the casino is culled.
+  const city = buildCity({ ground: LAKE_Y + 0.4, layout: 'lake', center: new THREE.Vector2(10, -20), seed: 7, hazeNear: 110, hazeFar: 400, mirrorY: LAKE_Y });
+  scene.add(city.group);
+  // High anisotropy keeps the light streaks crisp at grazing angles (blurred, they read as a brown band).
+  const reflTex = toTexture(lakeReflection(1024, 512), { aniso: Math.min(16, renderer.capabilities.getMaxAnisotropy()) });
   const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(160, 70),
-    new THREE.MeshStandardMaterial({ color: 0x050a1c, roughness: 0.08, metalness: 0.3, envMapIntensity: 0.25, emissive: 0xffffff, emissiveMap: reflTex, emissiveIntensity: 0.9 }),
+    new THREE.PlaneGeometry(300, 150),
+    // Unlit: the night lake is the city's light streaks on black water. (A glossy lit material
+    // picked up a flat brown sheen at grazing angles that read as a floor, not water.)
+    new THREE.MeshBasicMaterial({ map: reflTex, color: new THREE.Color(0xb8c8ff).multiplyScalar(0.4) }),
   );
   water.rotation.x = -Math.PI / 2;
-  water.position.set(0, LAKE_Y, -D / 2 - 35);
+  water.position.set(0, LAKE_Y, -D / 2 - 75);
+  // Nothing lies under the lake, so it needn't write depth: the fountain jets' mirrored
+  // reflections (drawn below the water line) then show through it.
+  // Drawn after the other opaque things so the backdrop below the horizon can't paint over it.
+  (water.material as THREE.Material).depthWrite = false;
+  water.renderOrder = 1;
   root.add(water);
   const terraceParts = buildTerrace(root, batch, box, { gold, darkMarble, wallMat, q });
   const fountains = fountainShow();
@@ -497,18 +666,22 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // Casino: warm and glowing. Hotel corridors: warm, a touch dimmer. Outdoors (terrace,
   // pool deck): moonlit night with cool fill, the warmth coming from fixtures. Suite: lamps.
   const MOODS = {
-    casino: { exp: 0.68, hemi: 0.42, sky: new THREE.Color(0xffdcae), ground: new THREE.Color(0x3a1810), key: 0.8, keyC: new THREE.Color(0xffe6c4), env: 0.55 },
-    hotel: { exp: 0.8, hemi: 0.36, sky: new THREE.Color(0xffd8a8), ground: new THREE.Color(0x30160c), key: 0.35, keyC: new THREE.Color(0xffe0b8), env: 0.5 },
+    casino: { exp: 0.68, hemi: 0.42, sky: new THREE.Color(0xffdcae), ground: new THREE.Color(0x3a1810), key: 0.8, keyC: new THREE.Color(0xffe6c4), env: 0.85 },
+    hotel: { exp: 0.8, hemi: 0.36, sky: new THREE.Color(0xffd8a8), ground: new THREE.Color(0x30160c), key: 0.35, keyC: new THREE.Color(0xffe0b8), env: 0.7 },
     outside: { exp: 0.95, hemi: 0.2, sky: new THREE.Color(0x5a74a8), ground: new THREE.Color(0x1c140e), key: 0.38, keyC: new THREE.Color(0xa8bcff), env: 0.28 },
-    suite: { exp: 0.9, hemi: 0.2, sky: new THREE.Color(0xffd0a0), ground: new THREE.Color(0x1a100a), key: 0.12, keyC: new THREE.Color(0xffe0c0), env: 0.32 },
+    suite: { exp: 0.9, hemi: 0.2, sky: new THREE.Color(0xffd0a0), ground: new THREE.Color(0x1a100a), key: 0.12, keyC: new THREE.Color(0xffe0c0), env: 0.45 },
   };
   let lastT = -1;
-  const mood = (f: THREE.Vector3, t: number) => {
-    const zone = f.x > 500 ? 'suite' : f.x > 21 && f.z < -0.2 ? 'outside' : f.x > 17.5 ? 'hotel' : f.z < -14.2 ? 'outside' : 'casino';
-    const m = MOODS[zone];
+  const MOOD_OF: Record<EnvZone, keyof typeof MOODS> = { casino: 'casino', hotel: 'hotel', terrace: 'outside', pool: 'outside', suite: 'suite' };
+  const mood = (f: THREE.Vector3, t: number, now = false) => {
+    const ez = envZoneAt(f);
+    const m = MOODS[MOOD_OF[ez]];
+    // Each area reflects itself (swapping between captures of one size doesn't recompile shaders).
+    const env = envs[ez] ?? baseEnv;
+    if (env && scene.environment !== env) scene.environment = env;
     const dt = lastT < 0 ? 1 : Math.min(0.1, t - lastT);
     lastT = t;
-    const k = lastT < 0 ? 1 : Math.min(1, dt * 2.5);
+    const k = now ? 1 : Math.min(1, dt * 2.5);
     hemi.intensity += (m.hemi - hemi.intensity) * k;
     hemi.color.lerp(m.sky, k);
     hemi.groundColor.lerp(m.ground, k);
@@ -526,8 +699,62 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     doorsOpen: () => doors.open,
     fountainLevel: () => fountains.userData.level as number,
     fountainAnchor: fountains,
+    async captureReflections(setZone, hide, only) {
+      const t0 = performance.now();
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      // Same size as the HDRI's prefiltered map, so every swap keeps the compiled shaders.
+      const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+      const cam = new THREE.CubeCamera(0.05, 400, cubeRT);
+      const hidden = [...hide, ...(mirror ? [mirror] : [])].filter((o) => o.visible);
+      for (const o of hidden) o.visible = false;
+      const saved = { env: scene.environment, exp: renderer.toneMappingExposure, hemi: hemi.intensity, key: key.intensity };
+      const sc = hemi.color.clone(),
+        gc = hemi.groundColor.clone(),
+        kc = key.color.clone();
+      try {
+        (fountains.userData.update as (t: number) => void)(4);
+        for (const zone of Object.keys(ENV_PROBES) as EnvZone[]) {
+          if (only && zone !== only) continue;
+          const p = ENV_PROBES[zone];
+          setZone(p);
+          // Light the area as it is lit when you're there, reflecting the HDRI on the first bounce.
+          mood(p, 0, true);
+          scene.environment = envs[zone] ?? baseEnv;
+          cam.position.copy(p);
+          cam.updateMatrixWorld(true);
+          // Compile this area's shaders off the main thread first (KHR_parallel_shader_compile), so the
+          // loading screen keeps going; they'd otherwise compile in a hitch the first time you walk in.
+          await renderer.compileAsync(scene, cam.children[0] as THREE.Camera);
+          cam.update(renderer, scene);
+          const prev = envs[zone];
+          envs[zone] = pmrem.fromCubemap(cubeRT.texture).texture;
+          prev?.dispose();
+        }
+      } finally {
+        pmrem.dispose();
+        cubeRT.dispose();
+        for (const o of hidden) o.visible = true;
+      }
+      // Every area has its own now: the HDRI's maps can go (a re-capture starts from the old capture).
+      if (!only && baseEnv) {
+        baseEnv.dispose();
+        baseEnv = null;
+        assets.envHdr?.dispose();
+      }
+      scene.environment = envs[envZoneAt(ENV_PROBES.casino)] ?? saved.env;
+      renderer.toneMappingExposure = saved.exp;
+      hemi.intensity = saved.hemi;
+      key.intensity = saved.key;
+      hemi.color.copy(sc);
+      hemi.groundColor.copy(gc);
+      key.color.copy(kc);
+      lastT = -1;
+      return performance.now() - t0;
+    },
     update(t: number, player?: THREE.Vector3) {
       (fountains.userData.update as (t: number) => void)(t);
+      city.update(t);
+      sparkle.value = t;
       if (player) {
         doors.update(player);
         mood(player, t);
@@ -696,6 +923,8 @@ function glassFlowers(q: Quality): THREE.Group {
   }
   const mat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.08, metalness: 0.0, envMapIntensity: 2.0 });
   mat.onBeforeCompile = (shader) => {
+    // Glass scatters little light off its surface: most of the colour is light coming through.
+    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= 0.72;');
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <emissivemap_fragment>',
       `#include <emissivemap_fragment>
@@ -703,18 +932,18 @@ function glassFlowers(q: Quality): THREE.Group {
         float facing = abs(dot(normalize(vNormal), normalize(vViewPosition)));
         float rim = 1.0 - facing;
         // Light passing through the glass: strongest through thin, face-on parts.
-        totalEmissiveRadiance += vColor * (0.9 + 1.6 * facing * facing + 1.2 * rim * rim * rim);
+        totalEmissiveRadiance += vColor * (1.15 + 2.0 * facing * facing + 1.6 * rim * rim * rim);
       #endif`,
     );
   };
   const tmp = new THREE.Object3D();
   let s = 9;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  const palette = [0xff6a1a, 0xffb020, 0xff3a4a, 0x7a3ad9, 0x1aa0e0, 0xffe040, 0xe8206a, 0x3ac45a, 0x20c8c0, 0xff8a30];
+  const palette = [0xff6a1a, 0xffb020, 0xff3a4a, 0x7a3ad9, 0x1aa0e0, 0xffe040, 0xe8206a, 0x3ac45a, 0x20c8c0, 0xff8a30, 0xff9a20, 0xffc840, 0xff5a28, 0xd8304a];
   const colour = () => {
     const c = new THREE.Color(palette[Math.floor(rnd() * palette.length)]);
     c.offsetHSL((rnd() - 0.5) * 0.03, 0.1, (rnd() - 0.5) * 0.1);
-    return c.multiplyScalar(0.55);
+    return c.multiplyScalar(0.6);
   };
   const nb = q.flowers;
   const blooms = new THREE.InstancedMesh(bloom, mat, nb);
@@ -729,7 +958,7 @@ function glassFlowers(q: Quality): THREE.Group {
     blooms.setMatrixAt(i, tmp.matrix);
     blooms.setColorAt(i, colour());
   }
-  const nh = Math.round(nb * 0.18);
+  const nh = Math.round(nb * 0.12);
   const horns = new THREE.InstancedMesh(horn, mat, nh);
   for (let i = 0; i < nh; i++) {
     const r = Math.sqrt(rnd()) * (ROTUNDA.r - 0.5);
@@ -754,15 +983,34 @@ function chandeliers(spots: [number, number][], q: Quality, gold: THREE.Material
     metalness: 0.1,
     roughness: 0.02,
     envMapIntensity: 2.6,
-    emissive: 0x4a3a20,
+    emissive: 0x6a5030,
     flatShading: true,
   });
+  // Sparkle: each cut crystal catches a passing glint now and then (no extra passes:
+  // a few ALU ops per crystal fragment, seeded per instance).
+  const time = { value: 0 };
+  crystalMat.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = time;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying float vSeed;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n#ifdef USE_INSTANCING\nvSeed = fract(sin(float(gl_InstanceID) * 12.9898) * 43758.5453);\n#else\nvSeed = 0.0;\n#endif');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uTime;\nvarying float vSeed;')
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+        vec3 gDir = normalize(vec3(sin(uTime * 0.9 + vSeed * 31.0), 0.5, cos(uTime * 0.7 + vSeed * 17.0)));
+        float glint = pow(max(0.0, dot(normal, gDir)), 40.0);
+        float tw = pow(max(0.0, sin(uTime * (1.3 + vSeed * 2.2) + vSeed * 60.0)), 18.0);
+        totalEmissiveRadiance += vec3(1.0, 0.93, 0.8) * (glint * 4.0 + tw * 1.6);`,
+      );
+  };
   const n = q.crystals;
   const crystals = new THREE.InstancedMesh(crystalGeo, crystalMat, spots.length * n);
   const glowTex = toTexture(radial(128, 'rgba(255,226,170,1)', 'rgba(255,190,110,0)'));
-  const glowMat = new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.6 });
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.7 });
   const bulbGeo = new THREE.SphereGeometry(0.03, 8, 6);
-  const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff0d0 });
+  const bulbMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xfff0d0).multiplyScalar(1.6), toneMapped: false });
   const bulbs = new THREE.InstancedMesh(bulbGeo, bulbMat, spots.length * 12);
   const tmp = new THREE.Object3D();
   let ci = 0,
@@ -796,9 +1044,10 @@ function chandeliers(spots: [number, number][], q: Quality, gold: THREE.Material
     }
     const glow = new THREE.Sprite(glowMat);
     glow.position.set(x, y + 0.1, z);
-    glow.scale.setScalar(1.5);
+    glow.scale.setScalar(1.9);
     g.add(glow);
   }
+  g.userData.time = time;
   crystals.count = ci;
   parts.build(g, false);
   g.add(crystals, bulbs);
@@ -810,32 +1059,44 @@ function fountainShow(): THREE.Group {
   const g = new THREE.Group();
   const [c, ctx] = (() => {
     const cv = document.createElement('canvas');
-    cv.width = 64;
+    cv.width = 128;
     cv.height = 256;
     return [cv, cv.getContext('2d')!] as const;
   })();
-  // A water column: a bright core near the base, breaking into spray toward the top.
-  const img = ctx.createImageData(64, 256);
+  // A water column: a dense, bright core near the nozzle that frays into streaks
+  // and spray toward the top, where it blooms out and falls back.
+  const img = ctx.createImageData(128, 256);
   let seed = 3;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  // Vertical streak pattern: a few dozen threads of water with their own strength.
+  const streak = new Float32Array(128);
+  for (let k = 0; k < 40; k++) {
+    const x0 = 64 + (rnd() - 0.5) * 70,
+      w = 1 + rnd() * 3,
+      a = 0.3 + rnd() * 0.7;
+    for (let x = 0; x < 128; x++) streak[x] += a * Math.exp(-(((x - x0) / w) ** 2));
+  }
   for (let y = 0; y < 256; y++) {
     const v = y / 255; // 0 top, 1 base
-    const width = 0.12 + (1 - v) * 0.3;
-    for (let x = 0; x < 64; x++) {
-      const u = (x - 31.5) / 32;
-      const core = Math.exp(-((u / width) ** 2) * 2.2);
-      const spray = rnd() < 0.25 * (1 - v) ? 0.6 : 0;
-      const fade = Math.min(1, v * 4) * (0.55 + 0.45 * v);
-      const a = Math.min(1, (core * (0.5 + 0.5 * v) + spray * core * 0.8) * fade);
-      const i = (y * 64 + x) * 4;
-      img.data[i] = 225;
-      img.data[i + 1] = 236;
+    const width = 0.2 + (1 - v) ** 1.5 * 0.4;
+    for (let x = 0; x < 128; x++) {
+      const u = (x - 63.5) / 64;
+      const core = Math.exp(-((u / width) ** 2) * 2.4);
+      const threads = Math.min(1, streak[Math.round(64 + (x - 64) * (0.25 + 0.75 * v * 0.3 + 0.2))] * 0.5);
+      const spray = rnd() < 0.3 * (1 - v) ? 0.7 * rnd() : 0;
+      const fade = Math.min(1, v * 3.5) * (0.5 + 0.5 * v);
+      const body = core * (0.6 + 0.4 * v) * (0.6 + 0.4 * threads) + spray * core;
+      const a = Math.min(1, body * fade + (v > 0.92 ? core * (v - 0.92) * 8 : 0));
+      const i = (y * 128 + x) * 4;
+      img.data[i] = 228;
+      img.data[i + 1] = 238;
       img.data[i + 2] = 255;
       img.data[i + 3] = a * 255;
     }
   }
   ctx.putImageData(img, 0, 0);
   const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.MeshBasicMaterial({
     map: tex,
     transparent: true,
@@ -844,64 +1105,90 @@ function fountainShow(): THREE.Group {
     side: THREE.DoubleSide,
     toneMapped: false,
   });
-  // Two crossed planes per jet, all jets in one instanced draw.
+  // Two crossed planes per jet, all jets in one instanced draw. The second half of the
+  // instances are the jets' reflections in the lake: mirrored and dimmed via instance colour.
   const a = new THREE.PlaneGeometry(1, 1);
   const b = new THREE.PlaneGeometry(1, 1).rotateY(Math.PI / 2);
   const jetGeo = mergeGeometries([a, b])!;
   jetGeo.translate(0, 0.5, 0);
-  const count = 48;
-  const jets = new THREE.InstancedMesh(jetGeo, mat, count);
+  const count = 56;
+  const jets = new THREE.InstancedMesh(jetGeo, mat, count * 2);
   jets.frustumCulled = false;
+  const bright = new THREE.Color(1.15, 1.12, 1.05),
+    dim = new THREE.Color(0.28, 0.3, 0.36);
+  for (let i = 0; i < count * 2; i++) jets.setColorAt(i, i < count ? bright : dim);
   g.add(jets);
   // Spray crowns at the top of each jet and mist hanging over the water at the base.
-  const puffTex = toTexture(radial(128, 'rgba(235,242,255,0.28)', 'rgba(220,232,255,0)'));
+  const puffTex = toTexture(radial(128, 'rgba(235,242,255,0.3)', 'rgba(220,232,255,0)'));
   const puffMat = new THREE.MeshBasicMaterial({ map: puffTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
   const puffGeo = mergeGeometries([new THREE.PlaneGeometry(1, 1), new THREE.PlaneGeometry(1, 1).rotateY(Math.PI / 2), new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2)])!;
-  const crowns = new THREE.InstancedMesh(puffGeo, puffMat, count);
-  const mists = new THREE.InstancedMesh(puffGeo, puffMat, count);
-  crowns.frustumCulled = mists.frustumCulled = false;
-  g.add(crowns, mists);
+  // Crowns and mists share one instanced draw: [0, count) crowns, [count, 2·count) mists.
+  const puffs = new THREE.InstancedMesh(puffGeo, puffMat, count * 2);
+  puffs.frustumCulled = false;
+  g.add(puffs);
+  // The lit water around the nozzles: a warm-white glow on the lake that swells with the show.
+  const glowMat = new THREE.MeshBasicMaterial({ map: toTexture(radial(128, 'rgba(225,235,255,0.22)', 'rgba(200,220,255,0)')), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(110, 26), glowMat);
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.set(0, 0.05, -6);
+  glow.frustumCulled = false;
+  g.add(glow);
   const tmp = new THREE.Object3D();
   g.userData.level = 0;
   g.userData.update = (time: number) => {
-    // A 70-second show: gentle wave, alternating bursts, a travelling sweep, then a finale.
-    const cycle = time % 70;
+    // A 80-second show: gentle wave, alternating bursts, a travelling sweep, swaying
+    // "oarsmen", then the finale with the tall shooters.
+    const cycle = time % 80;
     let total = 0;
     for (let i = 0; i < count; i++) {
       const t = i / (count - 1);
       let h: number;
-      if (cycle < 18) h = 0.35 + 0.3 * Math.sin(time * 1.6 - t * 9);
-      else if (cycle < 34) h = Math.max(0, Math.sin((time * 1.4) % Math.PI)) * (i % 2 ? 0.9 : 0.5);
-      else if (cycle < 52) h = 0.15 + 0.8 * Math.exp(-(((t - ((cycle - 34) / 18)) * 5) ** 2));
-      else if (cycle < 66) {
-        const k = (cycle - 52) / 14;
-        h = Math.min(1, 0.4 + k * 0.7) * (0.85 + 0.15 * Math.sin(time * 6 + i));
-      } else h = Math.max(0.05, 1 - (cycle - 66) / 4);
-      total += h;
-      tmp.position.set((t - 0.5) * 90, 0, Math.sin(t * Math.PI) * -12);
-      // In the bursts and the finale the jets fan out in pairs, like a choreographed show.
-      const fan = cycle >= 18 && cycle < 34 ? (i % 2 ? 0.16 : -0.16) : cycle >= 52 ? Math.sin(i * 1.7) * 0.12 : 0;
+      let fan = 0;
+      if (cycle < 16) h = 0.35 + 0.3 * Math.sin(time * 1.6 - t * 9);
+      else if (cycle < 30) {
+        h = Math.max(0, Math.sin((time * 1.4) % Math.PI)) * (i % 2 ? 0.9 : 0.5);
+        fan = i % 2 ? 0.16 : -0.16;
+      } else if (cycle < 46) h = 0.15 + 0.8 * Math.exp(-(((t - ((cycle - 30) / 16)) * 5) ** 2));
+      else if (cycle < 60) {
+        // Oarsmen: the whole line leans together, rowing back and forth.
+        h = 0.45 + 0.1 * Math.sin(time * 2 + t * 6);
+        fan = Math.sin(time * 1.3 + t * 2.5) * 0.45;
+      } else if (cycle < 76) {
+        const k = (cycle - 60) / 16;
+        h = Math.min(1.25, 0.4 + k * 0.9) * (0.85 + 0.15 * Math.sin(time * 6 + i)) * (i % 4 === 0 ? 1.15 : 1);
+        fan = Math.sin(i * 1.7) * 0.12;
+      } else h = Math.max(0.05, 1 - (cycle - 76) / 4);
+      total += Math.min(1, h);
+      const jx = (t - 0.5) * 96,
+        jz = Math.sin(t * Math.PI) * -12;
+      const top = 4 + h * 28;
+      const wid = 1.6 + h * 2.6;
+      tmp.position.set(jx, 0, jz);
       tmp.rotation.set(0, 0, fan);
-      tmp.scale.set(1.6 + h * 2.4, 4 + h * 26, 1.6 + h * 2.4);
+      tmp.scale.set(wid, top, wid);
       tmp.updateMatrix();
       jets.setMatrixAt(i, tmp.matrix);
-      const top = 4 + h * 26;
-      const jx = tmp.position.x,
-        jz = tmp.position.z;
+      // Reflection: the same jet upside down under the water line, shorter (seen at a grazing angle).
+      tmp.position.set(jx, -0.05, jz);
+      tmp.rotation.set(0, 0, -fan);
+      tmp.scale.set(wid * 1.1, -top * 0.55, wid * 1.1);
+      tmp.updateMatrix();
+      jets.setMatrixAt(count + i, tmp.matrix);
       tmp.rotation.set(0, time * 0.3 + i, 0);
       tmp.position.set(jx + Math.sin(fan) * -top, top * Math.cos(fan) - 1, jz);
-      tmp.scale.set(1.2 + h * 2.6, 2 + h * 5, 1.2 + h * 2.6);
+      tmp.scale.set(1.2 + h * 2.8, 2 + h * 5.5, 1.2 + h * 2.8);
       tmp.updateMatrix();
-      crowns.setMatrixAt(i, tmp.matrix);
+      puffs.setMatrixAt(i, tmp.matrix);
       tmp.position.set(jx, 1.2, jz);
-      tmp.scale.set(3 + h * 4, 1 + h * 1.6, 3 + h * 4);
+      tmp.scale.set(3 + h * 4.5, 1 + h * 1.8, 3 + h * 4.5);
       tmp.updateMatrix();
-      mists.setMatrixAt(i, tmp.matrix);
+      puffs.setMatrixAt(count + i, tmp.matrix);
     }
-    g.userData.level = total / count;
+    const level = total / count;
+    g.userData.level = level;
+    glowMat.opacity = 0.3 + level * 0.7;
     jets.instanceMatrix.needsUpdate = true;
-    crowns.instanceMatrix.needsUpdate = true;
-    mists.instanceMatrix.needsUpdate = true;
+    puffs.instanceMatrix.needsUpdate = true;
   };
   return g;
 }
@@ -916,26 +1203,43 @@ function buildTerrace(
   const { x0, x1, z0, z1 } = TERRACE;
   const w = x1 - x0,
     d = z1 - z0;
-  const stoneTex = toTexture(marble(512, 'cream', 41));
-  stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping;
   const stoneGeo = new THREE.PlaneGeometry(w, d);
   const uv = stoneGeo.attributes.uv as THREE.BufferAttribute;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (w / 2), uv.getY(i) * (d / 2));
-  const stone = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.55, color: 0xeee4d2 });
+  // Honed limestone paving (Poly Haven "Floor Tiles 02", 4 m per repeat; UVs here are 2 m).
+  const stone = assets.material('limestone', { repeat: 0.5, rough: 0.95, normal: 0.8, tint: 0xf4e8d6, envIntensity: 0.6, fallback: () => {
+      const stoneTex = toTexture(marble(512, 'cream', 41));
+      stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping;
+      return new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.55, color: 0xeee4d2 });
+    } });
+  // Lit a little from within so the paving and balustrade read in the moonlight.
+  stone.emissive.set(0x1e160e);
   const floor = new THREE.Mesh(stoneGeo, stone);
   floor.rotation.x = -Math.PI / 2;
   floor.position.set((x0 + x1) / 2, 0.002, (z0 + z1) / 2);
   root.add(floor);
+  // Stone blocks with UVs in real units (2 m per UV, like the paving) so the scan isn't smeared along rails.
+  const sbox = (x: number, y: number, z: number, sx: number, sy: number, sz: number) => {
+    const geo = new THREE.BoxGeometry(sx, sy, sz);
+    const uvs = geo.attributes.uv as THREE.BufferAttribute;
+    // Faces in order +x, -x, +y, -y, +z, -z; four vertices each.
+    const dims = [[sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy]];
+    for (let i = 0; i < uvs.count; i++) {
+      const [du, dv] = dims[Math.floor(i / 4)];
+      uvs.setXY(i, (uvs.getX(i) * du) / 2 + x * 0.37, (uvs.getY(i) * dv) / 2 + y * 0.29);
+    }
+    batch.add(geo, stone, M(x, y, z));
+  };
   // Slab edge and the cliff of the building below it.
-  batch.add(box, stone, M((x0 + x1) / 2, -0.25, z0 - 0.05, 0, w + 0.3, 0.5, 0.2));
-  batch.add(box, stone, M((x0 + x1) / 2, -3.6, z1 - 0.4, 0, w + 6, 7.2, 0.8));
+  sbox((x0 + x1) / 2, -0.25, z0 - 0.05, w + 0.3, 0.5, 0.2);
+  sbox((x0 + x1) / 2, -3.6, z1 - 0.4, w + 6, 7.2, 0.8);
   // Balustrade: posts, rail, and end walls.
   for (let x = x0 + 0.2; x <= x1 - 0.2; x += 0.32) batch.add(new THREE.CylinderGeometry(0.045, 0.06, 0.78, 8), stone, M(x, 0.42, z0 + 0.15));
-  batch.add(box, stone, M((x0 + x1) / 2, 0.06, z0 + 0.15, 0, w, 0.12, 0.3));
-  batch.add(box, stone, M((x0 + x1) / 2, 0.86, z0 + 0.15, 0, w + 0.1, 0.12, 0.34));
+  sbox((x0 + x1) / 2, 0.06, z0 + 0.15, w, 0.12, 0.3);
+  sbox((x0 + x1) / 2, 0.86, z0 + 0.15, w + 0.1, 0.12, 0.34);
   for (const x of [x0, x1]) {
-    batch.add(box, stone, M(x, 0.5, (z0 + z1) / 2, 0, 0.3, 1.0, d));
-    batch.add(box, stone, M(x, 1.05, (z0 + z1) / 2, 0, 0.36, 0.1, d));
+    sbox(x, 0.5, (z0 + z1) / 2, 0.3, 1.0, d);
+    sbox(x, 1.05, (z0 + z1) / 2, 0.36, 0.1, d);
   }
   // Lanterns on the corners and either side of the doors.
   const glowTex = toTexture(radial(128, 'rgba(255,214,150,1)', 'rgba(255,170,90,0)'));
@@ -975,8 +1279,8 @@ function buildTerrace(
   // Window reveals so the openings have depth from outside.
   for (const wx of [-12, -6, 0, 6, 12]) {
     const y0 = wx === 0 ? 0 : 1.1;
-    batch.add(box, stone, M(wx, 5.35, -HALL.d / 2 - 0.06, 0, 3.6, 0.1, 0.14));
-    for (const sx of [-1.75, 1.75]) batch.add(box, stone, M(wx + sx, (y0 + 5.3) / 2, -HALL.d / 2 - 0.06, 0, 0.1, 5.3 - y0, 0.14));
+    sbox(wx, 5.35, -HALL.d / 2 - 0.06, 3.6, 0.1, 0.14);
+    for (const sx of [-1.75, 1.75]) sbox(wx + sx, (y0 + 5.3) / 2, -HALL.d / 2 - 0.06, 0.1, 5.3 - y0, 0.14);
   }
   batch.add(box, m.gold, M(0, HALL.h + 0.55, -HALL.d / 2 - 0.2, 0, HALL.w, 0.12, 0.2));
   // Night sky dome, seen from the terrace and through the windows.

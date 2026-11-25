@@ -260,6 +260,16 @@ export class Elevators {
     this.toast(`Going to ${LANDINGS[dest].label}`);
   }
 
+  /** You're sealed in a moving car. */
+  get riding() {
+    return !!this.ride;
+  }
+
+  /** Is (x, z) inside any car (or in its doorway)? Teleports shouldn't land you there. */
+  inCab(x: number, z: number) {
+    return this.cars.some((c) => x > c.x - 0.45 && x < c.x + DEPTH && Math.abs(z - c.z) < HALF + 0.05);
+  }
+
   private inside(car: Car, p: THREE.Vector3) {
     return p.x > car.x + 0.15 && p.x < car.x + DEPTH && Math.abs(p.z - car.z) < HALF;
   }

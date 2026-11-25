@@ -5,20 +5,27 @@ import type { Hud, NavItem } from './hud';
 import type { Interaction } from './interaction';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
 import { AVATARS } from './net/avatars';
+import { cssColor, MAX_PLAYERS, signedMoney } from './net/party';
 import type { Session } from './net/session';
 
 /**
  * Everything the screen menus offer, in VR: a tabbed panel on the left
  * wrist (point with the right controller and pull the trigger).
  *  - Go:   jump to any game, the bar or the terrace (the map).
- *  - Room: host a two-player room or join one with a code keypad, change your
- *          character, voice chat on/mute, quick chat phrases, leave the room.
+ *  - Room: host a room (up to four) or join one with a code keypad; in a
+ *          room, tonight's scoreboard with where each friend is and a Go
+ *          button to jump to them, voice chat on/mute, quick chat phrases,
+ *          change your character, leave the room.
  *  - Menu: music, sound, help, reset chips, exit VR.
  */
 
 type Tab = 'go' | 'room' | 'menu' | 'keypad';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const PHRASES = ["Let's go!", 'Come to roulette', 'Craps time', 'Drinks at the bar?', 'Nice!', 'One more spin'];
+/** In a room the scoreboard takes space: fewer quick phrases. */
+const ROOM_PHRASES = ["Let's go!", 'Come to roulette', 'Drinks at the bar?', 'Nice!'];
+const BOARD_Y = 286;
+const ROW_H = 54;
 
 export interface VrMenuDeps {
   hud: Hud;
@@ -39,6 +46,7 @@ export interface VrMenuDeps {
   soundOn(): boolean;
   comfort(): Comfort;
   voiceReplies(): boolean;
+  giveCamera(): void;
   toggleVoiceReplies(): void;
   setComfort(c: Partial<Comfort>): void;
   captionsOn(): boolean;
@@ -69,6 +77,11 @@ export class VrMenu {
 
   redraw() {
     this.build();
+  }
+
+  /** Refresh the room tab (distances and scores move) when it's the one showing. */
+  redrawRoom() {
+    if (this.tab === 'room' && this.w.mesh.visible) this.build();
   }
 
   private go(tab: Tab) {
@@ -103,15 +116,16 @@ export class VrMenu {
           ctx.fillStyle = '#fff3d0';
           ctx.fillText(`LAGO-${(this.code + '____').slice(0, 4)}`, w.pxW / 2, 300);
         } else if (s) {
-          ctx.fillText(`Room LAGO-${s.code}`, w.pxW / 2, 236);
-          ctx.font = `italic 26px ${SERIF}`;
           const f = s.friends;
-          const voice = s.voice.enabled ? (s.voice.muted ? 'voice muted' : s.voice.connectedCount ? 'voice live' : 'voice on, connecting…') : 'voice off';
-          ctx.fillText(`${f.length ? 'with ' + f.join(', ') : 'waiting for your friend'} · ${voice}`, w.pxW / 2, 272);
-        } else {
-          ctx.fillText('Two-player game', w.pxW / 2, 236);
+          ctx.fillText(`Room LAGO-${s.code} · ${f.length + 1}/${MAX_PLAYERS}`, w.pxW / 2, 232);
           ctx.font = `italic 24px ${SERIF}`;
-          ctx.fillText('Host to get a code for your friend, or join theirs', w.pxW / 2, 272);
+          const voice = s.voice.enabled ? (s.voice.muted ? 'voice muted' : s.voice.connectedCount ? `voice live (${s.voice.connectedCount})` : 'voice on, connecting…') : 'voice off';
+          ctx.fillText(`${f.length ? 'Tonight' : 'Waiting for friends'} · ${voice}`, w.pxW / 2, 264);
+          if (f.length) this.paintBoard(ctx, s);
+        } else {
+          ctx.fillText('Play with friends (up to 4)', w.pxW / 2, 236);
+          ctx.font = `italic 24px ${SERIF}`;
+          ctx.fillText('Host to get a code for your friends, or join theirs', w.pxW / 2, 272);
         }
         if (this.busy) {
           ctx.font = `italic 26px ${SERIF}`;
@@ -152,6 +166,7 @@ export class VrMenu {
         }],
         ['vignette', () => (d.comfort().vignette ? 'Comfort vignette: on' : 'Comfort vignette: off'), () => d.setComfort({ vignette: !d.comfort().vignette })],
         ['lasers', () => (d.comfort().lasers ? 'Laser pointers: on' : 'Hands only (no lasers)'), () => d.setComfort({ lasers: !d.comfort().lasers })],
+        ['camera', () => 'Get a camera', () => d.giveCamera()],
         ['voicereply', () => (d.voiceReplies() ? 'Answer by voice: on' : 'Answer by voice: off'), () => d.toggleVoiceReplies()],
         ['help', () => 'Help', () => this.toggleHelp()],
         ['reset', () => 'Reset chips', () => d.resetChips()],
@@ -166,13 +181,23 @@ export class VrMenu {
     } else if (this.tab === 'room') {
       let y = 300;
       if (!s) {
-        w.add({ id: 'host', x: col(0), y, w: cw(), h: 78, label: 'Host 2-player', enabled: () => !this.busy, onPress: () => void this.run('Opening a room…', () => d.host()) });
+        w.add({ id: 'host', x: col(0), y, w: cw(), h: 78, label: 'Host a room', enabled: () => !this.busy, onPress: () => void this.run('Opening a room…', () => d.host()) });
         w.add({ id: 'join', x: col(1), y, w: cw(), h: 78, label: 'Join a friend', enabled: () => !this.busy, onPress: () => {
           this.code = '';
           this.go('keypad');
         } });
         y += 96;
       } else {
+        // Tonight's scoreboard (painted in the background) with a Go button on each friend's row.
+        const board = s.friends.length ? s.scoreboard() : [];
+        board.forEach((r, i) => {
+          if (r.me) return;
+          w.add({ id: `goto-${i}`, x: w.pxW - 40 - 96, y: BOARD_Y + i * ROW_H + 4, w: 96, h: ROW_H - 8, label: 'Go', onPress: () => {
+            const err = s.goToFriend(r.id);
+            if (err) d.hud.toast(err, 'warn');
+          } });
+        });
+        y = board.length ? BOARD_Y + board.length * ROW_H + 10 : 300;
         const v = s.voice;
         w.add({ id: 'voice', x: col(0), y, w: cw(), h: 78, label: v.enabled ? 'Voice off' : 'Voice on', active: () => v.enabled, onPress: () => {
           if (v.enabled) v.disable();
@@ -186,9 +211,11 @@ export class VrMenu {
           v.setMuted(!v.muted);
           this.build();
         } });
-        y += 92;
-        PHRASES.forEach((p, i) => w.add({ id: `say-${i}`, x: col(i), y: y + Math.floor(i / 2) * 74, w: cw(), h: 62, label: p, onPress: () => s.say(p) }));
-        y += 3 * 74 + 10;
+        y += 88;
+        const phrases = board.length ? ROOM_PHRASES : PHRASES;
+        const ph = board.length > 2 ? 54 : 62;
+        phrases.forEach((p, i) => w.add({ id: `say-${i}`, x: col(i), y: y + Math.floor(i / 2) * (ph + 10), w: cw(), h: ph, label: p, onPress: () => s.say(p) }));
+        y += Math.ceil(phrases.length / 2) * (ph + 10) + 4;
       }
       // Character picker.
       w.add({ id: 'av-prev', x: 40, y, w: 90, h: 72, label: '‹', onPress: () => {
@@ -225,6 +252,35 @@ export class VrMenu {
       }) });
     }
     w.redraw();
+  }
+
+  /** Tonight's scoreboard rows: colour, name, where they are and how far, chips won or lost. */
+  private paintBoard(ctx: CanvasRenderingContext2D, s: Session) {
+    const w = this.w;
+    const dirs = new Map(s.friendDirections().map((f) => [f.id, f]));
+    s.scoreboard().forEach((r, i) => {
+      const y = BOARD_Y + i * ROW_H;
+      roundRect(ctx, 40, y, w.pxW - 80, ROW_H - 4, 14);
+      ctx.fillStyle = r.me ? 'rgba(212,169,78,0.16)' : 'rgba(255,255,255,0.06)';
+      ctx.fill();
+      ctx.fillStyle = cssColor(r.color);
+      ctx.beginPath();
+      ctx.arc(64, y + ROW_H / 2 - 2, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#fff1d0';
+      ctx.font = `${r.me ? 'italic ' : ''}600 26px ${SERIF}`;
+      ctx.fillText(fit(ctx, r.me ? `${r.name} (you)` : r.name, 190), 84, y + 24);
+      const f = dirs.get(r.id);
+      ctx.font = `20px ${SERIF}`;
+      ctx.fillStyle = '#b9a77e';
+      if (f) ctx.fillText(`${f.area} · ${Math.round(f.distance)} m${f.talking ? ' · talking' : ''}`, 84, y + 45);
+      ctx.textAlign = 'right';
+      ctx.font = `600 26px ${SERIF}`;
+      ctx.fillStyle = r.net > 0 ? '#9fe08a' : r.net < 0 ? '#ff9a8a' : '#f6e7c3';
+      ctx.fillText(signedMoney(r.net), w.pxW - 40 - (r.me ? 16 : 108), y + 34);
+    });
+    ctx.textAlign = 'center';
   }
 
   private async run(label: string, fn: () => Promise<void>) {
@@ -302,6 +358,13 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): strin
   }
   if (line) lines.push(line);
   return lines;
+}
+
+function fit(ctx: CanvasRenderingContext2D, text: string, width: number) {
+  if (ctx.measureText(text).width <= width) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > width) t = t.slice(0, -1);
+  return t + '…';
 }
 
 function speedIx(v: number) {

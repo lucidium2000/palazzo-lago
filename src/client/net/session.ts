@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { hipOnSeat } from '../sitpose';
 import type { Crowd, Person } from '../people';
-import { avatarLook } from './avatars';
+import { AVATARS, avatarLook } from './avatars';
+import { Fader } from './fade';
+import { assignSlots, cssColor, freshEvents, landingSpot, MAX_PLAYERS, Outbox, PLAYER_COLORS, rankScores, relativeBearing, resolveAvatar, type AreaId, type FriendDirection, type Ground, type ScoreRow } from './party';
 import { Voice } from './voice';
 import { makeMouth, reach, setFingers, setOpen } from './embody';
 import { blendPose, OPEN, packPose, unpackPose, type FingerPose } from '../fingers';
@@ -23,6 +25,8 @@ export interface Friend {
   name: string;
   person: Person | null;
   state: PlayerState;
+  /** Their player colour (0xRRGGBB): name tag, chip markers, scoreboard, watch. */
+  color: number;
   /** Their hand model (VR players), if shown. */
   hand(side: 'l' | 'r'): PosedHand | null;
   /** Their wrist pose (VR players), if known. */
@@ -34,7 +38,13 @@ interface Remote {
   state: PlayerState;
   person: Person | null;
   lastEvent: number;
+  /** When we last heard from them (session clock): only friends still talking hold up the outbox. */
+  heardAt: number;
+  /** Their name tag: drawn normally, plus a faint copy that shows through walls. */
   tag: THREE.Sprite;
+  ghost: THREE.Sprite;
+  /** The colour slot the tag was drawn with. */
+  tagSlot: number;
   mouth: THREE.Object3D | null;
   open: number;
   talkUntil: number;
@@ -93,19 +103,36 @@ export interface SessionDeps {
   haptic?(side: 'left' | 'right', strength: number, ms: number): void;
   /** Called when the set of connected friends changes. */
   onRoster(names: string[]): void;
+  /** Chips won (+) or lost (−) tonight, for the room's scoreboard. */
+  night?(): number;
+  /** Which part of the resort a point is in (areas/index.ts `where`). */
+  where?(p: THREE.Vector3): AreaId;
+  /** The floor, for landing beside a friend ("go to friend"). */
+  ground?: Ground;
+  /** You're mid-ride in an elevator (no jumping out of a moving car). */
+  liftBusy?(): boolean;
+  /** Your outfit was changed because a friend who got here first wears the same one. */
+  onAvatar?(i: number): void;
 }
 
 /**
- * A two-player night: publishes where you are and what you do, shows your
- * friend walking the floor with a name tag, chat bubbles and big-win shout
- * outs, and shares the roulette wheel and the craps dice (the host's machine
- * decides every spin and roll; each player bets their own chips).
+ * A night out with the crew (up to four players: the host and three friends):
+ * publishes where you are and what you do, shows your friends walking the
+ * floor with name tags in their own colours (readable from across the room,
+ * faintly through walls), chat bubbles and big-win shout outs, shares the
+ * roulette wheel and the craps dice (the host's machine decides every spin
+ * and roll; each player bets their own chips), points the way to each friend
+ * (`friendDirections`, for the watch), jumps you beside one (`goToFriend`),
+ * and keeps the night's scoreboard.
  */
 export class Session {
   readonly code: string;
   readonly host: boolean;
-  private seq = 0;
-  private events: NetEvent[] = [];
+  private outbox = new Outbox();
+  /** Host: the colour slot of each guest. Guests read theirs from the host's state. */
+  private slots: Record<string, number> = {};
+  private fader: Fader;
+  private slotT = 0;
   private remotes = new Map<string, Remote>();
   private sendT = 0;
   private time = 0;
@@ -121,7 +148,8 @@ export class Session {
   constructor(private d: SessionDeps) {
     this.code = d.transport.code;
     this.host = d.host;
-    this.voice = new Voice((k, data) => this.emit(k, data), d.listener, d.scene, d.host);
+    this.voice = new Voice((k, data) => this.emit(k, data), d.listener, d.scene, d.transport.self);
+    this.fader = new Fader(d.player.camera);
     this.voice.onChange = () => {
       this.flush();
       this.onChange?.();
@@ -152,10 +180,9 @@ export class Session {
     return [...this.remotes.values()].map((r) => r.name);
   }
 
-  /** Sends a moment to the other player(s). */
+  /** Sends a moment to everyone in the room (it rides along until each friend has it). */
   emit(k: string, data?: unknown) {
-    this.events.push({ n: ++this.seq, k, d: data });
-    while (this.events.length > 6) this.events.shift();
+    this.outbox.push(k, data, this.time);
     this.flush();
   }
 
@@ -184,7 +211,7 @@ export class Session {
     return false;
   }
 
-  /** Change your character (your friend sees it change). */
+  /** Change your character (your friends see it change). */
   setAvatar(i: number) {
     this.d.avatar = i;
     this.flush();
@@ -195,6 +222,8 @@ export class Session {
   }
 
   leave() {
+    this.left = true;
+    this.fader.dispose();
     this.voice.disable();
     this.d.transport.leave();
     for (const r of this.remotes.values()) this.drop(r);
@@ -226,9 +255,20 @@ export class Session {
       hh: Math.round((p.camera.getWorldPosition(new THREE.Vector3()).y - p.rig.position.y) * 100) / 100,
       sw: p.swimming ? 1 : 0,
       mo: this.voice?.enabled ? Math.round(this.voice.level() * 9) : 0,
+      nt: this.d.night ? Math.round(this.d.night()) : undefined,
+      a: this.acks(),
+      sl: this.host ? this.slots : undefined,
       ...this.handState(),
       ...(this.extraState?.() ?? {}),
     };
+  }
+
+  /** What I've handled from each friend (they drop those events from their outbox). */
+  private acks(): Record<string, number> | undefined {
+    if (!this.remotes.size) return undefined;
+    const a: Record<string, number> = {};
+    for (const r of this.remotes.values()) a[r.id] = r.lastEvent;
+    return a;
   }
 
   private handState(): Partial<PlayerState> {
@@ -251,14 +291,20 @@ export class Session {
   }
 
   private lastSent = '';
+  private left = false;
   private flush() {
-    const w: Wire = { s: this.state(), e: [...this.events] };
-    let sig = JSON.stringify(w);
-    // The claude.ai room carries at most 4 KiB per player: drop the oldest events if needed.
-    while (sig.length > 3600 && w.e.length > 1) {
-      w.e.shift();
-      sig = JSON.stringify(w);
-    }
+    if (this.left) return;
+    // Forget events every friend still in touch has confirmed; the rest ride along (oldest first, within ~3.6 KB).
+    const live = [...this.remotes.values()].filter((r) => this.time - r.heardAt < 1.5);
+    this.outbox.prune(
+      live.map((r) => {
+        const a = r.state.a?.[this.d.transport.self];
+        return typeof a === 'number' ? a : undefined;
+      }),
+      this.time,
+    );
+    const w: Wire = this.outbox.packet(this.state());
+    const sig = JSON.stringify(w);
     if (sig === this.lastSent) return;
     this.lastSent = sig;
     this.d.transport.publish(w);
@@ -272,24 +318,32 @@ export class Session {
         this.voice.drop(r.id);
         this.drop(r);
         this.remotes.delete(id);
+        this.refreshSlots();
         this.d.onRoster(this.friends);
         this.onChange?.();
       }
       return;
     }
     if (!r) {
+      // Host + three: nobody beyond that gets a seat at the table (the transports turn a fifth away at the door).
+      if (this.remotes.size >= MAX_PLAYERS - 1) return;
       const s = w.s;
       const name = String(s.name || 'Friend').slice(0, 20);
       const look = avatarLook(Math.floor(Number(s.look) || 0));
       const at = new THREE.Vector3(Number(s.x) || 0, 0, Number(s.z) || 0);
       const person = this.d.crowd.add('buddy', look, at, s.yaw);
+      // Their mouth follows their voice (embody); faces.ts gives them blinks and glances.
+      if (person) person.ownMouth = true;
       r = {
         id,
         state: s,
         person,
         // Ignore events sent before we arrived, except table state we need now.
         lastEvent: w.e.length ? Math.max(...w.e.map((e) => e.n)) : 0,
-        tag: nameTag(name),
+        heardAt: this.time,
+        tag: nameTag(name, PLAYER_COLORS[0]),
+        ghost: nameTag(name, PLAYER_COLORS[0], true),
+        tagSlot: -1,
         mouth: null,
         open: 0,
         talkUntil: 0,
@@ -307,8 +361,9 @@ export class Session {
         target: at.clone(),
         name,
       };
-      this.d.scene.add(r.tag);
+      this.d.scene.add(r.tag, r.ghost);
       this.remotes.set(id, r);
+      this.refreshSlots();
       if (person) {
         const rr = r;
         person.driven = true;
@@ -322,16 +377,166 @@ export class Session {
     if (r.person && w.s.look !== r.state.look) this.d.crowd.setLook(r.person, avatarLook(Math.floor(Number(w.s.look) || 0)));
     if (!!w.s.v !== !!r.state.v || (w.s.v && this.voice.enabled)) this.voice.sync(r.id, !!w.s.v);
     r.state = w.s;
+    r.heardAt = this.time;
     r.target.set(Number(w.s.x) || 0, Number(w.s.y) || 0, Number(w.s.z) || 0);
-    for (const e of w.e) {
-      if (e.n <= r.lastEvent) continue;
-      r.lastEvent = e.n;
-      this.handle(r, e);
+    const { fresh, last } = freshEvents(r.lastEvent, Array.isArray(w.e) ? w.e : []);
+    r.lastEvent = last;
+    for (const e of fresh) this.handle(r, e);
+  }
+
+  // --- The crew: colours, finding each other, the scoreboard ------------------------------
+
+  /** My colour slot (0 = host; guests get theirs from the host), or -1 until the host has said. */
+  get slot(): number {
+    if (this.host) return 0;
+    for (const r of this.remotes.values()) {
+      const s = r.state.host ? r.state.sl?.[this.d.transport.self] : undefined;
+      if (Number.isInteger(s)) return s as number;
     }
+    return -1;
+  }
+
+  /** My player colour. */
+  get color(): number {
+    return PLAYER_COLORS[Math.max(0, this.slot)];
+  }
+
+  private slotOf(r: Remote): number {
+    if (r.state.host) return 0;
+    const s = this.host ? this.slots[r.id] : [...this.remotes.values()].find((x) => x.state.host)?.state.sl?.[r.id];
+    if (Number.isInteger(s) && (s as number) >= 0 && (s as number) < MAX_PLAYERS) return s as number;
+    // Not handed out yet: a stand-in by order of arrival.
+    return 1 + Math.min(MAX_PLAYERS - 2, [...this.remotes.keys()].indexOf(r.id));
+  }
+
+  private colorOf(r: Remote): number {
+    return PLAYER_COLORS[this.slotOf(r)];
+  }
+
+  /** Host: hand out colour slots to whoever's here. */
+  private refreshSlots() {
+    if (!this.host) return;
+    const next = assignSlots(this.slots, [...this.remotes.keys()]);
+    if (JSON.stringify(next) !== JSON.stringify(this.slots)) {
+      this.slots = next;
+      this.flush();
+    }
+  }
+
+  /** Each friend's tag in their colour; and if a friend who got here first wears my outfit, I change. */
+  private refreshLooks() {
+    for (const r of this.remotes.values()) {
+      const slot = this.slotOf(r);
+      if (slot === r.tagSlot) continue;
+      r.tagSlot = slot;
+      for (const old of [r.tag, r.ghost]) {
+        this.d.scene.remove(old);
+        old.material.map?.dispose();
+        old.material.dispose();
+      }
+      r.tag = nameTag(r.name, PLAYER_COLORS[slot]);
+      r.ghost = nameTag(r.name, PLAYER_COLORS[slot], true);
+      this.d.scene.add(r.tag, r.ghost);
+      this.onChange?.();
+    }
+    const mine = this.slot;
+    if (mine < 0) return;
+    const others = [...this.remotes.values()].map((r) => ({ slot: this.slotOf(r), look: Math.floor(Number(r.state.look) || 0) }));
+    const want = resolveAvatar(this.d.avatar, mine, others, AVATARS.length);
+    if (want !== this.d.avatar) {
+      const taker = [...this.remotes.values()].find((r) => Math.floor(Number(r.state.look) || 0) === this.d.avatar);
+      this.d.hud.toast(`${taker?.name ?? 'A friend'} is already wearing ${AVATARS[this.d.avatar].label}: you're ${AVATARS[want].label} tonight`, 'info');
+      this.d.avatar = want;
+      this.d.onAvatar?.(want);
+      this.flush();
+    }
+  }
+
+  private isTalking(r: Remote) {
+    const heard = this.voice.remoteLevel(r.id);
+    return this.time < r.talkUntil || (heard ? heard.level > 0.08 : (Number(r.state.mo) || 0) >= 2);
+  }
+
+  /** Your heading (atan2(dx, dz) of where your head faces) and where you stand. */
+  myHeading(): { pos: THREE.Vector3; yaw: number } {
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.d.player.camera.getWorldQuaternion(new THREE.Quaternion()));
+    return { pos: this.d.player.feet(), yaw: Math.atan2(dir.x, dir.z) };
+  }
+
+  /**
+   * Where each friend is from you, for the watch and the room menus:
+   * distance on the floor plan, bearing relative to the way you face (0
+   * ahead, positive to your right / clockwise, ±π behind), which part of the
+   * resort they're in, and whether they're talking. `fromYaw` is a heading,
+   * atan2(dx, dz) of your facing direction (`myHeading()` gives yours);
+   * leave both out to measure from your own head.
+   */
+  friendDirections(fromPos?: THREE.Vector3, fromYaw?: number): FriendDirection[] {
+    const me = fromPos && fromYaw !== undefined ? null : this.myHeading();
+    const pos = fromPos ?? me!.pos;
+    const yaw = fromYaw ?? me!.yaw;
+    const out: FriendDirection[] = [];
+    for (const r of this.remotes.values()) {
+      const at = r.person ? r.person.pos : r.target;
+      const dx = at.x - pos.x,
+        dz = at.z - pos.z;
+      out.push({
+        id: r.id,
+        name: r.name,
+        color: this.colorOf(r),
+        distance: Math.hypot(dx, dz),
+        bearing: relativeBearing(yaw, dx, dz),
+        area: this.d.where ? this.d.where(r.target) : 'casino',
+        talking: this.isTalking(r),
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Jump to a friend: a short fade, and you're standing beside them (a free
+   * spot in front of them if there is one, never in the pool, a lift car or
+   * through a wall), facing them. Returns why not, or null when on the way.
+   */
+  goToFriend(id: string): string | null {
+    const r = this.remotes.get(id);
+    if (!r) return 'They left the room';
+    if (this.d.liftBusy?.()) return 'Wait for the elevator to arrive';
+    if (this.fader.busy) return 'Already on the way';
+    const p = this.d.player;
+    const at = r.target.clone();
+    const heading = r.person ? r.person.yaw : Number(r.state.yaw) || 0;
+    const others = [...this.remotes.values()].filter((x) => x !== r).map((x) => ({ x: x.target.x, z: x.target.z }));
+    let spot = this.d.ground ? landingSpot({ x: at.x, z: at.z, heading }, this.d.ground, others) : null;
+    if (!spot) spot = { x: at.x + Math.sin(heading) * 1.1, z: at.z + Math.cos(heading) * 1.1, heading: heading + Math.PI };
+    const s = spot;
+    this.fader.run(() => {
+      if (p.seated) p.stand();
+      // Viewpoint yaw is the camera's (it looks down −z): facing heading h means yaw h + π.
+      p.place({ id: 'friend', label: r.name, position: new THREE.Vector3(s.x, 0, s.z), yaw: s.heading + Math.PI, pitch: -0.05, eye: 1.65 });
+      p.current = null;
+      this.flush();
+    });
+    this.d.hud.toast(`Off to find ${r.name}`, 'info');
+    return null;
+  }
+
+  /** The night so far for everyone in the room: chips won or lost tonight, biggest winner first. */
+  scoreboard(): ScoreRow[] {
+    const rows: ScoreRow[] = [{ id: this.d.transport.self, name: this.d.name, color: this.color, net: this.d.night ? Math.round(this.d.night()) : 0, chips: Math.round(this.d.bankroll.balance), me: true }];
+    for (const r of this.remotes.values()) rows.push({ id: r.id, name: r.name, color: this.colorOf(r), net: Math.round(Number(r.state.nt) || 0), chips: Math.round(Number(r.state.chips) || 0), me: false });
+    return rankScores(rows);
+  }
+
+  /** "#rrggbb" for a player colour (UI). */
+  static css(c: number) {
+    return cssColor(c);
   }
 
   /** Extra fields published with your state (e.g. the drink in your hand). */
   extraState: (() => Partial<PlayerState>) | null = null;
+  /** Poses a friend's avatar dancing (party/index.ts), before their real hands take the arms. */
+  dancer: ((p: Person, s: PlayerState, tracked: boolean) => void) | null = null;
 
   /** Extra event handlers (game mirroring, drinks…): `on('kind', (friend, data) => …)`. */
   private handlers = new Map<string, (friend: Friend, d: Record<string, unknown>) => void>();
@@ -345,7 +550,7 @@ export class Session {
   }
 
   private friendOf(r: Remote): Friend {
-    return { id: r.id, name: r.name, person: r.person, state: r.state, hand: (side) => r.posed?.[side] ?? null, wrist: (side) => r.wrists[side] ?? (r.hands[side] ? { p: r.hands[side]!, q: new THREE.Quaternion() } : null) };
+    return { id: r.id, name: r.name, person: r.person, state: r.state, color: this.colorOf(r), hand: (side) => r.posed?.[side] ?? null, wrist: (side) => r.wrists[side] ?? (r.hands[side] ? { p: r.hands[side]!, q: new THREE.Quaternion() } : null) };
   }
 
   private handle(r: Remote, e: NetEvent) {
@@ -420,7 +625,7 @@ export class Session {
         }
         break;
       case 'vsig':
-        void this.voice.signal(r.id, null, d as never);
+        void this.voice.signal(r.id, this.d.transport.self, d as never);
         break;
       case 'csync':
         if (!this.host && r.state.host) this.d.craps.syncPoint((d.point as number | null) ?? null);
@@ -508,8 +713,8 @@ export class Session {
 
   /** A gesture landed: sound, buzz, toast, cheers. `mine` says whether we detected it (then tell them). */
   private celebrate(r: Remote, k: string, hand: 'l' | 'r' | null, mine: boolean) {
-    if (this.time - (this.gestAt.get(k) ?? -10) < 1.5) return;
-    this.gestAt.set(k, this.time);
+    if (this.time - (this.gestAt.get(k + r.id) ?? -10) < 1.5) return;
+    this.gestAt.set(k + r.id, this.time);
     if (mine) this.emit('gest', { k });
     const at = r.person ? r.person.pos.clone().setY(1.4) : this.d.player.feet().setY(1.4);
     const names: Record<string, string> = { highfive: 'High five', fistbump: 'Fist bump', handshake: 'Handshake', wave: 'Wave' };
@@ -532,6 +737,7 @@ export class Session {
     const sc = p.look.height / (female ? 1.72 : 1.82);
     if (!r.mouth && b.Head) r.mouth = makeMouth(b.Head, rig.root, p.yaw, sc, rig.mesh);
     if (r.mouth) setOpen(r.mouth, r.open);
+    this.dancer?.(p, r.state, !!(r.hands.l || r.hands.r));
     const fwd = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
     const left = new THREE.Vector3(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
     // Their real hands (same hand models you see on your own controllers), placed at their wrists.
@@ -584,7 +790,7 @@ export class Session {
   }
 
   private drop(r: Remote) {
-    this.d.scene.remove(r.tag);
+    this.d.scene.remove(r.tag, r.ghost);
     if (r.posed) {
       this.d.scene.remove(r.posed.l.root, r.posed.r.root);
       r.posed = null;
@@ -597,14 +803,25 @@ export class Session {
   }
 
   update(dt: number) {
+    if (this.left) return;
     this.time += dt;
+    this.fader.update(dt);
     // Publish my state ~10 times a second when it changes (events go at once).
     this.sendT -= dt;
     if (this.sendT <= 0) {
-      // Faster while your hands are tracked or you're talking, so motion and lips look live.
-      this.sendT = this.d.hands?.() || (this.voice.enabled && this.voice.level() > 0.05) ? 0.05 : 0.1;
+      // Faster while your hands are tracked or you're talking, so motion and lips look live;
+      // a little slower with a full room (the host relays every packet to the others).
+      const crowd = this.remotes.size >= 3 ? 1.35 : this.remotes.size === 2 ? 1.15 : 1;
+      this.sendT = (this.d.hands?.() || (this.voice.enabled && this.voice.level() > 0.05) ? 0.05 : 0.1) * crowd;
       this.flush();
     }
+    this.slotT -= dt;
+    if (this.slotT <= 0) {
+      this.slotT = 0.5;
+      this.refreshSlots();
+      this.refreshLooks();
+    }
+    const cam = this.d.player.camera.getWorldPosition(new THREE.Vector3());
     for (const r of this.remotes.values()) {
       const p = r.person;
       if (!p) continue;
@@ -685,7 +902,14 @@ export class Session {
       if (want > 0.15) p.headPitch += Math.sin(this.time * 5.3) * 0.0035 * want;
       const top = p.pos.y + (seated ? 1.45 : 2.0);
       this.voice.update(r.id, new THREE.Vector3(p.pos.x, top - 0.25, p.pos.z));
+      // Name tags stay readable across the room: they grow with distance (keeping their
+      // size on screen past a few metres), and a faint copy shows through walls.
       r.tag.position.set(p.pos.x, top + 0.12, p.pos.z);
+      const far = THREE.MathUtils.clamp(cam.distanceTo(r.tag.position) / 3.5, 1, 7);
+      r.tag.scale.set(r.tag.userData.w * far, r.tag.userData.h * far, 1);
+      r.tag.position.y += (far - 1) * 0.08;
+      r.ghost.position.copy(r.tag.position);
+      r.ghost.scale.copy(r.tag.scale);
       if (r.bubble) {
         r.bubble.position.set(p.pos.x, top + 0.42, p.pos.z);
         if (this.time > r.bubbleUntil) {
@@ -697,7 +921,7 @@ export class Session {
   }
 }
 
-function label(text: string, opts: { bg: string; fg: string; font: string; pad: number; height: number; tail?: boolean }): THREE.Sprite {
+function label(text: string, opts: { bg: string; fg: string; font: string; pad: number; height: number; tail?: boolean; edge?: string; dot?: string; ghost?: boolean }): THREE.Sprite {
   const c = document.createElement('canvas');
   const g = c.getContext('2d')!;
   g.font = opts.font;
@@ -716,27 +940,39 @@ function label(text: string, opts: { bg: string; fg: string; font: string; pad: 
     g.lineTo(w / 2 + 12, 60);
     g.fill();
   }
-  g.strokeStyle = '#d4a94e';
-  g.lineWidth = 3;
+  g.strokeStyle = opts.edge ?? '#d4a94e';
+  g.lineWidth = opts.edge ? 5 : 3;
   g.beginPath();
   g.roundRect(2, 2, w - 4, 60, 28);
   g.stroke();
+  if (opts.dot) {
+    g.fillStyle = opts.dot;
+    g.beginPath();
+    g.arc(opts.pad + 2, 32, 9, 0, Math.PI * 2);
+    g.fill();
+  }
   g.fillStyle = opts.fg;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillText(text, w / 2, 33);
+  g.fillText(text, w / 2 + (opts.dot ? 12 : 0), 33);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, transparent: true }));
+  const s = new THREE.Sprite(
+    new THREE.SpriteMaterial(opts.ghost ? { map: t, depthWrite: false, depthTest: false, transparent: true, opacity: 0.42, fog: false } : { map: t, depthWrite: false, transparent: true, fog: false }),
+  );
   const h = opts.height;
   s.scale.set((h * c.width) / c.height, h, 1);
+  s.userData.w = s.scale.x;
+  s.userData.h = h;
   s.raycast = () => {};
-  s.renderOrder = 10;
+  s.renderOrder = opts.ghost ? 11 : 10;
   return s;
 }
 
-function nameTag(name: string) {
-  return label(name, { bg: 'rgba(20,12,8,0.82)', fg: '#ffd98a', font: 'italic 600 36px Georgia, serif', pad: 26, height: 0.16 });
+/** A friend's name tag in their colour. `ghost`: the faint copy drawn through walls. */
+function nameTag(name: string, color: number, ghost = false) {
+  const c = cssColor(color);
+  return label(name, { bg: 'rgba(20,12,8,0.82)', fg: '#fff1d0', font: 'italic 600 36px Georgia, serif', pad: 34, height: 0.16, edge: c, dot: c, ghost });
 }
 
 function bubble(text: string) {

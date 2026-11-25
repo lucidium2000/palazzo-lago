@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { assets, spawnCharacter } from './assets';
-import { AVATARS } from './net/avatars';
+import { AVATARS, avatarLook } from './net/avatars';
 import { reach, setFingers } from './net/embody';
 import type { FingerPose } from './fingers';
 import { skinTone } from './posedhand';
-import { POSE } from './people';
+import { POSE, lookPaint } from './people';
 import { hipOnSeat, leanToward, sitLegs, standLegs } from './sitpose';
 import type { Seat } from './world';
 
@@ -39,6 +39,8 @@ export class SelfBody {
   onSkin: ((c: THREE.Color) => void) | null = null;
   private avatar = -1;
   readonly root = new THREE.Group();
+  /** Dancing (party/index.ts): bends the knees and sways the hips after the clip, before the arms reach your hands. */
+  onDance: ((rig: { root: THREE.Object3D; bones: Record<string, THREE.Object3D | undefined> }, yaw: number, dt: number) => void) | null = null;
 
   constructor(scene: THREE.Scene) {
     scene.add(this.root);
@@ -52,7 +54,7 @@ export class SelfBody {
     const a = AVATARS[((i % AVATARS.length) + AVATARS.length) % AVATARS.length];
     if (this.rig) this.root.remove(this.rig.root);
     this.kind = a.kind;
-    const rig = spawnCharacter(assets.people, a.kind);
+    const rig = spawnCharacter(assets.people, a.kind, lookPaint(avatarLook(i)));
     rig.root.traverse((o) => {
       o.frustumCulled = false;
       (o as THREE.Mesh).castShadow = false;
@@ -72,13 +74,14 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null; eyeY?: number }) {
     this.root.visible = o.on && !!this.rig;
     const rig = this.rig;
     if (!o.on || !rig) return;
     const female = this.kind.startsWith('female');
     // Scale the character so its eyes sit at your real eye height.
-    const eye = Math.max(0.9, o.head.y - o.floorY);
+    // (Dancing, your size follows your average head height, not each bob: the knees take the bob.)
+    const eye = Math.max(0.9, (o.eyeY ?? o.head.y) - o.floorY);
     // Sitting on a stool: your size stays what it was standing (your real head may be anywhere).
     if (o.seat) this.sitOn = o.seat;
     this.sitBlend += ((o.seat ? 1 : 0) - this.sitBlend) * Math.min(1, dt * 5);
@@ -142,6 +145,10 @@ export class SelfBody {
     } else if (this.sitOn) {
       standLegs(b);
       this.sitOn = null;
+    }
+    if (sit === 0 && this.swimBlend < 0.05 && this.onDance) {
+      this.onDance(rig, this.bodyYaw, dt);
+      rig.root.updateMatrixWorld(true);
     }
     const left = new THREE.Vector3(Math.cos(this.bodyYaw), 0, -Math.sin(this.bodyYaw));
     for (const [side, S, dir] of [['l', 'L', 1], ['r', 'R', -1]] as const) {

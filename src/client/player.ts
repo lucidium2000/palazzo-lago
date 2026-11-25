@@ -68,6 +68,9 @@ export class Player {
   readonly comfort = loadComfort();
   private stride = 0;
   private bob = 0;
+  /** Dancing on a screen (party/index.ts): the view bounces (m) and sways (radians) with the beat. */
+  danceBob = 0;
+  danceRoll = 0;
   private speedNow = 0;
   private vignette: THREE.Mesh;
   private turnFlash = 0;
@@ -238,8 +241,8 @@ export class Player {
 
   private applyDesktopCamera() {
     if (this.inXR) return;
-    this.camera.position.set(0, this.eye + Math.sin(this.bob * 2) * 0.018 * Math.min(1, this.speedNow / WALK), 0);
-    this.camera.rotation.set(this.pitch, 0, Math.sin(this.bob) * 0.004 * Math.min(1, this.speedNow / WALK), 'YXZ');
+    this.camera.position.set(0, this.eye + Math.sin(this.bob * 2) * 0.018 * Math.min(1, this.speedNow / WALK) + this.danceBob, 0);
+    this.camera.rotation.set(this.pitch, 0, Math.sin(this.bob) * 0.004 * Math.min(1, this.speedNow / WALK) + this.danceRoll, 'YXZ');
   }
 
   /** Feet position (desktop rig position, or the point under the VR head), at your feet's height. */

@@ -306,8 +306,9 @@ export class Hands {
   }
 
   /** Gives an object straight to a free hand (a drink from a waiter). */
-  give(obj: THREE.Object3D, g: Grabbable): boolean {
-    const hand = this.hands.find((h) => !h.held && h.ctrl.userData.connected !== false);
+  give(obj: THREE.Object3D, g: Grabbable, prefer?: 'left' | 'right'): boolean {
+    const free = this.hands.filter((h) => !h.held && h.ctrl.userData.connected !== false);
+    const hand = free.find((h) => h.ctrl.userData.handedness === prefer) ?? free[0];
     if (!hand) return false;
     hand.held = g;
     hand.carried = obj;

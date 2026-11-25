@@ -2,14 +2,14 @@ import * as THREE from 'three';
 import type { Sound } from '../audio';
 import type { Interaction } from '../interaction';
 import type { Crowd, Person } from '../people';
-import { randomLook, staffLook } from '../people';
 import type { Player, Viewpoint } from '../player';
 import type { Quality } from '../quality';
 import type { World } from '../world';
 import { Elevators, type LandingId } from './elevators';
 import { buildHotel, CORR, LOBBY, LOBBY_CARS, registerHotel } from './hotel';
 import { mats } from './kit';
-import { buildPool, DECK, LIFT, registerPool } from './pool';
+import { buildPool, DECK, LIFT, registerPool, type PoolArea } from './pool';
+import { populatePool } from './poolguests';
 import { buildSuite, registerSuite, SUITE, SUITE_CAR } from './suite';
 
 /**
@@ -17,23 +17,55 @@ import { buildSuite, registerSuite, SUITE, SUITE_CAR } from './suite';
  * the night pool deck, and Suite 3201, joined by working elevators.
  */
 
-/** Walking-graph nodes so guests stroll out to the lobby and the pool. */
+/**
+ * Walking-graph nodes so guests stroll out to the lobby and the pool. On the
+ * deck they make a loop along the poolside walkways (between the coping and the
+ * loungers), an outer loop behind the loungers, and cut-throughs at the gaps,
+ * all closer than the graph's longest edge so every node joins up.
+ */
 export const AREA_NODES: [number, number][] = [
+  // Hotel corridor, lobby, the pool doors.
   [16.4, 6.5],
   [21, 6.5],
   [27, 6.5],
   [32.5, 6.5],
   [36, 2.0],
   [36, -1.5],
-  [36, -9],
-  [29, -9],
-  [29, -20],
-  [32, -31],
-  [44, -30],
-  [54, -27],
-  [54, -16],
-  [44, -10],
-  [56, -6],
+  // North deck: in from the doors, past the lifts.
+  [36, -5.5],
+  [41, -6.8],
+  [46, -6.3],
+  [29.5, -7.5],
+  // Behind the north loungers (the cut-throughs to the pool are the gaps at x 37.1 and 42.3).
+  [29.5, -11.2],
+  [35, -11],
+  [42.3, -11],
+  [47, -11],
+  [51.5, -10.2],
+  // The poolside walkway, all the way round (coping on one side, loungers on the other).
+  [31, -14.85],
+  [36, -14.85],
+  [42.3, -14.85],
+  [46, -14.85],
+  [51, -14.85],
+  [31, -20],
+  [51, -20],
+  [31.1, -24.85],
+  [37.1, -25.15],
+  [42.3, -25.15],
+  [46, -25.15],
+  [51, -25.15],
+  // West deck by the pool bar, east deck by the hot tub and the cabanas.
+  [27.6, -15.5],
+  [27.6, -20.5],
+  [54.5, -16.5],
+  [55.5, -21.5],
+  [55, -27.5],
+  // Behind the south loungers, toward the DJ.
+  [30.5, -29.6],
+  [37.1, -29.4],
+  [42.3, -29.4],
+  [45.5, -29],
 ];
 
 /** Collision and walkable floor for the new areas (call right after the hall is registered). */
@@ -54,6 +86,10 @@ export interface Areas {
   populate(crowd: Crowd): Person[];
   where(feet: THREE.Vector3): 'casino' | 'hotel' | 'pool' | 'suite';
   elevators: Elevators;
+  /** The pool deck (the party's lights drive its water and LED wall). */
+  pool: PoolArea;
+  /** The guests on the dance floor (filled by populate). */
+  dancers: Person[];
 }
 
 export function buildAreas(deps: {
@@ -69,6 +105,7 @@ export function buildAreas(deps: {
   const m = mats(q);
   buildHotel(scene, q, m);
   const pool = buildPool(scene, q, m);
+  const dancers: Person[] = [];
   buildSuite(scene, q, m);
   // Night mood: the areas' materials carried a lot of self-lighting ("emissive fill") so
   // they read without lamps; the hemisphere fill now does that per zone, so keep only
@@ -122,6 +159,8 @@ export function buildAreas(deps: {
       lifts.update(dt);
       pool.update(t);
     },
+    pool,
+    dancers,
     musicLevel(f) {
       if (where(f) !== 'pool') return 0;
       const d = Math.hypot(f.x - 50, f.z + 31);
@@ -131,27 +170,7 @@ export function buildAreas(deps: {
       return where(f) === 'pool' ? 1 : 0;
     },
     populate(crowd) {
-      const people: Person[] = [];
-      const bt = crowd.add('bartender', staffLook('bar'), pool.bartender.pos, pool.bartender.yaw);
-      if (bt) people.push(bt);
-      // Guests standing chest-deep in the shallow end, chatting.
-      for (const s of pool.swimmers) {
-        const p = crowd.add('watch', randomLook(), s.pos, s.yaw);
-        if (!p) break;
-        people.push(p);
-      }
-      for (const s of pool.seats) {
-        const p = crowd.add('patron', randomLook(), s.pos, s.yaw);
-        if (!p) break;
-        p.seatY = s.seatY;
-        people.push(p);
-      }
-      for (const s of pool.stands) {
-        const p = crowd.add('watch', randomLook(), s.pos, s.yaw);
-        if (!p) break;
-        people.push(p);
-      }
-      return people;
+      return populatePool(crowd, pool, dancers);
     },
   };
 }

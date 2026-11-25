@@ -59,6 +59,43 @@ export function sitLegs(b: Bones, yaw: number, floorY: number, k = 1) {
   }
 }
 
+/**
+ * Lying back on a sun lounger: the body (rig root) is already reclined; the
+ * legs stretch out along the seat ahead of the hips, knees a touch bent and
+ * apart, heels resting on the cushion at `restY`. Same IK as sitting.
+ */
+export function lieLegs(b: Bones, yaw: number, restY: number, k = 1) {
+  const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+  const left = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  for (const [s, dir] of [
+    ['L', 1],
+    ['R', -1],
+  ] as const) {
+    const upper = b[`UpperLeg${s}`],
+      lower = b[`LowerLeg${s}`],
+      foot = b[`Foot${s}`];
+    if (!upper || !lower || !foot) continue;
+    const rest = (foot.userData.restPos ??= foot.position.clone()) as THREE.Vector3;
+    foot.position.copy(rest);
+    foot.updateMatrixWorld(true);
+    const hip = upper.getWorldPosition(new THREE.Vector3());
+    const knee = lower.getWorldPosition(new THREE.Vector3());
+    const ankle = foot.getWorldPosition(new THREE.Vector3());
+    const len = hip.distanceTo(knee) + knee.distanceTo(ankle);
+    // Heels on the cushion, nearly straight out, a little apart (one knee up a bit more).
+    const reachK = dir > 0 ? 0.95 : 0.9;
+    const target = hip.clone().addScaledVector(fwd, len * reachK).addScaledVector(left, 0.07 * dir);
+    target.y = restY + 0.06;
+    const pole = hip.clone().addScaledVector(fwd, len * 0.5).add(new THREE.Vector3(0, 1, 0));
+    const end = reach(upper, lower, foot, target, pole, k);
+    if (end && foot.parent && foot.parent !== lower) {
+      foot.parent.updateWorldMatrix(true, false);
+      foot.position.copy(foot.parent.worldToLocal(end));
+      foot.updateMatrixWorld(true);
+    }
+  }
+}
+
 /** Puts root-parented feet back under a rig that sat before. */
 export function standLegs(b: Bones) {
   for (const s of ['L', 'R']) {

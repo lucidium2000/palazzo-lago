@@ -579,7 +579,16 @@ export class Sound {
       m.setLoop(true);
       m.setVolume(this.musicOn ? this.musicLevel : 0);
       m.play();
+      this.musicAt = this.listener.context.currentTime;
     });
+  }
+
+  private musicAt = -1;
+  /** Seconds into the casino groove's loop (for dancing to it), or null before it plays. */
+  musicTime(): number | null {
+    if (this.musicAt < 0 || !this.music?.isPlaying) return null;
+    const ctx = this.listener.context;
+    return ctx.currentTime - this.musicAt - (ctx.outputLatency || ctx.baseLatency || 0);
   }
 
   /** Mixes the music for where you are (quieter by the piano and outside). */
@@ -720,10 +729,12 @@ async function renderPiano(sampleRate: number): Promise<AudioBuffer> {
 // Casino-floor groove: 8 bars of lounge house in A minor at 116 bpm.
 // ---------------------------------------------------------------------------
 
+export const GROOVE = { bpm: 116, bars: 8 };
+
 async function renderGroove(sampleRate: number): Promise<AudioBuffer> {
-  const bpm = 116;
+  const bpm = GROOVE.bpm;
   const beat = 60 / bpm;
-  const bars = 8;
+  const bars = GROOVE.bars;
   const loopLen = bars * 4 * beat;
   const ctx = new OfflineAudioContext(2, Math.ceil((loopLen + 1.5) * sampleRate), sampleRate);
   const out = ctx.createGain();

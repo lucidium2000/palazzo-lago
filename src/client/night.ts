@@ -49,6 +49,11 @@ export class Night {
     this.render();
   }
 
+  /** Chips won (+) or lost (−) tonight (free chips don't count). Shared on the room's scoreboard. */
+  net(): number {
+    return this.bankroll.balance - this.startBalance;
+  }
+
   /** Measure "up on the night" from here (after the daily bonus is paid). */
   resetBaseline() {
     this.startBalance = this.bankroll.balance;
