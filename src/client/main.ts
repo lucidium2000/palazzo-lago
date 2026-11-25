@@ -844,27 +844,14 @@ async function main() {
   );
   // --- Your own body in VR ------------------------------------------------------
   // Your watch (left wrist, VR): time, chips, friends; tap it for the menu.
-  const FRIEND_COLORS = ['#4fd1c5', '#f6ad55', '#b794f4', '#f687b3'];
   const watch = new Watch({
     scene,
     camera,
     hands,
     interaction,
     chips: () => bankroll.balance,
-    friends: () => {
-      if (!session) return [];
-      const me = camera.getWorldPosition(new THREE.Vector3());
-      const look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
-      const myYaw = Math.atan2(-look.x, -look.z);
-      return session.friendList().flatMap((f, i) => {
-        const p = f.person?.pos;
-        if (!p) return [];
-        const dx = p.x - me.x,
-          dz = p.z - me.z;
-        const yaw = Math.atan2(-dx, -dz);
-        return [{ name: f.name, color: FRIEND_COLORS[i % FRIEND_COLORS.length], bearing: Math.atan2(Math.sin(yaw - myYaw), Math.cos(yaw - myYaw)), distance: Math.hypot(dx, dz), talking: (Number(f.state.mo) || 0) > 2 }];
-      });
-    },
+    // Bearings from the session: 0 ahead, positive to your right (clockwise, like a watch hand).
+    friends: () => (session ? session.friendDirections().map((f) => ({ name: f.name, color: typeof f.color === 'number' ? '#' + f.color.toString(16).padStart(6, '0') : String(f.color), bearing: -f.bearing, distance: f.distance, area: f.area, talking: f.talking })) : []),
     onTap: () => hud.toggleWrist(),
   });
   // Touch to press (VR): a pointing index finger presses buttons and menu panels it pushes into.
