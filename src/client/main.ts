@@ -46,6 +46,7 @@ import { mouthOf, voices } from './voices';
 import { Throwables } from './throwables';
 import { DrinkSync } from './net/drinksync';
 import { Boxing } from './net/boxing';
+import { BUMP_LINES, Bodies, friendShove } from './bodies';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
@@ -291,6 +292,27 @@ async function main() {
   }
   // Your crew for the night, and the shape of the night.
   const crew = new Crew(crowd, world, player, hud, sound, randomLook);
+  // People are solid: you squeeze past them, and push them if you keep going.
+  let pushFriend: ((dx: number, dz: number) => void) | null = null;
+  const bodies = new Bodies({
+    crowd,
+    world,
+    player,
+    hands,
+    onBump: (p, k) => {
+      // One of the boys says something (recorded lines only); anyone else just catches their breath.
+      const b = crew.buddies.find((x) => x.person === p);
+      if (b && k > 0.5 && !voiceArbiter.busy() && !voices.priorityBusy) {
+        const lines = BUMP_LINES.filter((l) => voices.has(b.voiceId, l));
+        if (lines.length) {
+          crew.say(b, lines[Math.floor(Math.random() * lines.length)]);
+          return;
+        }
+      }
+      if (k > 0.3) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * k, rate: 1.2 + Math.random() * 0.25 });
+    },
+    onPushFriend: (_p, dx, dz) => pushFriend?.(dx, dz),
+  });
   const night = new Night(scene, hud, sound, crew, crowd, bankroll);
   // Guests talk among themselves, and to you when you stop and look at them.
   const startChips = bankroll.balance;
@@ -573,6 +595,13 @@ async function main() {
   });
   let drinkSync: DrinkSync | null = null;
   let boxing: Boxing | null = null;
+  const buzz = (side: 'left' | 'right', strength: number, ms: number) => {
+    for (const { handedness, gamepad } of interaction.gamepads()) {
+      if (handedness !== side) continue;
+      const g = gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[]; vibrationActuator?: { playEffect(t: string, o: object): void } };
+      g.hapticActuators?.[0]?.pulse(strength, ms);
+    }
+  };
   const startSession = (net: { transport: Transport; host: boolean }, name: string, avatar: number) => {
     mirror?.dispose();
     mirror = null;
@@ -599,13 +628,7 @@ async function main() {
         sound.play('ballDrop', at, { volume: 0.9, rate: 0.35 });
       },
       pat: (at) => sound.play('chip', at, { volume: 0.6, rate: 0.45 }),
-      haptic: (side, strength, ms) => {
-        for (const { handedness, gamepad } of interaction.gamepads()) {
-          if (handedness !== side) continue;
-          const g = gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[]; vibrationActuator?: { playEffect(t: string, o: object): void } };
-          g.hapticActuators?.[0]?.pulse(strength, ms);
-        }
-      },
+      haptic: buzz,
       slap: (at) => {
         sound.play('ballDrop', at, { volume: 1, rate: 0.45 });
         sound.play('chip', at, { volume: 0.8, rate: 0.6 });
@@ -635,6 +658,7 @@ async function main() {
       },
     });
     (window as unknown as { casino: Record<string, unknown> }).casino.boxing = boxing;
+    pushFriend = friendShove(session, player, buzz);
     session.onCheers = (at, name) => {
       lounge.cheers(at, undefined, true);
       hud.toast(`Cheers with ${name}!`, 'win');
@@ -1042,6 +1066,7 @@ async function main() {
     slotRows.update(t, feet);
     lounge.update(dt);
     throwables.update(dt);
+    bodies.update(dt);
     crowd.update(dt, t, feet, head);
     casino.update(t, feet);
     areas.update(dt, t, feet);
@@ -1149,7 +1174,7 @@ async function main() {
     }
   });
 
-  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen };
+  (window as unknown as { casino: unknown }).casino = { scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies };
 }
 
 main().catch((e) => {
