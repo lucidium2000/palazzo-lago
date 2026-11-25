@@ -220,6 +220,7 @@ export class Session {
       chips: Math.round(this.d.bankroll.balance),
       v: this.voice?.enabled ?? false,
       hh: Math.round((p.camera.getWorldPosition(new THREE.Vector3()).y - p.rig.position.y) * 100) / 100,
+      sw: p.swimming ? 1 : 0,
       mo: this.voice?.enabled ? Math.round(this.voice.level() * 9) : 0,
       ...this.handState(),
       ...(this.extraState?.() ?? {}),
@@ -620,6 +621,8 @@ export class Session {
       p.moving += (speed - p.moving) * Math.min(1, dt * 6);
       p.walkPhase += p.moving * dt * 5.2;
       p.seated = seated;
+      // Swimming: their body lies along the surface, head where theirs is.
+      p.swimHead = s.sw ? p.pos.y + (Number(s.hh) || 1.6) : null;
       p.seatY = s.seat === 'roulette' ? 0.66 : 0.62;
       // The body follows where they look only when they turn far or walk; the head does the rest.
       const headYaw = Number(s.yaw) || 0;

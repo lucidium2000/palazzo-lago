@@ -37,6 +37,8 @@ export interface PlayerState {
   /** Real hand positions in VR (world, metres), when tracked. */
   lh?: number[] | null;
   rh?: number[] | null;
+  /** Swimming (1) or not. */
+  sw?: number;
   /** Mouth openness 0..9 (from the mic). */
   mo?: number;
   /** Grip squeeze per hand 0..1 (a fist when high). */

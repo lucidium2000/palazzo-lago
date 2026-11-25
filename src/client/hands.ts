@@ -319,11 +319,13 @@ export class Hands {
     const tr = this.trail.get(hand);
     if (!tr || tr.length < 2) return new THREE.Vector3();
     const last = tr[tr.length - 1];
-    let first = tr[0];
-    for (const s of tr) if (last.t - s.t <= 0.07) {
-      first = s;
-      break;
-    }
+    // The oldest sample within ~70 ms (or the previous frame, on a slow frame rate).
+    let first = tr[tr.length - 2];
+    for (const s of tr)
+      if (last.t - s.t <= 0.07 && s !== last) {
+        first = s;
+        break;
+      }
     const dt = last.t - first.t;
     return dt > 0.008 ? last.p.clone().sub(first.p).divideScalar(dt) : new THREE.Vector3();
   }

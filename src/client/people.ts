@@ -59,6 +59,9 @@ export class Person {
   seated = false;
   /** Hip height when seated (bar stools are taller than slot stools). */
   seatY = 0.62;
+  /** Swimming: the height of their head (the body lies flat behind it); null when not swimming. */
+  swimHead: number | null = null;
+  swimBlend = 0;
   /** Per-person randomness for idle motion. */
   seed = Math.random() * 100;
   /** Invisible proxy used for clicks (waiters). */
@@ -792,7 +795,22 @@ export class Crowd {
     const female = (p.look.kind ?? '').startsWith('female');
     const sc = p.look.height / (female ? 1.72 : 1.82);
     rig.root.position.set(p.pos.x, p.pos.y, p.pos.z);
+    rig.root.rotation.order = 'YXZ';
     rig.root.rotation.y = p.yaw;
+    // Swimmers lie along the water, head up, legs kicking behind.
+    const sb = p;
+    sb.swimBlend += ((p.swimHead !== null ? 1 : 0) - sb.swimBlend) * Math.min(1, dt * 3);
+    rig.root.rotation.x = 1.32 * sb.swimBlend;
+    if (sb.swimBlend > 0.01 && p.swimHead !== null) {
+      const female = (p.look.kind ?? '').startsWith('female');
+      const neck = 1.48 * (p.look.height / (female ? 1.72 : 1.82));
+      const fx = Math.sin(p.yaw),
+        fz = Math.cos(p.yaw);
+      const k = sb.swimBlend;
+      rig.root.position.x += (-fx * Math.sin(1.32) * neck) * k;
+      rig.root.position.z += (-fz * Math.sin(1.32) * neck) * k;
+      rig.root.position.y += (p.swimHead - 0.16 - Math.cos(1.32) * neck - rig.root.position.y) * k;
+    }
     rig.root.scale.setScalar(sc);
     // Far away people animate at a third of the rate (saves CPU on Quest and phones).
     p.animDt += dt;
@@ -804,7 +822,7 @@ export class Crowd {
     const step = p.animDt;
     p.animDt = 0;
     const a = rig.actions;
-    const mv = p.seated ? 0 : p.moving;
+    const mv = p.seated ? 0 : p.swimHead !== null ? Math.max(p.moving, 0.9) : p.moving;
     const run = THREE.MathUtils.clamp((mv - 1.9) / 0.6, 0, 1);
     const walk = THREE.MathUtils.clamp(mv / 0.6, 0, 1) * (1 - run);
     const cheer = p.cheer > 0 ? Math.min(1, p.cheer * 3) : 0;

@@ -44,6 +44,7 @@ const EYE = 1.65;
 const WALK = 1.45;
 const RUN = 3.0;
 const RADIUS = 0.25;
+const SWIM_DEPTH = 1.0;
 const GRAVITY = 9.81;
 /** Take-off speed for a ~0.45 m jump. */
 const JUMP_V = Math.sqrt(2 * GRAVITY * 0.45);
@@ -80,6 +81,13 @@ export class Player {
   /** Water surface over you (null when dry), whether you're floating, and whether your head is under. */
   water: number | null = null;
   swimming = false;
+  /**
+   * VR arm strokes: each hand's world velocity and height (set by the game).
+   * Pull your hands back through the water to swim forward; push them up to dive.
+   */
+  strokes: (() => { v: THREE.Vector3; y: number }[]) | null = null;
+  /** Momentum from your strokes (horizontal, m/s). */
+  private swimVel = new THREE.Vector2();
   underwater = false;
   /** May Space jump right now? (Not at a table, where Space spins.) */
   jumpAllowed: () => boolean = () => true;
@@ -202,7 +210,13 @@ export class Player {
    * you (the pool wall from inside), unless you're in the air above them.
    */
   private walkMove(x: number, z: number, dx: number, dz: number): [number, number] {
-    const ok = (nx: number, nz: number) => this.world.groundAt(nx, nz) <= this.feetY + STEP_UP;
+    const ok = (nx: number, nz: number) => {
+      const g = this.world.groundAt(nx, nz);
+      if (g <= this.feetY + STEP_UP) return true;
+      // Swimming: anywhere the water is still over the floor (the steps, the shallows).
+      const w = this.swimming ? this.world.waterAt(nx, nz) : null;
+      return w !== null && g <= w - 0.15;
+    };
     const tries: [number, number][] = [
       [dx, dz],
       [dx, 0],
@@ -229,9 +243,10 @@ export class Player {
     const water = this.world.waterAt(at.x, at.z);
     this.water = water;
     const eyeH = this.eyeHeight();
-    // Floating: feet hang so your eyes ride just above the surface.
-    const float = water !== null ? water + 0.16 - eyeH : -Infinity;
-    const deep = water !== null && ground < float - 0.05;
+    // Chest-deep water or more: you swim (your body lies along the surface, so
+    // your real height doesn't matter) with your eyes just above the water.
+    const float = water !== null ? water + 0.12 - eyeH : -Infinity;
+    const deep = water !== null && water - ground > SWIM_DEPTH;
     const crouchDive = this.keys.has('KeyC') && !this.inXR;
     this.diving = deep && crouchDive;
     const prevFeet = this.feetY;
@@ -262,7 +277,9 @@ export class Player {
       }
     }
 
-    const rest = deep && !this.diving ? Math.max(ground, float) : ground;
+    const rest = deep && !this.diving ? float : ground;
+    if (deep && this.inXR) this.armStrokes(dt, water!, at);
+    else this.swimVel.multiplyScalar(Math.exp(-4 * dt));
     if (this.airborne || this.feetY > rest + 0.01) {
       this.airborne = true;
       this.velY -= GRAVITY * dt;
@@ -304,6 +321,46 @@ export class Player {
     this.applyY(bob);
     const head = (this.inXR ? this.camera.getWorldPosition(new THREE.Vector3()).y : this.feetY + this.eye + bob);
     this.underwater = water !== null && head < water - 0.03;
+  }
+
+  /** VR swimming: your hands push the water, the water pushes you. */
+  private armStrokes(dt: number, water: number, at: THREE.Vector3) {
+    for (const h of this.strokes?.() ?? []) {
+      if (h.y > water - 0.03) continue;
+      // How the hand moves through the water (not with you).
+      const rx = h.v.x - this.swimVel.x,
+        rz = h.v.z - this.swimVel.y,
+        ry = h.v.y - this.velY;
+      const sp = Math.hypot(rx, ry, rz);
+      if (sp < 0.35) continue;
+      // Water pushes back harder the faster you pull (roughly with speed squared),
+      // so a strong stroke beats a slow recovery.
+      const k = Math.min(1.6, (sp - 0.35) * 0.9);
+      this.swimVel.x -= rx * 2.4 * k * dt;
+      this.swimVel.y -= rz * 2.4 * k * dt;
+      this.velY -= ry * 1.6 * k * dt;
+      if (ry > 0.6) this.airborne = true;
+    }
+    this.swimVel.multiplyScalar(Math.exp(-1.2 * dt));
+    if (this.swimVel.length() > 2.4) this.swimVel.setLength(2.4);
+    if (this.swimVel.lengthSq() > 1e-4) {
+      const p = this.rig.position;
+      const [nx, nz] = this.walkMove(p.x, p.z, this.swimVel.x * dt, this.swimVel.y * dt);
+      if (Math.abs(nx - p.x - this.swimVel.x * dt) > 1e-4) this.swimVel.x *= -0.2;
+      if (Math.abs(nz - p.z - this.swimVel.y * dt) > 1e-4) this.swimVel.y *= -0.2;
+      p.x = nx;
+      p.z = nz;
+      this.strokeT -= dt * this.swimVel.length();
+      if (this.strokeT <= 0) {
+        this.strokeT = 0.8;
+        this.onStroke?.(at.clone().setY(water));
+      }
+    }
+  }
+
+  /** Swim speed right now (for the body's kick). */
+  get swimSpeed() {
+    return this.swimVel.length();
   }
 
   private applyY(bob = 0) {

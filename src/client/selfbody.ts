@@ -25,6 +25,7 @@ export class SelfBody {
   private rig: ReturnType<typeof spawnCharacter> | null = null;
   private kind = '';
   private bodyYaw = 0;
+  private swimBlend = 0;
   /** Skin tone of the character you wear (your hands are tinted to match). */
   skin: THREE.Color | null = null;
   /** Called when you change character (to re-tint your hands). */
@@ -64,7 +65,7 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number }) {
     this.root.visible = o.on && !!this.rig;
     const rig = this.rig;
     if (!o.on || !rig) return;
@@ -81,11 +82,25 @@ export class SelfBody {
     // Neck under the eyes, set back so the body sits a little behind your
     // point of view (as your real one does) and the chest doesn't fill your view.
     rig.root.position.set(o.head.x, o.floorY, o.head.z).addScaledVector(fwd, -BODY_BACK * sc);
+    rig.root.rotation.order = 'YXZ';
     rig.root.rotation.y = this.bodyYaw;
+    // Swimming: the body lies along the surface behind your head, legs kicking.
+    this.swimBlend += ((o.swim ?? 0) - this.swimBlend) * Math.min(1, dt * 3);
+    const sw = this.swimBlend;
+    rig.root.rotation.x = 1.32 * sw;
+    if (sw > 0.01) {
+      const neck = 1.48 * sc;
+      const flat = new THREE.Vector3(o.head.x, o.head.y - 0.16, o.head.z)
+        .addScaledVector(fwd, -Math.sin(1.32) * neck - 0.1 * sc)
+        .add(new THREE.Vector3(0, -Math.cos(1.32) * neck, 0));
+      rig.root.position.lerp(flat, sw);
+    }
     const a = rig.actions;
     // Walk and run blend with your real speed (strides match the ground you cover).
     const run = THREE.MathUtils.clamp((o.speed - 1.8) / 0.8, 0, 1);
-    const walk = THREE.MathUtils.clamp(o.speed / 0.9, 0, 1) * (1 - run);
+    let walk = THREE.MathUtils.clamp(o.speed / 0.9, 0, 1) * (1 - run);
+    // A steady flutter kick while swimming (the walk cycle, quick and small).
+    if (this.swimBlend > 0.3) walk = Math.max(walk, 0.7);
     a.Idle_Neutral?.setEffectiveWeight(1 - walk - run);
     a.Walk?.setEffectiveWeight(walk);
     a.Run?.setEffectiveWeight(run);
