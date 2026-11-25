@@ -43,7 +43,8 @@ const desktopSpot = (v: Viewpoint) =>
 const EYE = 1.65;
 const WALK = 1.45;
 const RUN = 3.0;
-const RADIUS = 0.25;
+/** Your body's radius on the floor (walls, furniture, people). */
+export const RADIUS = 0.25;
 const GRAVITY = 9.81;
 /** Take-off speed for a ~0.45 m jump. */
 const JUMP_V = Math.sqrt(2 * GRAVITY * 0.45);
@@ -88,6 +89,15 @@ export class Player {
   onStroke: ((at: THREE.Vector3) => void) | null = null;
   /** Analog walk input from a touch joystick: x right, y forward, each -1..1. */
   readonly stick = new THREE.Vector2();
+  /**
+   * People in the way: adjusts a walking step from (x, z) by (dx, dz) before
+   * walls are checked, writing the step to take into `out` (see bodies.ts).
+   */
+  bodies: ((x: number, z: number, dx: number, dz: number, out: { dx: number; dz: number }) => void) | null = null;
+  private bodyStep = { dx: 0, dz: 0 };
+  /** A push from outside (a friend shoving you), still to be applied. */
+  private nudgeLeft = new THREE.Vector2();
+  private nudgeT = 0;
 
   constructor(
     readonly camera: THREE.PerspectiveCamera,
@@ -455,6 +465,7 @@ export class Player {
     }
     if (!this.inXR) this.updateDesktop(dt);
     else this.updateXR(dt, interaction);
+    if (this.nudgeT > 0) this.updateNudge(dt);
     if (!this.tween && !this.seated) this.updateVertical(dt, this.feet(), this.speedNow > 0.2);
   }
 
@@ -487,9 +498,14 @@ export class Player {
         sx = s / len;
       // Keep moving in the last direction while easing out.
       if (push > 0.05) this.lastDir.set(-Math.sin(yaw) * fx + Math.cos(yaw) * sx, -Math.cos(yaw) * fx - Math.sin(yaw) * sx);
-      const dx = this.lastDir.x * this.speedNow * dt,
+      let dx = this.lastDir.x * this.speedNow * dt,
         dz = this.lastDir.y * this.speedNow * dt;
       const p = this.rig.position;
+      if (this.bodies) {
+        this.bodies(p.x, p.z, dx, dz, this.bodyStep);
+        dx = this.bodyStep.dx;
+        dz = this.bodyStep.dz;
+      }
       const [nx, nz] = this.walkMove(p.x, p.z, dx, dz);
       const moved = Math.hypot(nx - p.x, nz - p.z);
       p.x = nx;
@@ -499,6 +515,35 @@ export class Player {
       if (this.eye !== EYE) this.eye += (EYE - this.eye) * Math.min(1, dt * 4);
     }
     if (!this.tween) this.applyDesktopCamera();
+  }
+
+  /**
+   * Somebody pushed you: slide (dx, dz) metres over `seconds`, easing out,
+   * stopped by walls like walking is. Stands you up if you were sitting.
+   */
+  nudge(dx: number, dz: number, seconds = 0.25) {
+    if (this.seated) this.stand();
+    this.tween = null;
+    this.nudgeLeft.set(this.nudgeLeft.x + dx, this.nudgeLeft.y + dz);
+    this.nudgeT = Math.max(seconds, 0.05);
+  }
+
+  private updateNudge(dt: number) {
+    // Ease out: cover the rest in proportion to the time left.
+    const k = Math.min(1, (dt / this.nudgeT) * 1.6);
+    const sx = this.nudgeLeft.x * k,
+      sz = this.nudgeLeft.y * k;
+    this.nudgeLeft.multiplyScalar(1 - k);
+    this.nudgeT -= dt;
+    if (this.nudgeT <= 0 || this.nudgeLeft.lengthSq() < 1e-6) {
+      this.nudgeT = 0;
+      this.nudgeLeft.set(0, 0);
+    }
+    const at = this.inXR ? this.headWorld() : this.rig.position;
+    const [nx, nz] = this.walkMove(at.x, at.z, sx, sz);
+    this.rig.position.x += nx - at.x;
+    this.rig.position.z += nz - at.z;
+    this.current = null;
   }
 
   private lastDir = new THREE.Vector2();
@@ -559,7 +604,14 @@ export class Player {
     let speed = 0;
     if (this.speedNow > 0.03) {
       const head = this.headWorld();
-      const [hx, hz] = this.walkMove(head.x, head.z, this.xrDir.x * this.speedNow * dt, this.xrDir.y * this.speedNow * dt);
+      let dx = this.xrDir.x * this.speedNow * dt,
+        dz = this.xrDir.y * this.speedNow * dt;
+      if (this.bodies) {
+        this.bodies(head.x, head.z, dx, dz, this.bodyStep);
+        dx = this.bodyStep.dx;
+        dz = this.bodyStep.dz;
+      }
+      const [hx, hz] = this.walkMove(head.x, head.z, dx, dz);
       this.rig.position.x += hx - head.x;
       this.rig.position.z += hz - head.z;
       speed = Math.hypot(hx - head.x, hz - head.z) / Math.max(dt, 1e-4);

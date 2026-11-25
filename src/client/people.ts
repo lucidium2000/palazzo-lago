@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Quality } from './quality';
 import type { World } from './world';
 import { spawnCharacter, type PeopleLib } from './assets';
-import { reach } from './net/embody';
+import { FINGER, orientHand, reach, setFingers } from './net/embody';
 
 // Bone offsets for poses the clips don't have (tuned against the Quaternius rig).
 export const POSE = { sitThigh: 1.5, sitShin: -1.6, sitHips: 0.95, trayUpper: 0.9, trayLower: 1.2, trayAxis: 'x' as 'x' | 'z' };
@@ -425,8 +425,8 @@ export class Crowd {
         const tray = new THREE.Mesh(this.trays.geometry, this.trays.material);
         tray.raycast = () => {};
         p.tray = tray;
-        rig.bones['WristR']?.add(tray);
-        tray.position.set(0, 0.08, 0.05);
+        // Rides on the body (level, turning with them); placed on the palm each frame.
+        rig.root.add(tray);
       }
       for (const part of Object.values(this.parts)) part.mesh.visible = false;
     }
@@ -444,6 +444,7 @@ export class Crowd {
     }
     p.rig = rig;
     (p as { look: Look }).look = look;
+    if (p.tray) rig.root.add(p.tray);
     this.group.add(rig.root);
   }
 
@@ -570,7 +571,7 @@ export class Crowd {
       p.headPitch += (wantPitch - p.headPitch) * Math.min(1, dt * 3);
       if (p.rig) this.poseRig(p, i, dt, dist);
       else this.pose(p, i, time);
-      if (p.role === 'waiter' && trayN < this.trays.instanceMatrix.count) {
+      if (p.role === 'waiter' && !p.rig && trayN < this.trays.instanceMatrix.count) {
         this.trays.setMatrixAt(trayN++, this.trayMatrix);
       }
       if (p.prop !== 'none' && p.rig) {
@@ -871,10 +872,6 @@ export class Crowd {
         if (f && r && !f.position.equals(r)) f.position.copy(r);
       }
     }
-    if (p.role === 'waiter' && b['UpperArmR']) {
-      b['UpperArmR'].rotateX(POSE.trayUpper);
-      b['LowerArmR']?.rotateX(POSE.trayLower);
-    }
     // Social overlays: talking hands, a drink or phone in hand, laughing.
     if (!p.seated && walk + run < 0.5 && cheer < 0.3) {
       const t = this.time + p.seed;
@@ -909,6 +906,7 @@ export class Crowd {
         b['Spine']?.rotateX(-0.06 * l);
       }
     }
+    if (p.tray) this.carryTray(p, sc);
     // Look at the player / glance around.
     b.Head?.rotateY(p.headYaw * 0.8);
     b.Head?.rotateX(-p.headPitch);
@@ -918,6 +916,154 @@ export class Crowd {
     }
     this.shadowAt(p, i, sc);
     if (p.proxy) p.proxy.position.set(p.pos.x, 1.0, p.pos.z);
+  }
+
+  private tv = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  private static UP = new THREE.Vector3(0, 1, 0);
+  private static FLAT = [0.05, 0, 0, 0, 0];
+  private static FINGERS = ['Index', 'Middle', 'Ring', 'Pinky'];
+  private static STRAIGHT = [0, 0, 0.12, 0.14, 0.1];
+
+  /**
+   * A server's carry: elbow by the side, forearm forward and about level, the
+   * hand open and palm up, and the tray resting level on the palm (centred
+   * between the wrist and the knuckles, just clear of the highest point of the
+   * hand). Measured from the character's own skinned hand, so it fits every model.
+   */
+  private carryTray(p: Person, sc: number) {
+    const rig = p.rig!,
+      b = rig.bones,
+      tray = p.tray!;
+    const up = b['UpperArmR'],
+      lo = b['LowerArmR'],
+      wr = b['WristR'],
+      // Middle1 is the metacarpal (it starts at the wrist); Middle2 starts at the knuckle.
+      mid = b['Middle2R'] ?? b['Middle1R'];
+    if (!up || !lo || !wr || !mid) return;
+    rig.root.updateMatrixWorld(true);
+    const [S, E, W, T, F, R] = this.tv;
+    up.getWorldPosition(S);
+    lo.getWorldPosition(E);
+    wr.getWorldPosition(W);
+    const a = S.distanceTo(E),
+      fl = E.distanceTo(W);
+    const fwd = F.set(Math.sin(p.yaw), 0, Math.cos(p.yaw));
+    const right = R.set(-Math.cos(p.yaw), 0, Math.sin(p.yaw));
+    // Elbow under the shoulder (a touch forward and out); the forearm reaches
+    // forward and a little in, rising slightly to the wrist.
+    T.copy(S).addScaledVector(fwd, a * 0.22).addScaledVector(right, 0.02);
+    T.y -= a * 0.96;
+    T.addScaledVector(fwd, fl * 0.96).addScaledVector(right, -fl * 0.12);
+    T.y += fl * 0.16;
+    const pole = E.copy(S).addScaledVector(right, 0.35).addScaledVector(fwd, -0.35);
+    pole.y -= 0.6;
+    reach(up, lo, wr, T, pole, 1);
+    // Fingers flat, palm up, pointing ahead (turned in a little, as hands go).
+    setFingers(b, 'R', Crowd.FLAT);
+    // The rest pose curls the fingers a little: straighten them out flat under the tray.
+    for (const f of Crowd.FINGERS) for (let seg = 2; seg <= 4; seg++) b[f + seg + 'R']?.rotateX(-FINGER.sign.R * Crowd.STRAIGHT[seg]);
+    const point = T.copy(fwd).addScaledVector(right, -0.25).normalize();
+    orientHand(b, 'R', point, Crowd.UP);
+    this.levelHand(b, point, right);
+    // The palm's middle, and the top of the hand under the tray.
+    wr.getWorldPosition(W);
+    mid.getWorldPosition(S);
+    const cx = (W.x + S.x) / 2,
+      cz = (W.z + S.z) / 2;
+    const top = this.handTop(p, cx, cz, Math.max(W.y, S.y));
+    const c = T.set(cx, top + 0.012 + 0.006, cz);
+    rig.root.worldToLocal(c);
+    tray.position.copy(c);
+    tray.quaternion.identity();
+    tray.scale.setScalar(1 / sc);
+  }
+
+  private lq = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()];
+  private lm = [new THREE.Matrix4(), new THREE.Matrix4()];
+  /**
+   * Turns the right hand so it lies level, palm up: the knuckles (index to
+   * pinky) horizontal and the hand pointing along `point`. Measured from the
+   * knuckles rather than the metacarpals, which start right at the wrist and
+   * give a poor frame on some models.
+   */
+  private levelHand(b: Record<string, THREE.Object3D>, point: THREE.Vector3, right: THREE.Vector3) {
+    const wr = b['WristR'],
+      m = b['Middle2R'],
+      ix = b['Index2R'],
+      pk = b['Pinky2R'];
+    if (!wr || !m || !ix || !pk) return;
+    const [W, M, I, P] = [this.tv[0], this.tv[1], this.tv[2], this.tv[3]];
+    wr.getWorldPosition(W);
+    m.getWorldPosition(M);
+    ix.getWorldPosition(I);
+    pk.getWorldPosition(P);
+    const basis = (f: THREE.Vector3, across: THREE.Vector3, out: THREE.Matrix4) => {
+      const z = f.normalize();
+      const x = across.addScaledVector(z, -across.dot(z)).normalize();
+      const y = P.crossVectors(z, x);
+      return out.makeBasis(x, y, z);
+    };
+    // Current frame (fingers' direction, knuckles' line) ...
+    const cur = basis(M.sub(W), I.sub(P), this.lm[0]);
+    const qc = this.lq[0].setFromRotationMatrix(cur);
+    // ... and the wanted one: pointing ahead, knuckles level with the index toward the
+    // outside (a right hand turned palm up has its thumb on the outside).
+    W.copy(point);
+    W.y = 0;
+    I.copy(right);
+    const want = basis(W, I, this.lm[1]);
+    const delta = this.lq[1].setFromRotationMatrix(want).multiply(qc.invert());
+    const qw = wr.getWorldQuaternion(this.lq[2]).premultiply(delta);
+    if (wr.parent) qw.premultiply(wr.parent.getWorldQuaternion(this.lq[0]).invert());
+    wr.quaternion.copy(qw).normalize();
+    wr.updateMatrixWorld(true);
+  }
+
+  /**
+   * Highest point of the right hand and wrist (skinned vertices) within the
+   * tray's footprint around (cx, cz). Falls back to the bones' height + a palm.
+   */
+  private handTop(p: Person, cx: number, cz: number, boneY: number): number {
+    const rig = p.rig!;
+    const mesh = rig.mesh;
+    if (!mesh) return boneY + 0.02;
+    let idx = rig.root.userData.handVerts as Uint32Array | undefined;
+    if (!idx) {
+      const bones = mesh.skeleton.bones;
+      const hand = new Set<number>();
+      bones.forEach((bn, k) => {
+        const n = bn.name.replace(/\./g, '');
+        if (/^(Wrist|Thumb\d|Index\d|Middle\d|Ring\d|Pinky\d)R$/.test(n) || n === 'LowerArmR') hand.add(k);
+      });
+      const si = mesh.geometry.attributes.skinIndex,
+        sw = mesh.geometry.attributes.skinWeight;
+      const list: number[] = [];
+      for (let v = 0; v < si.count; v++) {
+        let best = 0,
+          bw = -1;
+        for (let k = 0; k < 4; k++) {
+          const w = sw.getComponent(v, k);
+          if (w > bw) {
+            bw = w;
+            best = si.getComponent(v, k);
+          }
+        }
+        if (hand.has(best)) list.push(v);
+      }
+      // A few dozen points are plenty to find the top of a low-poly hand.
+      const step = Math.max(1, Math.floor(list.length / 90));
+      idx = new Uint32Array(list.filter((_, k) => k % step === 0));
+      rig.root.userData.handVerts = idx;
+    }
+    const v = this.tv[5];
+    let top = -Infinity;
+    for (let k = 0; k < idx.length; k++) {
+      mesh.getVertexPosition(idx[k], v);
+      v.applyMatrix4(mesh.matrixWorld);
+      if ((v.x - cx) ** 2 + (v.z - cz) ** 2 > 0.16 * 0.16) continue;
+      if (v.y > top) top = v.y;
+    }
+    return top > -Infinity ? top : boneY + 0.02;
   }
 
   private shadowAt(p: Person, i: number, sc: number) {
