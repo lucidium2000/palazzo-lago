@@ -6,6 +6,7 @@ import type { World } from './world';
 import type { Session } from './net/session';
 import type { Hand, Hands } from './hands';
 import { BODY_R, BUMP_SPEED, PUSH_HOLD, capsuleDepth, handInto, handShove, separate, shoveDistance, shoveProgress, stepAgainst } from './push';
+import { knocksOffSeat, stepUnseat, unseat, UNSEAT, walking, type Unseat } from './seatshove';
 
 /**
  * People are solid. You meet resistance when you walk into someone (you slow
@@ -18,7 +19,11 @@ import { BODY_R, BUMP_SPEED, PUSH_HOLD, capsuleDepth, handInto, handShove, separ
 
 /** People who stay put however you push: seated, behind a counter or a table, at the piano. */
 const ROOTED = new Set(['croupier', 'bartender', 'pianist', 'slots', 'patron']);
-export const movable = (p: Person) => !p.seated && !p.driven && !ROOTED.has(p.role);
+/** Seated guests a hard enough shove knocks off their seat (staff behind counters aren't seated; the pianist plays on). */
+const UNSEATABLE = new Set(['slots', 'patron']);
+export const movable = (p: Person) => !p.seated && !p.driven && (!ROOTED.has(p.role) || p.offSeat);
+/** Could a hard shove or a punch knock this person off their seat? */
+export const unseatable = (p: Person) => p.seated && !p.driven && !p.keepSeat && !p.offSeat && UNSEATABLE.has(p.role);
 
 interface Shove {
   /** Accumulated pushing (seconds) and cool-down before the next reaction. */
@@ -78,6 +83,15 @@ export class Bodies {
   private cx = new Float32Array(0);
   private cz = new Float32Array(0);
   private state = new Map<Person, Shove>();
+  /** People knocked off their seats, and what they're doing about it. */
+  private unseated = new Map<Person, Unseat & { onPose?: Person['onPose']; onUpdate?: Person['onUpdate']; dx: number; dz: number }>();
+  /** Seeded randomness for who comes straight back and who wanders off. */
+  private rnd = (() => {
+    let s = 9173;
+    return () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  })();
+  /** Counters for tests: knocked off seats, sat back down. */
+  readonly seatStats = { unseated: 0, reseated: 0 };
   private time = 0;
   private friendCool = 0;
   private hp = new THREE.Vector3();
@@ -251,6 +265,9 @@ export class Bodies {
       }
     }
 
+    // 3b. People you knocked off their seats.
+    this.updateUnseated(dt, feet);
+
     // 4. Nobody inside anybody: push overlapping people apart (you and rooted people don't budge).
     const people = crowd.people;
     const n = people.length;
@@ -291,6 +308,122 @@ export class Bodies {
     }
   }
 
+  /**
+   * Knocks a seated guest off their seat, pushed along (ux, uz): they stand up
+   * and stumble off it (the HitRecieve stumble and the shove motion), say so,
+   * look at you, and later come back to sit down or wander off for a while
+   * (see seatshove.ts). `at` is where the hand landed.
+   */
+  knockOffSeat(p: Person, ux: number, uz: number, power: number, punch: boolean, at: THREE.Vector3) {
+    if (!unseatable(p)) return false;
+    const u = unseat(p.pos.x, p.pos.z, p.homeYaw, p.seatY, p.lie);
+    this.unseated.set(p, { ...u, onPose: p.onPose, onUpdate: p.onUpdate, dx: ux, dz: uz });
+    // Off the stool: no more reaching for the spin button or the cards.
+    p.onPose = undefined;
+    p.onUpdate = undefined;
+    p.seated = false;
+    p.offSeat = true;
+    p.lie = 0;
+    p.action = 0;
+    this.seatStats.unseated++;
+    // Clear of the stool, then the shove carries them on.
+    this.shove(p, ux, uz, 0.45 + power * 0.35, punch ? 0.7 : 0.8, this.d.player.feet(), punch);
+    const s = this.st(p);
+    s.cool = Math.max(s.cool, 1);
+    p.gaspT = Math.max(p.gaspT, 0.9);
+    if (punch) this.d.onPunch?.(p, power, at.clone());
+    return true;
+  }
+
+  /** People who were knocked off their seats: glare, then walk back and sit, or wander off and come back later. */
+  private updateUnseated(dt: number, feet: THREE.Vector3) {
+    for (const [p, u] of this.unseated) {
+      // Something else sat them down (or took them over): forget it.
+      if (p.seated || p.driven) {
+        this.unseated.delete(p);
+        p.offSeat = false;
+        continue;
+      }
+      const seatFree =
+        Math.hypot(feet.x - u.homeX, feet.z - u.homeZ) > 0.55 &&
+        !this.d.crowd.people.some((o) => o !== p && Math.hypot(o.pos.x - u.homeX, o.pos.z - u.homeZ) < 0.3);
+      const toGoal = Math.hypot(u.goalX - p.pos.x, u.goalZ - p.pos.z);
+      const phase = stepUnseat(u, dt, {
+        toGoal,
+        seatFree,
+        rnd: this.rnd,
+        wanderGoal: (dist) => this.wanderGoal(u.homeX, u.homeZ, u.dx, u.dz, dist),
+      });
+      if (phase === 'glare' || phase === 'stumble') {
+        // Glaring at you (head and body).
+        p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + 0.5);
+        if (phase === 'glare') turn(p, Math.atan2(feet.x - p.pos.x, feet.z - p.pos.z), dt * 3);
+        p.moving = Math.max(0, p.moving - dt * 3);
+      } else if (walking(u)) {
+        const waiting = phase === 'return' && !seatFree && toGoal < UNSEAT.near + 0.35;
+        const d = Math.hypot(u.goalX - p.pos.x, u.goalZ - p.pos.z);
+        if (waiting || d < 1e-3) {
+          p.moving = Math.max(0, p.moving - dt * 3);
+          if (waiting) turn(p, Math.atan2(feet.x - p.pos.x, feet.z - p.pos.z), dt * 3);
+          continue;
+        }
+        const step = Math.min(d, UNSEAT.walk * dt);
+        const sx = ((u.goalX - p.pos.x) / d) * step,
+          sz = ((u.goalZ - p.pos.z) / d) * step;
+        // Round furniture; the last stretch onto their own stool goes straight there.
+        const [nx, nz] = d < 0.6 || u.stuck > 2.5 ? [p.pos.x + sx, p.pos.z + sz] : this.d.world.move(p.pos.x, p.pos.z, sx, sz, 0.22, false);
+        const moved = Math.hypot(nx - p.pos.x, nz - p.pos.z);
+        u.stuck = moved < step * 0.3 ? u.stuck + dt : Math.max(0, u.stuck - dt);
+        p.pos.x = nx;
+        p.pos.z = nz;
+        p.moving = UNSEAT.walk;
+        p.walkPhase += UNSEAT.walk * dt * 5;
+        turn(p, Math.atan2(sx, sz), dt * 6);
+      } else if (phase === 'loiter') {
+        p.moving = Math.max(0, p.moving - dt * 3);
+      } else if (phase === 'sit') {
+        // Back on their seat.
+        p.pos.x = u.homeX;
+        p.pos.z = u.homeZ;
+        p.yaw = p.homeYaw = u.homeYaw;
+        p.seatY = u.seatY;
+        p.lie = u.lie;
+        p.moving = 0;
+        p.seated = true;
+        p.offSeat = false;
+        p.onPose = u.onPose;
+        p.onUpdate = u.onUpdate;
+        this.unseated.delete(p);
+        this.state.delete(p);
+        this.seatStats.reseated++;
+      }
+    }
+  }
+
+  /** Who's off their seat, and what they're up to (for tests and debugging). */
+  offSeat(): { p: Person; phase: string; home: [number, number] }[] {
+    return [...this.unseated].map(([p, u]) => ({ p, phase: u.phase, home: [u.homeX, u.homeZ] }));
+  }
+
+  /** Somewhere free a few metres from the seat, roughly the way they were pushed (out into the open). */
+  private wanderGoal(hx: number, hz: number, dx: number, dz: number, dist: number): [number, number] {
+    const w = this.d.world;
+    const base = Math.atan2(dx, dz);
+    for (const da of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, Math.PI]) {
+      for (const k of [1, 0.7, 0.45]) {
+        const a = base + da;
+        const x = hx + Math.sin(a) * dist * k,
+          z = hz + Math.cos(a) * dist * k;
+        if (!w.isFree(x, z, 0.3, true)) continue;
+        // A clear walk there (a few samples along the way).
+        let clear = true;
+        for (let t = 0.25; t < 1; t += 0.25) if (!w.isFree(hx + (x - hx) * t, hz + (z - hz) * t, 0.18, false)) clear = false;
+        if (clear) return [x, z];
+      }
+    }
+    return [hx + dx * 1.2, hz + dz * 1.2];
+  }
+
   /** A VR hand moving into someone's body pushes them (gently) that way. */
   private handPush(h: Hand) {
     if (h.ctrl.userData.connected === false) return;
@@ -315,7 +448,15 @@ export class Bodies {
       const vl = Math.hypot(v.x, v.z) || 1;
       // A punch: a fist moving fast, or any hand moving very fast (hand tracking has no grip button).
       const speed = v.length();
-      if ((speed > 1.9 && this.d.isFist?.(h)) || speed > 3.2) {
+      const punch = (speed > 1.9 && !!this.d.isFist?.(h)) || speed > 3.2;
+      // Hard enough, and they're sitting: off the seat they go.
+      if (unseatable(p) && knocksOffSeat(into, punch)) {
+        const power = Math.min(1, (speed - 1.2) / 3);
+        this.knockOffSeat(p, v.x / vl, v.z / vl, power, punch, hp);
+        this.d.hands.onHaptic?.(h, 0.6 + power * 0.4, 70);
+        continue;
+      }
+      if (punch) {
         const power = Math.min(1, (speed - 1.6) / 3);
         this.shove(p, v.x / vl, v.z / vl, Math.min(1, handShove(into) + 0.4), Math.min(0.7, 0.3 + power * 0.4), this.d.player.feet(), true);
         s.cool = Math.max(s.cool, 1);

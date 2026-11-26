@@ -281,6 +281,12 @@ export class Hands {
     if (hand.held) return false;
     const g = this.nearest(hand);
     if (!g) return false;
+    return this.grabWith(hand, g);
+  }
+
+  /** Closes a free hand around a particular grabbable (whatever is resting in your palm when you close it). */
+  grabWith(hand: Hand, g: Grabbable): boolean {
+    if (hand.held || (g.enabled && !g.enabled())) return false;
     const r = g.grab(hand);
     if (!r) return false;
     hand.held = g;

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { offPalm, palmHold, platformY, pointVelocity, slideStep, worldToPlatform, type Platform } from './palm';
 
 /**
  * Loose-object physics: small things you can pick up, throw, knock over and
@@ -60,7 +61,10 @@ export type LooseEvent =
   | { type: 'impact'; body: LooseBody; speed: number; other: LooseBody | null; soft: boolean }
   | { type: 'break'; body: LooseBody; at: THREE.Vector3; v: THREE.Vector3 }
   | { type: 'settle'; body: LooseBody }
-  | { type: 'wake'; body: LooseBody; by: LooseBody | null };
+  | { type: 'wake'; body: LooseBody; by: LooseBody | null }
+  /** Came to rest on a moving platform (an open palm), or left it. */
+  | { type: 'ride'; body: LooseBody; on: Platform }
+  | { type: 'unride'; body: LooseBody; on: Platform; how: 'slide' | 'fly' | 'drop' };
 
 export const G = 9.81;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -92,6 +96,13 @@ export class LooseBody {
   castX = 1e9;
   castZ = 1e9;
   castIn = 0;
+  /** Highest point it has been since the last furniture cast (so a cast never misses a top it passed through). */
+  castHi = -Infinity;
+  /** Riding a moving platform (an open palm): its pose there, and how it's sliding along it. */
+  plat: Platform | null = null;
+  readonly platP = new THREE.Vector3();
+  readonly platQ = new THREE.Quaternion();
+  readonly platV = new THREE.Vector2();
   /** Anything the game wants to hang on it. */
   data: Record<string, unknown> = {};
 
@@ -202,6 +213,8 @@ export function lyingOnSide(shape: LooseShape, q: THREE.Quaternion) {
 
 export class LooseSim {
   readonly bodies: LooseBody[] = [];
+  /** Moving surfaces things can rest on and ride (open palms). */
+  platforms: Platform[] = [];
   onEvent: ((e: LooseEvent) => void) | null = null;
   private ex: Extents = { c: new THREE.Vector3(), ey: 0, eh: 0 };
   private ex2: Extents = { c: new THREE.Vector3(), ey: 0, eh: 0 };
@@ -250,6 +263,7 @@ export class LooseSim {
   /** Wakes a body (and whatever sits on it). */
   wake(b: LooseBody, by: LooseBody | null = null, mine = b.mine) {
     if (b.gone || b.held) return;
+    if (b.plat) this.unride(b, 'drop');
     if (!b.awake) {
       b.awake = true;
       b.restT = 0;
@@ -277,6 +291,7 @@ export class LooseSim {
 
   /** Picked up: out of the simulation until it's thrown or dropped. */
   hold(b: LooseBody) {
+    if (b.plat) this.unride(b, 'drop', true);
     for (const o of this.bodies) if (o.restOn === b) this.wake(o, b);
     b.held = true;
     b.awake = false;
@@ -285,6 +300,7 @@ export class LooseSim {
 
   /** Takes a body out for good (it broke). */
   remove(b: LooseBody) {
+    if (b.plat) this.unride(b, 'drop', true);
     for (const o of this.bodies) if (o.restOn === b) this.wake(o, b);
     b.gone = true;
     b.awake = false;
@@ -302,7 +318,8 @@ export class LooseSim {
     if (sp < minSpeed) return [];
     const out: LooseBody[] = [];
     for (const b of this.bodies) {
-      if (b.held || b.gone || b === skip || b.sweepCool > 0) continue;
+      // Riding your palm: it goes where your hand goes, not batted by it.
+      if (b.held || b.gone || b === skip || b.sweepCool > 0 || b.plat) continue;
       const e = extents(b.spec.shape, b.pos, b.q, this.ex);
       const dx = e.c.x - p.x,
         dz = e.c.z - p.z;
@@ -322,20 +339,28 @@ export class LooseSim {
     return out;
   }
 
-  /** Furniture or another body under (x, z), no higher than fromY. */
-  private support(b: LooseBody, x: number, z: number, fromY: number, fresh = false, bodyFromY = fromY): { y: number; soft: boolean; on: LooseBody | null } {
+  /**
+   * Furniture, a palm or another body under (x, z), no higher than fromY.
+   * Furniture tops are cast now and then as the body travels (cached in
+   * between); the cast looks down from the highest the body has been since the
+   * last one, so a fast body can't drop through a table top between casts.
+   */
+  private support(b: LooseBody, x: number, z: number, fromY: number, fresh = false, bodyFromY = fromY): { y: number; soft: boolean; on: LooseBody | null; plat: Platform | null } {
     let y = this.env.ground(x, z);
     let soft = false;
-    // Near what it's about to land on, look often; in flight, now and then.
+    b.castHi = Math.max(b.castHi, fromY);
+    // Near what it's about to land on, look often; in flight, every few centimetres.
     const close = fromY - b.surf.y < 0.15;
-    if (fresh || b.castIn <= 0 || Math.hypot(x - b.castX, z - b.castZ) > (close ? 0.04 : 0.2)) {
-      const t = this.env.top(x, z, fromY);
+    if (fresh || b.castIn <= 0 || Math.hypot(x - b.castX, z - b.castZ) > (close ? 0.04 : 0.08)) {
+      const t = this.env.top(x, z, fresh ? fromY : b.castHi);
       b.surf = t ? { y: t.y, soft: !!t.soft } : { y: -Infinity, soft: false };
       b.castX = x;
       b.castZ = z;
       b.castIn = 0.1;
+      b.castHi = fromY;
     }
-    if (b.surf.y > y && b.surf.y <= fromY + 0.01) {
+    // (A top it passed through since the last cast still counts: it lands on it.)
+    if (b.surf.y > y) {
       y = b.surf.y;
       soft = b.surf.soft;
     }
@@ -345,6 +370,16 @@ export class LooseSim {
       soft = !!fast.soft;
     }
     let on: LooseBody | null = null;
+    let plat: Platform | null = null;
+    // An open palm under it (a little slack above: the hand may be rising to meet it).
+    for (const pl of this.platforms) {
+      if (!pl.active) continue;
+      const py = platformY(pl, x, z);
+      if (py === null || py > fromY + 0.015 + Math.max(0, pl.v.y) * 0.02 || py <= y) continue;
+      y = py;
+      soft = true;
+      plat = pl;
+    }
     for (const o of this.bodies) {
       if (o === b || o.held || o.gone || o.restOn === b) continue;
       if (Math.abs(o.pos.x - x) > 0.45 || Math.abs(o.pos.z - z) > 0.45) continue;
@@ -358,9 +393,109 @@ export class LooseSim {
         y = top;
         soft = false;
         on = o;
+        plat = o.plat;
       }
     }
-    return { y, soft, on };
+    return { y, soft, on, plat };
+  }
+
+  /**
+   * Puts a body at rest on a platform right away if it's just over (or a little
+   * into) it: opening your hand with something in it leaves it in your palm.
+   */
+  restOnPlatform(b: LooseBody): Platform | null {
+    if (b.gone || b.held) return null;
+    const e = extents(b.spec.shape, b.pos, b.q, this.ex);
+    for (const pl of this.platforms) {
+      if (!pl.active) continue;
+      const py = platformY(pl, e.c.x, e.c.z, 0.01);
+      if (py === null) continue;
+      const low = e.c.y - e.ey;
+      if (low < py - 0.07 || low > py + 0.06) continue;
+      b.pos.y += py - low;
+      this.ride(b, pl, null);
+      return pl;
+    }
+    return null;
+  }
+
+  /** Starts riding a platform from where it is now (resting on it, or on `on` riding it). */
+  private ride(b: LooseBody, pl: Platform, on: LooseBody | null) {
+    b.plat = pl;
+    b.awake = true;
+    b.restOn = on && on.plat === pl ? on : null;
+    b.v.set(0, 0, 0);
+    b.w.set(0, 0, 0);
+    b.platV.set(0, 0);
+    b.age = 0;
+    // Its pose in the hand's frame, settled flat onto the palm (or the thing under it).
+    const inv = pl.q.clone().invert();
+    b.platQ.copy(inv).multiply(b.q);
+    b.platQ.copy(restingQuat(b.spec.shape, b.platQ));
+    worldToPlatform(pl, b.pos, b.platP);
+    let base = 0;
+    if (b.restOn) {
+      const o = b.restOn;
+      const e = extents(o.spec.shape, o.platP, o.platQ, this.ex2);
+      const upright = Math.abs(_az.set(0, 1, 0).applyQuaternion(o.platQ).y) > 0.9;
+      base = upright && o.spec.carry !== undefined ? e.c.y - e.ey + o.spec.carry : e.c.y + e.ey;
+    }
+    const e = extents(b.spec.shape, b.platP, b.platQ, this.ex);
+    b.platP.y += base - (e.c.y - e.ey);
+    this.place2(b);
+    this.onEvent?.({ type: 'ride', body: b, on: pl });
+  }
+
+  /** World pose from the pose on the platform. */
+  private place2(b: LooseBody) {
+    const pl = b.plat!;
+    b.pos.copy(b.platP).applyQuaternion(pl.q).add(pl.p);
+    b.q.copy(pl.q).multiply(b.platQ);
+  }
+
+  /** Leaves its platform, moving as the palm was moving there (plus any slide). */
+  private unride(b: LooseBody, how: 'slide' | 'fly' | 'drop', quiet = false) {
+    const pl = b.plat;
+    if (!pl) return;
+    b.plat = null;
+    pointVelocity(pl, b.pos, b.v);
+    if (b.platV.lengthSq() > 0) b.v.add(new THREE.Vector3(b.platV.x, 0, b.platV.y).applyQuaternion(pl.q));
+    b.restOn = null;
+    b.restT = 0;
+    b.age = 0;
+    b.castIn = 0;
+    b.castHi = -Infinity;
+    // Slipping off an edge tips it over the edge.
+    if (how === 'slide' && b.spec.shape.type !== 'sphere') b.w.set(b.v.z, 0, -b.v.x).multiplyScalar(8);
+    if (!quiet) this.onEvent?.({ type: 'unride', body: b, on: pl, how });
+  }
+
+  /** A step riding a platform: carried, sliding when tipped or jolted, off when it can't hold on. */
+  private rideStep(b: LooseBody, dt: number) {
+    const pl = b.plat!;
+    b.age = 0;
+    if (!pl.active) return this.unride(b, 'drop');
+    // What it was sitting on slid off, or was picked up.
+    if (b.restOn && (b.restOn.plat !== pl || b.restOn.held || b.restOn.gone)) return this.unride(b, 'drop');
+    const hold = palmHold(pl);
+    if (hold === 'fly') return this.unride(b, 'fly');
+    if (hold === 'slide' || b.platV.lengthSq() > 0) {
+      // Stacked things slide with what they're on (friction between chips beats skin).
+      if (!b.restOn) {
+        slideStep(pl, b.platV, dt);
+        b.platP.x += b.platV.x * dt;
+        b.platP.z += b.platV.y * dt;
+      } else {
+        b.platV.copy(b.restOn.platV);
+        b.platP.x += b.platV.x * dt;
+        b.platP.z += b.platV.y * dt;
+      }
+    }
+    if (offPalm(pl, b.platP.x, b.platP.z)) {
+      this.place2(b);
+      return this.unride(b, 'slide');
+    }
+    this.place2(b);
   }
 
   update(dt: number) {
@@ -374,6 +509,7 @@ export class LooseSim {
   }
 
   private step(b: LooseBody, dt: number) {
+    if (b.plat) return this.rideStep(b, dt);
     const sp = b.spec;
     b.age += dt;
     const p = b.pos;
@@ -433,6 +569,22 @@ export class LooseSim {
         return;
       }
     }
+    // A raised edge (a craps tub's wall, a table's padded rail, a counter's lip): it can't climb it.
+    if (this.env.topFast) {
+      const tn = this.env.topFast(e.c.x, e.c.z, low + 0.4);
+      if (tn && tn.y > low + 0.025 && tn.y > oldLow + 0.02) {
+        const to = this.env.topFast(oldX, oldZ, oldLow + 0.02);
+        if (!to || to.y < tn.y - 0.02) {
+          const speed = Math.hypot(b.v.x, b.v.z);
+          b.v.x *= -0.35;
+          b.v.z *= -0.35;
+          b.castIn = 0;
+          p.y = ny;
+          if (speed > 0.25) this.impact(b, speed, null, false);
+          return;
+        }
+      }
+    }
     p.set(nx, ny, nz);
     const s = this.support(b, e.c.x, e.c.z, Math.max(low, oldLow) + 0.02, false, Math.max(low, oldLow));
     let contact = false;
@@ -444,6 +596,11 @@ export class LooseSim {
       if (vn > 0.35) {
         this.impact(b, Math.hypot(vn, vh * 0.5), s.on, s.soft);
         if (b.gone) return;
+      }
+      // Landed in an open palm (or on something riding one): it rides along from here, unless it hit too hard to stay.
+      if (s.plat && s.plat.active && vn < 2.5 && Math.hypot(b.v.x - s.plat.v.x, b.v.z - s.plat.v.z) < 1.2) {
+        this.ride(b, s.plat, s.on);
+        return;
       }
       const e = sp.bounce * (s.soft ? 0.25 : 1);
       if (vn > 0) {
@@ -557,6 +714,8 @@ export class LooseSim {
         const b = list[j];
         if (b === a || b.held || b.gone || (b.awake && j < i)) continue;
         if (a.restOn === b || b.restOn === a) continue;
+        // Things in your palm go where your hand goes.
+        if (a.plat || b.plat) continue;
         if (Math.abs(a.pos.x - b.pos.x) > 0.7 || Math.abs(a.pos.z - b.pos.z) > 0.7 || Math.abs(a.pos.y - b.pos.y) > 0.7) continue;
         const eb = extents(b.spec.shape, b.pos, b.q, this.ex2);
         const dx = eb.c.x - ea.c.x,
@@ -608,20 +767,44 @@ export class LooseSim {
  * thrown chip land on the bar instead of falling through to the floor.
  */
 export class Surfaces {
-  private list: { kind: 'box' | 'disc' | 'ring'; x: number; z: number; a: number; b: number; cos: number; sin: number; y: number; soft: boolean }[] = [];
+  private list: { kind: 'box' | 'disc' | 'ring'; x: number; z: number; a: number; b: number; cos: number; sin: number; y: number; soft: boolean; slope: number }[] = [];
 
-  /** A rectangle w × d centred on (x, z), turned by yaw, top at y. */
-  box(x: number, z: number, w: number, d: number, y: number, yaw = 0, soft = false) {
-    this.list.push({ kind: 'box', x, z, a: w / 2, b: d / 2, cos: Math.cos(yaw), sin: Math.sin(yaw), y, soft });
+  /**
+   * A rectangle w × d centred on (x, z), turned by yaw, top at y. `slope`
+   * tilts it: the top rises by `slope` metres per metre along its local +z (a
+   * slot machine's sloping deck).
+   */
+  box(x: number, z: number, w: number, d: number, y: number, yaw = 0, soft = false, slope = 0) {
+    this.list.push({ kind: 'box', x, z, a: w / 2, b: d / 2, cos: Math.cos(yaw), sin: Math.sin(yaw), y, soft, slope });
+  }
+
+  /**
+   * A box given in a frame (an object at (fx, fz) turned by fyaw, as
+   * Object3D.rotation.y turns it): centre (lx, lz) and size in that frame.
+   */
+  boxIn(fx: number, fz: number, fyaw: number, lx: number, lz: number, w: number, d: number, y: number, slope = 0, soft = false) {
+    const c = Math.cos(fyaw),
+      s = Math.sin(fyaw);
+    this.box(fx + lx * c + lz * s, fz - lx * s + lz * c, w, d, y, fyaw, soft, slope);
+  }
+
+  /** A rectangular rim (the rail round a table): the band between an outer and an inner rectangle, in a frame. */
+  frameIn(fx: number, fz: number, fyaw: number, ox: number, oz: number, ix: number, iz: number, y: number) {
+    const bx = ox - ix,
+      bz = oz - iz;
+    this.boxIn(fx, fz, fyaw, 0, -(iz + bz / 2), ox * 2, bz, y);
+    this.boxIn(fx, fz, fyaw, 0, iz + bz / 2, ox * 2, bz, y);
+    this.boxIn(fx, fz, fyaw, -(ix + bx / 2), 0, bx, iz * 2, y);
+    this.boxIn(fx, fz, fyaw, ix + bx / 2, 0, bx, iz * 2, y);
   }
 
   disc(x: number, z: number, r: number, y: number, soft = false) {
-    this.list.push({ kind: 'disc', x, z, a: r, b: 0, cos: 1, sin: 0, y, soft });
+    this.list.push({ kind: 'disc', x, z, a: r, b: 0, cos: 1, sin: 0, y, soft, slope: 0 });
   }
 
   /** An annulus (a round bar's ledge). */
   ring(x: number, z: number, r0: number, r1: number, y: number) {
-    this.list.push({ kind: 'ring', x, z, a: r0, b: r1, cos: 1, sin: 0, y, soft: false });
+    this.list.push({ kind: 'ring', x, z, a: r0, b: r1, cos: 1, sin: 0, y, soft: false, slope: 0 });
   }
 
   get count() {
@@ -632,21 +815,23 @@ export class Surfaces {
   top(x: number, z: number, fromY = Infinity): { y: number; soft: boolean } | null {
     let best: { y: number; soft: boolean } | null = null;
     for (const s of this.list) {
-      if (s.y > fromY || (best && s.y <= best.y)) continue;
+      if (s.y - Math.abs(s.slope) * s.b > fromY || (best && s.y + Math.abs(s.slope) * s.b <= best.y)) continue;
       const dx = x - s.x,
         dz = z - s.z;
       let hit: boolean;
+      let y = s.y;
       if (s.kind === 'box') {
         // Into the box's frame (yaw turns +x toward -z, as Object3D.rotation.y does).
         const lx = dx * s.cos - dz * s.sin,
           lz = dx * s.sin + dz * s.cos;
         hit = Math.abs(lx) <= s.a && Math.abs(lz) <= s.b;
+        y += s.slope * lz;
       } else if (s.kind === 'disc') hit = dx * dx + dz * dz <= s.a * s.a;
       else {
         const d = Math.hypot(dx, dz);
         hit = d >= s.a && d <= s.b;
       }
-      if (hit) best = { y: s.y, soft: s.soft };
+      if (hit && y <= fromY && (!best || y > best.y)) best = { y, soft: s.soft };
     }
     return best;
   }

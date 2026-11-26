@@ -8,9 +8,11 @@ import type { Throwables } from './throwables';
 import type { DrinkPhysics, Pourable } from './drinkphysics';
 import { Drink, type Lounge } from './lounge';
 import { CHIP_HEIGHT, CHIP_RADIUS, makeChip } from './chips';
+import { WHEEL_CENTER } from './roulette/layout';
 import type { ChipDenom } from './textures';
 import { LooseSim, Surfaces, extents, type LooseBody, type LooseEnv, type LooseEvent, type LooseSpec } from './loosephys';
 import { BAR as POOL_BAR } from './areas/pool';
+import { palmGrab, palms, type PalmReading } from './palm';
 
 type SoundName = Parameters<import('./audio').Sound['play']>[0];
 interface SoundLike {
@@ -43,6 +45,9 @@ export interface LooseDeps {
   lounge: Lounge;
   throwables: Throwables;
   drinkPhysics: DrinkPhysics;
+  /** The roulette and craps tables' groups (their felts, rails and the wheel are surfaces). */
+  roulette?: THREE.Object3D;
+  craps?: THREE.Object3D;
 }
 
 /** What your friend should see happen to a loose object. */
@@ -326,7 +331,16 @@ export class LooseObjects {
   private swigCool = 0;
   private soundCool = new Map<string, number>();
   /** Counters for tests and tuning. */
-  readonly stats = { thrown: 0, landed: 0, broken: 0, knocked: 0, swept: 0 };
+  readonly stats = { thrown: 0, landed: 0, broken: 0, knocked: 0, swept: 0, palmed: 0, offPalm: 0 };
+  /** Your open palms (see palm.ts). */
+  readonly palms = palms;
+  /**
+   * Where your palms are this frame. In VR it's read from your hands; tests
+   * (and the desktop harness) can set this to drive them directly.
+   */
+  palmSource: ((side: 'left' | 'right') => PalmReading | null) | null = null;
+  private grabs = new Map<Item, Grabbable>();
+  private lateDone = false;
 
   constructor(private d: LooseDeps) {
     const env: LooseEnv = {
@@ -338,7 +352,13 @@ export class LooseObjects {
       topFast: (x, z, fromY) => this.surfaces.top(x, z, fromY),
     };
     this.sim = new LooseSim(env, 7);
+    this.sim.platforms = palms.platforms;
     this.sim.onEvent = (e) => this.event(e);
+    // Things in your palm when you close it (or reach in with your other hand).
+    palmGrab.grab = (side, g) => {
+      const h = d.hands.hands.find((x) => x.ctrl.userData.handedness === side);
+      return !!h && d.hands.grabWith(h, g);
+    };
     d.throwables.extraTop = (x, z, fromY) => this.surfaces.top(x, z, fromY)?.y ?? null;
     d.drinkPhysics.pourables = () => this.pourables();
     d.lounge.otherHeld = () => !!this.desk;
@@ -447,6 +467,20 @@ export class LooseObjects {
     S.ring(POOL_BAR.x, POOL_BAR.z, POOL_BAR.r - 0.03, POOL_BAR.r + 0.13, 1.16);
     const cabanas = [-30, -24, -18];
     for (const z of cabanas) S.box(59.7, z, 2.0, 2.8, 0.5, 0, true);
+    this.tableSurfaces();
+    // Hotel lobby (baked scenery: too big to raycast): the round table, the corridor consoles, the benches.
+    S.disc(36, 6, 1.0, 0.82);
+    for (const x of [21, 27]) S.box(x, 5, 1.4, 0.55, 0.825);
+    for (const z of [2.8, 9.2]) S.box(32, z, 1.8, 0.6, 0.56);
+    // Suite 3201: coffee table, dining table, nightstands, the entry console, the bench at the foot of the bed.
+    S.box(592.2, -1.2, 1.3, 0.7, 0.43);
+    S.box(596.8, -1.0, 1.4, 0.9, 0.765);
+    for (const x of [591.7, 594.7]) S.box(x, 4.9, 0.58, 0.48, 0.6);
+    S.box(599.5, 0.8, 0.48, 1.32, 0.825);
+    S.box(593.2, 2.35, 1.62, 0.48, 0.5);
+    // The pool's DJ stage and the decks on it.
+    S.box(50, -32.8, 6.0, 2.4, 0.6);
+    S.box(50, -31.95, 2.3, 0.65, 1.45);
 
     const up = (y: number) => y + 0.4;
     // --- On the bar counter ---
@@ -515,6 +549,72 @@ export class LooseObjects {
       const a = (i / fruit.length) * Math.PI * 2 + 0.3;
       this.spawn('fruit', x + Math.cos(a) * 0.03, z + Math.sin(a) * 0.03, fromY, { color: c, yaw: i });
     });
+  }
+
+  /** A table group's position and turn (as Object3D.rotation.y turns it). */
+  private frameOf(o: THREE.Object3D): [number, number, number] {
+    o.updateWorldMatrix(true, false);
+    const p = o.getWorldPosition(new THREE.Vector3());
+    const yaw = new THREE.Euler().setFromQuaternion(o.getWorldQuaternion(new THREE.Quaternion()), 'YXZ').y;
+    return [p.x, p.z, yaw];
+  }
+
+  /**
+   * The roulette and craps tables: felt, padded rails, the wheel, the tub's
+   * walls (measured off the models; see craps/table.ts and roulette/table.ts).
+   * Declared so landing is exact and cheap, and so the rails stop a chip
+   * sliding across the felt instead of letting it pass through.
+   */
+  private tableSurfaces() {
+    const S = this.surfaces;
+    if (this.d.roulette) {
+      const [x, z, yaw] = this.frameOf(this.d.roulette);
+      // Layout felt; the padded rail round it; the lower front and end ledges.
+      S.boxIn(x, z, yaw, 0.15, 0, 1.8, 0.8, 0.8);
+      S.boxIn(x, z, yaw, -0.3, -0.5, 2.9, 0.2, 0.88);
+      S.boxIn(x, z, yaw, -0.3, 0.45, 2.9, 0.1, 0.88);
+      S.boxIn(x, z, yaw, 1.1, 0, 0.1, 0.8, 0.88);
+      S.boxIn(x, z, yaw, -1.65, 0, 0.2, 0.8, 0.88);
+      S.boxIn(x, z, yaw, -0.3, 0.55, 2.9, 0.1, 0.69);
+      S.boxIn(x, z, yaw, 1.2, 0, 0.1, 1.2, 0.69);
+      // The wheel: the bowl's rim and, inside it, the pockets and the cone.
+      const c = Math.cos(yaw),
+        s = Math.sin(yaw);
+      const wx = x + WHEEL_CENTER.x * c + WHEEL_CENTER.z * s,
+        wz = z - WHEEL_CENTER.x * s + WHEEL_CENTER.z * c;
+      S.ring(wx, wz, 0.33, 0.43, 0.905);
+      S.disc(wx, wz, 0.33, 0.86);
+    }
+    if (this.d.craps) {
+      const [x, z, yaw] = this.frameOf(this.d.craps);
+      // The tub: felt at the bottom, the inner wall's top, the rail round the outside.
+      S.boxIn(x, z, yaw, 0, 0, 3.1, 1.3, 0.72);
+      S.frameIn(x, z, yaw, 1.75, 0.75, 1.55, 0.65, 0.92);
+      S.frameIn(x, z, yaw, 1.83, 0.81, 1.75, 0.75, 0.97);
+    }
+  }
+
+  /**
+   * Surfaces of things built after the loose objects (every slot machine's
+   * cabinet top and sloping deck), declared from their colliders on the first
+   * frame.
+   */
+  private late() {
+    if (this.lateDone) return;
+    this.lateDone = true;
+    const S = this.surfaces;
+    for (const b of this.d.world.colliders().boxes) {
+      if (b.kind !== 'slot machine') continue;
+      const featured = b.hw * 2 > 0.74;
+      if (featured) {
+        S.boxIn(b.x, b.z, b.yaw, 0, -0.085, 0.66, 0.35, 2.15);
+        S.boxIn(b.x, b.z, b.yaw, 0, 0.275, 0.62, 0.17, 0.86, -0.4);
+      } else {
+        S.boxIn(b.x, b.z, b.yaw, 0, -0.09, 0.66, 0.34, 1.95);
+        S.boxIn(b.x, b.z, b.yaw, 0, 0.21, 0.66, 0.24, 0.88, -0.3);
+      }
+    }
+    this.near.clear();
   }
 
   private blockCache = new Map<number, boolean>();
@@ -634,6 +734,7 @@ export class LooseObjects {
       },
     };
     this.d.hands.register(g);
+    this.grabs.set(it, g);
   }
 
   /** Takes an item out of the world into a hand; returns the mesh to carry. */
@@ -660,6 +761,8 @@ export class LooseObjects {
     it.holder = null;
     it.hand = null;
     this.launch(it, v, undefined, true);
+    // Let go just over an open palm (or opened the hand it was in, palm up): it rests there.
+    if (v.length() < 1.5) this.sim.restOnPlatform(it.body);
   }
 
   private launch(it: Item, v: THREE.Vector3, w: THREE.Vector3 | undefined, mine: boolean) {
@@ -776,6 +879,8 @@ export class LooseObjects {
       const p = this.desk.proxy;
       p.rotation.x += (want - p.rotation.x) * Math.min(1, dt * 6);
     }
+    this.late();
+    this.updatePalms(dt);
     this.knocks();
     this.sim.update(dt);
     // Tell your friend about things you set moving.
@@ -876,7 +981,62 @@ export class LooseObjects {
     } else if (e.type === 'break') {
       this.smash(it, e.at, e.v);
       if (e.body.mine) this.onNet?.({ k: 'break', id: it.id });
+    } else if (e.type === 'ride') {
+      this.stats.palmed++;
+      this.d.sound.play(it.kind.sound, it.body.pos.clone(), { volume: it.kind.vol * 0.25, rate: it.kind.rate * 1.15 });
+      const h = this.handOf(e.on.id);
+      if (h) this.d.hands.onHaptic?.(h, 0.15, 20);
+    } else if (e.type === 'unride') {
+      this.stats.offPalm++;
+      if (e.on.mine) this.woken.add(e.body);
     }
+  }
+
+  private handOf(platformId: string): Hand | null {
+    const side = platformId.replace('palm-', '');
+    return this.d.hands.hands.find((h) => h.ctrl.userData.handedness === side) ?? null;
+  }
+
+  /** Your palm, from your hand this frame: centre of the skin, which way it faces, how open, how squeezed. */
+  private readPalm(side: 'left' | 'right'): PalmReading | null {
+    if (!this.d.player.inXR) return null;
+    const hands = this.d.hands;
+    const h = hands.hands.find((x) => x.ctrl.userData.handedness === side);
+    if (!h || h.ctrl.userData.connected === false) return null;
+    const aim = hands.handAim(side);
+    const wr = hands.wrist(side);
+    if (!aim || !wr) return null;
+    const tracked = hands.tracked(side);
+    const gp = this.d.interaction.gamepads().find((g) => g.handedness === side)?.gamepad;
+    const pose = hands.fingerPose(side, gp);
+    const open = 1 - (pose[1] + pose[2] + pose[3] + pose[4]) / 4;
+    const grip = h.held ? 1 : tracked ? 0 : (gp?.buttons[1]?.value ?? 0);
+    // Middle of the palm, on the skin (a controller in the hand lifts things a little).
+    const p = wr.clone().addScaledVector(aim.fwd, 0.07).addScaledVector(aim.palm, tracked ? 0.022 : 0.04);
+    return { p, normal: aim.palm.clone(), fwd: aim.fwd.clone(), open, grip };
+  }
+
+  /** Palms as surfaces; closing a hand that has something in it picks it up. */
+  private updatePalms(dt: number) {
+    const was = palms.platforms.map((pl) => pl.active);
+    palms.sides.forEach((side, i) => {
+      const src = this.palmSource ?? ((s: 'left' | 'right') => this.readPalm(s));
+      palms.set(i, src(side as 'left' | 'right'), dt);
+    });
+    palms.platforms.forEach((pl, i) => {
+      if (!was[i] || pl.active) return;
+      // The hand closed (not just turned over): it closes on what's in it.
+      if (palms.grip[i] < 0.35 && palms.open[i] >= 0.5) return;
+      const riders = this.sim.bodies.filter((b) => b.plat === pl && !b.held && !b.gone);
+      if (!riders.length) return;
+      // The top one (the hand closes around the stack's top).
+      riders.sort((a, b) => b.pos.y - a.pos.y);
+      for (const b of riders) {
+        const it = b.data.item as Item | undefined;
+        const g = it && this.grabs.get(it);
+        if (g && palmGrab.grab?.(palms.sides[i], g)) break;
+      }
+    });
   }
 
   private impactSound(it: Item, speed: number, other: LooseBody | null, soft: boolean) {

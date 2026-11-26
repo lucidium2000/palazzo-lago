@@ -6,6 +6,7 @@ import { money } from './game';
 import type { Grabbable, Hand } from './hands';
 import type { Interaction } from './interaction';
 import { CHIP_COLORS, chipLabel, type ChipDenom } from './textures';
+import { offPalm, palmGrab, palmHold, palms, platformToWorld, platformY, pointVelocity, slideStep, worldToPlatform, type Platform } from './palm';
 
 /**
  * Your chips, on the rail in front of you: real stacks that always add up to
@@ -13,6 +14,12 @@ import { CHIP_COLORS, chipLabel, type ChipDenom } from './textures';
  * few more), set it down on a betting spot and it's a bet; let go anywhere
  * else and it goes back on the rail. Chips on a spot you're still allowed to
  * take down can be picked back up the same way.
+ *
+ * Let go of chips over your other hand while it's open, palm up, and they stay
+ * there as a little stack in your palm (still yours, still off the rail). Tip
+ * them off over a betting spot and that's the bet; tip them off anywhere else
+ * and they go back to the rail. Close your hand, or reach in with the other
+ * one, to pick them up again.
  *
  * One draw call for every chip on the rail (an instanced mesh), one for the
  * count label, one per hand while you're holding chips.
@@ -67,6 +74,17 @@ interface Carry {
   lastAdd: number;
 }
 
+/** Chips resting in your open palm. */
+interface PalmStack {
+  side: string;
+  chips: ChipDenom[];
+  amount: number;
+  mesh: THREE.InstancedMesh;
+  /** Where on the palm (local x/z) and how it's sliding. */
+  at: THREE.Vector3;
+  slide: THREE.Vector2;
+}
+
 interface Flying {
   mesh: THREE.InstancedMesh;
   amount: number;
@@ -87,6 +105,7 @@ export class ChipRail {
   private stacks: THREE.InstancedMesh;
   private label: { mesh: THREE.Mesh; ctx: CanvasRenderingContext2D; tex: THREE.CanvasTexture; key: string };
   private carries = new Map<Hand, Carry>();
+  private palmStacks: PalmStack[] = [];
   private flying: Flying[] = [];
   private pool: THREE.InstancedMesh[] = [];
   private spotCache: RailSpot[] = [];
@@ -135,6 +154,7 @@ export class ChipRail {
 
     opts.denoms.forEach((d, i) => this.grabbables.push(this.stackGrabbable(d, i)));
     if (opts.spots) for (let i = 0; i < SPOT_POOL; i++) this.grabbables.push(this.spotGrabbable(i));
+    for (const side of palms.sides) this.grabbables.push(this.palmGrabbable(side));
 
     if (opts.interaction && opts.onPick) {
       const hit = new THREE.Mesh(new THREE.BoxGeometry(n * this.spacing, 0.06, 0.07), new THREE.MeshBasicMaterial({ visible: false }));
@@ -162,12 +182,18 @@ export class ChipRail {
     }
   }
 
-  /** Money in your hands or flying back to the rail. */
+  /** Money in your hands (carried, or resting in a palm) or flying back to the rail. */
   get held(): number {
     let s = 0;
     for (const c of this.carries.values()) s += c.amount;
     for (const f of this.flying) s += f.amount;
+    for (const p of this.palmStacks) s += p.amount;
     return s;
+  }
+
+  /** Chips resting in your palms (for tests and the HUD). */
+  get inPalms(): { side: string; amount: number; chips: number }[] {
+    return this.palmStacks.map((p) => ({ side: p.side, amount: p.amount, chips: p.chips.length }));
   }
 
   /** What the rail should show: what you can spend right now. */
@@ -191,7 +217,7 @@ export class ChipRail {
   }
 
   private meshFor(): THREE.InstancedMesh {
-    const busy = new Set([...[...this.carries.values()].map((c) => c.mesh), ...this.flying.map((f) => f.mesh)]);
+    const busy = new Set([...[...this.carries.values()].map((c) => c.mesh), ...this.flying.map((f) => f.mesh), ...this.palmStacks.map((p) => p.mesh)]);
     let m = this.pool.find((p) => !busy.has(p));
     if (!m) {
       m = new THREE.InstancedMesh(geo, chipMat(), CARRY_MAX);
@@ -297,6 +323,17 @@ export class ChipRail {
     const c = this.carries.get(hand);
     if (!c) return;
     this.opts.hover?.(null, c.denom);
+    // Let go over your other hand, open and palm up: they rest in your palm.
+    const side = hand.ctrl.userData.handedness as string | undefined;
+    const pl = this.palmUnder(pos, side);
+    if (pl) {
+      this.carries.delete(hand);
+      this.toPalm(pl, c.chips, c.amount, c.mesh, pos);
+      this.buzz(hand, 0.25, 20);
+      this.dirty = true;
+      this.refreshSpots();
+      return;
+    }
     // Placing debits the bankroll as the chips leave the hand: the rail's total doesn't move.
     const placed = this.opts.canGrab() && this.opts.place(pos, c.amount, c.denom);
     this.carries.delete(hand);
@@ -311,6 +348,130 @@ export class ChipRail {
     }
     this.dirty = true;
     this.refreshSpots();
+  }
+
+  /** An open palm (not the letting-go hand's own) just under a point, to drop chips into. */
+  private palmUnder(pos: THREE.Vector3, notSide?: string): Platform | null {
+    for (let i = 0; i < palms.platforms.length; i++) {
+      const pl = palms.platforms[i];
+      if (!pl.active || palms.sides[i] === notSide) continue;
+      const y = platformY(pl, pos.x, pos.z, 0.02);
+      if (y !== null && pos.y > y - 0.05 && pos.y < y + 0.12) return pl;
+    }
+    return null;
+  }
+
+  /** Chips come to rest in a palm (on top of any already there). */
+  private toPalm(pl: Platform, chips: ChipDenom[], amount: number, mesh: THREE.InstancedMesh, at: THREE.Vector3) {
+    const side = palms.sides[palms.platforms.indexOf(pl)];
+    const there = this.palmStacks.find((p) => p.side === side);
+    if (there) {
+      there.chips.push(...chips);
+      there.amount += amount;
+      this.fill(there.mesh, there.chips);
+      mesh.removeFromParent();
+    } else {
+      const local = worldToPlatform(pl, at.clone());
+      local.x = THREE.MathUtils.clamp(local.x, -pl.hx * 0.6, pl.hx * 0.6);
+      local.z = THREE.MathUtils.clamp(local.z, -pl.hz * 0.6, pl.hz * 0.6);
+      local.y = 0;
+      this.fill(mesh, chips);
+      this.palmStacks.push({ side, chips: [...chips], amount, mesh, at: local, slide: new THREE.Vector2() });
+    }
+    this.opts.sound.play('chips', at, { volume: 0.35, rate: 1.15 });
+  }
+
+  /** Reach into a palm (with either hand) for the chips resting there. */
+  private palmGrabbable(side: string): Grabbable {
+    const at = new THREE.Vector3(0, -1e6, 0);
+    const stack = () => this.palmStacks.find((p) => p.side === side);
+    return {
+      at: () => {
+        const p = stack();
+        const pl = palms.bySide(side);
+        return p && pl ? platformToWorld(pl, p.at, at).setY(at.y + 0.01) : at.set(0, -1e6, 0);
+      },
+      radius: 0.085,
+      enabled: () => !!stack(),
+      grab: (hand) => {
+        const p = stack();
+        if (!p) return null;
+        this.palmStacks.splice(this.palmStacks.indexOf(p), 1);
+        p.mesh.quaternion.identity();
+        this.carries.set(hand, { denom: p.chips[0], chips: p.chips, amount: p.amount, mesh: p.mesh, stack: -1, lastAdd: this.clock });
+        this.fill(p.mesh, p.chips);
+        this.buzz(hand, 0.35, 25);
+        this.opts.sound.play('chips', this.opts.parent.localToWorld(p.mesh.position.clone()), { volume: 0.4, rate: 1.1 });
+        this.dirty = true;
+        return 'drag';
+      },
+      drag: (hand, pos) => this.drag(hand, pos),
+      release: (hand, pos) => this.release(hand, pos),
+    };
+  }
+
+  /**
+   * Chips leave your palm (tipped, flicked, or the hand turned over or went
+   * away): they fall to the felt. Over a betting spot (while bets are open)
+   * that's the bet; anywhere else they go back to the rail. Money is exact
+   * either way: the stack's amount moves to the bet or to the rail's flight.
+   */
+  private offPalm(p: PalmStack, pl: Platform | null) {
+    this.palmStacks.splice(this.palmStacks.indexOf(p), 1);
+    const from = pl ? platformToWorld(pl, p.at) : this.opts.parent.localToWorld(p.mesh.position.clone());
+    // Where they come down: the felt is about the rail's height; they keep the hand's drift on the way.
+    const feltY = this.group.getWorldPosition(new THREE.Vector3()).y;
+    const v = pl ? pointVelocity(pl, from) : new THREE.Vector3();
+    if (pl && p.slide.lengthSq() > 0) v.add(new THREE.Vector3(p.slide.x, 0, p.slide.y).applyQuaternion(pl.q));
+    const h = Math.max(0, from.y - feltY);
+    const t = (v.y + Math.sqrt(v.y * v.y + 2 * 9.81 * h)) / 9.81;
+    const land = new THREE.Vector3(from.x + v.x * t, Math.min(from.y, feltY + 0.02), from.z + v.z * t);
+    const placed = this.group.visible && this.opts.canGrab() && this.opts.place(land, p.amount, p.chips[0]);
+    if (placed) {
+      p.mesh.removeFromParent();
+      this.opts.sound.play('chips', land, { volume: 0.5 });
+    } else {
+      const i = this.opts.denoms.indexOf(p.chips[0]);
+      const to = this.opts.parent.worldToLocal(this.stackTop(Math.max(0, i)));
+      p.mesh.quaternion.identity();
+      this.flying.push({ mesh: p.mesh, amount: p.amount, from: p.mesh.position.clone(), to, t: 0 });
+    }
+    this.dirty = true;
+    this.refreshSpots();
+  }
+
+  /** Chips in your palms ride your hands; tip, flick or turn your hand over and they come off. */
+  private updatePalms(dt: number) {
+    for (const p of [...this.palmStacks]) {
+      const i = palms.sides.indexOf(p.side);
+      const pl = palms.platforms[i];
+      if (!pl || !pl.active) {
+        // Closed the hand on them: they're in your hand now.
+        const closed = pl && (palms.grip[i] >= 0.35 || palms.open[i] < 0.5);
+        if (closed && palmGrab.grab?.(p.side, this.grabbables[this.grabbables.length - palms.sides.length + i])) continue;
+        this.offPalm(p, pl ?? null);
+        continue;
+      }
+      const hold = palmHold(pl);
+      if (hold === 'fly') {
+        this.offPalm(p, pl);
+        continue;
+      }
+      if (hold === 'slide' || p.slide.lengthSq() > 0) {
+        slideStep(pl, p.slide, dt);
+        p.at.x += p.slide.x * dt;
+        p.at.z += p.slide.y * dt;
+        if (offPalm(pl, p.at.x, p.at.z)) {
+          this.offPalm(p, pl);
+          continue;
+        }
+      }
+      // Ride the hand (in the table's frame, where the meshes live).
+      const w = platformToWorld(pl, p.at);
+      p.mesh.position.copy(this.opts.parent.worldToLocal(w));
+      const pq = this.opts.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+      p.mesh.quaternion.copy(pq.multiply(pl.q));
+    }
   }
 
   private refreshSpots() {
@@ -334,8 +495,10 @@ export class ChipRail {
         this.opts.sound.play('chip', this.opts.parent.localToWorld(f.to.clone()), { volume: 0.3, rate: 0.85 });
       }
     }
+    this.updatePalms(dt);
     if (!show) {
-      // Away from the table: nothing in hand from here.
+      // Away from the table: nothing in hand from here (chips in your palm go back to the rail).
+      for (const p of [...this.palmStacks]) this.offPalm(p, palms.bySide(p.side));
       return;
     }
     this.refreshSpots();

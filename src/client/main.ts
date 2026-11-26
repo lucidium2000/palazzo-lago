@@ -256,7 +256,7 @@ async function main() {
   const hitBy = new WeakMap<object, Person>();
   // Napkins wipe up spills, your face, and (gently) the person you soaked.
   let napkins: Napkins | null = null;
-  const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics });
+  const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics, roulette: roulette.group, craps: craps.group });
   const slotRows = new SlotRows(ctx, crowd, world);
 
   // Walking routes through the open floor; edges are found automatically.
@@ -361,7 +361,11 @@ async function main() {
   const pokerGuests = pokerRoom.seats.map((s) => {
     const look = randomLook();
     const p = crowd.add('patron', look, s.pos, s.yaw);
-    if (p) p.seatY = 0.62;
+    if (p) {
+      p.seatY = 0.62;
+      // The card game seats and stands them itself (they give up a chair for you).
+      p.keepSeat = true;
+    }
     return { person: p ?? null, female: look.dress };
   });
   const poker = new PokerPlay(
