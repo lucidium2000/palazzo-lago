@@ -303,6 +303,8 @@ function kinds(): KindDef[] {
       hold: { p: [0.2, -0.3, -0.45], r: [0.12, 0, 0] },
       capacity: 4,
       rim: [0.215, 0.02],
+      // They only live in the poker room: drawn only when it's in view.
+      cull: true,
     },
     {
       key: 'fruit',
