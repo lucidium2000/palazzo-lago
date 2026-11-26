@@ -59,7 +59,6 @@ export class Hud {
   /** The wrist menu opens and closes with Y on the left Touch controller. */
   private wristOpen = false;
   private yWas = false;
-  private hinted = false;
   private nav: NavItem[] = [];
   onNavigate: ((item: NavItem) => void) | null = null;
 
@@ -87,7 +86,6 @@ export class Hud {
     this.wrist.register(interaction);
     renderer.xr.addEventListener('sessionend', () => {
       this.wristOpen = false;
-      this.hinted = false;
       this.wrist.mesh.visible = false;
       this.vrToast.mesh.visible = false;
     });
@@ -363,7 +361,6 @@ export class Hud {
     // Y (left controller, xr-standard button 5) toggles the menu. With hand tracking
     // there are no buttons, so the menu simply stays on the wrist.
     const gp = this.interaction.gamepads().find((g) => g.handedness === 'left')?.gamepad;
-    const hasY = !!gp && gp.buttons.length > 5;
     const y = !!gp?.buttons[5]?.pressed;
     // (Not while Y answers a reply, see replyhud.ts.)
     if (y && !this.yWas && !replyPrompt.busy()) {
@@ -374,10 +371,7 @@ export class Hud {
     this.yWas = y;
     // The menu shows when opened (Y, or a tap on your watch).
     if (this.wristAttached) this.wrist.mesh.visible = this.wristOpen;
-    if (this.wristAttached && !this.hinted) {
-      this.hinted = true;
-      this.vrMessage(hasY ? 'Look at your watch (left wrist): tap it, or press Y, for the menu' : 'Look at your watch (left wrist) and tap it for the menu', 'info');
-    }
+    // (Where the menu is: a first-time hint by the watch, see hints.ts.)
 
     const p = this.vrToast.mesh;
     camera.updateMatrixWorld(true);

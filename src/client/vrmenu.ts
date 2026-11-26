@@ -69,6 +69,8 @@ export interface VrMenuDeps {
   /** The controls for the game you're at (or null away from a table), and what it says. */
   tableControls(): Control[] | null;
   tableStatus(): string;
+  /** First-time hints (hints.ts): the Show hints setting and Reset hints. */
+  hints?: { enabled: boolean; reset(): void };
 }
 
 export class VrMenu {
@@ -183,6 +185,12 @@ export class VrMenu {
         }],
         ['vignette', () => (d.comfort().vignette ? 'Comfort vignette: on' : 'Comfort vignette: off'), () => d.setComfort({ vignette: !d.comfort().vignette })],
         ['lasers', () => (d.comfort().lasers ? 'Laser pointers: on' : 'Hands only (no lasers)'), () => d.setComfort({ lasers: !d.comfort().lasers })],
+        ...(d.hints
+          ? ([
+              ['hints', () => (d.hints!.enabled ? 'Show hints: on' : 'Show hints: off'), () => (d.hints!.enabled = !d.hints!.enabled)],
+              ['hintsreset', () => 'Reset hints', () => d.hints!.reset()],
+            ] as [string, () => string, () => void][])
+          : []),
         ['camera', () => 'Get a camera', () => d.giveCamera()],
         ['voicereply', () => (d.voiceReplies() ? 'Answer by voice: on' : 'Answer by voice: off'), () => d.toggleVoiceReplies()],
         ['help', () => 'Help', () => this.toggleHelp()],

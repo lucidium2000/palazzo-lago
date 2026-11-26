@@ -83,6 +83,7 @@ import { Fights } from './fight/fights';
 import { Bodies, friendShove } from './bodies';
 import { avatarLook } from './net/avatars';
 import { Piano } from './piano';
+import { Hints, type HintArcade } from './hints';
 import { PianoSync } from './net/pianosync';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
@@ -1389,6 +1390,24 @@ async function main() {
   let stationControls: () => Control[] | null = () => null;
   let stationStatus: () => string = () => '';
   // --- Everything in the screen menus, in VR (left wrist) ----------------------------------
+  // First-time hints: each gesture taught once, when it applies (hints.ts).
+  const hints = new Hints({
+    scene,
+    camera,
+    hands,
+    interaction,
+    xr: () => player.inXR,
+    playing: () => enter.classList.contains('done') || player.inXR,
+    player,
+    station: () => hud.station,
+    piano: piano ? { position: piano.viewpoint.position, mine: () => !!piano?.mine } : null,
+    decks: party.decks,
+    arcade: (arcade as { debug?: HintArcade } | null)?.debug ?? null,
+    loose,
+    fighting: () => fights.active,
+    watch,
+    toast: (text) => hud.toast(text, 'info'),
+  });
   const vrMenu = new VrMenu(hud.wrist, {
     hud,
     interaction,
@@ -1470,6 +1489,7 @@ async function main() {
     balance: () => bankroll.balance,
     tableControls: () => stationControls(),
     tableStatus: () => stationStatus(),
+    hints,
   });
   vrMenu.redraw();
   renderer.xr.addEventListener('sessionend', () => vrMenu.close());
@@ -1971,6 +1991,7 @@ async function main() {
     arcade?.update(dt);
     napkins ??= new Napkins({ loose, throwables, drinkPhysics, sound, crowd, camera, onDab: (p) => (p.attendUntil = Math.min(p.attendUntil, crowd.now + 0.5)) });
     napkins.update(dt);
+    hints.update(dt);
     // Things you throw that hit someone: a thump, and they let you know about it.
     for (const b of loose.sim.bodies) {
       if (!b.awake || !b.mine || b.held || b.v.lengthSq() < 4) continue;
@@ -2112,7 +2133,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, arcade, promenade };
+  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, arcade, promenade, hints };
 }
 
 main().catch((e) => {

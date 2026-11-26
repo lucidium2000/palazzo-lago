@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canRide, destSlot, floorLabel, floorsBetween, inDoorway, insideCab, readSlot, readSnapshot, RideClock, TRAVEL_SECS, type CarRef } from '../src/client/areas/liftlogic';
+import { PANEL, PANEL_ROWS, panelRowAt, panelRowH, panelRowY, canRide, destSlot, floorLabel, floorsBetween, inDoorway, insideCab, readSlot, readSnapshot, RideClock, TRAVEL_SECS, type CarRef } from '../src/client/areas/liftlogic';
 
 // The real layout: four casino cars, two at the pool, one in the suite.
 const CARS: CarRef[] = [
@@ -134,5 +134,30 @@ describe('late joiners', () => {
     expect(readSlot(3, 7)).toBe(3);
     expect(readSlot(7, 7)).toBeNull();
     expect(readSlot('1', 7)).toBeNull();
+  });
+});
+
+describe('the floor panel in the cab', () => {
+  it('has fingertip-sized buttons (4 cm+) with at least 1 cm between them', () => {
+    expect(PANEL_ROWS).toEqual(['suite', 'promenade', 'pool', 'casino', 'open']);
+    expect(PANEL.button).toBeGreaterThanOrEqual(0.04);
+    expect(panelRowH() - PANEL.button).toBeGreaterThanOrEqual(0.01);
+    // The whole row is pressable bar the dead strip: the pressable band is at least the button.
+    expect(panelRowH() - 2 * PANEL.dead).toBeGreaterThanOrEqual(PANEL.button);
+    // Everything fits on the plate.
+    expect(panelRowY(PANEL_ROWS.length - 1) + panelRowH() / 2 + PANEL.foot).toBeCloseTo(PANEL.h, 6);
+    expect(PANEL.buttonX - PANEL.button / 2).toBeGreaterThan(0.01);
+  });
+
+  it('a poke anywhere on a button presses that row; between rows presses nothing', () => {
+    PANEL_ROWS.forEach((row, i) => {
+      const y = panelRowY(i);
+      expect(panelRowAt(y)).toBe(row);
+      expect(panelRowAt(y - PANEL.button / 2 + 0.001)).toBe(row);
+      expect(panelRowAt(y + PANEL.button / 2 - 0.001)).toBe(row);
+      if (i) expect(panelRowAt(y - panelRowH() / 2)).toBeNull();
+    });
+    expect(panelRowAt(0.02)).toBeNull(); // the name plate
+    expect(panelRowAt(PANEL.h - 0.005)).toBeNull(); // the bottom margin
   });
 });

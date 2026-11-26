@@ -74,6 +74,11 @@ export class Watch {
     d.interaction.register({ object: this.face, kind: 'button', onSelect: () => d.onTap(), enabled: () => this.group.visible });
   }
 
+  /** You're looking at it (raised to your eyes). */
+  get lookedAt() {
+    return this.group.visible && this.awake > 0.6;
+  }
+
   update(dt: number, inXR: boolean) {
     const w = inXR ? this.d.hands.wristPose('left') : null;
     this.group.visible = !!w;

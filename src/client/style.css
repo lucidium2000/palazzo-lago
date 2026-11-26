@@ -1081,3 +1081,49 @@ body.listening #replies::before {
 #fightbars .fb-them {
   background: linear-gradient(#f0cf88, #c89a48);
 }
+
+/* First-time hints (hints.ts): a small, quiet line low in the middle, for a few seconds. */
+#hint {
+  position: absolute;
+  left: 50%;
+  bottom: 104px;
+  transform: translate(-50%, 6px);
+  max-width: min(88vw, 520px);
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(14, 10, 8, 0.72);
+  border: 1px solid rgba(216, 178, 90, 0.55);
+  color: #f3e6c4;
+  font-size: 14px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s, transform 0.5s;
+}
+#hint.on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+#help .card {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+#help .keylist {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 14px;
+  margin: 10px 0;
+  font-size: 14px;
+}
+#help .keylist span:nth-child(odd) {
+  color: var(--gold-light);
+  white-space: nowrap;
+}
+#help .hint-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+  font-size: 14px;
+}

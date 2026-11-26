@@ -20,6 +20,11 @@ import {
   inDoorway,
   insideCab,
   LANDINGS,
+  PANEL,
+  PANEL_ROWS,
+  panelRowAt,
+  panelRowH,
+  panelRowY,
   readSnapshot,
   RideClock,
   type LandingId,
@@ -45,7 +50,6 @@ export type { LandingId } from './liftlogic';
  * shut rides it, each keeping their spot in the cab. People outside stay put.
  */
 
-const PANEL_ROWS: (LandingId | 'open')[] = ['suite', 'promenade', 'pool', 'casino', 'open'];
 const DOOR_W = 0.78;
 const DOOR_H = 2.4;
 /** Landing side: how far in front of the door line the fixtures sit (clear of the walls, wainscot and rail). */
@@ -196,8 +200,8 @@ export class Elevators {
       }
       // Floor panel on the cab's right-hand wall (as you walk in), facing into the cab.
       // One small mesh per car, so a fingertip can poke it (pokes skip big objects).
-      const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.46), panelMat);
-      panel.position.set(x + 0.55, 1.3, z + HALF - 0.005);
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(PANEL.w, PANEL.h), panelMat);
+      panel.position.set(x + 0.55, PANEL.y, z + HALF - 0.005);
       panel.rotation.y = Math.PI;
       panel.name = `lift-panel-${car.slot}`;
       this.group.add(panel);
@@ -246,11 +250,7 @@ export class Elevators {
 
   private rowAt(hit: THREE.Intersection): (LandingId | 'open') | null {
     if (!hit.uv) return null;
-    const v = 1 - hit.uv.y; // 0 at top
-    const top = 0.18;
-    if (v < top) return null;
-    const i = Math.floor(((v - top) / (1 - top)) * PANEL_ROWS.length);
-    return PANEL_ROWS[Math.min(PANEL_ROWS.length - 1, Math.max(0, i))];
+    return panelRowAt((1 - hit.uv.y) * PANEL.h);
   }
 
   /** Walkable cabs (doors are enforced in update). */
@@ -577,8 +577,10 @@ function mergeList(list: THREE.BufferGeometry[]): THREE.BufferGeometry {
 }
 
 function panelTexture(): THREE.CanvasTexture {
-  const W = 256,
-    H = 452;
+  // About 1.2 px per mm: crisp at arm's length.
+  const PX = 1200;
+  const W = Math.round(PANEL.w * PX),
+    H = Math.round(PANEL.h * PX);
   const [c, g] = canvas(W, H);
   const grd = g.createLinearGradient(0, 0, W, 0);
   grd.addColorStop(0, '#8a6a32');
@@ -587,65 +589,65 @@ function panelTexture(): THREE.CanvasTexture {
   g.fillStyle = grd;
   g.fillRect(0, 0, W, H);
   g.strokeStyle = '#5a4018';
-  g.lineWidth = 6;
-  g.strokeRect(3, 3, W - 6, H - 6);
+  g.lineWidth = 7;
+  g.strokeRect(3.5, 3.5, W - 7, H - 7);
   g.fillStyle = '#1a0e06';
-  g.font = 'italic 600 26px Georgia, serif';
+  g.font = 'italic 600 30px Georgia, serif';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  const top = H * 0.18;
-  g.fillText('Palazzo Lago', W / 2, top / 2 + 2);
-  const h = (H - top) / PANEL_ROWS.length;
-  // Each row is a button and its name, centred as a pair across the plate.
-  const R = 28;
+  g.fillText('Palazzo Lago', W / 2, (PANEL.header * PX) / 2 + 2);
+  const rowH = panelRowH() * PX;
+  const R = (PANEL.button / 2) * PX;
+  const bx = PANEL.buttonX * PX;
+  const tx = bx + R + 14;
+  const maxText = W - tx - 22;
   PANEL_ROWS.forEach((row, i) => {
-    const y = top + i * h + h / 2;
-    g.strokeStyle = 'rgba(60,40,12,0.35)';
-    g.lineWidth = 2;
+    const y = panelRowY(i) * PX;
+    // A hairline between rows (where a poke presses nothing).
     if (i) {
+      g.strokeStyle = 'rgba(60,40,12,0.35)';
+      g.lineWidth = 2;
       g.beginPath();
-      g.moveTo(24, top + i * h);
-      g.lineTo(W - 24, top + i * h);
+      g.moveTo(20, y - rowH / 2);
+      g.lineTo(W - 20, y - rowH / 2);
       g.stroke();
     }
-    const name = row === 'open' ? 'Doors' : LANDINGS[row].label;
-    g.font = '600 23px Georgia, serif';
-    const tw = g.measureText(name).width;
-    const gap = 14;
-    const x0 = (W - (R * 2 + gap + tw)) / 2;
-    const bx = x0 + R;
     g.beginPath();
     g.arc(bx, y, R, 0, Math.PI * 2);
     g.fillStyle = '#2a1a0a';
     g.fill();
-    g.lineWidth = 4;
+    g.lineWidth = 5;
     g.strokeStyle = '#fff0c8';
     g.stroke();
     g.fillStyle = '#ffe9b0';
+    g.textAlign = 'center';
     if (row === 'open') {
-      // ◀ ▶ drawn as two triangles (a font may not have the glyphs).
+      // ◀ ▶ (doors apart) drawn as two triangles pointing out (a font may not have the glyphs).
       for (const s of [-1, 1]) {
         g.beginPath();
-        g.moveTo(bx + s * 3, y);
-        g.lineTo(bx + s * 15, y - 10);
-        g.lineTo(bx + s * 15, y + 10);
+        g.moveTo(bx + s * 21, y);
+        g.lineTo(bx + s * 5, y - 13);
+        g.lineTo(bx + s * 5, y + 13);
         g.closePath();
         g.fill();
       }
     } else {
       const label = LANDINGS[row].short;
-      g.font = `bold ${label.length > 1 ? 22 : 26}px Georgia, serif`;
-      g.textAlign = 'center';
+      g.font = `bold ${label.length > 1 ? 28 : 34}px Georgia, serif`;
       g.fillText(label, bx, y + 1);
     }
+    // The name: as big as fits (about 3 cm letters).
+    const name = row === 'open' ? 'Doors' : LANDINGS[row].label;
+    let size = 36;
+    g.font = `600 ${size}px Georgia, serif`;
+    while (size > 24 && g.measureText(name).width > maxText) g.font = `600 ${(size -= 1)}px Georgia, serif`;
     g.textAlign = 'left';
     g.fillStyle = '#1a0e06';
-    g.font = '600 23px Georgia, serif';
-    g.fillText(name, bx + R + gap, y + 1);
-    g.textAlign = 'center';
+    g.fillText(name, tx, y + 1);
   });
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
   return t;
 }
 

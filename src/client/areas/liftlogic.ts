@@ -22,6 +22,48 @@ export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v ===
 export const DEPTH = 2.2;
 export const HALF = 0.95;
 
+/**
+ * The floor panel inside the cab (metres): a brass plate on the side wall,
+ * centred at shoulder height. Five rows (the four floors, then the doors),
+ * each a round button with its name beside it. Sized for a fingertip: 6 cm
+ * buttons, 3 cm apart, and a 1 cm strip between rows that presses nothing
+ * (a poke that lands between two rows picks neither, never the wrong one).
+ */
+export const PANEL_ROWS = ['suite', 'promenade', 'pool', 'casino', 'open'] as const;
+export type PanelRow = (typeof PANEL_ROWS)[number];
+export const PANEL = {
+  w: 0.26,
+  h: 0.58,
+  /** Centre height above the cab floor. */
+  y: 1.3,
+  /** The name plate at the top, and the margin at the bottom. */
+  header: 0.075,
+  foot: 0.02,
+  /** Button diameter, its centre from the plate's left edge. */
+  button: 0.062,
+  buttonX: 0.05,
+  /** Unpressable strip at each edge of a row (so 2x between rows). */
+  dead: 0.005,
+} as const;
+
+/** Height of one row (m). */
+export const panelRowH = () => (PANEL.h - PANEL.header - PANEL.foot) / PANEL_ROWS.length;
+
+/** Centre of row `i`, from the plate's top edge (m). */
+export const panelRowY = (i: number) => PANEL.header + (i + 0.5) * panelRowH();
+
+/** The row under a point `fromTop` metres below the plate's top edge, or null (header, margins, between rows). */
+export function panelRowAt(fromTop: number): PanelRow | null {
+  const y = fromTop - PANEL.header;
+  const h = panelRowH();
+  if (y < 0) return null;
+  const i = Math.floor(y / h);
+  if (i >= PANEL_ROWS.length) return null;
+  const inRow = y - i * h;
+  if (inRow < PANEL.dead || inRow > h - PANEL.dead) return null;
+  return PANEL_ROWS[i];
+}
+
 /** Seconds for the doors to go fully open or shut. */
 export const DOOR_SECS = 1.1;
 /** Seconds sealed in, moving between landings. */
