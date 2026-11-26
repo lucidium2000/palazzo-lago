@@ -151,7 +151,18 @@ export class OnTheRunHost {
     });
   }
 
+  /** While loading: ready as soon as the game's renderer exists (its load event waits for every sound it preloads). */
+  poll() {
+    if (this.state !== 'loading' || !this.win) return;
+    try {
+      if (this.win.__otrGfx && this.win.document.querySelector('#stage canvas')) this.onLoad();
+    } catch {
+      /* not yet */
+    }
+  }
+
   private onLoad() {
+    if (this.state === 'ready') return;
     let w: GameWindow | null = null;
     try {
       w = (this.iframe?.contentWindow as GameWindow | null) ?? null;

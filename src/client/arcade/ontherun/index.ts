@@ -121,9 +121,9 @@ const SEAT_X = 0.53;
 const SCREEN_W = 0.9;
 const SCREEN_H = (SCREEN_W * 9) / 16;
 /** The wheel: centre (local), rim radius, tilt back from vertical. */
-const WHEEL_AT = new THREE.Vector3(0, 0.98, 0.42);
+const WHEEL_AT = new THREE.Vector3(0, 0.94, 0.42);
 const WHEEL_R = 0.165;
-const WHEEL_TILT = 0.5;
+const WHEEL_TILT = 0.62;
 /** The seat (local z of the driver's spot, in front of the body). */
 const SEAT_Z = 0.95;
 /** Dashboard buttons across one seat's console (u 0..1) and how far back (v). */
@@ -375,19 +375,19 @@ export class OnTheRunCabinet implements FloorGame {
       floorPlate.position.set(sx, 0.015, Z1 + 0.22);
       g.add(floorPlate);
       const base = new THREE.Mesh(
-        box(0.34, 0.3, 0.34, () => otrSwatch('#140d22')),
+        box(0.34, 0.3, 0.34, () => otrSwatch('#241838')),
         m.body,
       );
       base.position.set(sx, 0.15, Z1 + SEAT_Z + 0.05);
       g.add(base);
       const cushion = new THREE.Mesh(
-        box(0.5, 0.12, 0.46, () => otrSwatch('#2a1640')),
+        box(0.5, 0.12, 0.46, () => otrSwatch('#4a2a6e')),
         m.body,
       );
       cushion.position.set(sx, 0.36, Z1 + SEAT_Z + 0.05);
       g.add(cushion);
       const back = new THREE.Mesh(
-        box(0.5, 0.62, 0.1, () => otrSwatch('#2a1640')),
+        box(0.5, 0.62, 0.1, () => otrSwatch('#4a2a6e')),
         m.body,
       );
       back.position.set(sx, 0.7, Z1 + SEAT_Z + 0.3);
@@ -550,9 +550,9 @@ export class OnTheRunCabinet implements FloorGame {
       label: `${TITLE} · seat ${i + 1}`,
       position: seat.stand.clone(),
       yaw: slot.yaw,
-      pitch: -0.02,
-      eye: sc.y - 0.02,
-      back: 0.5,
+      pitch: -0.07,
+      eye: sc.y + 0.07,
+      back: 0.3,
       portrait: { back: 1.05, eye: sc.y, pitch: -0.05 },
     });
     env.interaction.register({
@@ -837,6 +837,7 @@ export class OnTheRunCabinet implements FloorGame {
     }
 
     let ran = 0;
+    host.poll();
     if (host.state === 'ready') {
       this.ensureLiveTex();
       // Attract: past the "press any key" gate onto the game's own title (its loading rehearsal runs first).
@@ -852,6 +853,7 @@ export class OnTheRunCabinet implements FloorGame {
           // Same task as the game's frame: its drawing buffer still holds the picture.
           this.liveTex.needsUpdate = true;
           this.uploads++;
+          if (this.shotWanted) this.takeShot();
           this.sendFrame(dt, playing);
         }
       }
@@ -885,6 +887,21 @@ export class OnTheRunCabinet implements FloorGame {
   }
 
   private padUntil = -1;
+  /** The dev harness asks for the next game frame as a picture (3D and HUD, as the screen shows it). */
+  shotWanted = false;
+  shot: HTMLCanvasElement | null = null;
+
+  private takeShot() {
+    this.shotWanted = false;
+    const gl = this.host.canvas;
+    if (!gl) return;
+    const c = (this.shot ??= document.createElement('canvas'));
+    c.width = 960;
+    c.height = 540;
+    const g = c.getContext('2d')!;
+    g.drawImage(gl, 0, 0, 960, 540);
+    g.drawImage(this.host.hud.canvas, 0, 0, 960, 540);
+  }
   private gateSent = false;
 
   /** You've left the arcade's floor: everything stops and the game goes. */

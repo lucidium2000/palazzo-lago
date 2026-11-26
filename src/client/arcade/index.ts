@@ -30,8 +30,10 @@ import { bakeStatic } from '../merge';
 
 /**
  * The Palazzo Lago arcade: six upright cabinets with original games, the
- * physical floor games and a featured wide cabinet running The Last Mile (a
- * real web game, see lastmile/), mounted into whatever room provides the slots.
+ * physical floor games, a featured wide cabinet running The Last Mile (a
+ * real web game, see lastmile/) and a sit-down twin racing cabinet running ON
+ * THE RUN (the owner's WebGL racer, see ontherun/), mounted into whatever room
+ * provides the slots.
  *
  *   mountArcade(scene, ARCADE_SLOTS, deps) => { update(dt) }
  *
@@ -44,7 +46,7 @@ import { bakeStatic } from '../merge';
 
 export interface ArcadeSlot {
   id: string;
-  /** 'feature': a wider bay for the featured game (The Last Mile). */
+  /** 'feature': a wider bay for a featured web game (The Last Mile; ON THE RUN takes the one whose id or hint says racing). */
   kind: 'cabinet' | 'floor' | 'feature';
   pos: THREE.Vector3;
   yaw: number;

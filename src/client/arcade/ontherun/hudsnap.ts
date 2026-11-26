@@ -235,7 +235,7 @@ export class HudSnap {
     const root = doc.documentElement as HTMLElement;
     const bodyEl = doc.body as HTMLElement;
     const attr = (e: HTMLElement) => `${e.className ? ` class="${esc(String(e.className))}"` : ''}${e.getAttribute('style') ? ` style="${esc(e.getAttribute('style')!)}"` : ''}`;
-    const own = `#stage,canvas{visibility:hidden!important}html,body{background:transparent!important;margin:0;overflow:hidden;width:${this.lw}px;height:${this.lh}px}*{transition:none!important;caret-color:transparent}`;
+    const own = `#stage,canvas,#fsBtn{visibility:hidden!important}html,body{background:transparent!important;margin:0;overflow:hidden;width:${this.lw}px;height:${this.lh}px}*{transition:none!important;caret-color:transparent}`;
     const svg =
       `<svg xmlns="http://www.w3.org/2000/svg" width="${this.lw}" height="${this.lh}"><foreignObject x="0" y="0" width="${this.lw}" height="${this.lh}">` +
       `<html xmlns="http://www.w3.org/1999/xhtml"${attr(root)}><head><style>${this.fontCss}\n${this.css}\n${frozen}${own}</style></head>` +
