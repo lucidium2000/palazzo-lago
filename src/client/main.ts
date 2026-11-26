@@ -13,7 +13,7 @@ import { AREA_NODES, buildAreas, registerAreas } from './areas';
 import { DECK, POOL, WATER_Y } from './areas/pool';
 import { BeachBalls } from './beachball';
 import { Session } from './net/session';
-import { MAX_PLAYERS, signedMoney, type AreaId } from './net/party';
+import { MAX_PLAYERS, PLAYER_COLORS, signedMoney, type AreaId } from './net/party';
 import { Mirror } from './net/mirror';
 import { setupLobby } from './net/lobby';
 import { connect, newCode, type Transport } from './net/transport';
@@ -62,6 +62,7 @@ import { PhotoCams } from './photocam';
 import { elVoice } from './cast';
 import type { ReactKind } from './reactlines';
 import { DrinkSync } from './net/drinksync';
+import { PhotoSync } from './net/photosync';
 import { LooseObjects } from './loose';
 import { LooseSync } from './net/loosesync';
 import { Party } from './party';
@@ -897,6 +898,7 @@ async function main() {
   });
   let drinkSync: DrinkSync | null = null;
   let looseSync: LooseSync | null = null;
+  let photoSync: PhotoSync | null = null;
   let boxing: Boxing | null = null;
   const buzz = (side: 'left' | 'right', strength: number, ms: number) => {
     for (const { handedness, gamepad } of interaction.gamepads()) {
@@ -966,6 +968,9 @@ async function main() {
     });
     looseSync?.dispose();
     looseSync = new LooseSync(session, loose, scene);
+    photoSync?.dispose();
+    photoSync = new PhotoSync(session, photoCams);
+    (window as unknown as { casino: Record<string, unknown> }).casino.photoSync = photoSync;
     party.connect(session);
     bjSync?.dispose();
     bjSync = new BlackjackSync(session, blackjacks);
@@ -1066,6 +1071,7 @@ async function main() {
       trigger: (side) => !!interaction.gamepads().find((g) => g.handedness === side)?.gamepad.buttons[0]?.pressed,
       onFlash: (at) => session?.emit('flash', { p: at.toArray().map((v) => Math.round(v * 100) / 100) }),
       toast: (t) => hud.toast(t, 'info'),
+      author: () => ({ name: me.name, color: session?.color ?? PLAYER_COLORS[0] }),
     },
     [
       { p: new THREE.Vector3(Lounge.COUNTER_X + 0.3, Lounge.TOP + 0.038, Lounge.COUNTER_Z0 + 0.5), yaw: Math.PI / 2 },
@@ -1177,6 +1183,8 @@ async function main() {
       session = null;
       looseSync?.dispose();
       looseSync = null;
+      photoSync?.dispose();
+      photoSync = null;
       bjSync?.dispose();
       bjSync = null;
       pokerSync?.dispose();
@@ -1608,6 +1616,7 @@ async function main() {
     }
     drinkSync?.update();
     photoCams.update(dt);
+    photoSync?.update(dt);
     watch.update(dt, player.inXR);
     looseSync?.update();
     bjSync?.update(dt);

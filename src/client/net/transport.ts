@@ -62,6 +62,9 @@ export interface PlayerState {
   dh?: number[] | null;
   /** The loose object in their hand: [kind, colour, hand]. */
   lo?: number[] | null;
+  /** The photo camera in your hand: [camera index, 0 = left / 1 = right hand, then its pose
+   *  (x, y, z, qx, qy, qz, qw) relative to that wrist (last = 1) or in the world (last = 0)]. */
+  pc?: number[] | null;
   /** Per-finger curls per hand, 5 digits [thumb,index,middle,ring,pinky] 0-9. */
   lf?: string;
   rf?: string;
