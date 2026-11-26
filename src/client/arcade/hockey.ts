@@ -355,7 +355,14 @@ export class Hockey implements FloorGame {
         }
         break;
       case 's': {
-        if (this.owner === 'me') return;
+        if (this.owner === 'me') {
+          // We both pressed START at once (each before hearing the other): the lower id keeps the
+          // table, and the other takes the far mallet in their game if they started at the other end.
+          const self = this.session?.selfId ?? '';
+          if (d.ph !== 'play' || this.opp !== 'ai' || d.on !== 'HOUSE' || !(f.id < self)) return;
+          this.owner = f.id;
+          if (Number(d.os) !== this.mySide) floorEmit(this.session, this.id, { k: 'j', side: this.mySide });
+        }
         // The owner's game.
         this.owner = f.id;
         this.ownerName = f.name;

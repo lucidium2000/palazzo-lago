@@ -148,6 +148,42 @@ export const REACTIONS: Record<string, ReactLines> = {
     hit: ['[angry] Throw one more thing. I dare you.', 'Ow! Knock it off!', "[firm] Strike two, buddy."],
     security: ["[firm] Security. Let's keep it friendly, alright?", '[firm] Easy. Hands down, take a walk.', "[calm, firm] Alright, alright. Break it up.", "[stern] That's enough. Walk it off or you're out."],
   },
+  // The Promenade's staff.
+  cook_pizza: {
+    pushed: ['Whoa, easy, pal!', "[laughs] Hey, no shovin' at the counter!", 'Watch it, I got a hot oven here!'],
+    punched: ["[shouting] OW! Hey! What're you, nuts?!", "[yelling] OUCH! You just lost your slice privileges, pal!", '[groans] Ohh, right in the kisser. Security!'],
+    doused: ["[annoyed] Aw, come on! On the apron?", "[angry] Hey! I'm workin' here, ya know!", 'Real nice. Real nice. You want a slice with that?'],
+    hit: ["[angry] Hey! Who's throwin' stuff at the cook?!", "Ow! Throw the dough, not at the guy makin' it!", '[annoyed] Knock it off, pal!'],
+    security: ["[shouting] SECURITY! We got a wise guy at the pizza counter!", '[yelling] Hey, SECURITY! Over here!'],
+  },
+  cook_burger: {
+    pushed: ['Whoa there, partner!', "[laughs] Easy now, the grill ain't goin' anywhere.", 'Hey! Mind the spatula!'],
+    punched: ["[hollering] OW! Now that ain't how you order a burger!", "[yelling] OUCH! You're eighty-sixed, buddy!", '[groans] Oh, that smarts! Security!'],
+    doused: ["[annoyed] Well, that's one way to cool off the grill.", "[angry] Hey! I just washed this apron!", "Real funny, friend. Real funny."],
+    hit: ["[angry] Hey! Who's chuckin' things at the grill?!", "Ow! Quit it, ya knucklehead!", "[annoyed] Throw one more thing and you're flippin' burgers yourself."],
+    security: ['[hollering] SECURITY! Trouble at the burger counter!', "[shouting] Somebody get security over here, now!"],
+  },
+  cook_noodles: {
+    pushed: ['Hey. Careful.', '[dry] The wok is hot. So is my temper.', 'Easy. Personal space.'],
+    punched: ["[shouting] OW! Are you serious?!", "[yelling] OUCH! Okay. You're banned from noodles.", '[groans] Ow. Security. Now, please.'],
+    doused: ['[deadpan] Wonderful. Thank you for that.', "[annoyed] I'm going to need a minute. And a towel.", "Really? That's the move?"],
+    hit: ['[annoyed] Hey! Not at the kitchen!', 'Ow! Watch it.', '[dry] Nice throw. Terrible idea.'],
+    security: ['[shouting] SECURITY! Noodle bar, please!', '[firm, loud] Security! Over here, right now!'],
+  },
+  cook_gelato: {
+    pushed: ['Ah! Piano, piano!', '[startled] Ehi! Careful, please!', "Easy! I'm holding a scoop!"],
+    punched: ['[cries out] OW! Mamma mia! Why?!', "[yelling] OUCH! Security! Aiuto!", '[groans] Ow! No gelato for you. Never!'],
+    doused: ["[gasps] Ma dai! Seriously?!", "[annoyed] Now I'm all sticky. Grazie mille.", "Che schifo! That's disgusting!"],
+    hit: ['[startled] Ehi! Who threw that?!', 'Ow! Basta!', '[annoyed] Not at the gelato, per favore!'],
+    security: ['[shouting] SECURITY! Aiuto! Help!', '[yelling] Security! At the gelato counter, please!'],
+  },
+  clerk: {
+    pushed: ['Oh! Excuse you.', '[cool] Careful, please. The displays are glass.', 'Do mind the shelves.'],
+    punched: ["[cries out] OW! How DARE you!", "[yelling] OUCH! Security! Now!", "[groans] Ow! You'll be leaving. Immediately."],
+    doused: ['[icy] Charming. This is silk.', "[gasps] On the cashmere? Really?", "[cold] I'll add the dry cleaning to your bill."],
+    hit: ['[startled] Excuse me! Was that thrown at me?', 'Ow! Not in the boutique!', '[cold] Do that again and you will shop elsewhere.'],
+    security: ['[shouting] SECURITY! Lago Luxe, please!', '[firm, loud] Security! To the boutique, right now!'],
+  },
   crew_rocco: {
     pushed: ["[laughs] Hey! You wanna go, huh?", 'Whoa! Easy, tiger!', "[laughs] Shovin' me? Me?!"],
     punched: ["[shouting] OW! Okay! OKAY! It's on now!", "[laughs, pained] OUCH! Ha! Nice shot, ya jerk!", "[yelling] OW! My jaw! You're buyin' the next round!"],

@@ -46,8 +46,10 @@ step in and ride up to Suite 3201 (floor-to-ceiling windows on the Strip) or dow
 deck: lit pools, palms, cabanas, a pool bar and a DJ. The car's **M** button takes you to the Promenade, the
 restaurant and shopping level: a marble concourse under skylights that ends at a glass balcony over a
 garden atrium, a food court (pizza, burgers, noodles, gelato: order at the counter, pick it up, eat it
-bite by bite), the Lago Luxe boutique (sunglasses and fedoras to buy with chips and wear, so your
-friends see them) and the Lago Arcade. The floor is alive: guests chat in circles with
+bite by bite; the cooks, Tony, Duke, Mei and Lucia, call your order in their own voices), the Lago Luxe boutique (sunglasses and fedoras to buy with chips and wear, so your
+friends see them; Simone rings you up) and the Lago Arcade, each with its own sound: a crowd murmur and
+grills sizzling on the concourse, a soft electronic hum and far-off bleeps in the arcade, the casino's
+music only a quiet bed up here. The floor is alive: guests chat in circles with
 drinks in hand, friends walk together, people stop to talk and take photos, and they mostly mind their
 own business instead of staring at you.
 
@@ -62,8 +64,9 @@ champions, or a friend on the second controls). Each has attract mode, a high-sc
 joystick initials (the room's host keeps the tables) and its own chiptune. In VR you grab the stick
 and press the buttons with your fingers; on a screen walk up and the keys (or touch buttons) play.
 On the floor: **Skyline Hoops** (45 seconds, real throws), **Puck Palazzo** air hockey (the house
-or a friend) and the **Lucky Claw** (win a plush pal to carry and toss). Friends nearby watch your
-screen live.
+or a friend) and the **Lucky Claw** (win a plush pal to carry and toss: it's a real loose thing, so friends see it in your
+hand and wherever you throw it). Friends nearby watch your screen live, see the same puck and score,
+and the same claw run.
 
 **Hands and talk:** in VR your avatar's fingers follow your real ones: the Quest controllers'
 touch sensors (trigger touch and pull for the index finger, grip for the rest, thumb on the stick /
@@ -143,6 +146,8 @@ src/client/     Three.js app
                 attract, initials), cabinet.ts / controls.ts (3D cabinets, sticks and buttons),
                 synth.ts (chiptunes), hoops / hockey / claw (+ their *phys / *logic), net.ts
   promenadelife.ts    food court ordering, the boutique's register, what you wear (and your friends see)
+  promenadelines.ts   the cooks' and the clerk's lines (one fixed line per dish, for recording)
+  promenadeaudio.ts   the Promenade's murmur, grills, kitchen clatter and arcade room tone (synthesized)
   piano.ts      the playable piano: 88 keys, fingertips / typing / taps, the pianist's bench
   pianokeys.ts  keyboard layout, hit detection, fingertip strikes, voice allocation (pure)
   pianotone.ts  synthesized piano notes (pianoworker.ts renders them), pianosynth.ts plays them

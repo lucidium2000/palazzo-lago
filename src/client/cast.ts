@@ -401,6 +401,12 @@ export const SPEAKERS: { id: string; name: string; bio: string; voiceHint: strin
   { id: 'you_m', name: 'You', bio: 'The player (a man): your replies, out loud.', voiceHint: 'man in his thirties, natural, friendly, relaxed, neutral American' },
   { id: 'you_f', name: 'You', bio: 'The player (a woman): your replies, out loud.', voiceHint: 'woman in her thirties, natural, friendly, relaxed, neutral American' },
   { id: 'crew_mikey', name: 'Mikey', bio: "Your crew's lightweight: sweet, excitable, two drinks in and already emotional.", voiceHint: 'young man, sweet, excitable, a little high-pitched, goofy, American' },
+  // The Promenade's staff (their lines: promenadelines.ts).
+  { id: 'cook_pizza', name: 'Tony', bio: "Forno Lago's pizza man: a big-hearted New Yorker, proud of his oven, calls everyone pal.", voiceHint: 'man in his fifties, New York Italian-American, warm, gravelly, big-hearted, a pizzeria owner' },
+  { id: 'cook_burger', name: 'Duke', bio: 'High Roller Burgers\' grill man: loud, cheerful, hollers his orders across the food court.', voiceHint: 'man in his forties, loud, booming, Texas drawl, cheerful short-order cook energy' },
+  { id: 'cook_noodles', name: 'Mei', bio: 'Golden Dragon Noodle Bar\'s wok master: calm, precise, dry wit, warm underneath.', voiceHint: 'woman in her thirties, calm, precise, low and dry, quietly funny, neutral American' },
+  { id: 'cook_gelato', name: 'Lucia', bio: 'Dolce Vita Gelateria\'s gelataia from Bologna: sunny, sweet, playful, sprinkles in Italian.', voiceHint: 'young woman, bright, sunny, sweet, playful, light Italian accent' },
+  { id: 'clerk', name: 'Simone', bio: 'The Lago Luxe boutique\'s clerk: polished, elegant, quietly witty, never pushy.', voiceHint: 'woman in her thirties, polished, elegant, smooth and low, quietly witty, refined American' },
 ];
 
 /** The character a guest is played by (by gender, then their seed). */

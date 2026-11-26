@@ -15,6 +15,7 @@ import { AREA_NODES, buildAreas, PROMENADE_NODES, registerAreas } from './areas'
 import { ARCADE_SLOTS, mountArcade } from './areas/promenade';
 import { onPromenade } from './areas/promenadeplan';
 import { Boutique, FoodCourt, Wardrobe, WearView } from './promenadelife';
+import { PromenadeSound } from './promenadeaudio';
 import { DECK, POOL, WATER_Y } from './areas/pool';
 import { BeachBalls } from './beachball';
 import { Session } from './net/session';
@@ -1032,6 +1033,7 @@ async function main() {
   const boutique = new Boutique({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast });
   const wardrobe = new Wardrobe({ scene, camera, loose, hands, hud, player, sound });
   const wearView = new WearView(scene, loose);
+  const promSound = new PromenadeSound(sound, promenade.root);
   {
     // The clerk wears the shop's gold-rimmed shades.
     const clerk = areas.promenadeCast?.clerk;
@@ -1054,6 +1056,7 @@ async function main() {
         here: () => onPromenade(player.feet().x),
         session: () => session,
         root: promenade.arcadeRoom,
+        loose,
       })
     : null;
   let drinkSync: DrinkSync | null = null;
@@ -1179,6 +1182,7 @@ async function main() {
     npcSync = new NpcSync({ session, dialogue, crowd, bodies, sound, feet: () => player.feet() });
     (window as unknown as { casino: Record<string, unknown> }).casino.npcSync = npcSync;
     lounge.onLine = (p, l) => npcSync?.share(p, l);
+    foodCourt.onLine = boutique.onLine = (p, l) => npcSync?.share(p, l);
     pushFriend = friendShove(session, player, buzz);
     // After the drinks and loose things: fights add to what you publish (extraState chains).
     fights.connect(session);
@@ -2071,13 +2075,15 @@ async function main() {
     // Outside: the room tone fades and the fountains swell with the show.
     // (Only the lakeside terrace counts here; the pool deck has its own party.)
     const outside = Math.abs(feet.x) < 14 ? THREE.MathUtils.clamp((-14 - feet.z) / 2, 0, 1) : 0;
-    sound.setAmbience(1 - outside * 0.75);
+    // Up on the Promenade: its own murmur, grills and arcade (promenadeaudio.ts); the casino's room tone stays downstairs.
+    promSound.update(dt, feet);
+    sound.setAmbience((1 - outside * 0.75) * promSound.ambienceMix);
     // Music: lively on the floor, softer by the piano and outside.
     const byPiano = THREE.MathUtils.clamp(1 - feet.distanceTo(lounge.piano.position) / 7, 0, 1);
     // Out at the pool party the DJ takes over: the casino's groove ducks out.
     // (And it steps aside for your room's speaker or the lift's music.)
     suitePerks.update(dt);
-    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence) * (1 - 0.95 * suitePerks.duck));
+    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence) * (1 - 0.95 * suitePerks.duck) * promSound.musicMix);
     if (outside > 0.5) {
       if (!finaleSeen && casino.fountainLevel() > 0.8) {
         finaleSeen = true;
@@ -2113,6 +2119,7 @@ async function main() {
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
   (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, arcade, promenade };
+  (window as unknown as { casino: Record<string, unknown> }).casino.promSound = promSound;
 }
 
 main().catch((e) => {

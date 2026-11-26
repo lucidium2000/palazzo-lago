@@ -12,6 +12,7 @@ import {
 import { stickCall } from '../src/rules/craps';
 import { pocketColor, pocketLabel } from '../src/rules/roulette';
 import { DRINKS } from '../src/client/bar';
+import { promenadeLines } from '../src/client/promenadelines';
 
 const out = new Map<string, { id: string; voice: string; text: string; say?: string; speed: number }>();
 const add = (voice: string, text: string) => {
@@ -78,6 +79,9 @@ for (const v of CREW_VOICES) {
 // The bar.
 for (const t of Object.values(BARTENDER_LINES)) add(STAFF.bartender, t);
 for (const k of DRINKS) add(STAFF.bartender, orderLine(k.name, k.prep as Prep));
+
+// The Promenade: the food court's cooks and the boutique's clerk (every dish named, one line each).
+for (const [who, list] of Object.entries(promenadeLines())) for (const t of list) add(STAFF[who as keyof typeof STAFF], t);
 
 // Roulette.
 add(STAFF.croupier, CROUPIER_LINES.noMore);
@@ -194,6 +198,8 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
     fn(v);
     for (const t of [CONVO_BYE.walkedOff, CONVO_BYE.timedOut, ...HUH_LINES]) addEl(v, t);
   }
+  // The Promenade's staff: no small talk, just their own lines.
+  for (const [who, list] of Object.entries(promenadeLines())) for (const t of list) addEl(elVoice(who), t);
   for (const name of ['rocco', 'dev', 'mikey']) {
     const v = elVoice('crew_' + name);
     for (const list of Object.values(CREW_LINES)) for (const t of list) addEl(v, t);

@@ -19,13 +19,25 @@ import type { ArcadeSlot } from './index';
  * whatever's under it: dead centre on a plush it holds most of the time,
  * on the edge rarely, and sometimes it slips on the way up. Anything it
  * carries to the chute drops out of the prize door for you to take: grab it
- * (VR) or click it (screens) and carry it about, toss it (throw it, or G).
+ * (VR) or click it (screens) and carry it about, toss it (throw it, or X).
+ * A won prize is one of the room's loose things (loose.ts, a kind per plush),
+ * so it carries, throws and lands like anything else, and your friends see it
+ * at the door, in your hand and wherever you leave it. (Without the room's
+ * loose objects, the machine keeps its own prizes as before: G tosses.)
+ *
+ * Two players: whoever pays runs the claw and sends it (10 Hz), with the pile
+ * as it stands when they put their dollar in, so a friend who came later
+ * sees the same pile and the same prize come up.
  *
  * The plush are the house's own: Chipper (a casino chip with feet), Dicey
  * (a dice bear), the Cherry Twins, Lucky Star and Olive the martini octopus.
  */
 
 export const PRIZE_NAMES = ['Chipper', 'Dicey', 'the Cherry Twins', 'Lucky Star', 'Olive the Octopus'];
+/** What a won plush is called as a loose thing ("Pick up the Dicey plush"). */
+const PRIZE_LABELS = ['Chipper plush', 'Dicey plush', 'Cherry Twins plush', 'Lucky Star plush', 'Olive the Octopus plush'];
+/** Its loose kind's key. */
+export const plushKey = (design: number) => `plush${design}`;
 const DESIGNS = PRIZE_NAMES.length;
 const MAX = 24;
 const PILE = 14;
@@ -51,6 +63,8 @@ interface Prize {
   bornAt: number;
   /** An invisible box to click it by (screens). */
   proxy: THREE.Object3D | null;
+  /** Your claw picked it up (a win is yours to hand out). */
+  mine: boolean;
 }
 
 type Phase = 'idle' | 'aim' | 'drop' | 'close' | 'lift' | 'carry' | 'release';
@@ -277,6 +291,9 @@ export class Claw implements FloorGame {
   /** Desktop: the prize you're carrying (index), or -1. */
   private carrying = -1;
   private mine = false;
+  private loose: FloorEnv['loose'] = null;
+  /** Won prizes handed to the room's loose objects (tests). */
+  won = 0;
 
   constructor(
     private env: FloorEnv,
@@ -374,8 +391,28 @@ export class Claw implements FloorGame {
       env.liveRoot.add(im);
       this.meshes.push(im);
     }
-    for (let i = 0; i < MAX; i++) this.prizes.push({ design: 0, state: 'none', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, tumble: 0, live: false, bornAt: 0, proxy: null });
+    for (let i = 0; i < MAX; i++) this.prizes.push({ design: 0, state: 'none', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, tumble: 0, live: false, bornAt: 0, proxy: null, mine: false });
     this.refill(7);
+    // Won prizes become the room's loose things: a kind per plush, and the door's shelf to land on.
+    this.loose = env.loose ?? null;
+    if (this.loose) {
+      this.loose.addKinds(
+        PRIZE_LABELS.map((label, d) => ({
+          key: plushKey(d),
+          label,
+          spec: { name: plushKey(d), shape: { type: 'cyl', r: CLAW.prizeR, h: 0.09 }, mass: 0.12, bounce: 0.3, friction: 0.8, drag: 0.4, tumble: 0.6 },
+          geo: prizeGeometry(d),
+          mat: pm,
+          sound: 'thunk',
+          rate: 1.5,
+          vol: 0.35,
+          hold: { p: [0.16, -0.19, -0.38], r: [0.15, 0.4, 0] },
+          cull: true,
+        })),
+      );
+      const gp = this.group.position;
+      this.loose.surfaces.boxIn(gp.x, gp.z, slot.yaw, DOOR.x, DOOR.z - 0.02, 0.2, 0.12, gp.y + DOOR.y - CLAW.prizeR);
+    }
 
     // The stick and the button on the shelf (stick left, button right).
     const panel = new THREE.Matrix4().makeTranslation(0, 0.965, W / 2 + 0.07).premultiply(this.group.matrixWorld);
@@ -455,7 +492,7 @@ export class Claw implements FloorGame {
         p.live = false;
         continue;
       }
-      Object.assign(p, { design: s.design, state: 'pile', x: s.x, y: s.y, z: s.z, vx: 0, vy: 0, vz: 0, yaw: s.yaw, live: true });
+      Object.assign(p, { design: s.design, state: 'pile', x: s.x, y: s.y, z: s.z, vx: 0, vy: 0, vz: 0, yaw: s.yaw, live: true, mine: false });
     }
     this.dirty = true;
   }
@@ -528,11 +565,38 @@ export class Claw implements FloorGame {
     this.timer = CLAW.aimTime;
     this.mine = true;
     this.sound.sfx('coin', 0.8);
-    if (this.pileCount() < 5) {
-      const seed = (Math.random() * 1e6) | 0;
-      this.refill(seed);
-      floorEmit(this.session, this.id, { k: 'r', s: seed });
+    if (this.pileCount() < 5) this.refill((Math.random() * 1e6) | 0);
+    // The pile as it is here (a friend who came later, or missed a prize, sees the same one).
+    floorEmit(this.session, this.id, { k: 'p', s: this.pileSnap() });
+  }
+
+  /** The prizes in the machine: [index, design, x, y, z, yaw] each (rounded here too, so both sides match exactly). */
+  private pileSnap(): number[][] {
+    const out: number[][] = [];
+    this.prizes.forEach((p, i) => {
+      if (p.state !== 'pile' && p.state !== 'fall' && p.state !== 'claw') return;
+      p.x = r3(p.x);
+      p.y = r3(p.y);
+      p.z = r3(p.z);
+      p.yaw = r3(p.yaw);
+      out.push([i, p.design, p.x, p.y, p.z, p.yaw]);
+    });
+    return out;
+  }
+
+  /** A friend's pile: theirs replaces what's in the machine here. */
+  private applySnap(s: unknown) {
+    if (!Array.isArray(s)) return;
+    const inMachine = (p: Prize) => p.state === 'pile' || p.state === 'fall' || p.state === 'claw' || p.state === 'none';
+    for (const p of this.prizes) if (inMachine(p)) ((p.state = 'none'), (p.live = false));
+    for (const e of s) {
+      if (!Array.isArray(e) || e.length !== 6 || !e.every((v) => Number.isFinite(v))) continue;
+      const p = this.prizes[e[0]];
+      if (!p || !inMachine(p)) continue;
+      Object.assign(p, { design: Math.max(0, Math.min(DESIGNS - 1, Math.floor(e[1]))), state: 'pile', x: e[2], y: e[3], z: e[4], yaw: e[5], vx: 0, vy: 0, vz: 0, live: true, mine: false });
     }
+    this.held = -1;
+    this.dirty = true;
   }
 
   private pileView() {
@@ -584,6 +648,7 @@ export class Claw implements FloorGame {
             if (this.rng.next() < chance) {
               this.held = i;
               p.state = 'claw';
+              p.mine = true;
               this.slipAt = this.rng.next() < 0.14 ? this.rng.range(0.05, Math.max(0.06, this.drop - 0.05)) : -1;
               this.sound.sfx('clunk', 0.6, 1.4);
               floorEmit(this.session, this.id, { k: 'k', i });
@@ -669,7 +734,7 @@ export class Claw implements FloorGame {
         this.open = Number(d.o) || 0;
         {
           const h = Number(d.h);
-          if (h >= 0 && this.prizes[h] && this.prizes[h].state === 'pile') this.prizes[h].state = 'claw';
+          if (h >= 0 && this.prizes[h] && this.prizes[h].state === 'pile') ((this.prizes[h].state = 'claw'), (this.prizes[h].mine = false));
           if (this.held >= 0 && h !== this.held && this.prizes[this.held].state === 'claw') this.prizes[this.held].state = 'fall';
           this.held = h >= 0 ? h : -1;
         }
@@ -679,6 +744,7 @@ export class Claw implements FloorGame {
         const p = this.prizes[Number(d.i)];
         if (p && p.state === 'pile') {
           p.state = 'claw';
+          p.mine = false;
           this.held = Number(d.i);
           this.settlePile();
         }
@@ -686,14 +752,33 @@ export class Claw implements FloorGame {
       }
       case 'w': {
         const p = this.prizes[Number(d.i)];
-        if (p && p.state !== 'door' && p.state !== 'held' && p.state !== 'carry' && p.state !== 'loose') this.toDoor(p);
+        // Their prize: it comes out here as the loose thing they spawned (loose sync), or, without those, at the door.
+        if (p && p.state !== 'door' && p.state !== 'held' && p.state !== 'carry' && p.state !== 'loose') {
+          if (this.loose) {
+            p.state = 'none';
+            p.live = false;
+            this.dirty = true;
+          } else this.toDoor(p);
+        }
         this.env.toast(`${f.name} won ${PRIZE_NAMES[p?.design ?? 0]} at the Lucky Claw!`, 'win');
         break;
       }
       case 'r':
         this.refill(Number(d.s) || 7);
         break;
+      case 'p':
+        this.applySnap(d.s);
+        break;
     }
+  }
+
+  /** A won prize at the door, as one of the room's loose things (your friends get it too). */
+  private spawnPrize(p: Prize) {
+    const at = this.tmpV.set(DOOR.x, DOOR.y - CLAW.prizeR, DOOR.z - 0.02).applyMatrix4(this.group.matrixWorld);
+    const it = this.loose?.spawnLive(plushKey(p.design), at.x, at.z, at.y + 0.08, { yaw: this.group.rotation.y + (Math.random() - 0.5) * 0.6 });
+    if (it) this.won++;
+    else this.toDoor(p);
+    this.dirty = true;
   }
 
   private toDoor(p: Prize) {
@@ -749,8 +834,14 @@ export class Claw implements FloorGame {
         if (Math.abs(p.x) > lim) ((p.x = Math.sign(p.x) * lim), (p.vx = -p.vx * 0.3));
         if (Math.abs(p.z) > lim) ((p.z = Math.sign(p.z) * lim), (p.vz = -p.vz * 0.3));
         if (chute && p.y < CLAW.floor - 0.1) {
-          this.toDoor(p);
-          if (this.mine || !this.session) {
+          const won = p.mine || !this.session;
+          if (this.loose) {
+            // Out of the machine: a loose plush at the door (the winner makes it; friends get it from them).
+            p.state = 'none';
+            p.live = false;
+            if (won) this.spawnPrize(p);
+          } else this.toDoor(p);
+          if (won) {
             this.sound.sfx('fanfare', 1);
             this.env.toast(`You won ${PRIZE_NAMES[p.design]}! Take it from the prize door`, 'win');
             floorEmit(this.session, this.id, { k: 'w', i });

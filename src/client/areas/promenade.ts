@@ -92,6 +92,8 @@ export interface ArcadeDeps {
   session(): import('../net/session').Session | null;
   /** The arcade room's group (dim, neon): add the games here so zone culling hides them with the floor. */
   root: THREE.Object3D;
+  /** The room's loose objects: the claw's won prizes become loose things (carried, thrown, synced). */
+  loose: import('../loose').LooseObjects;
 }
 
 export type MountArcade = (scene: THREE.Scene, slots: readonly ArcadeSlot[], deps: ArcadeDeps) => { update(dt: number): void };
@@ -1183,6 +1185,8 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
 // People
 // ---------------------------------------------------------------------------
 
+const COOK_MEN = new Set(['pizza', 'burger']);
+
 export interface PromenadeCast {
   /** Each counter's cook, by counter id. */
   servers: Map<string, Person>;
@@ -1204,10 +1208,16 @@ export function populatePromenade(crowd: Crowd, area: PromenadeArea, budget: num
   const servers = new Map<string, Person>();
   for (const c of COUNTERS) {
     const look = { ...staffLook('bar'), main: new THREE.Color(c.colors[0] === '#f4e8d8' ? '#4a8a6a' : c.colors[0]).getHex(), second: 0xf6f2ea };
+    // Tony (pizza) and Duke (burgers) are men; Mei (noodles) and Lucia (gelato) women: their voices match (cast.ts).
+    if (COOK_MEN.has(c.id)) Object.assign(look, { kind: 'male_suit', height: 1.8, hairStyle: look.hairStyle === 'long' || look.hairStyle === 'bun' ? 'short' : look.hairStyle, lipstick: undefined });
     const p = keep(crowd.add('bartender', look, new THREE.Vector3(c.x - 0.3, 0, COUNTER.z - 0.85), 0));
-    if (p) servers.set(c.id, p);
+    if (p) {
+      p.speaker = `cook_${c.id}`;
+      servers.set(c.id, p);
+    }
   }
   const clerk = keep(crowd.add('bartender', { ...staffLook('bar'), main: 0x14100e, second: 0xf6f2ea }, new THREE.Vector3(STORE_FIX.clerk.x, 0, STORE_FIX.clerk.z), STORE_FIX.clerk.yaw));
+  if (clerk) clerk.speaker = 'clerk';
   const left = () => budget - people.length;
   // Dinner at the tables.
   const nEat = Math.min(area.eaters.length, Math.max(3, Math.round(left() * 0.5)));

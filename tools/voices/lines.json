@@ -1,5 +1,207 @@
 [
  {
+  "id": "0349d7b4",
+  "voice": "af_aoede",
+  "text": "[shouting] OW! Are you serious?!",
+  "say": "OW! Are you serious?!",
+  "speed": 1
+ },
+ {
+  "id": "05219cb3",
+  "voice": "af_aoede",
+  "text": "Order up. Your sesame beef noodles.",
+  "speed": 1
+ },
+ {
+  "id": "1689363c",
+  "voice": "af_aoede",
+  "text": "[dry] The wok is hot. So is my temper.",
+  "say": "The wok is hot. So is my temper.",
+  "speed": 1
+ },
+ {
+  "id": "177867ba",
+  "voice": "af_aoede",
+  "text": "Hi there. Hungry? The wok's ready when you are.",
+  "speed": 1
+ },
+ {
+  "id": "2b453674",
+  "voice": "af_aoede",
+  "text": "[shouting] SECURITY! Noodle bar, please!",
+  "say": "SECURITY! Noodle bar, please!",
+  "speed": 1
+ },
+ {
+  "id": "2b85fcfc",
+  "voice": "af_aoede",
+  "text": "Garlic chili noodles. Good choice. Give me a minute.",
+  "speed": 1
+ },
+ {
+  "id": "35c1af48",
+  "voice": "af_aoede",
+  "text": "[yelling] OUCH! Okay. You're banned from noodles.",
+  "say": "OUCH! Okay. You're banned from noodles.",
+  "speed": 1
+ },
+ {
+  "id": "36a1abec",
+  "voice": "af_aoede",
+  "text": "One sesame beef. My favourite.",
+  "speed": 1
+ },
+ {
+  "id": "3ec25424",
+  "voice": "af_aoede",
+  "text": "Order up. Your garlic chili noodles.",
+  "speed": 1
+ },
+ {
+  "id": "422d7c19",
+  "voice": "af_aoede",
+  "text": "Garlic chili noodles, hot from the wok.",
+  "speed": 1
+ },
+ {
+  "id": "4524890d",
+  "voice": "af_aoede",
+  "text": "One garlic chili. Hope you like it spicy.",
+  "speed": 1
+ },
+ {
+  "id": "4a806d2d",
+  "voice": "af_aoede",
+  "text": "Really? That's the move?",
+  "speed": 1
+ },
+ {
+  "id": "5b124212",
+  "voice": "af_aoede",
+  "text": "Evening. Take your time. The menu's short and it's all good.",
+  "speed": 1
+ },
+ {
+  "id": "63963eb6",
+  "voice": "af_aoede",
+  "text": "Ow! Watch it.",
+  "speed": 1
+ },
+ {
+  "id": "661906fc",
+  "voice": "af_aoede",
+  "text": "Sorry. Chips only, and you're a little short.",
+  "speed": 1
+ },
+ {
+  "id": "7027174d",
+  "voice": "af_aoede",
+  "text": "One wok, one order. Yours is next.",
+  "speed": 1
+ },
+ {
+  "id": "75f18617",
+  "voice": "af_aoede",
+  "text": "Here you go. Sesame beef noodles. Enjoy.",
+  "speed": 1
+ },
+ {
+  "id": "7a9a56d2",
+  "voice": "af_aoede",
+  "text": "Sesame beef noodles, hot from the wok.",
+  "speed": 1
+ },
+ {
+  "id": "8056da9f",
+  "voice": "af_aoede",
+  "text": "Sesame beef noodles, coming up.",
+  "speed": 1
+ },
+ {
+  "id": "84074d8c",
+  "voice": "af_aoede",
+  "text": "Garlic chili noodles, coming right up.",
+  "speed": 1
+ },
+ {
+  "id": "85a754eb",
+  "voice": "af_aoede",
+  "text": "Patience. Good noodles take a minute.",
+  "speed": 1
+ },
+ {
+  "id": "8637573a",
+  "voice": "af_aoede",
+  "text": "Sesame beef. Into the wok it goes.",
+  "speed": 1
+ },
+ {
+  "id": "a2320bc3",
+  "voice": "af_aoede",
+  "text": "[firm, loud] Security! Over here, right now!",
+  "say": "Security! Over here, right now!",
+  "speed": 1
+ },
+ {
+  "id": "b9414099",
+  "voice": "af_aoede",
+  "text": "[deadpan] Wonderful. Thank you for that.",
+  "say": "Wonderful. Thank you for that.",
+  "speed": 1
+ },
+ {
+  "id": "badcb5ca",
+  "voice": "af_aoede",
+  "text": "Welcome to Golden Dragon. Noodles are pulled fresh.",
+  "speed": 1
+ },
+ {
+  "id": "bbdb5f3b",
+  "voice": "af_aoede",
+  "text": "[annoyed] I'm going to need a minute. And a towel.",
+  "say": "I'm going to need a minute. And a towel.",
+  "speed": 1
+ },
+ {
+  "id": "d373a1af",
+  "voice": "af_aoede",
+  "text": "[groans] Ow. Security. Now, please.",
+  "say": "Ow. Security. Now, please.",
+  "speed": 1
+ },
+ {
+  "id": "dba1a74a",
+  "voice": "af_aoede",
+  "text": "[annoyed] Hey! Not at the kitchen!",
+  "say": "Hey! Not at the kitchen!",
+  "speed": 1
+ },
+ {
+  "id": "e2f3a357",
+  "voice": "af_aoede",
+  "text": "[dry] Nice throw. Terrible idea.",
+  "say": "Nice throw. Terrible idea.",
+  "speed": 1
+ },
+ {
+  "id": "f13aa885",
+  "voice": "af_aoede",
+  "text": "Easy. Personal space.",
+  "speed": 1
+ },
+ {
+  "id": "f32f5bc7",
+  "voice": "af_aoede",
+  "text": "Hey. Careful.",
+  "speed": 1
+ },
+ {
+  "id": "f786d3a0",
+  "voice": "af_aoede",
+  "text": "Here you go. Garlic chili noodles. Careful, they bite back.",
+  "speed": 1
+ },
+ {
   "id": "0074bd19",
   "voice": "af_bella",
   "text": "Ha, totally. Vegas, am I right?",
@@ -5203,6 +5405,208 @@
   "speed": 1
  },
  {
+  "id": "15f1e6cb",
+  "voice": "af_sky",
+  "text": "Stracciatella, just for you. Buon appetito!",
+  "speed": 1
+ },
+ {
+  "id": "1ff1c558",
+  "voice": "af_sky",
+  "text": "Here you go, stracciatella. Eat it before it melts!",
+  "speed": 1
+ },
+ {
+  "id": "2aca3e82",
+  "voice": "af_sky",
+  "text": "[yelling] Security! At the gelato counter, please!",
+  "say": "Security! At the gelato counter, please!",
+  "speed": 1
+ },
+ {
+  "id": "2ea032bd",
+  "voice": "af_sky",
+  "text": "[startled] Ehi! Who threw that?!",
+  "say": "Ehi! Who threw that?!",
+  "speed": 1
+ },
+ {
+  "id": "41100cc8",
+  "voice": "af_sky",
+  "text": "Ciao! Gelato, sorbetto, espresso. What makes you happy?",
+  "speed": 1
+ },
+ {
+  "id": "4182b4a8",
+  "voice": "af_sky",
+  "text": "[gasps] Ma dai! Seriously?!",
+  "say": "Ma dai! Seriously?!",
+  "speed": 1
+ },
+ {
+  "id": "4333fb56",
+  "voice": "af_sky",
+  "text": "[cries out] OW! Mamma mia! Why?!",
+  "say": "OW! Mamma mia! Why?!",
+  "speed": 1
+ },
+ {
+  "id": "4ea1a639",
+  "voice": "af_sky",
+  "text": "Ah, stracciatella. A classic. Subito!",
+  "speed": 1
+ },
+ {
+  "id": "610ac1e3",
+  "voice": "af_sky",
+  "text": "Ow! Basta!",
+  "speed": 1
+ },
+ {
+  "id": "639128bf",
+  "voice": "af_sky",
+  "text": "Ciao! Something sweet tonight?",
+  "speed": 1
+ },
+ {
+  "id": "63bb5459",
+  "voice": "af_sky",
+  "text": "Oh, mi dispiace. Chips only, and you're a little short.",
+  "speed": 1
+ },
+ {
+  "id": "69f22852",
+  "voice": "af_sky",
+  "text": "Che schifo! That's disgusting!",
+  "speed": 1
+ },
+ {
+  "id": "6c8e2a60",
+  "voice": "af_sky",
+  "text": "One stracciatella cone, coming up!",
+  "speed": 1
+ },
+ {
+  "id": "7749760e",
+  "voice": "af_sky",
+  "text": "Stracciatella! Molto bene. One moment.",
+  "speed": 1
+ },
+ {
+  "id": "791d70c4",
+  "voice": "af_sky",
+  "text": "Ecco! One pistachio cone. Enjoy!",
+  "speed": 1
+ },
+ {
+  "id": "7cba125a",
+  "voice": "af_sky",
+  "text": "Un momento! I'm still scooping yours.",
+  "speed": 1
+ },
+ {
+  "id": "83e2e8ef",
+  "voice": "af_sky",
+  "text": "[startled] Ehi! Careful, please!",
+  "say": "Ehi! Careful, please!",
+  "speed": 1
+ },
+ {
+  "id": "8cf06eff",
+  "voice": "af_sky",
+  "text": "[groans] Ow! No gelato for you. Never!",
+  "say": "Ow! No gelato for you. Never!",
+  "speed": 1
+ },
+ {
+  "id": "911cef8a",
+  "voice": "af_sky",
+  "text": "[annoyed] Now I'm all sticky. Grazie mille.",
+  "say": "Now I'm all sticky. Grazie mille.",
+  "speed": 1
+ },
+ {
+  "id": "9f6e039a",
+  "voice": "af_sky",
+  "text": "Pistachio! Bravo, the best one.",
+  "speed": 1
+ },
+ {
+  "id": "a2ac5185",
+  "voice": "af_sky",
+  "text": "Piano, piano! One at a time, yours is coming.",
+  "speed": 1
+ },
+ {
+  "id": "ba32fb41",
+  "voice": "af_sky",
+  "text": "Pistachio, my favourite. Un momento.",
+  "speed": 1
+ },
+ {
+  "id": "c0e8b846",
+  "voice": "af_sky",
+  "text": "[yelling] OUCH! Security! Aiuto!",
+  "say": "OUCH! Security! Aiuto!",
+  "speed": 1
+ },
+ {
+  "id": "c3797589",
+  "voice": "af_sky",
+  "text": "Pistachio gelato, just for you. Buon appetito!",
+  "speed": 1
+ },
+ {
+  "id": "c8a3f876",
+  "voice": "af_sky",
+  "text": "One pistachio cone, subito!",
+  "speed": 1
+ },
+ {
+  "id": "c9c76b1d",
+  "voice": "af_sky",
+  "text": "Ah! Piano, piano!",
+  "speed": 1
+ },
+ {
+  "id": "cf9d4536",
+  "voice": "af_sky",
+  "text": "[annoyed] Not at the gelato, per favore!",
+  "say": "Not at the gelato, per favore!",
+  "speed": 1
+ },
+ {
+  "id": "d3b03c64",
+  "voice": "af_sky",
+  "text": "Ecco! One stracciatella cone. Enjoy!",
+  "speed": 1
+ },
+ {
+  "id": "deb5fce1",
+  "voice": "af_sky",
+  "text": "Buonasera! Come, come, have a look.",
+  "speed": 1
+ },
+ {
+  "id": "fba35909",
+  "voice": "af_sky",
+  "text": "Easy! I'm holding a scoop!",
+  "speed": 1
+ },
+ {
+  "id": "ffe202f1",
+  "voice": "af_sky",
+  "text": "[shouting] SECURITY! Aiuto! Help!",
+  "say": "SECURITY! Aiuto! Help!",
+  "speed": 1
+ },
+ {
+  "id": "fff8f174",
+  "voice": "af_sky",
+  "text": "Here you go, pistachio. Eat it before it melts!",
+  "speed": 1
+ },
+ {
   "id": "012c9e9c",
   "voice": "am_adam",
   "text": "[groans] Oh, now you're done!",
@@ -8878,6 +9282,12 @@
   "speed": 1.03
  },
  {
+  "id": "001da1f1",
+  "voice": "am_onyx",
+  "text": "Hey! Mind the spatula!",
+  "speed": 1
+ },
+ {
   "id": "00aeeb5b",
   "voice": "am_onyx",
   "text": "It's Vegas! Late is when it gets good.",
@@ -8915,6 +9325,18 @@
   "speed": 1
  },
  {
+  "id": "09ae1330",
+  "voice": "am_onyx",
+  "text": "Whoa there, partner!",
+  "speed": 1
+ },
+ {
+  "id": "0b34b470",
+  "voice": "am_onyx",
+  "text": "Single smash? Good call. Comin' right up.",
+  "speed": 1
+ },
+ {
   "id": "0c76eb25",
   "voice": "am_onyx",
   "text": "No worries. I'll follow the music.",
@@ -8936,6 +9358,12 @@
   "id": "0df34479",
   "voice": "am_onyx",
   "text": "Again?",
+  "speed": 1
+ },
+ {
+  "id": "0e621cff",
+  "voice": "am_onyx",
+  "text": "Ow! Quit it, ya knucklehead!",
   "speed": 1
  },
  {
@@ -9088,6 +9516,20 @@
   "speed": 1
  },
  {
+  "id": "2eb1abee",
+  "voice": "am_onyx",
+  "text": "[laughs] Step on up! Nothin' fixes a bad night like a burger.",
+  "say": "Step on up! Nothin' fixes a bad night like a burger.",
+  "speed": 1
+ },
+ {
+  "id": "2f81cf3f",
+  "voice": "am_onyx",
+  "text": "[hollering] OW! Now that ain't how you order a burger!",
+  "say": "OW! Now that ain't how you order a burger!",
+  "speed": 1
+ },
+ {
   "id": "304c83e0",
   "voice": "am_onyx",
   "text": "Ha! I'll take that as a yes.",
@@ -9124,9 +9566,30 @@
   "speed": 1
  },
  {
+  "id": "363e0c80",
+  "voice": "am_onyx",
+  "text": "[groans] Oh, that smarts! Security!",
+  "say": "Oh, that smarts! Security!",
+  "speed": 1
+ },
+ {
+  "id": "377829f8",
+  "voice": "am_onyx",
+  "text": "[shouting] Somebody get security over here, now!",
+  "say": "Somebody get security over here, now!",
+  "speed": 1
+ },
+ {
   "id": "38421ba1",
   "voice": "am_onyx",
   "text": "Now that's Vegas spirit!",
+  "speed": 1
+ },
+ {
+  "id": "3907064a",
+  "voice": "am_onyx",
+  "text": "[annoyed] Well, that's one way to cool off the grill.",
+  "say": "Well, that's one way to cool off the grill.",
   "speed": 1
  },
  {
@@ -9180,6 +9643,13 @@
   "speed": 1
  },
  {
+  "id": "485700ec",
+  "voice": "am_onyx",
+  "text": "[yelling] OUCH! You're eighty-sixed, buddy!",
+  "say": "OUCH! You're eighty-sixed, buddy!",
+  "speed": 1
+ },
+ {
   "id": "49c586ea",
   "voice": "am_onyx",
   "text": "[whistles] Look at this place, huh?",
@@ -9203,6 +9673,12 @@
   "id": "4ce42f66",
   "voice": "am_onyx",
   "text": "Take a break, get a drink, come back fresh. Works for me every time.",
+  "speed": 1
+ },
+ {
+  "id": "4fd10707",
+  "voice": "am_onyx",
+  "text": "Lago double, hot off the grill. Enjoy!",
   "speed": 1
  },
  {
@@ -9233,6 +9709,13 @@
   "id": "5281f136",
   "voice": "am_onyx",
   "text": "Oh, now THAT'S how you do it!",
+  "speed": 1
+ },
+ {
+  "id": "54e10fa2",
+  "voice": "am_onyx",
+  "text": "[angry] Hey! I just washed this apron!",
+  "say": "Hey! I just washed this apron!",
   "speed": 1
  },
  {
@@ -9346,6 +9829,12 @@
   "speed": 1
  },
  {
+  "id": "711977ff",
+  "voice": "am_onyx",
+  "text": "One Lago double, comin' right up!",
+  "speed": 1
+ },
+ {
   "id": "720bfe3a",
   "voice": "am_onyx",
   "text": "Thanks, it's rented.",
@@ -9368,6 +9857,12 @@
   "id": "75795ab5",
   "voice": "am_onyx",
   "text": "You like the piano player? I taught him that song. Well, I sang it at him once.",
+  "speed": 1
+ },
+ {
+  "id": "75a3e927",
+  "voice": "am_onyx",
+  "text": "Howdy! Grill's hot. What're we havin'?",
   "speed": 1
  },
  {
@@ -9402,9 +9897,28 @@
   "speed": 1
  },
  {
+  "id": "7d855342",
+  "voice": "am_onyx",
+  "text": "One at a time, partner. Yours is comin'.",
+  "speed": 1
+ },
+ {
+  "id": "837e791a",
+  "voice": "am_onyx",
+  "text": "Hold your horses, I got yours on the grill!",
+  "speed": 1
+ },
+ {
   "id": "88ca7621",
   "voice": "am_onyx",
   "text": "Sure thing, my friend.",
+  "speed": 1
+ },
+ {
+  "id": "8947c74f",
+  "voice": "am_onyx",
+  "text": "[laughs] Easy now, the grill ain't goin' anywhere.",
+  "say": "Easy now, the grill ain't goin' anywhere.",
   "speed": 1
  },
  {
@@ -9451,6 +9965,12 @@
   "speed": 1
  },
  {
+  "id": "9020fb70",
+  "voice": "am_onyx",
+  "text": "Order up! One Lago double cheeseburger.",
+  "speed": 1
+ },
+ {
   "id": "90bfd575",
   "voice": "am_onyx",
   "text": "[grumbles] Hey. Easy.",
@@ -9470,6 +9990,19 @@
   "speed": 1
  },
  {
+  "id": "9135c0f6",
+  "voice": "am_onyx",
+  "text": "Hungry? You came to the right place, friend.",
+  "speed": 1
+ },
+ {
+  "id": "9857a9e8",
+  "voice": "am_onyx",
+  "text": "[hollering] SECURITY! Trouble at the burger counter!",
+  "say": "SECURITY! Trouble at the burger counter!",
+  "speed": 1
+ },
+ {
   "id": "997ffca2",
   "voice": "am_onyx",
   "text": "A regular! What's your game?",
@@ -9485,6 +10018,12 @@
   "id": "99cc03c6",
   "voice": "am_onyx",
   "text": "Stay classy, kid.",
+  "speed": 1
+ },
+ {
+  "id": "9a36fa71",
+  "voice": "am_onyx",
+  "text": "Double cheese, double patty. You got it.",
   "speed": 1
  },
  {
@@ -9544,6 +10083,12 @@
   "speed": 1
  },
  {
+  "id": "adfc348c",
+  "voice": "am_onyx",
+  "text": "Here's your double. Napkins are on me!",
+  "speed": 1
+ },
+ {
   "id": "aed6dcd2",
   "voice": "am_onyx",
   "text": "You got a problem?",
@@ -9557,10 +10102,22 @@
   "speed": 1
  },
  {
+  "id": "b35f8ede",
+  "voice": "am_onyx",
+  "text": "Sorry, friend. Chips only, and you're comin' up short.",
+  "speed": 1
+ },
+ {
   "id": "b38592d7",
   "voice": "am_onyx",
   "text": "[shouting] You throw things at me? Me?!",
   "say": "You throw things at me? Me?!",
+  "speed": 1
+ },
+ {
+  "id": "b3d71fe9",
+  "voice": "am_onyx",
+  "text": "The double cheeseburger? Atta way! Give me a few.",
   "speed": 1
  },
  {
@@ -9618,6 +10175,18 @@
   "id": "bbe16b90",
   "voice": "am_onyx",
   "text": "Is this your first time in Vegas?",
+  "speed": 1
+ },
+ {
+  "id": "bcd6469c",
+  "voice": "am_onyx",
+  "text": "Real funny, friend. Real funny.",
+  "speed": 1
+ },
+ {
+  "id": "bdd08ab1",
+  "voice": "am_onyx",
+  "text": "Smash burger, hot off the grill!",
   "speed": 1
  },
  {
@@ -9702,6 +10271,12 @@
   "speed": 1
  },
  {
+  "id": "cfcc3a82",
+  "voice": "am_onyx",
+  "text": "One smash burger, on the grill!",
+  "speed": 1
+ },
+ {
   "id": "d000cbcc",
   "voice": "am_onyx",
   "text": "He's alright. He's got time to get great.",
@@ -9731,6 +10306,12 @@
   "id": "d8b4a8c8",
   "voice": "am_onyx",
   "text": "What's that? Eh, beautiful.",
+  "speed": 1
+ },
+ {
+  "id": "d92b16a5",
+  "voice": "am_onyx",
+  "text": "Order up! One smash burger.",
   "speed": 1
  },
  {
@@ -9784,6 +10365,26 @@
   "speed": 1
  },
  {
+  "id": "e6f3a0dd",
+  "voice": "am_onyx",
+  "text": "[angry] Hey! Who's chuckin' things at the grill?!",
+  "say": "Hey! Who's chuckin' things at the grill?!",
+  "speed": 1
+ },
+ {
+  "id": "e76743e7",
+  "voice": "am_onyx",
+  "text": "[annoyed] Throw one more thing and you're flippin' burgers yourself.",
+  "say": "Throw one more thing and you're flippin' burgers yourself.",
+  "speed": 1
+ },
+ {
+  "id": "e84c2a0a",
+  "voice": "am_onyx",
+  "text": "There ya go, one single smash. Dig in!",
+  "speed": 1
+ },
+ {
   "id": "ea867657",
   "voice": "am_onyx",
   "text": "Ha! Whatever you said, I agree.",
@@ -9817,6 +10418,12 @@
   "id": "f955b846",
   "voice": "am_onyx",
   "text": "Somebody's eating steak tonight!",
+  "speed": 1
+ },
+ {
+  "id": "f9d14df3",
+  "voice": "am_onyx",
+  "text": "Smash burger, you got it. Give me a minute.",
   "speed": 1
  },
  {
@@ -10470,6 +11077,209 @@
   "voice": "am_puck",
   "text": "Eight, easy. Point is 4.",
   "speed": 1.08
+ },
+ {
+  "id": "10df2c41",
+  "voice": "am_santa",
+  "text": "[laughs] Look at you, you look hungry. What'll it be?",
+  "say": "Look at you, you look hungry. What'll it be?",
+  "speed": 1
+ },
+ {
+  "id": "15945616",
+  "voice": "am_santa",
+  "text": "Pepperoni? Now we're talkin'. Gimme a minute.",
+  "speed": 1
+ },
+ {
+  "id": "207bc912",
+  "voice": "am_santa",
+  "text": "Hey, how you doin'? Slices are hot, oven's hotter.",
+  "speed": 1
+ },
+ {
+  "id": "27f84a25",
+  "voice": "am_santa",
+  "text": "Margherita! A classic. Comin' up.",
+  "speed": 1
+ },
+ {
+  "id": "2fb332e0",
+  "voice": "am_santa",
+  "text": "Order up! Your pepperoni slice.",
+  "speed": 1
+ },
+ {
+  "id": "380bf04a",
+  "voice": "am_santa",
+  "text": "Pepperoni, hot outta the oven. Enjoy!",
+  "speed": 1
+ },
+ {
+  "id": "3fece6e6",
+  "voice": "am_santa",
+  "text": "[groans] Ohh, right in the kisser. Security!",
+  "say": "Ohh, right in the kisser. Security!",
+  "speed": 1
+ },
+ {
+  "id": "43730c98",
+  "voice": "am_santa",
+  "text": "[annoyed] Aw, come on! On the apron?",
+  "say": "Aw, come on! On the apron?",
+  "speed": 1
+ },
+ {
+  "id": "4ae56bb1",
+  "voice": "am_santa",
+  "text": "You got it, one slice of pepperoni. Into the oven.",
+  "speed": 1
+ },
+ {
+  "id": "56b0bdf4",
+  "voice": "am_santa",
+  "text": "Here ya go, one margherita. Careful, it's hot!",
+  "speed": 1
+ },
+ {
+  "id": "6b279c97",
+  "voice": "am_santa",
+  "text": "Watch it, I got a hot oven here!",
+  "speed": 1
+ },
+ {
+  "id": "71f7e80a",
+  "voice": "am_santa",
+  "text": "Whoa, easy, pal!",
+  "speed": 1
+ },
+ {
+  "id": "81e47dfe",
+  "voice": "am_santa",
+  "text": "One margherita, fresh basil and everything.",
+  "speed": 1
+ },
+ {
+  "id": "8e205ae7",
+  "voice": "am_santa",
+  "text": "[yelling] Hey, SECURITY! Over here!",
+  "say": "Hey, SECURITY! Over here!",
+  "speed": 1
+ },
+ {
+  "id": "9bb15b79",
+  "voice": "am_santa",
+  "text": "[shouting] OW! Hey! What're you, nuts?!",
+  "say": "OW! Hey! What're you, nuts?!",
+  "speed": 1
+ },
+ {
+  "id": "9c2080e3",
+  "voice": "am_santa",
+  "text": "Ow! Throw the dough, not at the guy makin' it!",
+  "speed": 1
+ },
+ {
+  "id": "abbd2b23",
+  "voice": "am_santa",
+  "text": "Real nice. Real nice. You want a slice with that?",
+  "speed": 1
+ },
+ {
+  "id": "b11e6178",
+  "voice": "am_santa",
+  "text": "Whoa, one at a time, boss. Yours is in the oven.",
+  "speed": 1
+ },
+ {
+  "id": "b5aa3f5d",
+  "voice": "am_santa",
+  "text": "[angry] Hey! Who's throwin' stuff at the cook?!",
+  "say": "Hey! Who's throwin' stuff at the cook?!",
+  "speed": 1
+ },
+ {
+  "id": "bd51ad47",
+  "voice": "am_santa",
+  "text": "[laughs] Hey, no shovin' at the counter!",
+  "say": "Hey, no shovin' at the counter!",
+  "speed": 1
+ },
+ {
+  "id": "bdd80adf",
+  "voice": "am_santa",
+  "text": "[yelling] OUCH! You just lost your slice privileges, pal!",
+  "say": "OUCH! You just lost your slice privileges, pal!",
+  "speed": 1
+ },
+ {
+  "id": "c4beddb8",
+  "voice": "am_santa",
+  "text": "Margherita, hot outta the oven. Enjoy!",
+  "speed": 1
+ },
+ {
+  "id": "c5d4c855",
+  "voice": "am_santa",
+  "text": "Step right up! Best slice west of Brooklyn.",
+  "speed": 1
+ },
+ {
+  "id": "c82ac35b",
+  "voice": "am_santa",
+  "text": "[annoyed] Knock it off, pal!",
+  "say": "Knock it off, pal!",
+  "speed": 1
+ },
+ {
+  "id": "c8664c8e",
+  "voice": "am_santa",
+  "text": "Ah, sorry pal. Chips only, and you're a little short.",
+  "speed": 1
+ },
+ {
+  "id": "c950d58a",
+  "voice": "am_santa",
+  "text": "Here ya go, one pepperoni. Careful, it's hot!",
+  "speed": 1
+ },
+ {
+  "id": "ca621c20",
+  "voice": "am_santa",
+  "text": "Easy, easy! I got yours in already.",
+  "speed": 1
+ },
+ {
+  "id": "d1100ac4",
+  "voice": "am_santa",
+  "text": "One pepperoni, comin' right up!",
+  "speed": 1
+ },
+ {
+  "id": "d1b3b6ac",
+  "voice": "am_santa",
+  "text": "Order up! Your margherita slice.",
+  "speed": 1
+ },
+ {
+  "id": "d2b2f0ad",
+  "voice": "am_santa",
+  "text": "You got it. One slice of margherita, into the oven.",
+  "speed": 1
+ },
+ {
+  "id": "e18c59e9",
+  "voice": "am_santa",
+  "text": "[angry] Hey! I'm workin' here, ya know!",
+  "say": "Hey! I'm workin' here, ya know!",
+  "speed": 1
+ },
+ {
+  "id": "f9fbcae8",
+  "voice": "am_santa",
+  "text": "[shouting] SECURITY! We got a wise guy at the pizza counter!",
+  "say": "SECURITY! We got a wise guy at the pizza counter!",
+  "speed": 1
  },
  {
   "id": "0090afc4",
@@ -11145,6 +11955,203 @@
   "id": "fb74aa32",
   "voice": "bf_emma",
   "text": "Enjoy it, seriously!",
+  "speed": 1
+ },
+ {
+  "id": "02341ee9",
+  "voice": "bf_isabella",
+  "text": "Oh! Excuse you.",
+  "speed": 1
+ },
+ {
+  "id": "06392c06",
+  "voice": "bf_isabella",
+  "text": "Wonderful choice. Have a great night.",
+  "speed": 1
+ },
+ {
+  "id": "0bf5f652",
+  "voice": "bf_isabella",
+  "text": "Thank you. Enjoy the sunglasses.",
+  "speed": 1
+ },
+ {
+  "id": "0f418c95",
+  "voice": "bf_isabella",
+  "text": "Welcome to Lago Luxe. Try anything on.",
+  "speed": 1
+ },
+ {
+  "id": "100d1d48",
+  "voice": "bf_isabella",
+  "text": "Ow! Not in the boutique!",
+  "speed": 1
+ },
+ {
+  "id": "10600093",
+  "voice": "bf_isabella",
+  "text": "All yours. The fedora looks great on you.",
+  "speed": 1
+ },
+ {
+  "id": "137b0b05",
+  "voice": "bf_isabella",
+  "text": "[firm, loud] Security! To the boutique, right now!",
+  "say": "Security! To the boutique, right now!",
+  "speed": 1
+ },
+ {
+  "id": "13ba0902",
+  "voice": "bf_isabella",
+  "text": "Good evening. Have a look around, take your time.",
+  "speed": 1
+ },
+ {
+  "id": "186ae2c0",
+  "voice": "bf_isabella",
+  "text": "[gasps] On the cashmere? Really?",
+  "say": "On the cashmere? Really?",
+  "speed": 1
+ },
+ {
+  "id": "190940fe",
+  "voice": "bf_isabella",
+  "text": "All yours. May they roll sevens.",
+  "speed": 1
+ },
+ {
+  "id": "20e24cbf",
+  "voice": "bf_isabella",
+  "text": "Thank you. Enjoy the fedora.",
+  "speed": 1
+ },
+ {
+  "id": "27da87eb",
+  "voice": "bf_isabella",
+  "text": "[yelling] OUCH! Security! Now!",
+  "say": "OUCH! Security! Now!",
+  "speed": 1
+ },
+ {
+  "id": "2f77a7b9",
+  "voice": "bf_isabella",
+  "text": "Thank you. Enjoy the dice.",
+  "speed": 1
+ },
+ {
+  "id": "43a951c0",
+  "voice": "bf_isabella",
+  "text": "Excuse me? You'll want to pay for that at the counter.",
+  "speed": 1
+ },
+ {
+  "id": "4e2adb87",
+  "voice": "bf_isabella",
+  "text": "Do mind the shelves.",
+  "speed": 1
+ },
+ {
+  "id": "54e75c69",
+  "voice": "bf_isabella",
+  "text": "[groans] Ow! You'll be leaving. Immediately.",
+  "say": "Ow! You'll be leaving. Immediately.",
+  "speed": 1
+ },
+ {
+  "id": "55844e07",
+  "voice": "bf_isabella",
+  "text": "Ahem. The register is right here, darling.",
+  "speed": 1
+ },
+ {
+  "id": "621e6217",
+  "voice": "bf_isabella",
+  "text": "[shouting] SECURITY! Lago Luxe, please!",
+  "say": "SECURITY! Lago Luxe, please!",
+  "speed": 1
+ },
+ {
+  "id": "6d535b1c",
+  "voice": "bf_isabella",
+  "text": "All yours. He's very soft, isn't he?",
+  "speed": 1
+ },
+ {
+  "id": "7af7ab21",
+  "voice": "bf_isabella",
+  "text": "All yours. The sunglasses look great on you.",
+  "speed": 1
+ },
+ {
+  "id": "833145dc",
+  "voice": "bf_isabella",
+  "text": "[startled] Excuse me! Was that thrown at me?",
+  "say": "Excuse me! Was that thrown at me?",
+  "speed": 1
+ },
+ {
+  "id": "88c573a4",
+  "voice": "bf_isabella",
+  "text": "[icy] Charming. This is silk.",
+  "say": "Charming. This is silk.",
+  "speed": 1
+ },
+ {
+  "id": "8b92d0af",
+  "voice": "bf_isabella",
+  "text": "Thank you. Lucky will take good care of you.",
+  "speed": 1
+ },
+ {
+  "id": "972df6dc",
+  "voice": "bf_isabella",
+  "text": "[cool] Careful, please. The displays are glass.",
+  "say": "Careful, please. The displays are glass.",
+  "speed": 1
+ },
+ {
+  "id": "99816af6",
+  "voice": "bf_isabella",
+  "text": "Wonderful choice. Very Riviera.",
+  "speed": 1
+ },
+ {
+  "id": "a2497abc",
+  "voice": "bf_isabella",
+  "text": "Welcome in. Sunglasses are on the front table, hats by the mirror.",
+  "speed": 1
+ },
+ {
+  "id": "bb3aed43",
+  "voice": "bf_isabella",
+  "text": "I'm sorry, chips only, and you're a little short.",
+  "speed": 1
+ },
+ {
+  "id": "d3b8cac2",
+  "voice": "bf_isabella",
+  "text": "[cries out] OW! How DARE you!",
+  "say": "OW! How DARE you!",
+  "speed": 1
+ },
+ {
+  "id": "d4f02d63",
+  "voice": "bf_isabella",
+  "text": "[cold] Do that again and you will shop elsewhere.",
+  "say": "Do that again and you will shop elsewhere.",
+  "speed": 1
+ },
+ {
+  "id": "d7b8c389",
+  "voice": "bf_isabella",
+  "text": "A fedora. Very Rat Pack. Have a great night.",
+  "speed": 1
+ },
+ {
+  "id": "fb3b6e66",
+  "voice": "bf_isabella",
+  "text": "[cold] I'll add the dry cleaning to your bill.",
+  "say": "I'll add the dry cleaning to your bill.",
   "speed": 1
  },
  {

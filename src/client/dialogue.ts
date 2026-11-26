@@ -7,7 +7,7 @@ import { PinchHold, pinchFinger, ReplyHud, replyButtons, replyPrompt, type Reply
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Audience, type Ctx, type Exchange, type Node, type Reply } from './dialogueLines';
 import { CONVO_BYE, HUH_LINES, STAFF, sceneVoice, type VoiceId } from './speech';
 import { interpret, vocabulary } from './understand';
-import { characterFor, elVoice, spoken, type Character } from './cast';
+import { characterFor, elVoice, SPEAKERS, spoken, type Character } from './cast';
 import type { Listener } from './listen';
 import { mouthOf, voices } from './voices';
 import { PLAYER_STANDIN, PLAYER_VOICES, REACTIONS, type ReactKind } from './reactlines';
@@ -315,7 +315,7 @@ export class Dialogue {
     let best: Person | null = null,
       bestScore = 0.5;
     for (const p of this.d.crowd.people) {
-      if (p.driven || p.role === 'buddy' || p.role === 'pianist' || p.culled || p.photo) continue;
+      if (p.driven || p.role === 'buddy' || p.role === 'pianist' || p.speaker || p.culled || p.photo) continue;
       const to = new THREE.Vector3(p.pos.x - feet.x, 0, p.pos.z - feet.z);
       const dist = to.length();
       const reach = p.role === 'croupier' || p.role === 'bartender' ? 3.0 : 2.2;
@@ -474,6 +474,10 @@ export class Dialogue {
     if (crew) {
       id = 'crew_' + crew.name.toLowerCase();
       alt = crew.voice;
+    } else if (p.speaker) {
+      // Staff with their own voice (the Promenade's cooks and clerk).
+      id = p.speaker;
+      alt = this.voicesOf(p)[1];
     } else if (p.role === 'pianist') {
       // The pianist has no lines of his own: the roulette croupier's voice (a man in black tie), minus his table talk.
       id = 'croupier';
@@ -542,7 +546,9 @@ export class Dialogue {
       priority: react && l.kind !== 'pushed',
       group: 'friend-' + l.kind,
       volume: l.volume,
-      captionFallback: false,
+      // A line nobody has recorded yet: a caption for staff talking (what your friend saw), never the robot voice.
+      captionFallback: l.kind === 'line',
+      recordedOnly: true,
       fallback: { rate: l.kind === 'punched' ? 1.15 : 1.05, pitch: l.kind === 'punched' ? 1.15 : 1 },
     });
     if (p) {
@@ -570,6 +576,7 @@ export class Dialogue {
 
   /** A person's voices: their own (ElevenLabs) first, then the stand-in recorded before it. */
   voicesOf(p: Person): [VoiceId, VoiceId] {
+    if (p.speaker) return [elVoice(p.speaker), (STAFF as Record<string, VoiceId>)[p.speaker] ?? STAFF.bartender];
     if (p.role === 'bartender') return [elVoice('bartender'), STAFF.bartender];
     if (p.role === 'waiter') return isFemale(p) ? [elVoice('waitress'), STAFF.waitress] : [elVoice('waiter'), STAFF.waiter];
     if (p.role === 'croupier') {
@@ -603,6 +610,7 @@ export class Dialogue {
   }
 
   private title(p: Person) {
+    if (p.speaker) return SPEAKERS.find((s) => s.id === p.speaker)?.name ?? 'Staff';
     if (p.role === 'croupier') return 'Dealer';
     if (p.role === 'bartender') return 'Bartender';
     if (p.role === 'waiter') return 'Waiter';

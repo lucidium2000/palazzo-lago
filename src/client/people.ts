@@ -163,6 +163,8 @@ export class Person {
   glanceCd = 3 + Math.random() * 15;
   /** Hidden this frame (too far away on a headset). */
   culled = false;
+  /** Staff with a voice of their own (an id in SPEAKERS, cast.ts: the Promenade's cooks and clerk). */
+  speaker: string | null = null;
   /** Talking with you: looks at you until then. */
   attendUntil = 0;
   /** Saying a line (outside a circle): talking gestures until then. */

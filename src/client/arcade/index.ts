@@ -9,7 +9,7 @@ import { ATLAS_H, ATLAS_W, atlasTexture, paintCabinet, paintSwatches } from './a
 import { Cabinet, type CabinetMats } from './cabinet';
 import { ControlInstances, TouchPoints } from './controls';
 import { DeskControls, type DeskStation } from './desk';
-import type { FloorEnv, FloorFrame, FloorGame } from './floor';
+import type { ArcadeLoose, FloorEnv, FloorFrame, FloorGame } from './floor';
 import { MODES, type Mode } from './machine';
 import { cleanSnap, friendNear, packPad, unpackPad, type ArcadeFriend, type ArcadeSession } from './net';
 import { cleanInitials, packTable, ScoreBook, unpackTable, type ScoreEntry } from './scores';
@@ -76,6 +76,8 @@ export interface ArcadeDeps {
   root?: THREE.Object3D;
   /** You're in the part of the resort the arcade is in (elsewhere it idles: no screens, no music). */
   here?: () => boolean;
+  /** The room's loose objects: prizes you win become loose things everyone sees (else the claw keeps its own). */
+  loose?: ArcadeLoose;
 }
 
 export interface ArcadeHandle {
@@ -253,6 +255,7 @@ export class Arcade {
       submit: (g, n, s) => this.submit(g, n, s, FLOOR_TOPS[g] ?? 100),
       haptic: (side, s, ms) => this.haptic(side, s, ms),
       name: () => this.name(),
+      loose: d.loose ?? null,
     };
     // Each floor game to the slot laid out for it (by id or hint), else by size: hoops wants the longest lane.
     const makers: { id: string; match: RegExp; make: (s: ArcadeSlot) => FloorGame }[] = [
