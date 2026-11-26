@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { bakeStatic } from '../merge';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { assets } from '../assets';
 import type { Quality } from '../quality';
@@ -31,7 +32,8 @@ export class Batch {
     this.add(g, mat, M(x, y, z, yaw));
   }
 
-  build(parent: THREE.Object3D, name = 'area'): THREE.Group {
+  /** `byColor`: materials alike but for their colour share a draw too (only if nothing recolours them later). */
+  build(parent: THREE.Object3D, name = 'area', opts: { byColor?: boolean } = {}): THREE.Group {
     const g = new THREE.Group();
     g.name = name;
     for (const [mat, list] of this.parts) {
@@ -44,6 +46,7 @@ export class Batch {
     }
     parent.add(g);
     this.parts.clear();
+    if (opts.byColor) bakeStatic(g, { byColor: true });
     return g;
   }
 }

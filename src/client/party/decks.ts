@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { allLayers } from '../cull';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Hands } from '../hands';
 import type { Interaction } from '../interaction';
@@ -60,6 +61,8 @@ interface Deck {
 export class Decks {
   readonly group = new THREE.Group();
   readonly a: Deck;
+  /** Both decks (made once: the frame loop walks them every frame). */
+  private both: Deck[] = [];
   readonly b: Deck;
   /** Crossfader, 0 (left deck) .. 1 (right deck). */
   xf = 0;
@@ -89,7 +92,7 @@ export class Decks {
   private up = new THREE.Vector3(0, 1, 0);
   private t = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   // Mouse scratching.
-  private ray = new THREE.Raycaster();
+  private ray = allLayers(new THREE.Raycaster());
   private ndc = new THREE.Vector2();
   private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -RECORD_Y);
   private mouse = { id: -1, at: new THREE.Vector3(), has: false, locked: false };
@@ -103,6 +106,7 @@ export class Decks {
     // Facing the crowd (+z), your left hand is +x: the set's deck there, the battle record on the right.
     this.a = { platter: new Platter(), spindle: new THREE.Vector3(cx + 0.65, RECORD_Y, cz), by: null };
     this.b = { platter: new Platter(), spindle: new THREE.Vector3(cx - 0.59, RECORD_Y, cz), by: null };
+    this.both = [this.a, this.b];
     this.b.platter.angle = 1.7;
     this.group.name = 'dj-decks';
     d.scene.add(this.group);
@@ -172,7 +176,7 @@ export class Decks {
     this.updateHere(you.feet, dt);
     if (you.xr) this.handsOn();
     else if (this.mouse.id >= 0) this.mouseDrag();
-    for (const deck of [this.a, this.b]) {
+    for (const deck of this.both) {
       if (!deck.by) deck.platter.release();
       deck.platter.update(dt);
     }
@@ -188,7 +192,8 @@ export class Decks {
   }
 
   private placeRecords() {
-    for (const [i, deck] of [this.a, this.b].entries()) {
+    for (let i = 0; i < 2; i++) {
+      const deck = this.both[i];
       this.q.setFromAxisAngle(this.up, -deck.platter.angle);
       this.m.compose(deck.spindle, this.q, this.s);
       this.records.setMatrixAt(i, this.m);
@@ -211,7 +216,7 @@ export class Decks {
   private handsOn() {
     const H = this.d.hands;
     if (!H || this.here < 0.05) {
-      for (const deck of [this.a, this.b]) if (deck.by === 'left' || deck.by === 'right') deck.by = null;
+      for (const deck of this.both) if (deck.by === 'left' || deck.by === 'right') deck.by = null;
       this.faderBy = null;
       return;
     }
@@ -221,7 +226,7 @@ export class Decks {
       const aim = wp ? H.handAim(side) : null;
       // The palm: a hand's width on from the wrist.
       const palm = wp && aim ? this.t[0].copy(wp.p).addScaledVector(aim.fwd, 0.085).addScaledVector(aim.palm, 0.02) : null;
-      for (const deck of [this.a, this.b]) {
+      for (const deck of this.both) {
         const mine = deck.by === side;
         if (deck.by && !mine) continue;
         // The contact point: the palm if it's on the record, else the fingertip.
@@ -271,7 +276,7 @@ export class Decks {
     if (!this.pointAt(e.clientX, e.clientY)) return;
     const p = this.mouse.at;
     let got = false;
-    for (const deck of [this.a, this.b]) {
+    for (const deck of this.both) {
       if (deck.by || Math.hypot(p.x - deck.spindle.x, p.z - deck.spindle.z) > RECORD_R * 1.05) continue;
       deck.by = 'mouse';
       deck.platter.touch(this.angleAt(deck, p));
@@ -306,7 +311,7 @@ export class Decks {
   private pointerUp(e: PointerEvent) {
     if (e.pointerId !== this.mouse.id) return;
     this.mouse.id = -1;
-    for (const deck of [this.a, this.b]) if (deck.by === 'mouse') deck.by = null;
+    for (const deck of this.both) if (deck.by === 'mouse') deck.by = null;
     if (this.faderBy === 'mouse') this.faderBy = null;
     e.stopImmediatePropagation();
   }
@@ -314,7 +319,7 @@ export class Decks {
   private mouseDrag() {
     if (!this.mouse.has) return;
     const p = this.mouse.at;
-    for (const deck of [this.a, this.b]) {
+    for (const deck of this.both) {
       if (deck.by !== 'mouse') continue;
       if (Math.hypot(p.x - deck.spindle.x, p.z - deck.spindle.z) > 0.02) deck.platter.drag(this.angleAt(deck, p), this.dt);
       else deck.platter.drag(deck.platter.angle, this.dt);

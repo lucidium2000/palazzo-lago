@@ -244,6 +244,8 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
 
   // The pool: coping, tiled basin, and the lit water.
   const tile = new THREE.MeshStandardMaterial({ color: 0x1a8ab0, roughness: 0.3, emissive: 0x0a6a8a, emissiveIntensity: 0.8 });
+  // (The party recolours it: keep it out of the colour merge, see Batch.build.)
+  tile.userData.live = true;
   const coping = new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.6, emissive: 0x2a2218, emissiveIntensity: 0.4 });
   const P = POOL;
   for (const [x, z, w, d] of [
@@ -261,6 +263,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   ]) b.box(tile, x, -1.07, z, w, 2.14, d);
   // Floor following the depth profile (shallow end, a smooth slope, the deep end).
   const poolFloorMat = new THREE.MeshStandardMaterial({ color: 0x2aa0c8, roughness: 0.4, emissive: 0x0c7fa8, emissiveIntensity: 0.9 });
+  poolFloorMat.userData.live = true;
   {
     const floorMat = poolFloorMat;
     const fg = new THREE.PlaneGeometry(P.w, P.d, 36, 1);
@@ -517,7 +520,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     }
   }
 
-  b.build(root, 'pool-static');
+  b.build(root, 'pool-static', { byColor: true });
   const anchor = new THREE.Object3D();
   anchor.position.set(P.x, 0.5, P.z);
   root.add(anchor);

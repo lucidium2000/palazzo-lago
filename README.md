@@ -180,7 +180,8 @@ src/client/     Three.js app
   crew.ts       your three buddies: following, banter, reactions
   night.ts      tonight's goals, hot streaks, big-win celebrations and confetti
   touch.ts      phone joystick and context button
-  merge.ts      static-mesh merging (keeps draw calls inside the Quest budget)
+  merge.ts      static-mesh merging, colour merging, sprite batching (keeps draw calls down)
+  cull.ts       portal and tiny-detail culling; resortcull.ts has the resort's cells and doorways
 tests/          vitest suites
 scripts/        RTP report and reel-strip tuner; sync-lastmile.mjs copies The Last Mile into public/
 art/LICENSES.md asset licence log
@@ -193,6 +194,45 @@ Diamond Sevens 95.0%, Lago Fortuna 92.0%, Royal Conservatory 90.0%. Run `npm run
 
 ## Performance budgets (Quest 3 reference, Quest 2 supported)
 
-Measured with `?stats`: lobby ~90 draw calls per eye-pair render on the Quest 3 tier, roulette ~45, slots ~60;
-triangles under 200k. Budget: 150 draws, 750k triangles. Quest 2 uses half-size textures, fewer chandelier
-crystals and glass flowers, and no extra point lights.
+Budget: 150 draws, 750k triangles. Quest 2 uses half-size textures, fewer chandelier crystals and glass
+flowers, and no extra point lights. `?stats` shows fps, draws, triangles and how many meshes the culler
+skipped this frame.
+
+What keeps draws down:
+
+- **Portal culling** (`cull.ts`, cells and doorways in `resortcull.ts`): the casino floor, poker room,
+  hotel corridor, lobby, pool deck and every lift cab are cells joined by doorways. Each frame the culler
+  walks from your eye's cell through the doorways it can see, narrowing a frustum at each, and only draws
+  what is in your cell or inside one of those frusta. A closed lift cab shows only itself; the lobby sees the
+  casino only down the corridor. Culled meshes go to layer 31 (no camera draws it; the interaction
+  raycasters enable every layer, so things can still be pointed at). The crowd asks the same culler.
+- **Tiny far detail**: a mesh whose bounding sphere is small for its distance (radius < 1% of it on Quest 3,
+  1.5% through a doorway; never within 8 m) is skipped.
+- **Crowd**: per-tier draw distance (Quest 3 20 m, Quest 2 18 m, phones 16 m) and nobody behind a wall
+  (the culler's doorways again). Hidden people aren't posed either.
+- **Merging**: `bakeStatic` per object; `byColor` for static decor (materials alike but for colour share
+  a draw, colour per vertex); alike sprites batched into one camera-facing mesh (`batchSprites`); one lift
+  batch per landing; flat or additive double-sided transparent meshes drawn in one pass, not two.
+- **Idle when away**: the slot rows' screens and bulbs stop redrawing when the bank is far or out of view;
+  the arcade idles off the Promenade; the piano's fingertips and synth only near the keys.
+
+Measured (Playwright, headless Chromium/SwiftShader, 800×480, worst of 8 directions per spot; draws / triangles):
+
+| Spot | Quest 3 before | Quest 3 after | Mobile before | Mobile after |
+|---|---|---|---|---|
+| Casino centre | 306 / 957k | 214 / 875k | 274 | 195 |
+| Hotel lobby (looking down the corridor) | 421 / 760k | 187 / 601k | 419 | 188 |
+| Casino lift cab, doors shut | 435 / 774k | 33 / 52k | 445 | 32 |
+| Casino lift cab, doors open | 437 / 774k | 191 / 664k | 447 | 207 |
+| Bar Lago (looking across the floor) | 419 / 967k | 288 / 901k | 394 | 267 |
+| Craps / roulette / blackjack | 325 / 991k | 243 / 945k | 294 | 212 |
+| Poker room (looking out the door) | 453 / 983k | 160 / 399k | 430 | 145 |
+| Pool party | 176 / 242k | 121 / 237k | 131 | 103 |
+| Suite | 59 / 43k | 53 / 42k | 61 | 52 |
+| Promenade food court | 109 / 219k | 110 / 218k | 103 | 103 |
+| Arcade | 108 / 200k | 104 / 179k | 93 | 93 |
+
+Still over budget: views across the open casino floor (and down the corridor or through the poker room's door
+into it), in draws and, with the crowd in view, triangles. The hall's props each carry a dozen or more
+materials of their own (every slot machine's screens, glass, trim and bulbs; the tables' felts and racks), so
+the next steps there are texture atlases per prop family, far-prop impostors and a lighter crowd LOD.

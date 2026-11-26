@@ -84,14 +84,16 @@ export class ChipPopups {
   }
 
   update(dt: number) {
-    for (const p of [...this.live]) {
+    // (Backwards, so finished ones come out as we go: no copy of the list every frame.)
+    for (let i = this.live.length - 1; i >= 0; i--) {
+      const p = this.live[i];
       p.t += dt;
       p.s.sprite.position.copy(p.at).y += 0.02 + p.t * 0.06;
       (p.s.sprite.material as THREE.SpriteMaterial).opacity = Math.max(0, 1 - Math.max(0, p.t - 0.6) / 0.6);
       if (p.t > 1.2) {
         p.s.sprite.visible = false;
         p.s.sprite.removeFromParent();
-        this.live.splice(this.live.indexOf(p), 1);
+        this.live.splice(i, 1);
         this.pool.push(p.s);
       }
     }

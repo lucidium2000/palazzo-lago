@@ -3,7 +3,8 @@ import { textSign } from '../panel';
 import type { Quality } from '../quality';
 import type { World } from '../world';
 import { canvas, toTexture } from '../textures';
-import { Batch, haloQuad, M, plane, wallQuad, type Mats } from './kit';
+import { batchSprites } from '../merge';
+import { Batch, M, plane, wallQuad, type Mats } from './kit';
 
 /**
  * The way to the hotel: a grand corridor through the casino's east wall to the
@@ -71,10 +72,8 @@ export function buildHotel(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
       if (sx < C.x1 - 0.5) {
         b.box(m.gold, sx, 2.3, z + inward * 0.04, 0.14, 0.3, 0.03);
         b.add(new THREE.CylinderGeometry(0.07, 0.1, 0.16, 12, 1, true), m.glowWarm, M(sx, 2.45, z + inward * 0.16));
-        const h = haloQuad(m, 1.3);
-        h.position.set(sx, 2.45, z + inward * 0.03);
-        h.rotation.y = ry;
-        root.add(h);
+        // (Merged: every sconce's halo is one draw.)
+        b.add(new THREE.PlaneGeometry(1.3, 1.3), m.halo, M(sx, 2.45, z + inward * 0.03, ry));
       }
     }
   }
@@ -222,7 +221,9 @@ export function buildHotel(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
   cg.rotateY(Math.PI / 2);
   b.add(cg, new THREE.MeshBasicMaterial({ map: casinoTex }), M(21.9, 7, -18));
   // Holes in the lobby east wall are framed by the elevator module.
-  b.build(root, 'hotel-static');
+  b.build(root, 'hotel-static', { byColor: true });
+  // The chandeliers' glows as one draw.
+  batchSprites(root);
   return root;
 }
 

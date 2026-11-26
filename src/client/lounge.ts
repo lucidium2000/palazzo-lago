@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { allLayers } from './cull';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { GameContext } from './game';
 import type { Grabbable, Hand, Hands } from './hands';
@@ -255,7 +256,7 @@ export class Lounge {
   private desktopDrink: Drink | null = null;
   private sipCooldown = 0;
   private falling: { obj: THREE.Object3D; v: number; floor: number }[] = [];
-  private raycaster = new THREE.Raycaster();
+  private raycaster = allLayers(new THREE.Raycaster());
   onOrder: (() => void) | null = null;
   onTip: (() => void) | null = null;
   onRound: (() => void) | null = null;

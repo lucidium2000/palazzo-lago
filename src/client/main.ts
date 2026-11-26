@@ -30,6 +30,7 @@ import { SwimFX } from './areas/swim';
 import { OPEN, type FingerPose } from './fingers';
 import { FINGER, THUMB, curlFingers, makeMouth, setFingers, setOpen } from './net/embody';
 import { bakeStatic } from './merge';
+import { resortCuller } from './resortcull';
 import { buildBlackjack } from './pit';
 import { BlackjackPlay } from './blackjackplay';
 import { BlackjackSync } from './net/bjsync';
@@ -1799,6 +1800,8 @@ async function main() {
   let first = true;
   const head = new THREE.Vector3();
   let casinoThings: THREE.Object3D[] | null = null;
+  const inSuiteX = (x: number) => x > 500;
+  const inResortX = (x: number) => x < 500 && !onPromenade(x);
   // Zone culling: only draw the parts of the resort you could possibly see from here.
   const zoneCulling = (feet: THREE.Vector3) => {
     if (!casinoThings) {
@@ -1825,7 +1828,8 @@ async function main() {
       show('skyline', !away);
       show('party-lights', !away);
       // Loose things lying about elsewhere (chips, bottles): only the kinds with some up here.
-      loose.cullTo(inProm ? onPromenade : inSuite ? (x) => x > 500 : inEnt ? onEntrance : null);
+      // (And in the resort, not the Promenade's food and merch: lying about up there, they cost a draw each down here.)
+      loose.cullTo(inProm ? onPromenade : inSuite ? inSuiteX : inEnt ? onEntrance : inResortX);
       show('pool', !away && fx > 16);
       // The hotel corridor opens off the casino's east wall: draw it from anywhere you can see down it
       // (it used to switch on only east of x = 4, so from most of the floor the hallway was a dark void).
@@ -1838,6 +1842,30 @@ async function main() {
       const pokerOn = inCasino;
       if (pokerRoom.interior.visible !== pokerOn) pokerRoom.interior.visible = pokerOn;
     }
+  };
+  // Portal and detail culling (cull.ts): what's behind the walls and doorways from where your eye
+  // is (the casino floor from the lobby, a lift cab or the poker room), and tiny detail far away.
+  const culler = resortCuller(
+    areas.elevators.cars,
+    () => scene.children,
+    (o) => o === player.rig || o === crowd.group || o === selfBody.root || o.name === 'skyline' || o.name === 'suite' || o.name === 'promenade',
+  );
+  // Tiny far detail: a little more of it on the lighter tiers (fewer pixels per degree anyway).
+  culler.detailK = quality.name === 'desktop' ? 0.005 : quality.name === 'quest3' ? 0.01 : 0.011;
+  culler.detailKFar = quality.name === 'desktop' ? 0.008 : quality.name === 'quest3' ? 0.015 : 0.018;
+  crowd.occluded = (p) => !culler.sees(p.x, p.y + 1, p.z, 1.1);
+  // Things three never frustum culls (their extent moves about) get a world sphere they stay within:
+  // the pool party's beams, lasers and records, and the fountain show out on the lake.
+  const cullHint = (o: THREE.Object3D | undefined, x: number, y: number, z: number, r: number) =>
+    o?.traverse((c) => {
+      if (!c.frustumCulled) c.userData.cullSphere = new THREE.Sphere(new THREE.Vector3(x, y, z), r);
+    });
+  for (const name of ['party-lights', 'pool-stage', 'dj-decks']) cullHint(scene.getObjectByName(name), 42, 10, -18, 42);
+  cullHint(casino.fountainAnchor, 0, 8, -46, 54);
+  const eye = new THREE.Vector3();
+  const zoneForCapture = (feet: THREE.Vector3) => {
+    culler.clear();
+    zoneCulling(feet);
   };
   // While an area is being lit in the background the world is mid-change (people hidden, other areas
   // shown), so the game holds: behind the menu the last frame stays up; in the game a quiet dark
@@ -1884,7 +1912,7 @@ async function main() {
     for (const [i, zone] of zones.entries()) {
       loadProgress(0.55 + (0.45 * i) / zones.length, `Step 3 of 3 · Lighting ${AREA_NAMES[zone] ?? zone} (${i + 1} of ${zones.length})`);
       try {
-        await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root], zone);
+        await casino.captureReflections(zoneForCapture, [crowd.group, player.rig, selfBody.root], zone);
       } catch (e) {
         // Keep the generic HDRI reflections rather than fail to open.
         console.warn('reflection capture failed', zone, e);
@@ -2169,6 +2197,8 @@ async function main() {
     // The fountains are for out on the terrace: inside you barely hear them (a whisper through open doors).
     fountainVoice.setVolume((0.2 + casino.fountainLevel() * 0.75) * (outside + (1 - outside) * casino.doorsOpen() * 0.03));
 
+    camera.getWorldPosition(eye);
+    culler.update(dt, eye, !onPromenade(feet.x) && feet.x < 500, camera);
     // Count the whole frame (all post passes), not just the last one.
     renderer.info.autoReset = false;
     renderer.info.reset();
@@ -2184,7 +2214,7 @@ async function main() {
       const nowMs = performance.now();
       if (nowMs - since > 500) {
         const info = renderer.info.render;
-        stats.textContent = `${quality.label} · ${Math.round((frames * 1000) / (nowMs - since))} fps · ${info.calls} draws · ${Math.round(info.triangles / 1000)}k tris · ${crowd.people.length} people`;
+        stats.textContent = `${quality.label} · ${Math.round((frames * 1000) / (nowMs - since))} fps · ${info.calls} draws · ${Math.round(info.triangles / 1000)}k tris · ${crowd.people.length} people · ${culler.culledCount} culled`;
         frames = 0;
         since = nowMs;
       }
@@ -2192,7 +2222,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, arcade, promenade, hints, stock };
+  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, arcade, promenade, hints, stock, culler };
   (window as unknown as { casino: Record<string, unknown> }).casino.promSound = promSound;
 }
 

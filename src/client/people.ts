@@ -500,7 +500,7 @@ export class Crowd {
     this.glasses.name = 'held-glasses';
     this.glasses.raycast = THREE.InstancedMesh.prototype.raycast;
     // Far enough to see people across the hall and down the hotel corridor.
-    this.cullDist = q.name === 'quest2' ? 18 : q.name === 'mobile' ? 16 : q.name === 'quest3' ? 24 : Infinity;
+    this.cullDist = q.name === 'quest2' ? 18 : q.name === 'mobile' ? 16 : q.name === 'quest3' ? 20 : Infinity;
   }
 
   /** Extra guests for the pool deck, on top of the floor's `people`. */
@@ -725,6 +725,9 @@ export class Crowd {
     }
   }
 
+  /** Behind walls from where you are (set by the frame loop's portal culling): not drawn or posed. */
+  occluded: ((pos: THREE.Vector3) => boolean) | null = null;
+
   /** Where your feet were at the last update (for guests who keep out of your way). */
   readonly playerAt = new THREE.Vector3();
 
@@ -773,7 +776,7 @@ export class Crowd {
       const dist = toP.length();
       // Far away on a headset or phone: not drawn at all (the crowd still moves).
       // (Never across the resort: the Promenade and the suite are hundreds of metres from the floor.)
-      const cull = (dist > this.cullDist || dist > FAR_CULL) && p.role !== 'buddy';
+      const cull = (dist > this.cullDist || dist > FAR_CULL || (this.occluded !== null && this.occluded(p.pos))) && p.role !== 'buddy';
       if (cull !== p.culled) {
         p.culled = cull;
         if (p.rig) p.rig.root.visible = !cull;

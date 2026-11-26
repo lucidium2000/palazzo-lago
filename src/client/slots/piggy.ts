@@ -365,6 +365,8 @@ export class PiggyMachineView {
     const baseStrip = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.008, 0.008), led);
     baseStrip.position.set(0, 0.07, 0.345);
     ledGroup.add(baseStrip);
+    // One mesh for the strips (they share the material, which is what changes colour).
+    bakeStatic(ledGroup);
     g.add(dynamic(ledGroup));
 
     // Topper: chrome shelf for the banks, marquee sign behind with chasing bulbs.

@@ -331,6 +331,7 @@ export class Faces {
   private lc = new THREE.Vector3();
   private hp = new THREE.Vector3();
   private cand: { p: Person; d: number }[] = [];
+  private candPool: { p: Person; d: number }[] = [];
   private cheek = new THREE.Color();
   private warm = false;
 
@@ -407,7 +408,7 @@ export class Faces {
   update(dt: number, time: number, people: readonly Person[], cam: THREE.Vector3) {
     // The nearest few people you can see.
     const cand = this.cand;
-    cand.length = 0;
+    let nc = 0;
     const r2 = this.radius * this.radius;
     for (const p of people) {
       if (!p.rig?.mesh || p.culled || !p.rig.root.visible || !p.rig.bones.Head) continue;
@@ -415,8 +416,15 @@ export class Faces {
         dz = p.pos.z - cam.z,
         dy = p.pos.y + (p.seated ? 1.2 : 1.6) - cam.y;
       const d = dx * dx + dy * dy + dz * dz;
-      if (d < r2) cand.push({ p, d });
+      if (d < r2) {
+        // (Reusing last frame's entries: nothing allocated per frame.)
+        const c = (this.candPool[nc] ??= { p, d });
+        c.p = p;
+        c.d = d;
+        cand[nc++] = c;
+      }
     }
+    cand.length = nc;
     cand.sort((a, b) => a.d - b.d);
     this.near.length = 0;
     for (let i = 0; i < cand.length && i < this.max; i++) this.near.push(cand[i].p);
