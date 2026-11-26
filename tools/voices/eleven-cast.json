@@ -202,5 +202,13 @@
   "similarity_boost": 0.8,
   "style": 0.4,
   "public_owner_id": "e3f59c5c065dae143d73d51c5a4a6fa45d1f39e239c78b3fc1557a641de97381"
+ },
+ "el_security": {
+  "voice_id": "M9UAxraM2w5tCjpOaIB0",
+  "name": "Gotham Boss - Gritty, Calm, Powerful, Tough",
+  "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer",
+  "stability": 0.45,
+  "similarity_boost": 0.8,
+  "style": 0.3
  }
 }
