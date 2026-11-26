@@ -410,6 +410,8 @@ export function buildCity(o: CityOptions): City {
     boulevard(false, cx - 230, cz + 70, cz + R);
     boulevard(false, cx + 210, cz + 70, cz + R);
     boulevard(true, cz + 260, cx - R, cx + R);
+    // The Strip itself running on past the entrance's own stretch of it, both ways.
+    boulevard(true, cz + 38, cx - R, cx + R);
     // The hotel: a broad curving slab in three stepped wings behind the entrance, warm room lights.
     tower(cx, cz - 52, 92, 26, 118, 0, 0 * 4 + 1, true);
     tower(cx - 58, cz - 44, 40, 24, 96, -0.35, 0 * 4 + 2, false);
@@ -431,14 +433,14 @@ export function buildCity(o: CityOptions): City {
       if (rnd() < 0.25) yTower(x, z + 12, h, rnd() * Math.PI, tileFor(2));
       else tower(x, z, 22 + rnd() * 26, 18 + rnd() * 20, h, 0, tileFor(rnd() < 0.5 ? 2 : 0), rnd() < 0.8);
       // Low casino podiums along the street, lit (neon trim).
-      tower(x + 8, cz + 64, 28 + rnd() * 12, 10, 8 + rnd() * 6, 0, tileFor(3), true);
+      tower(x + 8, cz + 64, 28 + rnd() * 12, 10, 8 + rnd() * 6, 0, tileFor(rnd() < 0.5 ? 0 : 3), rnd() < 0.3);
     }
     // Neighbouring towers along this side of the boulevard, beyond the hotel's grounds.
     for (const side of [-1, 1])
       for (let x = cx + side * 165; Math.abs(x - cx) < R - 20; x += side * (30 + rnd() * 30)) {
         const z = cz - 10 - rnd() * 30;
         if (!free(x, z, keep)) continue;
-        tower(x, z, 20 + rnd() * 26, 18 + rnd() * 22, 30 + rnd() * 90, 0, tileFor(Math.floor(rnd() * 4)), rnd() < 0.5);
+        tower(x, z, 20 + rnd() * 26, 18 + rnd() * 22, 30 + rnd() * 90, 0, tileFor(rnd() < 0.5 ? 0 : 2), rnd() < 0.5);
       }
     // The city further out, all round.
     for (let k = 0; k < 340; k++) {
@@ -446,7 +448,7 @@ export function buildCity(o: CityOptions): City {
         r = 150 + Math.sqrt(rnd()) * (R - 170);
       const x = cx + Math.cos(a) * r,
         z = cz + Math.sin(a) * r;
-      if (!free(x, z, keep) || (z > cz - 34 && z < cz + 70) || Math.abs(x - (cx - 230)) < 20 || Math.abs(x - (cx + 210)) < 20 || Math.abs(z - (cz + 260)) < 20) continue;
+      if (!free(x, z, keep) || (z > cz - 34 && z < cz + 70 && Math.abs(x - cx) < 150) || (z > cz + 16 && z < cz + 60) || Math.abs(x - (cx - 230)) < 20 || Math.abs(x - (cx + 210)) < 20 || Math.abs(z - (cz + 260)) < 20) continue;
       const tall = rnd() < 0.2;
       tower(x, z, 14 + rnd() * 26, 14 + rnd() * 26, tall ? 80 + rnd() * 120 : 12 + rnd() * rnd() * 70, 0, tileFor(Math.floor(rnd() * 4)), tall ? rnd() < 0.5 : rnd() < 0.1);
     }

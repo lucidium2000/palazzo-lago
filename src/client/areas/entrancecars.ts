@@ -47,7 +47,7 @@ const SUV: Dims = { len: CAR.len + 0.05, wid: CAR.wid + 0.06, floor: 0.38, belt:
 /** The mesh each car kind is drawn with (the valet's car is a black sedan). */
 type MeshKind = 'sedan' | 'suv' | 'taxiY' | 'taxiBW';
 const MESH_OF: Record<CarKind, MeshKind> = { sedan: 'sedan', lux: 'sedan', suv: 'suv', taxiY: 'taxiY', taxiBW: 'taxiBW' };
-const PAINT: Partial<Record<CarKind, number>> = { taxiY: 0xf2b300, taxiBW: 0x111214 };
+const PAINT: Partial<Record<CarKind, number>> = { taxiY: 0xf6c90e, taxiBW: 0x111214 };
 /** Taxis are painted by fleet; the black-and-white fleet's doors are white. */
 const DOOR_PAINT: Partial<Record<CarKind, number>> = { taxiBW: 0xf2f0ea };
 
@@ -575,7 +575,7 @@ export class CarFleet {
       this.q.setFromAxisAngle(this.up, pose.yaw);
       this.m.compose(this.v.set(pose.x, 0, pose.z), this.q, this.one);
       km.body.setMatrixAt(i, this.m);
-      this.c.setHex(car.paint || PAINT[car.kind] || 0x777777).convertSRGBToLinear();
+      this.c.setHex(car.paint || PAINT[car.kind] || 0x777777);
       km.paint.setXYZ(i, this.c.r, this.c.g, this.c.b);
       const moving = !!car.motion;
       const brake = traffic.braking(car, t) || (moving && pose.speed < 0.3) ? 1 : 0;
@@ -584,7 +584,7 @@ export class CarFleet {
       km.lamp.setXYZW(i, car.home === 'valet' ? 0.15 : 1, brake, left, right);
       if (car.kind === 'taxiY' || car.kind === 'taxiBW') km.sign.setXYZW(i, 1, 0.9, 0.7, car.roof ? 1 : 0);
       else if (car.sign) {
-        this.c.setHex(car.sign).convertSRGBToLinear();
+        this.c.setHex(car.sign);
         km.sign.setXYZW(i, this.c.r, this.c.g, this.c.b, 1);
       } else km.sign.setXYZW(i, 0, 0, 0, 0);
       // The door: eased toward open (guest or player), hinged on the curb side.
@@ -598,7 +598,7 @@ export class CarFleet {
       this.m2.compose(this.v.set(-km.dims.wid / 2, suv ? 0.017 : 0, DOOR.hinge), this.q.setFromAxisAngle(this.up, ang), suv ? SUV_DOOR : this.one);
       this.m2.premultiply(this.m);
       this.doorPanel.setMatrixAt(n, this.m2);
-      this.c.setHex(DOOR_PAINT[car.kind] ?? (car.paint || PAINT[car.kind] || 0x777777)).convertSRGBToLinear();
+      this.c.setHex(DOOR_PAINT[car.kind] ?? (car.paint || PAINT[car.kind] || 0x777777));
       this.doorPaint.setXYZ(n, this.c.r, this.c.g, this.c.b);
       this.shadows.setMatrixAt(n, this.m);
       // Headlight pools only while moving or idling with lights on (the valet's car is parked dark).

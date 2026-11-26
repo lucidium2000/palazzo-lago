@@ -171,7 +171,7 @@ export function buildAreas(deps: {
     vp('suite', 'Suite 3201', SUITE.x1 - 1.6, 1.2, Math.PI / 2 + 0.5, -0.05),
     vp('promenade', 'Promenade', PROM_CARS.doorX - 2.6, 0, Math.PI / 2, -0.04),
     vp('arcade', 'Arcade', -622.75, 3.2, Math.PI, -0.05),
-    vp('entrance', 'Main Entrance', 302.8, 3.4, 0.25, -0.02),
+    vp('entrance', 'Main Entrance', 300.5, 3.6, Math.PI + 0.55, -0.04),
   ];
 
   const where = (f: THREE.Vector3): ReturnType<Areas['where']> => {

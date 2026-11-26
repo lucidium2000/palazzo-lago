@@ -161,6 +161,10 @@ src/client/     Three.js app
   promenadelife.ts    food court ordering, the boutique's register, what you wear (and your friends see)
   promenadelines.ts   the cooks' and the clerk's lines (one fixed line per dish, for recording)
   promenadeaudio.ts   the Promenade's murmur, grills, kitchen clatter and arcade room tone (synthesized)
+  areas/entrance.ts   the Main Entrance (floor G): lobby, porte-cochère, taxi line, rideshare bays, the Strip;
+                      entranceplan.ts (layout, paths, schedule; pure), entrancetraffic.ts (the cars and guests
+                      on one shared wall clock; pure), entrancecars.ts (instanced low-poly cars, emissive lamps)
+  entranceaudio.ts    street sound out front: city bed, idling engines, pass-bys, horns, doors, valet whistle
   piano.ts      the playable piano: 88 keys, fingertips / typing / taps, the pianist's bench
   pianokeys.ts  keyboard layout, hit detection, fingertip strikes, voice allocation (pure)
   pianotone.ts  synthesized piano notes (pianoworker.ts renders them), pianosynth.ts plays them

@@ -563,8 +563,16 @@ export function buildEntrance(deps: {
     b.box(m.walnut, 289.65, 0.42, -4.4, 0.5, 0.06, 2.1);
     b.box(m.gold, 289.65, 0.2, -4.4, 0.4, 0.4, 1.9);
     b.add(new THREE.LatheGeometry([[0, 0], [0.45, 0], [0.6, 0.25], [0.5, 0.7], [0.65, 0.9], [0, 0.9]].map(([r, y]) => new THREE.Vector2(r, y)), 20), m.darkMarble, M(LOBBY_URN.x, 0, LOBBY_URN.z));
-    b.add(new THREE.SphereGeometry(0.8, 14, 10).scale(1, 0.75, 1), flowers, M(LOBBY_URN.x, 1.35, LOBBY_URN.z));
-    b.add(new THREE.SphereGeometry(0.55, 12, 8), hedge, M(LOBBY_URN.x + 0.3, 1.2, LOBBY_URN.z + 0.25));
+    // An arrangement: greenery, then blooms in white, blush and deep red heaped round a dome.
+    b.add(new THREE.SphereGeometry(0.62, 12, 8).scale(1, 0.6, 1), hedge, M(LOBBY_URN.x, 1.05, LOBBY_URN.z));
+    const blooms = [flowers, new THREE.MeshStandardMaterial({ color: 0xf4eee4, roughness: 0.7, emissive: 0x3a3428, emissiveIntensity: 0.5 }), new THREE.MeshStandardMaterial({ color: 0x8a1022, roughness: 0.7, emissive: 0x2a0408, emissiveIntensity: 0.5 })];
+    const bloom = new THREE.IcosahedronGeometry(0.095, 1);
+    for (let k = 0; k < 64; k++) {
+      const a = k * 2.399,
+        r = 0.62 * Math.sqrt((k + 0.5) / 64);
+      const y = 1.12 + Math.sqrt(Math.max(0, 0.42 - r * r)) * 0.75;
+      b.add(bloom, blooms[k % 3], M(LOBBY_URN.x + Math.cos(a) * r, y, LOBBY_URN.z + Math.sin(a) * r, 0, 0.8 + (k % 4) * 0.12));
+    }
     // Sign over the lifts.
     signs.add(3.2, 0.36, 640, 72, M(L.x1 - 0.04, 3.1, (ENT_CARS.zs[0] + ENT_CARS.zs[1]) / 2, -Math.PI / 2), (g, w2, h2) => {
       g.fillStyle = '#1a120a';
@@ -985,7 +993,8 @@ export function buildEntrance(deps: {
   const seats: Seat[] = [];
   for (let i = 0; i < 16; i++) {
     boxes.push(world.addBox(1e6, 1e6, 0, 0, 0, 'car'));
-    seats.push(world.addSeat(1e6, 1e6, -1, 0.56, 0, 'car seat'));
+    // (Low: your eyes go to a seated height under the roof.)
+    seats.push(world.addSeat(1e6, 1e6, -1, 0.3, 0, 'car seat'));
   }
   const proxies = new Map<string, { mesh: THREE.Mesh; item: Interactable; car: SimCar }>();
   const proxyGeo = new THREE.BoxGeometry(CAR.wid + 0.1, 1.5, CAR.len);
