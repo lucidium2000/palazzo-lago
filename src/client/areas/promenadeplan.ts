@@ -182,6 +182,9 @@ export const ARCADE_SLOT_SPECS: ArcadeSlotSpec[] = [
   { id: 'claw', kind: 'floor', x: -618.1, z: 12.8, yaw: -Math.PI / 2, footprint: [1.1, 1.1], hint: 'claw machine' },
   // The featured game: a wide 16:9 cabinet against the east wall, facing into the room (The Last Mile).
   { id: 'feature', kind: 'feature', x: -617.5, z: 9.0, yaw: -Math.PI / 2, footprint: [1.45, 0.95], hint: 'featured wide cabinet' },
+  // A sit-down twin racing cabinet on the back wall between the uprights and the hoops, facing into the room (ON THE RUN).
+  // The footprint is its body (screens and consoles); the two seats are in front of it, where the players sit.
+  { id: 'racer', kind: 'feature', x: -630.4, z: 13.525, yaw: Math.PI, footprint: [2.1, 0.95], hint: 'sit-down racing cabinet' },
 ];
 
 /** The change machine by the arcade door. */

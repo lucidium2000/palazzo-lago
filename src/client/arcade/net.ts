@@ -14,7 +14,7 @@ import type { RawPad } from './types';
  *  arcO  {c, to, st}       the owner walked away: the game, handed to a friend still at the controls
  *  arcH+ {g, n, s}         a score for the table (to the host)
  *  arcHT {g, t}            a game's table (from the host)
- *  arcF  {k, ...}          the floor games (hoops, hockey, claw, The Last Mile): see each game
+ *  arcF  {k, ...}          the floor games (hoops, hockey, claw, The Last Mile, ON THE RUN): see each game
  */
 
 export interface ArcadeFriend {

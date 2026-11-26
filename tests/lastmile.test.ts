@@ -438,7 +438,8 @@ describe('The Last Mile: what friends see', () => {
 
 describe('The Last Mile: the bay and the shipped copy', () => {
   it('has a featured bay in the arcade', () => {
-    const f = ARCADE_SLOT_SPECS.filter((s) => s.kind === 'feature');
+    // The Last Mile's is the feature bay that isn't the racing cabinet's (ON THE RUN has the other).
+    const f = ARCADE_SLOT_SPECS.filter((s) => s.kind === 'feature' && !/rac(ing|er)/i.test(s.id + ' ' + s.hint));
     expect(f.length).toBe(1);
     expect(f[0].x).toBeGreaterThan(ARCADE.x0);
     expect(f[0].x).toBeLessThan(ARCADE.x1);

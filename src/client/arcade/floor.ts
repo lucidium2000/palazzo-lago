@@ -87,6 +87,8 @@ export interface FloorGame {
   connect(s: ArcadeSession | null): void;
   /** A message for this game from a friend. */
   receive(from: ArcadeFriend, d: Record<string, unknown>): void;
+  /** Screens: E nearby sits you at its nearest spot (a seat you get into, like the racing cockpit). */
+  readonly sitOnE?: boolean;
   /** You stepped away from its desk spot. */
   leaveDesk?(): void;
   /** You left the arcade's floor (stop everything until update is called again). */

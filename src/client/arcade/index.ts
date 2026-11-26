@@ -25,12 +25,15 @@ import { Hoops } from './hoops';
 import { Hockey } from './hockey';
 import { Claw } from './claw';
 import { LastMileCabinet } from './lastmile';
+import { OnTheRunCabinet } from './ontherun';
 import { bakeStatic } from '../merge';
 
 /**
  * The Palazzo Lago arcade: six upright cabinets with original games, the
- * physical floor games and a featured wide cabinet running The Last Mile (a
- * real web game, see lastmile/), mounted into whatever room provides the slots.
+ * physical floor games, a featured wide cabinet running The Last Mile (a
+ * real web game, see lastmile/) and a sit-down twin racing cabinet running ON
+ * THE RUN (the owner's WebGL racer, see ontherun/), mounted into whatever room
+ * provides the slots.
  *
  *   mountArcade(scene, ARCADE_SLOTS, deps) => { update(dt) }
  *
@@ -43,7 +46,7 @@ import { bakeStatic } from '../merge';
 
 export interface ArcadeSlot {
   id: string;
-  /** 'feature': a wider bay for the featured game (The Last Mile). */
+  /** 'feature': a wider bay for a featured web game (The Last Mile; ON THE RUN takes the one whose id or hint says racing). */
   kind: 'cabinet' | 'floor' | 'feature';
   pos: THREE.Vector3;
   yaw: number;
@@ -190,12 +193,14 @@ export class Arcade {
 
     const cabSlots = slots.filter((s) => s.kind === 'cabinet');
     const floorSlots = slots.filter((s) => s.kind === 'floor');
-    const featureSlot = slots.find((s) => s.kind === 'feature');
+    const isRacer = (s: ArcadeSlot) => /rac(ing|er)/i.test(s.id) || /rac(ing|er)/i.test(s.hint ?? '');
+    const featureSlot = slots.find((s) => s.kind === 'feature' && !isRacer(s));
+    const racerSlot = slots.find((s) => s.kind === 'feature' && isRacer(s));
     const tierName = d.tier ?? d.quality?.name;
     // Fewer bays than games: keep the head-to-head game (friends want it).
     let games = GAMES.slice(0, cabSlots.length);
     if (cabSlots.length < GAMES.length && cabSlots.length > 0) games = [...GAMES.slice(0, cabSlots.length - 1), GAMES[GAMES.length - 1]];
-    this.inst = new ControlInstances(cabSlots.length * 2 + 4, cabSlots.length * 6 + 6);
+    this.inst = new ControlInstances(cabSlots.length * 2 + 4, cabSlots.length * 6 + 6 + (racerSlot ? 14 : 0));
     this.inst.addTo(this.live);
 
     games.forEach((gd, i) => {
@@ -293,6 +298,8 @@ export class Arcade {
     });
     // The featured bay: The Last Mile (a real web game on a wide cabinet; free to play).
     if (featureSlot) this.floors.push(new LastMileCabinet(env, featureSlot));
+    // The racing bay: ON THE RUN (the owner's WebGL racer on a sit-down twin cabinet; free to play).
+    if (racerSlot) this.floors.push(new OnTheRunCabinet(env, racerSlot, tierName));
 
     paintSwatches(ag);
     tex.needsUpdate = true;
@@ -300,6 +307,37 @@ export class Arcade {
     bakeStatic(this.bake, { shadows: false });
 
     this.desk.onLeave = () => this.leaveDesk();
+    // Screens: E by a floor game that seats you (the racing cockpit) sits you in its nearest seat.
+    if (typeof window !== 'undefined')
+      addEventListener(
+        'keydown',
+        (e) => {
+          if (e.code !== 'KeyE' || e.repeat || !this.awake || this.desk.station) return;
+          const p = this.d.player;
+          if (p.inXR || p.seated) return;
+          const t = e.target as HTMLElement | null;
+          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
+          const feet = p.feet();
+          let best: { g: number; k: number } | null = null,
+            bd = 1.6;
+          this.floors.forEach((fg, g) => {
+            if (!fg.sitOnE) return;
+            fg.viewpoints.forEach((v, k) => {
+              const d = Math.hypot(v.position.x - feet.x, v.position.z - feet.z);
+              if (d < bd) {
+                bd = d;
+                best = { g, k };
+              }
+            });
+          });
+          if (!best) return;
+          const b = best as { g: number; k: number };
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          this.sitAtFloor(b.g, b.k);
+        },
+        true,
+      );
   }
 
   private name() {
