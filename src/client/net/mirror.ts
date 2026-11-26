@@ -10,6 +10,7 @@ import type { PiggyMachineView } from '../slots/piggy';
 import type { Hud } from '../hud';
 import type { Friend, Session } from './session';
 import { FriendChips } from './friendChips';
+import { makeChipStack } from '../chips';
 import { decodeCraps, decodePiggySpin, decodeRoulette, decodeSlotSpin, encodeCraps, encodePiggySpin, encodeRoulette, resolveCraps, resolveRoulette } from './mirrorCodec';
 
 export interface MirrorDeps {
@@ -61,9 +62,18 @@ export class Mirror {
   private cHoldUntil = 0;
   private known = new Set<string>();
   private restore: (() => void)[] = [];
+  /** Chips a friend is carrying off their rail in VR, shown in their hand. */
+  private inHand = new Map<string, { g: THREE.Group; amount: number }>();
 
   constructor(private d: MirrorDeps) {
     const s = d.session;
+    // The chips in your hand (VR rails at roulette and craps) ride along with your state.
+    const prevExtra = s.extraState;
+    s.extraState = () => {
+      const h = d.roulette.rail.inHand() ?? d.craps.rail.inHand();
+      return { ...(prevExtra?.() ?? {}), hc: h ? [Math.round(h.amount * 100) / 100, h.side === 'l' ? 0 : 1] : undefined };
+    };
+    this.restore.push(() => (s.extraState = prevExtra));
     s.on('mr', (f, data) => {
       this.layer(f).rPending = decodeRoulette(data.b);
       this.applyPending();
@@ -119,6 +129,8 @@ export class Mirror {
   }
 
   dispose() {
+    for (const s of this.inHand.values()) s.g.removeFromParent();
+    this.inHand.clear();
     for (const f of this.restore) f();
     this.restore = [];
     for (const l of this.layers.values()) {
@@ -178,6 +190,38 @@ export class Mirror {
       l.roulette.update(dt);
       l.craps.update(dt);
     }
+    this.handChips();
+  }
+
+  /** Friends carrying chips from their rail: a stack in that hand. */
+  private handChips() {
+    const seen = new Set<string>();
+    for (const f of this.d.session.friendList()) {
+      const hc = f.state.hc;
+      const amount = Array.isArray(hc) ? Number(hc[0]) : 0;
+      const w = Array.isArray(hc) ? f.wrist(hc[1] === 0 ? 'l' : 'r') : null;
+      let s = this.inHand.get(f.id);
+      if (!(amount > 0 && amount < 1e6) || !w || !f.person || f.person.culled) {
+        if (s) s.g.visible = false;
+        continue;
+      }
+      seen.add(f.id);
+      if (!s || s.amount !== amount) {
+        s?.g.removeFromParent();
+        s = { g: makeChipStack(amount), amount };
+        s.g.traverse((o) => (o.raycast = () => {}));
+        this.d.roulette.group.parent?.add(s.g);
+        this.inHand.set(f.id, s);
+      }
+      s.g.visible = true;
+      // Pinched between their fingers, just off the palm.
+      s.g.position.copy(new THREE.Vector3(0, -0.04, -0.07).applyQuaternion(w.q).add(w.p));
+    }
+    for (const [id, s] of this.inHand)
+      if (!seen.has(id) && !this.d.session.friendList().some((f) => f.id === id)) {
+        s.g.removeFromParent();
+        this.inHand.delete(id);
+      }
   }
 
   private get rouletteIdle() {
