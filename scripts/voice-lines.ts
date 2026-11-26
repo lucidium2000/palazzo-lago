@@ -13,6 +13,7 @@ import { stickCall } from '../src/rules/craps';
 import { pocketColor, pocketLabel } from '../src/rules/roulette';
 import { DRINKS } from '../src/client/bar';
 import { promenadeLines } from '../src/client/promenadelines';
+import { smallTalkLines } from '../src/client/smalltalk';
 
 const out = new Map<string, { id: string; voice: string; text: string; say?: string; speed: number }>();
 const add = (voice: string, text: string) => {
@@ -70,6 +71,9 @@ for (const v of [STAFF.bartender, STAFF.waiter, STAFF.waitress, STAFF.dealer, ST
   for (const t of HUH_LINES) add(v, t);
 }
 
+// Off-script answers (smalltalk.ts): staff names, how they're doing, directions.
+for (const [id, list] of Object.entries(smallTalkLines().staff)) for (const t of list) add(STAFF[id as keyof typeof STAFF], t);
+
 // Your crew.
 for (const v of CREW_VOICES) {
   for (const list of Object.values(CREW_LINES)) for (const t of list) add(v, t);
@@ -111,6 +115,7 @@ for (let a = 1; a <= 6; a++)
   for (const ch of GUESTS) {
     for (const n of ch.openers) walkK(n, ch.fallback);
     for (const t of [...ch.quips, ...ch.win, ...ch.cheers, ...ch.huh, ch.bye.walkedOff, ch.bye.timedOut]) add(ch.fallback, t);
+    for (const t of smallTalkLines().guests[ch.id] ?? []) add(ch.fallback, t);
   }
 }
 
@@ -156,6 +161,8 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
     const v = elVoice(ch.id);
     for (const n of ch.openers) walkEl(n, v);
     for (const t of [...ch.quips, ...ch.win, ...ch.cheers, ...ch.huh, ch.bye.walkedOff, ch.bye.timedOut]) addEl(v, t);
+    // Off-script answers (smalltalk.ts): their name, how they're doing, "ask the staff".
+    for (const t of smallTalkLines().guests[ch.id] ?? []) addEl(v, t);
     // Shared lines anyone might say.
     for (const list of [EXCHANGES, PASSING]) for (const ex of list) for (const [, t] of ex.turns) addEl(v, t, 2);
     for (const t of [...WIN_REACTIONS, ...CHEERS_LINES, ...HUH_LINES, CONVO_BYE.walkedOff, CONVO_BYE.timedOut]) addEl(v, t, 2);
@@ -196,6 +203,8 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
   for (const [k, fn] of Object.entries(staff)) {
     const v = elVoice(k);
     fn(v);
+    // Off-script answers (smalltalk.ts): their name, how they're doing, directions.
+    for (const t of smallTalkLines().staff[k as keyof ReturnType<typeof smallTalkLines>['staff']] ?? []) addEl(v, t);
     for (const t of [CONVO_BYE.walkedOff, CONVO_BYE.timedOut, ...HUH_LINES]) addEl(v, t);
   }
   // The Promenade's staff: no small talk, just their own lines.

@@ -628,8 +628,11 @@ async function main() {
       hud.toast('🎤 Listening… answer out loud (or pick a reply)', 'info');
     }
   };
+  lounge.listener = listener;
   const dialogue = new Dialogue({
     listener,
+    // Naming a drink to the bartender orders it (she's behind the bar, so you're at it).
+    orderDrink: (heard) => lounge.voiceOrder(heard),
     hands,
     scene,
     camera,
@@ -770,6 +773,8 @@ async function main() {
     handsBusy: () => lounge.holdingDrink || loose.holding,
     canvas: renderer.domElement,
   });
+  // Insulting a hot-head (Sal, Vinnie) out loud winds them up, a little at a time.
+  dialogue.onProvoke = (p) => fights.provoke(p, 'pushed', 0.6);
   // Beach balls at the pool party: one floating in the shallow end, one on the deck.
   const beachBalls = new BeachBalls({
     scene,
@@ -1052,7 +1057,7 @@ async function main() {
   });
   // --- The Promenade: the food court's counters, the boutique's register, what you wear, the arcade ---
   const promenade = areas.promenade;
-  const foodCourt = new FoodCourt({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast });
+  const foodCourt = new FoodCourt({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast, listener });
   const boutique = new Boutique({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast });
   const wardrobe = new Wardrobe({ scene, camera, loose, hands, hud, player, sound });
   const wearView = new WearView(scene, loose);

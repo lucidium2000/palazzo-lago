@@ -10,7 +10,10 @@ import { randomLook, staffLook } from './people';
 import type { Player } from './player';
 import { marble, onyx, radial, toTexture, wood } from './textures';
 import { SEAT_R, type World } from './world';
-import { BarMenuCard, buildVrMenu, DRINKS, PREP_TIME, SportsTicker, TIP, type DrinkKind } from './bar';
+import { BAR_MENU, BarMenuCard, buildVrMenu, DRINKS, PREP_TIME, SportsTicker, TIP, type DrinkKind } from './bar';
+import type { Listener } from './listen';
+import { matchMenu, menuVocabulary, yesNo } from './understand';
+import { DRINK_ALIASES } from './replylex';
 import type { CanvasPanel } from './panel';
 import type { Viewpoint } from './player';
 import { voiceArbiter } from './dialogue';
@@ -284,6 +287,10 @@ export class Lounge {
   onTipsy: ((stage: number) => void) | null = null;
   /** You clinked glasses (with a guest; the game wires your friend too). */
   onCheers: ((at: THREE.Vector3) => void) | null = null;
+  /** Listens for a drink ordered out loud while the menu is up (main.ts sets it). */
+  listener: Listener | null = null;
+  private orderListen = 0;
+  private orderListening = false;
 
   static readonly COUNTER_X = -15.0;
   static readonly COUNTER_Z0 = 6.2;
@@ -577,6 +584,48 @@ export class Lounge {
     this.bartenderZ = this.menuZ;
     this.greet(this.tipped > 0 ? BARTENDER_LINES.regular : BARTENDER_LINES.hello);
     this.menuCard.show();
+    this.listenForOrder();
+  }
+
+  /** Is a menu up (the card on screens, the panel on the bar in VR)? */
+  get menuOpen() {
+    return this.menuCard.open || this.vrMenu.mesh.visible;
+  }
+
+  /**
+   * A drink you asked for out loud ("can I get an old fashioned", "a beer
+   * please", "surprise me"): the bartender makes it. False if it didn't name a
+   * drink on the menu.
+   */
+  voiceOrder(heard: string): boolean {
+    const m = matchMenu(heard, BAR_MENU.map((d) => d.name), DRINK_ALIASES);
+    if (m === null) return false;
+    const pool = BAR_MENU.filter((d) => d.alcohol > 0);
+    const kind = m === 'surprise' ? pool[Math.floor(Math.random() * pool.length)] : BAR_MENU[m];
+    const f = this.d.player.feet();
+    const z = this.menuOpen ? this.menuZ : THREE.MathUtils.clamp(f.z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
+    this.menuCard.close();
+    this.order(z, kind);
+    return true;
+  }
+
+  /** While the menu is up, the bartender listens for your order (after her hello). */
+  private listenForOrder(tries = 2) {
+    const l = this.listener;
+    if (!l?.enabled) return;
+    const id = ++this.orderListen;
+    setTimeout(() => {
+      if (id !== this.orderListen || !this.menuOpen || this.pour || this.slide || this.waiting || l.state !== 'idle') return;
+      this.orderListening = true;
+      void l.listen(menuVocabulary(BAR_MENU.map((d) => d.name), DRINK_ALIASES), 8).then((heard) => {
+        if (id === this.orderListen) this.orderListening = false;
+        if (id !== this.orderListen || !heard || !this.menuOpen || this.pour || this.slide || this.waiting) return;
+        if (this.voiceOrder(heard)) return;
+        if (yesNo(heard) === 'no') return;
+        this.d.hud.toast('Say a drink from the menu (or pick one)', 'info');
+        if (tries > 1) this.listenForOrder(tries - 1);
+      });
+    }, 1300);
   }
 
   /** Someone at the bar said a line to you (your friends nearby hear it too: net/npcsync.ts). */
@@ -604,6 +653,8 @@ export class Lounge {
       return;
     }
     this.d.bankroll.debit(cost, 'bet', 'bar');
+    if (this.orderListening) this.listener?.stop();
+    this.orderListen++;
     this.startPour(kind, THREE.MathUtils.clamp(z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4), false);
     this.onDrinkEvent?.({ k: 'order', kind: DRINKS.indexOf(kind), z: Math.round(z * 100) / 100 });
     this.greet(orderLine(kind.name, kind.prep), true);
@@ -1483,6 +1534,8 @@ export class Lounge {
       m.rotateX(-0.25);
       this.greet(this.tipped > 0 ? BARTENDER_LINES.regularShort : BARTENDER_LINES.hello);
       this.vrMenu.redraw();
+      m.visible = show;
+      this.listenForOrder();
     }
     m.visible = show;
   }
