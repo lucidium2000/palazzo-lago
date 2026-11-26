@@ -207,3 +207,27 @@ describe('brawl', () => {
     expect(b.over).toBe(true);
   });
 });
+
+describe('slaps', () => {
+  it('an open hand across the face is a slap above ~1.2 m/s, a touch below; a fast fist is a punch', async () => {
+    const { faceContact, SLAP_SPEED, PUNCH_SPEED } = await import('../src/client/bodies');
+    expect(faceContact(0.3, false)).toBe(null);
+    expect(faceContact(0.9, false)).toBe(null);
+    expect(faceContact(SLAP_SPEED + 0.1, false)).toBe('slap');
+    expect(faceContact(SLAP_SPEED + 0.1, true)).toBe(null);
+    expect(faceContact(PUNCH_SPEED + 0.1, true)).toBe('punch');
+    expect(SLAP_SPEED).toBeLessThan(PUNCH_SPEED);
+  });
+
+  it('a slap stings less than a punch but still escalates to a fight', () => {
+    expect(damage({ zone: 'head', power: 1, slap: true })).toBeLessThan(damage({ zone: 'head', power: 0.3 }));
+    const a = new Anger(temperament('sal'));
+    let n = 0;
+    while (!a.boiling && n < 10) {
+      a.add('slapped', 0.6);
+      n++;
+    }
+    expect(a.boiling).toBe(true);
+    expect(n).toBeLessThanOrEqual(3);
+  });
+});
