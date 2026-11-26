@@ -178,6 +178,11 @@ export class Session {
     });
   }
 
+  /** Your id in the room (what friends know you by). */
+  get selfId(): string {
+    return this.d.transport.self;
+  }
+
   get friends(): string[] {
     return [...this.remotes.values()].map((r) => r.name);
   }

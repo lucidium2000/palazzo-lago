@@ -30,7 +30,7 @@ function keepArmRest(rig: { bones: Record<string, THREE.Object3D> }) {
  * reaching for slot buttons, cheering, dealing, pouring, playing piano.
  */
 
-export type Role = 'wander' | 'slots' | 'watch' | 'croupier' | 'bartender' | 'patron' | 'pianist' | 'waiter' | 'buddy' | 'chat' | 'pair';
+export type Role = 'wander' | 'slots' | 'watch' | 'croupier' | 'bartender' | 'patron' | 'pianist' | 'waiter' | 'buddy' | 'chat' | 'pair' | 'guard';
 
 /** A conversation circle: members face the middle and take turns talking. */
 export interface Talk {
@@ -89,9 +89,6 @@ export interface FightPose {
   side: 0 | 1;
   /** Where the punch goes (world). */
   aim: THREE.Vector3;
-  /** Head knocked back (pitch) and sideways (yaw), radians. */
-  snapX: number;
-  snapY: number;
   /** 0 standing … 1 flat on their back on the floor. */
   down: number;
   /** Groggy sway (after getting up), 0..1. */
@@ -99,7 +96,7 @@ export interface FightPose {
 }
 
 export function fightPose(): FightPose {
-  return { guard: 0, block: 0, windup: 0, punch: 0, side: 1, aim: new THREE.Vector3(), snapX: 0, snapY: 0, down: 0, wobble: 0 };
+  return { guard: 0, block: 0, windup: 0, punch: 0, side: 1, aim: new THREE.Vector3(), down: 0, wobble: 0 };
 }
 
 export class Person {
@@ -188,6 +185,9 @@ export class Person {
   /** A slapped cheek going red (seconds left), and which side (0 = their left, 1 = their right). */
   blush = 0;
   blushSide: 0 | 1 = 0;
+  /** Head knocked back (pitch) and sideways (yaw) by a hit or a slap, radians (springs back). */
+  snapX = 0;
+  snapY = 0;
 
   constructor(
     readonly role: Role,
@@ -420,7 +420,7 @@ export class Crowd {
     // Three extra slots are always kept for your crew. The pool party gets its own
     // share on top of the floor's: it's culled from the casino (and the casino from
     // the deck) on headsets and phones, so it costs little to draw.
-    this.max = q.people + Crowd.poolShare(q.people) + 4; // 3 crew + 1 remote player reserved
+    this.max = q.people + Crowd.poolShare(q.people) + 6; // 3 crew + 2 security guards + 1 remote player reserved
     scene.add(this.group);
     const cloth = new THREE.MeshStandardMaterial({ roughness: 0.75, envMapIntensity: 0.6 });
     const satin = new THREE.MeshStandardMaterial({ roughness: 0.35, envMapIntensity: 1.0 });
@@ -590,11 +590,11 @@ export class Crowd {
   }
 
   get capacity() {
-    return this.max - 4;
+    return this.max - 6;
   }
 
   add(role: Role, look: Look, at: THREE.Vector3, yaw = 0): Person | null {
-    const limit = role === 'buddy' ? this.max : this.max - 4;
+    const limit = role === 'buddy' || role === 'guard' ? this.max : this.max - 6;
     if (this.people.length >= limit) return null;
     const p = new Person(role, look);
     p.pos.copy(at);
@@ -733,6 +733,11 @@ export class Crowd {
         else if (p.role === 'pair') this.walkBeside(p, dt);
       }
       p.blush = Math.max(0, p.blush - dt);
+      if (p.snapX !== 0 || p.snapY !== 0) {
+        const k = Math.max(0, 1 - dt * 5);
+        p.snapX = Math.abs(p.snapX) < 0.003 ? 0 : p.snapX * k;
+        p.snapY = Math.abs(p.snapY) < 0.003 ? 0 : p.snapY * k;
+      }
       p.cheer = Math.max(0, p.cheer - dt);
       p.gaspT = Math.max(0, p.gaspT - dt);
       p.laughT = Math.max(0, p.laughT - dt);
@@ -1138,6 +1143,13 @@ export class Crowd {
     // Look at the player / glance around.
     b.Head?.rotateY(p.headYaw * 0.8);
     b.Head?.rotateX(-p.headPitch);
+    if (p.snapX !== 0 || p.snapY !== 0) {
+      // Knocked back by a punch (or turned by a slap).
+      b.Head?.rotateX(-p.snapX);
+      b.Head?.rotateY(p.snapY);
+      b.Neck?.rotateX(-p.snapX * 0.5);
+      b.Neck?.rotateY(p.snapY * 0.4);
+    }
     if (p.fight) this.fightArms(p);
     if (p.onPose) {
       rig.root.updateMatrixWorld(true);
@@ -1159,11 +1171,6 @@ export class Crowd {
       b = rig.bones;
     if (f.down > 0.02) return;
     const head = b.Head;
-    if (head && (f.snapX !== 0 || f.snapY !== 0)) {
-      head.rotateX(-f.snapX);
-      head.rotateY(f.snapY);
-      b.Neck?.rotateX(-f.snapX * 0.5);
-    }
     const arms = Math.max(f.guard, f.block, f.punch, f.windup);
     if (arms < 0.01 || !head) return;
     // The body turns into the punch: away on the wind-up, through on the throw.
