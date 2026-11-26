@@ -295,9 +295,8 @@ export class Session {
 
   private lastSent = '';
   private left = false;
-  private flush() {
-    if (this.left) return;
-    // Forget events every friend still in touch has confirmed; the rest ride along (oldest first, within ~3.6 KB).
+  /** Forget events every friend still in touch has confirmed; the rest ride along (oldest first, within ~3.6 KB). */
+  private prune() {
     const live = [...this.remotes.values()].filter((r) => this.time - r.heardAt < 1.5);
     this.outbox.prune(
       live.map((r) => {
@@ -306,6 +305,29 @@ export class Session {
       }),
       this.time,
     );
+  }
+
+  /** My id as friends see it (their `Friend.id` for me). */
+  get selfId(): string {
+    return this.d.transport.self;
+  }
+
+  /** How many of my events of this kind friends haven't confirmed yet (for pacing bulky transfers). */
+  unconfirmed(k: string): number {
+    this.prune();
+    let n = 0;
+    for (const e of this.outbox.pending) if (e.k === k) n++;
+    return n;
+  }
+
+  /** A friend has heard from me (acked at least once), so events I send now reach them. */
+  hears(friendId: string): boolean {
+    return typeof this.remotes.get(friendId)?.state.a?.[this.d.transport.self] === 'number';
+  }
+
+  private flush() {
+    if (this.left) return;
+    this.prune();
     const w: Wire = this.outbox.packet(this.state());
     const sig = JSON.stringify(w);
     if (sig === this.lastSent) return;
