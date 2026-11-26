@@ -776,8 +776,11 @@ export class Lounge {
       this.throwDrink(dr, new THREE.Vector3().fromArray(e.v), true);
     } else if (e.k === 'order') {
       const kind = DRINKS[e.kind];
-      if (kind && !this.pour && !this.slide) {
-        const z = THREE.MathUtils.clamp(Number(e.z) || 9, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
+      if (!kind) return;
+      const z = THREE.MathUtils.clamp(Number(e.z) || 9, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
+      // The bartender may be pouring yours: theirs is next (never skipped).
+      if (this.pour || this.slide) this.friendOrders.push({ kind, z });
+      else {
         this.friendServeZ = z;
         this.startPour(kind, z, true);
       }
@@ -785,6 +788,8 @@ export class Lounge {
   }
 
   private friendServeZ: number | null = null;
+  /** Friends' orders waiting while the bartender finishes another drink. */
+  private friendOrders: { kind: DrinkKind; z: number }[] = [];
 
   /** Your friend picked up the drink they ordered: it leaves the counter here. */
   friendPickedUp() {
@@ -1264,6 +1269,11 @@ export class Lounge {
   }
 
   update(dt: number) {
+    if (this.friendOrders.length && !this.pour && !this.slide) {
+      const o = this.friendOrders.shift()!;
+      this.friendServeZ = o.z;
+      this.startPour(o.kind, o.z, true);
+    }
     this.time += dt;
     this.sipCooldown = Math.max(0, this.sipCooldown - dt);
     this.cheersCooldown = Math.max(0, this.cheersCooldown - dt);
