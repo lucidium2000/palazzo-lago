@@ -6,13 +6,14 @@ import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
  * on the bar top in VR), and the sportsbook TV above the bar.
  */
 
-export type GlassShape = 'coupe' | 'flute' | 'rocks' | 'martini' | 'pint' | 'shot';
+/** `cup`: a food court soda cup (opaque paper, `cup` is its colour). */
+export type GlassShape = 'coupe' | 'flute' | 'rocks' | 'martini' | 'pint' | 'shot' | 'cup';
 
 export interface DrinkKind {
   name: string;
   /** What you pay at the bar (a $2 tip is added at the register). */
   price: number;
-  section: 'Cocktails' | 'Beer' | 'Whiskey' | 'Shots' | 'Champagne' | 'Mocktails';
+  section: 'Cocktails' | 'Beer' | 'Whiskey' | 'Shots' | 'Champagne' | 'Mocktails' | 'Food court';
   liquid: number;
   glass: GlassShape;
   garnish?: number;
@@ -22,6 +23,10 @@ export interface DrinkKind {
   alcohol: number;
   /** How the bartender makes it. */
   prep: 'shake' | 'stir' | 'pour' | 'tap';
+  /** A paper cup's colour (the food court's sodas). */
+  cup?: number;
+  /** Not on Bar Lago's menu (the food court's sodas, on the Promenade's tables). */
+  offMenu?: boolean;
 }
 
 export const TIP = 2;
@@ -40,7 +45,15 @@ export const DRINKS: DrinkKind[] = [
   { name: 'Champagne', price: 24, section: 'Champagne', liquid: 0xf2d88a, glass: 'flute', alcohol: 1, prep: 'pour' },
   { name: 'Virgin Mojito', price: 10, section: 'Mocktails', liquid: 0xb8e090, glass: 'rocks', garnish: 0x3a8a2a, ice: true, alcohol: 0, prep: 'stir' },
   { name: 'Shirley Temple', price: 10, section: 'Mocktails', liquid: 0xe8404a, glass: 'flute', garnish: 0xb0101a, alcohol: 0, prep: 'pour' },
+  // The food court's fountain drinks (on the Promenade's tables, by the diners' plates). Always last: indices are sent to friends.
+  { name: 'Cola', price: 4, section: 'Food court', liquid: 0x3a1a0a, glass: 'cup', cup: 0xb8101a, ice: true, alcohol: 0, prep: 'pour', offMenu: true },
+  { name: 'Lemonade', price: 4, section: 'Food court', liquid: 0xf6e890, glass: 'cup', cup: 0xe8b040, ice: true, alcohol: 0, prep: 'pour', offMenu: true },
+  { name: 'Iced tea', price: 4, section: 'Food court', liquid: 0x8a4a14, glass: 'cup', cup: 0x3a1a0a, ice: true, alcohol: 0, prep: 'pour', offMenu: true },
+  { name: 'Vanilla shake', price: 6, section: 'Food court', liquid: 0xf2e8d0, glass: 'cup', cup: 0xf2f2f2, foam: true, alcohol: 0, prep: 'pour', offMenu: true },
 ];
+
+/** What Bar Lago serves (its menus list these). */
+export const BAR_MENU = DRINKS.filter((d) => !d.offMenu);
 
 /** Seconds the bartender takes, by method. */
 export const PREP_TIME: Record<DrinkKind['prep'], number> = { shake: 4.2, stir: 3.4, pour: 2.4, tap: 3.0 };
@@ -74,12 +87,12 @@ export class BarMenuCard {
     this.el = document.createElement('div');
     this.el.id = 'bar-menu';
     document.body.appendChild(this.el);
-    const sections = [...new Set(DRINKS.map((d) => d.section))];
+    const sections = [...new Set(BAR_MENU.map((d) => d.section))];
     let html = `<h3>Bar Lago</h3><div class="sub">Prices plus a $${TIP} tip · keys 1–9 to order fast · Esc to close</div>`;
     let n = 0;
     for (const s of sections) {
       html += `<h4>${s}</h4>`;
-      for (const d of DRINKS.filter((x) => x.section === s)) {
+      for (const d of BAR_MENU.filter((x) => x.section === s)) {
         const hex = '#' + new THREE.Color(d.liquid).getHexString();
         html += `<button class="item" data-i="${DRINKS.indexOf(d)}"><span><span class="sw" style="background:${hex}"></span>${++n <= 9 ? `<b>${n}</b> · ` : ''}${d.name}</span><span>$${d.price}</span></button>`;
       }
@@ -150,7 +163,7 @@ export function buildVrMenu(onPick: (k: DrinkKind) => void, onTip: () => void, s
   };
   const cols = 2;
   const bw = (p.pxW - 60 - 12) / cols;
-  DRINKS.forEach((d, i) =>
+  BAR_MENU.forEach((d, i) =>
     p.add({
       id: `d${i}`,
       x: 30 + (i % cols) * (bw + 12),

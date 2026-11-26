@@ -86,6 +86,8 @@ import { avatarLook } from './net/avatars';
 import { Piano } from './piano';
 import { Hints, type HintArcade } from './hints';
 import { PianoSync } from './net/pianosync';
+import { Stock } from './stock';
+import { setOutDisplays } from './stockdisplays';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
@@ -1054,6 +1056,24 @@ async function main() {
   const wardrobe = new Wardrobe({ scene, camera, loose, hands, hud, player, sound });
   const wearView = new WearView(scene, loose);
   const promSound = new PromenadeSound(sound, promenade.root);
+  // Every bit of food and drink on show is takeable: the food court's counters and tables, the
+  // back bar's shelves, the pool bar's column, the drinks in guests' hands (stock.ts).
+  const stock = new Stock({
+    hands,
+    interaction,
+    loose,
+    lounge,
+    crowd,
+    sound,
+    inXR: () => player.inXR,
+    feet: () => player.feet(),
+    // Taking someone's dinner or their drink: they let you know (and the hot-headed take it badly).
+    onSnatch: (p) => {
+      fights.provoke(p, 'pushed', 0.35);
+      reactTo(p, 'pushed');
+    },
+  });
+  setOutDisplays({ stock, loose, lounge, promenade, cast: () => areas.promenadeCast, pool: areas.pool });
   {
     // The clerk wears the shop's gold-rimmed shades.
     const clerk = areas.promenadeCast?.clerk;
@@ -2000,6 +2020,7 @@ async function main() {
     throwables.update(dt);
     drinkPhysics.update(dt);
     loose.update(dt);
+    stock.update(dt);
     {
       const now = [craps.chip, roulette.chip, ...blackjacks.map((b) => b.chip)].join();
       if (now !== seenChips) {
@@ -2158,7 +2179,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, arcade, promenade, hints };
+  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, arcade, promenade, hints, stock };
   (window as unknown as { casino: Record<string, unknown> }).casino.promSound = promSound;
 }
 

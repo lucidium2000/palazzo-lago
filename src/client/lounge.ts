@@ -39,7 +39,9 @@ export type DrinkEvent =
   | { k: 'put'; id: string; p: number[] }
   | { k: 'throw'; id?: string; kind: number; level: number; p: number[]; q: number[]; v: number[] }
   | { k: 'order'; kind: number; z: number }
-  | { k: 'sip' };
+  | { k: 'sip' }
+  /** A new glass in the world (taken off a table display or out of a guest's hand): `from` names where (stock.ts). */
+  | { k: 'spawn'; id: string; kind: number; level: number; p: number[]; from?: string };
 
 const drink = (name: string) => DRINKS.find((d) => d.name === name)!;
 const BAR_X = -15.0;
@@ -72,6 +74,13 @@ function liquidMat(color: number, clear = true): THREE.Material {
   return m;
 }
 const iceMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, roughness: 0.1 });
+/** Paper cups (the food court's sodas), by colour. */
+const cupMats = new Map<number, THREE.Material>();
+function cupMat(color: number) {
+  let m = cupMats.get(color);
+  if (!m) cupMats.set(color, (m = new THREE.MeshStandardMaterial({ color, roughness: 0.55, side: THREE.DoubleSide })));
+  return m;
+}
 
 export class Drink {
   readonly group = new THREE.Group();
@@ -157,11 +166,12 @@ export class Drink {
       coupe: [[0, 0], [0.04, 0], [0.005, 0.01], [0.004, 0.09], [0.05, 0.12], [0.06, 0.14], [0.058, 0.14], [0, 0.095]],
       pint: [[0, 0], [0.034, 0], [0.035, 0.006], [0.045, 0.15], [0.043, 0.15], [0.033, 0.012], [0, 0.012]],
       shot: [[0, 0], [0.022, 0], [0.023, 0.004], [0.026, 0.06], [0.024, 0.06], [0.019, 0.01], [0, 0.01]],
+      cup: [[0, 0], [0.03, 0], [0.031, 0.004], [0.04, 0.125], [0.038, 0.125], [0.029, 0.006], [0, 0.006]],
     };
     const pts = profile[kind.glass].map(([r, y]) => new THREE.Vector2(r, y));
-    this.topR = { rocks: 0.04, flute: 0.026, martini: 0.055, coupe: 0.055, pint: 0.042, shot: 0.024 }[kind.glass];
-    const glass = new THREE.Mesh(new THREE.LatheGeometry(pts, 20), glassMat);
-    glass.renderOrder = 2;
+    this.topR = { rocks: 0.04, flute: 0.026, martini: 0.055, coupe: 0.055, pint: 0.042, shot: 0.024, cup: 0.038 }[kind.glass];
+    const glass = new THREE.Mesh(new THREE.LatheGeometry(pts, 20), kind.glass === 'cup' ? cupMat(kind.cup ?? 0xf2f2f2) : glassMat);
+    if (kind.glass !== 'cup') glass.renderOrder = 2;
     this.group.add(glass);
     const shapes: Record<DrinkKind['glass'], () => [THREE.BufferGeometry, number, number]> = {
       rocks: () => [new THREE.CylinderGeometry(0.04, 0.039, 1, 18).translate(0, 0.5, 0), 0.01, 0.07],
@@ -170,6 +180,7 @@ export class Drink {
       coupe: () => [new THREE.CylinderGeometry(0.05, 0.01, 1, 18).translate(0, 0.5, 0), 0.096, 0.13],
       pint: () => [new THREE.CylinderGeometry(0.042, 0.033, 1, 18).translate(0, 0.5, 0), 0.013, 0.13],
       shot: () => [new THREE.CylinderGeometry(0.023, 0.019, 1, 14).translate(0, 0.5, 0), 0.011, 0.05],
+      cup: () => [new THREE.CylinderGeometry(0.037, 0.029, 1, 16).translate(0, 0.5, 0), 0.008, 0.115],
     };
     const [geo, bottom, top] = shapes[kind.glass]();
     this.liquidBottom = bottom;
@@ -187,7 +198,7 @@ export class Drink {
       }
     }
     if (kind.foam) {
-      this.foam = new THREE.Mesh(new THREE.CylinderGeometry(this.topR * 0.97, this.topR * 0.95, 0.014, 18), liquidMat(kind.glass === 'pint' ? 0xf6f0e0 : 0xc89a6a, false));
+      this.foam = new THREE.Mesh(new THREE.CylinderGeometry(this.topR * 0.97, this.topR * 0.95, 0.014, 18), liquidMat(kind.glass === 'pint' || kind.glass === 'cup' ? 0xf6f0e0 : 0xc89a6a, false));
       this.group.add(this.foam);
     }
     if (kind.garnish) {
@@ -232,6 +243,8 @@ export class Lounge {
   readonly soundboard = new THREE.Object3D();
   pianist: Person | null = null;
   pianoLoop: THREE.PositionalAudio | null = null;
+  /** The back bar's shelves of bottles (one instanced draw; stock.ts makes each one takeable). */
+  backBottles: THREE.InstancedMesh | null = null;
   private bartender: Person | null = null;
   private bartenderZ = 9;
   private waiting: Drink | null = null;
@@ -398,7 +411,10 @@ export class Lounge {
         bottles.setColorAt(n++, new THREE.Color(colors[(k * 5 + si * 3) % colors.length]));
       }
     });
-    bottles.raycast = () => {};
+    bottles.name = 'back-bar-bottles';
+    // Every one can be taken (stock.ts: point at it, or click it, and the bartender hands it over).
+    bottles.computeBoundingSphere();
+    this.backBottles = bottles;
     this.bar.add(bottles);
     // A backlit onyx feature wall rising behind the back bar, framed in gold.
     {
@@ -687,6 +703,43 @@ export class Lounge {
     return d;
   }
 
+  /**
+   * A new real glass standing at `at` (taken off a display, out of a guest's
+   * hand: see stock.ts), ready to grab, sip, pour and throw. Your friends get it
+   * too, with the same id, and `from` (where it came from) so it leaves there.
+   */
+  spawnDrink(kind: DrinkKind, at: THREE.Vector3, id: string, level: number, from?: string): { drink: Drink; grab: Grabbable } {
+    const d = new Drink(kind);
+    d.group.position.copy(at);
+    d.setLevel(level);
+    d.id = id;
+    this.drinks.set(id, d);
+    this.d.scene.add(d.group);
+    const grab = this.makeTakeable(d);
+    const k = DRINKS.indexOf(kind);
+    this.onDrinkEvent?.({ k: 'spawn', id, kind: k, level: Math.round(level * 10) / 10, p: round(at.toArray(), 3), ...(from ? { from } : {}) });
+    return { drink: d, grab };
+  }
+
+  /** Clears a glass away (the busboy: too many standing about). False if someone has it or it's flying. */
+  clearDrink(d: Drink): boolean {
+    if (d.group.parent !== this.d.scene || this.holder(d) || this.d.throwables.flying(d.group)) return false;
+    d.group.removeFromParent();
+    if (d.id) {
+      this.onDrinkEvent?.({ k: 'take', id: d.id });
+      this.drinks.delete(d.id);
+    }
+    return true;
+  }
+
+  /** A friend took a glass from somewhere (stock.ts hides it there). */
+  onSpawnFrom: ((from: string) => void) | null = null;
+
+  /** Your hands are full (desktop: a drink or something else in your hand). */
+  get handsFull() {
+    return !!this.desktopDrink || this.otherHeld();
+  }
+
   private makeTakeable(drink: Drink, opts: { on?: () => boolean; label?: string } = {}): Grabbable {
     const resting = () => drink.group.parent === this.d.scene || !!opts.on?.();
     // One interactable covers both states: on a surface (pick it up) and in your hand (sip).
@@ -702,7 +755,17 @@ export class Lounge {
           : opts.label && opts.on?.()
             ? opts.label
             : `Pick up the ${drink.kind.name}`,
-      onSelect: () => (this.desktopDrink === drink ? this.sip(drink) : this.pickUpDesktop(drink)),
+      onSelect: (e) => {
+        // VR: point at a glass and pull the trigger, and it comes to a free hand.
+        if (e.source === 'xr') {
+          if (resting() && !this.holder(drink)) {
+            if (this.handOver(drink, grab) && drink.id) this.onDrinkEvent?.({ k: 'take', id: drink.id });
+          }
+          return;
+        }
+        if (this.desktopDrink === drink) this.sip(drink);
+        else this.pickUpDesktop(drink);
+      },
     });
     const grab: Grabbable = {
       at: () => drink.group.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.06, 0)),
@@ -768,6 +831,19 @@ export class Lounge {
 
   /** Your friend did something to a drink: show it here. */
   friendDrink(e: DrinkEvent) {
+    if (e.k === 'spawn') {
+      const kind = DRINKS[e.kind];
+      if (!kind || typeof e.id !== 'string' || e.id.length > 60 || this.drinks.has(e.id) || !Array.isArray(e.p) || e.p.length !== 3 || !e.p.every(Number.isFinite)) return;
+      const d = new Drink(kind);
+      d.group.position.fromArray(e.p);
+      d.setLevel(THREE.MathUtils.clamp(Number(e.level) || 0, 0, 1));
+      d.id = e.id;
+      this.drinks.set(e.id, d);
+      this.d.scene.add(d.group);
+      this.makeTakeable(d);
+      if (typeof e.from === 'string' && e.from.length < 60) this.onSpawnFrom?.(e.from);
+      return;
+    }
     if (e.k === 'take') {
       const dr = this.drinks.get(e.id);
       if (dr) {
@@ -892,6 +968,7 @@ export class Lounge {
   handOver(drink: Drink, grab: Grabbable): boolean {
     if (this.d.player.inXR) {
       if (!this.d.hands.give(drink.group, grab)) return false;
+      if (this.waiting === drink) this.waiting = null;
       this.d.throwables.catch(drink.group);
       this.vrHeld = drink;
       this.d.sound.play('clink', drink.group, { volume: 0.4 });
@@ -1418,7 +1495,7 @@ export class Lounge {
     this.npcOrderIn = 22 + Math.random() * 25;
     const z = this.patronZ[Math.floor(Math.random() * this.patronZ.length)];
     if (z === undefined) return;
-    const choices = DRINKS.filter((d) => d.section !== 'Mocktails');
+    const choices = DRINKS.filter((d) => d.section !== 'Mocktails' && !d.offMenu);
     this.startPour(choices[Math.floor(Math.random() * choices.length)], z, true);
   }
 

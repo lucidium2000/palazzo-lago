@@ -396,7 +396,9 @@ export class Crowd {
   private trays: THREE.InstancedMesh;
   readonly group = new THREE.Group();
   /** Drinks and phones in hand (one draw each for everybody). */
-  private glasses: THREE.InstancedMesh;
+  /** Drinks in guests' hands (one instance each); `glassOwners[i]` holds instance i's glass. */
+  readonly glasses: THREE.InstancedMesh;
+  readonly glassOwners: Person[] = [];
   private phones: THREE.InstancedMesh;
   private talks: Talk[] = [];
   /** On headsets and phones, people this far away aren't drawn. */
@@ -492,6 +494,9 @@ export class Crowd {
       m.raycast = () => {};
       this.group.add(m);
     }
+    // Guests' drinks can be clicked (and taken: see stock.ts); the owners are kept by instance.
+    this.glasses.name = 'held-glasses';
+    this.glasses.raycast = THREE.InstancedMesh.prototype.raycast;
     // Far enough to see people across the hall and down the hotel corridor.
     this.cullDist = q.name === 'quest2' ? 18 : q.name === 'mobile' ? 16 : q.name === 'quest3' ? 24 : Infinity;
   }
@@ -805,7 +810,10 @@ export class Crowd {
       if (p.prop !== 'none' && p.rig) {
         const m = this.propMatrix(p);
         if (m) {
-          if (p.prop === 'glass') this.glasses.setMatrixAt(gi++, m);
+          if (p.prop === 'glass') {
+            this.glassOwners[gi] = p;
+            this.glasses.setMatrixAt(gi++, m);
+          }
           else this.phones.setMatrixAt(ph++, m);
         }
       }
@@ -813,7 +821,10 @@ export class Crowd {
     this.trays.count = trayN;
     this.trays.instanceMatrix.needsUpdate = trayN > 0;
     this.glasses.count = gi;
+    this.glassOwners.length = gi;
     this.glasses.instanceMatrix.needsUpdate = gi > 0;
+    // They move: clicks find them where they are now.
+    this.glasses.boundingSphere = null;
     this.phones.count = ph;
     this.phones.instanceMatrix.needsUpdate = ph > 0;
     for (const part of Object.values(this.parts)) part.mesh.instanceMatrix.needsUpdate = true;
@@ -914,6 +925,13 @@ export class Crowd {
 
   private propV = new THREE.Vector3();
   private propQ = new THREE.Quaternion();
+  /** Where the drink in someone's hand is (world), or null (none, not drawn, no hand). */
+  glassAt(p: Person, out = new THREE.Vector3()): THREE.Vector3 | null {
+    if (p.prop !== 'glass' || !p.rig || p.culled) return null;
+    const m = this.propMatrix(p);
+    return m ? out.setFromMatrixPosition(m).add(this.v.set(0, 0.05, 0)) : null;
+  }
+
   /** World matrix for the drink or phone in someone's right hand. */
   private propMatrix(p: Person): THREE.Matrix4 | null {
     const b = p.rig!.bones;

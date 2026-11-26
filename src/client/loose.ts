@@ -15,6 +15,7 @@ import { BAR as POOL_BAR } from './areas/pool';
 import { palmGrab, palms, type PalmReading } from './palm';
 import { biteScale, promenadeKinds } from './promenadeprops';
 import { MERCH, PROMENADE_SURFACES, storeStock, type MerchKey } from './areas/promenadeplan';
+import { ROOM as POKER_ROOM } from './pokerroom';
 
 type SoundName = Parameters<import('./audio').Sound['play']>[0];
 interface SoundLike {
@@ -72,8 +73,12 @@ export type LooseNet =
   | { k: 'gone'; id: string }
   /** Chips let go of from a wallet stack: new loose chips, falling from p with velocity v. */
   | { k: 'cspawn'; id: string; key: string; p: number[]; v: number[] }
-  /** Something new appeared (food served at a counter, a hat taken off): kind key, where, how it's turned, colour, paid for. */
-  | { k: 'spawn'; id: string; key: string; p: number[]; yaw: number; c: number; paid: number }
+  /**
+   * Something new appeared (food served at a counter, a hat taken off, a slice off a display):
+   * kind key, where, how it's turned, colour, paid for; a bottle's liquid and name; and `from`,
+   * the display it was taken off (stock.ts: it leaves the display on your friends' side too).
+   */
+  | { k: 'spawn'; id: string; key: string; p: number[]; yaw: number; c: number; paid: number; l?: number; nm?: string; from?: string }
   /** A bite out of a piece of food: `n` bites left (0: finished, it's gone). */
   | { k: 'bite'; id: string; n: number }
   /** Shop stock paid for at the counter. */
@@ -93,8 +98,10 @@ export interface KindDef {
   vol: number;
   /** How it sits in your desktop hand (camera space). */
   hold: { p: [number, number, number]; r: [number, number, number] };
-  /** Bottles: holds this many glasses. */
+  /** Bottles (and decanters): holds this many glasses. */
   capacity?: number;
+  /** Bottles: the mouth's height above the base and its radius (where a pour leaves it). */
+  rim?: [number, number];
   /** Food: bites to finish it. */
   food?: { bites: number };
   /** Shop stock (price, wearable). */
@@ -130,7 +137,14 @@ export interface Item {
   bites: number;
   /** Shop stock: bought (wearable, and yours to take). */
   paid: boolean;
+  /** Set out when the venue was built: where it lives (eaten or smashed, a fresh one comes back here). */
+  home?: { x: number; z: number; y: number; yaw: number; liquid: number | null; name?: string };
+  /** When it was eaten / smashed / cleared (venue time). */
+  goneAt?: number;
 }
+
+/** Something you can swig from and pour (a bottle, a decanter). */
+export const isBottle = (it: { kind: { capacity?: number } }) => !!it.kind.capacity;
 
 /** The value of a loose chip (0: not a chip). */
 export function chipValue(it: { kind: { key: string } }): number {
@@ -273,6 +287,24 @@ function kinds(): KindDef[] {
       vol: 0.8,
       hold: { p: [0.2, -0.32, -0.45], r: [0.12, 0, 0] },
       capacity: 5,
+      rim: [0.32, 0.012],
+    },
+    {
+      // The poker room's crystal decanters of whisky (and the stoppers go with them).
+      key: 'decanter',
+      label: 'decanter',
+      spec: { name: 'decanter', shape: { type: 'cyl', r: 0.07, h: 0.25 }, mass: 1.4, bounce: 0.15, friction: 0.45, fragile: 5, tumble: 0.5 },
+      geo: lathe([[0, 0], [0.06, 0], [0.072, 0.05], [0.074, 0.12], [0.06, 0.17], [0.022, 0.19], [0.02, 0.215], [0.028, 0.222], [0.024, 0.24], [0.012, 0.25], [0, 0.25]], 18),
+      mat: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.8, envMapIntensity: 2.2 }),
+      tinted: true,
+      sound: 'clink',
+      rate: 0.5,
+      vol: 0.8,
+      hold: { p: [0.2, -0.3, -0.45], r: [0.12, 0, 0] },
+      capacity: 4,
+      rim: [0.215, 0.02],
+      // They only live in the poker room: drawn only when it's in view.
+      cull: true,
     },
     {
       key: 'fruit',
@@ -285,6 +317,8 @@ function kinds(): KindDef[] {
       rate: 1.7,
       vol: 0.35,
       hold: { p: [0.16, -0.18, -0.38], r: [0, 0, 0] },
+      // Bite into it if you like (sour).
+      food: { bites: 2 },
     },
     {
       key: 'napkin',
@@ -433,7 +467,8 @@ export class LooseObjects {
   }
 
   private addKind(def: KindDef) {
-    const cap = def.key.startsWith('chip') ? 64 : 40;
+    // Room for what the venue sets out plus what's taken off displays (see stock.ts: it caps those).
+    const cap = def.key.startsWith('chip') ? 64 : def.key === 'bottle' ? 56 : 48;
     const mesh = new THREE.InstancedMesh(def.geo, def.mat, cap);
     mesh.count = 0;
     mesh.frustumCulled = !!def.cull;
@@ -459,6 +494,11 @@ export class LooseObjects {
       onSelect: (e) => {
         const it = e.hit.instanceId !== undefined ? k.items[e.hit.instanceId] : undefined;
         if (!it) return;
+        // VR: point at food or a bottle and pull the trigger: it comes to your hand (the back bar is out of reach).
+        if (e.source === 'xr' && (k.food || k.capacity)) {
+          if (!it.holder && !it.gone) this.giveToFreeHand(it);
+          return;
+        }
         // Your own chips lying about: a click (or a tap on a phone) scoops them back.
         if (!it.holder && !it.gone && this.d.isMine?.(it.id) && this.d.tapChip?.(it.id, chipValue(it), it.body.pos.clone())) return;
         this.pickUpDesk(it);
@@ -471,7 +511,7 @@ export class LooseObjects {
       const hex = it.color.getHex();
       return hex === new THREE.Color(FRUIT.lemon).getHex() ? 'lemon' : hex === new THREE.Color(FRUIT.orange).getHex() ? 'orange' : 'lime';
     }
-    if (it.kind.key === 'bottle') return (it.level > 0.02 ? '' : 'empty ') + ((it.body.data.name as string) ?? 'bottle');
+    if (isBottle(it)) return (it.level > 0.02 ? '' : 'empty ') + ((it.body.data.name as string) ?? it.kind.label);
     if (it.kind.food && it.bites < it.kind.food.bites) return `half-eaten ${it.kind.label}`;
     return it.kind.label;
   }
@@ -498,9 +538,43 @@ export class LooseObjects {
     k.mesh.count = k.items.length;
     if (k.mesh.instanceColor) k.mesh.setColorAt(index, color);
     this.items.set(id, it);
+    // Food and drink set out at the start: eaten or smashed, a fresh one is put back later.
+    if (k.food || k.capacity) it.home = { x: body.pos.x, z: body.pos.z, y: body.pos.y, yaw: o.yaw ?? 0, liquid: o.liquid ?? null, name: o.name };
     this.writeMatrix(it);
     this.registerGrab(it);
     return it;
+  }
+
+  /** Seconds before something eaten or smashed is set out again where it lived. */
+  static readonly RESTOCK_S = 150;
+  private restockT = 0;
+
+  /**
+   * Puts a fresh one back where each piece of the venue's food and drink lived
+   * (the bar's fruit, the minibar's bottles), a while after it was eaten or
+   * smashed, when you're not standing right there. Same ids on every machine,
+   * so it comes back for your friends too.
+   */
+  private restock(dt: number) {
+    this.restockT -= dt;
+    if (this.restockT > 0) return;
+    this.restockT = 2;
+    const f = this.d.player.feet();
+    for (const it of this.items.values()) {
+      const h = it.home;
+      if (!h || !it.gone || it.holder || this.time - (it.goneAt ?? this.time) < LooseObjects.RESTOCK_S) continue;
+      if (Math.hypot(f.x - h.x, f.z - h.z) < 2.5) continue;
+      it.body = this.sim.add(it.kind.spec, it.id, new THREE.Vector3(h.x, h.y + 0.05, h.z), h.yaw);
+      this.sim.place(it.body, h.x, h.z, h.y + 0.05);
+      it.body.data.item = it;
+      if (h.name) it.body.data.name = h.name;
+      it.gone = false;
+      it.goneAt = undefined;
+      it.level = h.liquid !== null ? 1 : 0;
+      it.liquid = h.liquid;
+      it.bites = it.kind.food?.bites ?? 0;
+      this.writeMatrix(it);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -548,6 +622,8 @@ export class LooseObjects {
     S.box(593.2, 2.35, 1.62, 0.48, 0.5);
     // The minibar's marble top (bottles to pour and mix with; see suiteperks.ts).
     S.box(598.5, -5.3, 2.7, 0.66, 0.985);
+    // The poker room's credenza (its decanters of whisky).
+    S.box(POKER_ROOM.x0 + 0.27, 0, 0.52, 2.44, 0.95);
     // The pool's DJ stage and the decks on it.
     S.box(50, -32.8, 6.0, 2.4, 0.6);
     S.box(50, -31.95, 2.3, 0.65, 1.45);
@@ -588,6 +664,8 @@ export class LooseObjects {
       this.fruitBowl(597.55, -5.1, up(0.985));
       this.spawn('bucket', 597.25, -5.18, up(0.985));
     }
+    // --- The poker room's credenza: crystal decanters of whisky to pour a glass from ---
+    for (const z of [-0.8, -0.5, 0.55, 0.85]) this.spawn('decanter', POKER_ROOM.x0 + 0.3, z, up(0.95), { color: 0xc89048, liquid: BOTTLES.whisky.liquid, name: 'whisky decanter', yaw: z });
     // --- The boutique's stock (on the Promenade) ---
     for (const s of storeStock()) this.spawn(s.key, s.x, s.z, up(s.y), { yaw: s.yaw, color: s.color });
     // --- Lounge tables ---
@@ -809,7 +887,7 @@ export class LooseObjects {
       },
       drag: (hand, pos) => {
         // Bottles: bring it to your mouth for a swig.
-        if (it.kind.key === 'bottle' && pos.distanceTo(this.d.hands.head) < 0.2 && this.swig(it)) this.d.hands.onHaptic?.(hand, 0.2, 30);
+        if (isBottle(it) && pos.distanceTo(this.d.hands.head) < 0.2 && this.swig(it)) this.d.hands.onHaptic?.(hand, 0.2, 30);
         // Food: to your mouth for a bite (and another, every second or so you hold it there).
         if (it.kind.food && this.atMouth(pos) && this.bite(it)) this.d.hands.onHaptic?.(hand, 0.3, 40);
         // Sunglasses to your eyes, a hat on top of your head: hold it there a moment and it's on.
@@ -892,7 +970,7 @@ export class LooseObjects {
     p.rotation.set(...it.kind.hold.r);
     const m = it.kind.merch;
     const extra =
-      it.kind.key === 'bottle'
+      isBottle(it)
         ? ' · F to swig · hold P to pour'
         : it.kind.food
           ? ' · F to take a bite'
@@ -944,7 +1022,7 @@ export class LooseObjects {
 
   /** A swig from a bottle in your hand. */
   swig(it: Item): boolean {
-    if (it.kind.key !== 'bottle' || it.level <= 0.02 || this.swigCool > 0) return false;
+    if (!isBottle(it) || it.level <= 0.02 || this.swigCool > 0) return false;
     if (!this.d.lounge.swig(0.5)) return false;
     this.swigCool = 1.4;
     it.level = Math.max(0, it.level - 0.08);
@@ -968,7 +1046,7 @@ export class LooseObjects {
   private pourables(): Pourable[] {
     const out: Pourable[] = [];
     for (const it of this.items.values()) {
-      if (it.kind.key !== 'bottle' || !it.proxy || it.liquid === null || it.holder === 'remote') continue;
+      if (!isBottle(it) || !it.proxy || it.liquid === null || it.holder === 'remote') continue;
       const self = it;
       out.push({
         group: it.proxy,
@@ -976,8 +1054,8 @@ export class LooseObjects {
           return self.level;
         },
         setLevel: (l) => (self.level = Math.max(0, l)),
-        rimHeight: 0.32,
-        rimRadius: 0.012,
+        rimHeight: (it.kind.rim?.[0] ?? 0.32) * this.scaleOf(it),
+        rimRadius: it.kind.rim?.[1] ?? 0.012,
         color: it.liquid,
         remote: false,
         capacity: it.kind.capacity,
@@ -996,12 +1074,13 @@ export class LooseObjects {
     this.biteCool = Math.max(0, this.biteCool - dt);
     for (const [k, t] of this.soundCool) if (t < this.time) this.soundCool.delete(k);
     // Desktop: P tips the bottle in your hand forward to pour.
-    if (this.desk?.proxy && this.desk.kind.key === 'bottle') {
+    if (this.desk?.proxy && isBottle(this.desk)) {
       const want = this.d.lounge.pouringDesktop ? -2.1 : this.desk.kind.hold.r[0];
       const p = this.desk.proxy;
       p.rotation.x += (want - p.rotation.x) * Math.min(1, dt * 6);
     }
     this.late();
+    this.restock(dt);
     this.updatePalms(dt);
     this.knocks();
     this.sim.update(dt);
@@ -1100,7 +1179,7 @@ export class LooseObjects {
         return;
       }
       // A bottle lying on its side glugs out what's left.
-      if (it.kind.key === 'bottle' && it.liquid !== null && it.level > 0.05 && Math.abs(it.body.axis().y) < 0.5) {
+      if (isBottle(it) && it.liquid !== null && it.level > 0.05 && Math.abs(it.body.axis().y) < 0.5) {
         const at = extents(it.kind.spec.shape, it.body.pos, it.body.q).c;
         this.d.throwables.spill(new THREE.Vector3(at.x, it.body.pos.y - 0.03, at.z), it.liquid, 0.1 + it.level * 0.25);
         this.d.sound.play('pour', at, { volume: 0.4, rate: 0.8 });
@@ -1277,16 +1356,18 @@ export class LooseObjects {
     if (it.gone) return;
     this.sim.remove(it.body);
     it.gone = true;
+    it.goneAt = this.time;
     this.writeMatrix(it);
   }
 
   private smash(it: Item, at: THREE.Vector3, v: THREE.Vector3) {
     it.gone = true;
+    it.goneAt = this.time;
     this.stats.broken++;
     this.writeMatrix(it);
     const wet = it.liquid !== null && it.level > 0.05 ? it.liquid : null;
     this.d.throwables.shatter(at, v, wet);
-    if (it.kind.key === 'bottle') {
+    if (isBottle(it)) {
       this.d.throwables.shatter(at.clone().add(new THREE.Vector3(0.05, 0.05, -0.04)), v.clone().multiplyScalar(0.6), null);
       if (wet !== null) {
         const floor = this.d.throwables.surfaceBelow(at.clone().add(new THREE.Vector3(0, 0.2, 0)));
@@ -1355,13 +1436,13 @@ export class LooseObjects {
    * you took off. Reuses the slot of one that was eaten or worn. Your friends
    * get it too (with the same id) unless it came from them (`remote`).
    */
-  spawnLive(key: string, x: number, z: number, fromY: number, o: { id?: string; yaw?: number; color?: number; paid?: boolean; remote?: boolean } = {}): Item | null {
+  spawnLive(key: string, x: number, z: number, fromY: number, o: { id?: string; yaw?: number; color?: number; paid?: boolean; remote?: boolean; liquid?: number; name?: string; from?: string; at?: THREE.Vector3; bites?: number } = {}): Item | null {
     const k = this.kindOf(key);
     if (!k) return null;
     const id = o.id ?? `${key}-${this.tag}-${++this.liveN}`;
     const known = this.items.get(id);
     if (known) return known.gone ? null : known;
-    let index = k.items.findIndex((x) => x.gone && !x.holder);
+    let index = k.items.findIndex((x) => x.gone && !x.holder && !x.home);
     if (index < 0) {
       if (k.items.length >= k.mesh.instanceMatrix.count) return null;
       index = k.items.length;
@@ -1375,9 +1456,13 @@ export class LooseObjects {
     }
     const yaw = o.yaw ?? 0;
     const body = this.sim.add(k.spec, id, new THREE.Vector3(x, fromY, z), yaw);
-    this.sim.place(body, x, z, fromY);
+    // `at`: exactly there (taken off a display into a hand), else set down on whatever is below.
+    if (o.at) body.pos.copy(o.at);
+    else this.sim.place(body, x, z, fromY);
+    if (o.name) body.data.name = o.name;
     const color = new THREE.Color(o.color ?? 0xffffff);
-    const it: Item = { id, kind: k, body, index, color, level: 0, liquid: null, proxy: null, holder: null, hand: null, gone: false, bites: k.food?.bites ?? 0, paid: o.paid ?? !k.merch };
+    const liquid = k.capacity && o.liquid !== undefined ? o.liquid : null;
+    const it: Item = { id, kind: k, body, index, color, level: liquid !== null ? 1 : 0, liquid, proxy: null, holder: null, hand: null, gone: false, bites: k.food?.bites ?? 0, paid: o.paid ?? !k.merch };
     body.data.item = it;
     k.items[index] = it;
     k.mesh.count = k.items.length;
@@ -1385,8 +1470,61 @@ export class LooseObjects {
     this.items.set(id, it);
     this.writeMatrix(it);
     this.registerGrab(it);
-    if (!o.remote) this.onNet?.({ k: 'spawn', id, key, p: round(body.pos.toArray(), 3), yaw: Math.round(yaw * 100) / 100, c: color.getHex(), paid: it.paid ? 1 : 0 });
+    if (!o.remote)
+      this.onNet?.({
+        k: 'spawn',
+        id,
+        key,
+        p: round(body.pos.toArray(), 3),
+        yaw: Math.round(yaw * 100) / 100,
+        c: color.getHex(),
+        paid: it.paid ? 1 : 0,
+        ...(liquid !== null ? { l: liquid } : {}),
+        ...(o.name ? { nm: o.name } : {}),
+        ...(o.from ? { from: o.from } : {}),
+      });
+    // A leftover: some of it's gone already (and your friends see it that size).
+    if (k.food && o.bites !== undefined && o.bites < it.bites) {
+      it.bites = Math.max(1, Math.round(o.bites));
+      this.writeMatrix(it);
+      if (!o.remote) this.onNet?.({ k: 'bite', id, n: it.bites });
+    }
     return it;
+  }
+
+  /** A friend took something off a display (stock.ts hides it there): the display's id. */
+  onSpawnFrom: ((from: string) => void) | null = null;
+
+  /** The VR grab handle of a loose thing (stock.ts hands it straight to the hand that reached for it). */
+  grabbableOf(it: Item): Grabbable | null {
+    return this.grabs.get(it) ?? null;
+  }
+
+  /**
+   * Clears a loose thing away for good (a busboy takes the oldest plate back to
+   * the kitchen when too many are lying about); your friends see it go too.
+   */
+  clear(it: Item): boolean {
+    if (it.gone || it.holder) return false;
+    this.collect(it);
+    this.onNet?.({ k: 'gone', id: it.id });
+    return true;
+  }
+
+  /**
+   * VR: you pointed at it and pulled the trigger (it's out of reach: on the
+   * back bar, across the counter): it comes to a free hand. False if both
+   * hands are full.
+   */
+  giveToFreeHand(it: Item): boolean {
+    const hand = this.d.hands.hands.find((h) => !h.held && h.ctrl.userData.connected !== false);
+    const g = this.grabs.get(it);
+    if (!hand || !g || it.holder || it.gone) return false;
+    // Brought to the hand (the grab keeps it where it is relative to the hand).
+    const at = hand.grip.getWorldPosition(new THREE.Vector3());
+    this.sim.hold(it.body);
+    it.body.pos.copy(at).add(new THREE.Vector3(0, -0.03, 0));
+    return this.d.hands.grabWith(hand, g);
   }
 
   /** A bite of the food in your hand (crunch, it gets smaller; the last bite finishes it). */
@@ -1478,7 +1616,7 @@ export class LooseObjects {
   useDesk() {
     const it = this.desk;
     if (!it) return;
-    if (it.kind.key === 'bottle') this.swig(it);
+    if (isBottle(it)) this.swig(it);
     else if (it.kind.food) this.bite(it);
     else if (it.kind.merch && MERCH[it.kind.merch].wear) this.wear(it);
   }
@@ -1487,7 +1625,7 @@ export class LooseObjects {
   deskUse(): string | null {
     const it = this.desk;
     if (!it) return null;
-    if (it.kind.key === 'bottle') return 'Swig';
+    if (isBottle(it)) return 'Swig';
     if (it.kind.food) return 'Bite';
     if (it.kind.merch && MERCH[it.kind.merch].wear) return 'Wear';
     return null;
@@ -1518,7 +1656,17 @@ export class LooseObjects {
     }
     if (e.k === 'spawn') {
       if (typeof e.key !== 'string' || !finite(e.p, 3) || e.id.length > 40) return;
-      this.spawnLive(e.key, e.p[0], e.p[2], e.p[1] + 0.03, { id: e.id, yaw: Number(e.yaw) || 0, color: Math.floor(Number(e.c)) & 0xffffff, paid: !!e.paid, remote: true });
+      const l = Number(e.l);
+      this.spawnLive(e.key, e.p[0], e.p[2], e.p[1] + 0.03, {
+        id: e.id,
+        yaw: Number(e.yaw) || 0,
+        color: Math.floor(Number(e.c)) & 0xffffff,
+        paid: !!e.paid,
+        remote: true,
+        liquid: Number.isInteger(l) && l >= 0 && l <= 0xffffff ? l : undefined,
+        name: typeof e.nm === 'string' && e.nm.length < 40 ? e.nm : undefined,
+      });
+      if (typeof e.from === 'string' && e.from.length < 60) this.onSpawnFrom?.(e.from);
       return;
     }
     const it = this.items.get(e.id);
