@@ -83,6 +83,9 @@ export class CabinetSound {
       pa.setRefDistance(this.opts.ref ?? 1.3);
       pa.setRolloffFactor(this.opts.rolloff ?? 1.5);
       pa.setMaxDistance(30);
+      // Fed from a node (not played): without this three.js never moves the panner off the world
+      // origin, and the cabinet's sound plays from hundreds of metres away (silent).
+      (pa as { hasPlaybackControl: boolean }).hasPlaybackControl = false;
       this.anchor.add(pa);
       this.pa = pa;
       this.bus = c.createGain();
