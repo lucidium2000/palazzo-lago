@@ -95,6 +95,8 @@ export class Drink {
   }
   /** What's in it after pouring something else in (a mix of colours), if anything was. */
   private mixed: number | null = null;
+  /** What's been poured into it, by the liquid's colour (glass-fulls): mixing drinks reads this. */
+  readonly poured = new Map<number, number>();
 
   /**
    * Pours some of another drink in (glass-fulls): the level rises and the colour mixes by how much
@@ -104,6 +106,7 @@ export class Drink {
     const room = Math.max(0, 1 - this.level);
     const add = Math.min(room, amount);
     if (add <= 0) return 0;
+    this.poured.set(color, (this.poured.get(color) ?? 0) + add);
     const was = this.level;
     const c = this.level > 0.02 ? new THREE.Color(this.color).lerp(new THREE.Color(color), add / (was + add)) : new THREE.Color(color);
     this.mixed = c.getHex();
@@ -672,6 +675,18 @@ export class Lounge {
    * `opts.on` says where else it may rest and still be taken (a waiter's tray),
    * besides standing loose in the scene; `opts.label` is the click label there.
    */
+  /** Sets an (empty) glass down in the world, ready to pick up, pour into and drink (the suite's minibar). */
+  placeGlass(kind: DrinkKind, at: THREE.Vector3, id: string): Drink {
+    const d = new Drink(kind);
+    d.group.position.copy(at);
+    d.setLevel(0);
+    d.id = id;
+    this.drinks.set(d.id, d);
+    this.d.scene.add(d.group);
+    this.makeTakeable(d);
+    return d;
+  }
+
   private makeTakeable(drink: Drink, opts: { on?: () => boolean; label?: string } = {}): Grabbable {
     const resting = () => drink.group.parent === this.d.scene || !!opts.on?.();
     // One interactable covers both states: on a surface (pick it up) and in your hand (sip).

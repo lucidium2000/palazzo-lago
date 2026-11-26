@@ -8,6 +8,7 @@ import { buildCasino, envZoneAt, POSITIONS, registerHall, SLOTS_YAW, type EnvZon
 import { preloadChips } from './chips';
 import { CrapsTable, FELT_Y, makeCrapsStick } from './craps/table';
 import { handTo } from './gestures';
+import { SuitePerks } from './suiteperks';
 import { PostFX } from './post';
 import { Dialogue, voiceArbiter } from './dialogue';
 import { AREA_NODES, buildAreas, registerAreas } from './areas';
@@ -272,6 +273,8 @@ async function main() {
     onChipRest: (value, at) => craps.betFound(at, value) || roulette.betFound(at, value) || blackjacks.some((b) => b.betFound(at, value)),
   });
   const slotRows = new SlotRows(ctx, crowd, world);
+  // The suite's speaker and minibar, and music in the lift cars.
+  const suitePerks = new SuitePerks({ scene, sound, hud, interaction, lounge, feet: () => player.feet(), inLift: (x, z) => areas.elevators.inCab(x, z) });
 
   // Walking routes through the open floor; edges are found automatically.
   crowd.setGraph([
@@ -1974,7 +1977,9 @@ async function main() {
     // Music: lively on the floor, softer by the piano and outside.
     const byPiano = THREE.MathUtils.clamp(1 - feet.distanceTo(lounge.piano.position) / 7, 0, 1);
     // Out at the pool party the DJ takes over: the casino's groove ducks out.
-    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence));
+    // (And it steps aside for your room's speaker or the lift's music.)
+    suitePerks.update(dt);
+    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence) * (1 - 0.95 * suitePerks.duck));
     if (outside > 0.5) {
       if (!finaleSeen && casino.fountainLevel() > 0.8) {
         finaleSeen = true;

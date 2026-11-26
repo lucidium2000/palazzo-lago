@@ -160,7 +160,6 @@ export function buildSuite(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
   b.box(m.glow(0xffd9a0, 1.1), 598.5, 1.6, -5.55, 2.4, 0.02, 0.25);
   const cols = [0x2a6a3a, 0x8a5a1a, 0xd8d0c0, 0x3a1a4a, 0x8a1a1a, 0xc9a050];
   for (let i = 0; i < 12; i++) b.add(new THREE.CylinderGeometry(0.035, 0.04, 0.3, 8), m.glow(cols[i % cols.length], 0.9), M(597.4 + i * 0.2, 1.15, -5.45));
-  for (let i = 0; i < 4; i++) b.add(new THREE.CylinderGeometry(0.035, 0.025, 0.12, 10), m.glow(0xffffff, 0.8), M(598.0 + i * 0.25, 1.05, -5.15));
   // TV on the south wall facing the sofa, and floor lamps.
   b.box(new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.2, metalness: 0.4 }), 597.0, 1.5, 5.9, 2.0, 1.15, 0.06);
   b.box(m.glow(0x1a3060, 0.6), 597.0, 1.5, 5.86, 1.9, 1.05, 0.01);

@@ -310,7 +310,7 @@ function kinds(): KindDef[] {
 }
 
 const FRUIT = { lime: 0x6cb83a, lemon: 0xf0d23a, orange: 0xf08a1a };
-const BOTTLES = {
+export const BOTTLES = {
   champagne: { glass: 0x1c3a1e, liquid: 0xf4e2a0 },
   whisky: { glass: 0x9a5a1a, liquid: 0xb8651d },
   gin: { glass: 0x9fd0b0, liquid: 0xeaf4ee },
@@ -482,6 +482,8 @@ export class LooseObjects {
     for (const x of [591.7, 594.7]) S.box(x, 4.9, 0.58, 0.48, 0.6);
     S.box(599.5, 0.8, 0.48, 1.32, 0.825);
     S.box(593.2, 2.35, 1.62, 0.48, 0.5);
+    // The minibar's marble top (bottles to pour and mix with; see suiteperks.ts).
+    S.box(598.5, -5.3, 2.7, 0.66, 0.985);
     // The pool's DJ stage and the decks on it.
     S.box(50, -32.8, 6.0, 2.4, 0.6);
     S.box(50, -31.95, 2.3, 0.65, 1.45);
@@ -510,6 +512,13 @@ export class LooseObjects {
       ['wine', 11.4],
     ];
     for (const [name, z] of back) this.spawn('bottle', -17.4, z, up(0.99), { color: BOTTLES[name].glass, liquid: BOTTLES[name].liquid, name });
+    // --- Suite 3201 minibar: a full set of bottles to mix with, a bowl of fruit, an ice bucket ---
+    {
+      const names: (keyof typeof BOTTLES)[] = ['gin', 'vodka', 'rum', 'tequila', 'whisky', 'champagne', 'wine'];
+      names.forEach((name, i) => this.spawn('bottle', 598.75 + i * 0.13, -5.12 + (i % 2) * 0.05, up(0.985), { color: BOTTLES[name].glass, liquid: BOTTLES[name].liquid, name }));
+      this.fruitBowl(597.55, -5.1, up(0.985));
+      this.spawn('bucket', 597.25, -5.18, up(0.985));
+    }
     // --- Lounge tables ---
     {
       const [x, z] = lounge[0];
