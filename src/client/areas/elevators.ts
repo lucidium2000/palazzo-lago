@@ -154,17 +154,21 @@ export class Elevators {
   // ---------------------------------------------------------------------------
 
   private build() {
-    const b = new Batch();
+    // One batch per landing (not one across the resort): each landing's cabs can then be culled
+    // with its own area (the culler can't place a mesh spanning the casino, the suite and the Promenade).
+    const batches = new Map<LandingId, { b: Batch; indicators: THREE.BufferGeometry[] }>();
     const m = this.m;
     const mirror = new THREE.MeshStandardMaterial({ color: 0x8a8070, metalness: 1, roughness: 0.08, envMapIntensity: 1.6 });
     const cabWall = new THREE.MeshStandardMaterial({ color: 0x5a2c18, roughness: 0.45, emissive: 0x2a120a, emissiveIntensity: 0.6 });
     const cabLight = m.glow(0xfff0d8, 1.4);
-    // Indicator planes share the atlas: one merged mesh.
-    const indicators: THREE.BufferGeometry[] = [];
+    // Indicator planes share the atlas: one merged mesh (per landing).
     const panelMat = new THREE.MeshBasicMaterial({ map: panelTexture(), toneMapped: false });
     this.plateTex = plateTextures();
     for (const car of this.cars) {
       const { x, z } = car;
+      let per = batches.get(car.landing);
+      if (!per) batches.set(car.landing, (per = { b: new Batch(), indicators: [] }));
+      const { b, indicators } = per;
       // Gilded portal on the landing side.
       b.box(m.gold, x - 0.06, 1.3, z - 0.83, 0.16, 2.6, 0.12);
       b.box(m.gold, x - 0.06, 1.3, z + 0.83, 0.16, 2.6, 0.12);
@@ -238,10 +242,13 @@ export class Elevators {
         }),
       );
     }
-    b.build(this.group, 'elevators');
-    const indMesh = new THREE.Mesh(mergeList(indicators), new THREE.MeshBasicMaterial({ map: this.atlasTex, toneMapped: false }));
-    indMesh.raycast = () => {};
-    this.group.add(indMesh);
+    const indMat = new THREE.MeshBasicMaterial({ map: this.atlasTex, toneMapped: false });
+    for (const [landing, { b, indicators }] of batches) {
+      b.build(this.group, `elevators-${landing}`);
+      const indMesh = new THREE.Mesh(mergeList(indicators), indMat);
+      indMesh.raycast = () => {};
+      this.group.add(indMesh);
+    }
   }
 
   private rowAt(hit: THREE.Intersection): (LandingId | 'open') | null {

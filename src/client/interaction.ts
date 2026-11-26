@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { allLayers } from './cull';
 import { replyPrompt } from './replyhud';
 
 /**
@@ -100,6 +101,9 @@ export class Interaction {
     rig: THREE.Object3D,
   ) {
     this.raycaster.far = 30;
+    // Things culled from view (cull.ts moves them to another layer) can still be pointed at.
+    allLayers(this.raycaster);
+    allLayers(this.pokeRay);
     dom.addEventListener('pointerdown', (e) => {
       this.pointerDown = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
       this.dragged = false;

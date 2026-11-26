@@ -37,6 +37,15 @@ const STRIP = 12;
 const STRIP_CELL = 96;
 /** Machines further than this (or off screen) don't animate their reels. */
 const LIVE_DIST = 12;
+/** Reel flashes and marquee bulbs (made once, not every frame). */
+const COLORS = {
+  flashA: new THREE.Color(1.5, 1.25, 0.55),
+  flashB: new THREE.Color(1, 1, 1),
+  idle: new THREE.Color(0.92, 0.92, 0.92),
+  on: new THREE.Color(0xfff0b0),
+  off: new THREE.Color(0x4a3518),
+  hot: new THREE.Color(0xff5a3a),
+};
 
 interface Reel {
   /** Strip offset shown now (in strip lengths; 1/STRIP per symbol). */
@@ -84,6 +93,7 @@ export class SlotRows {
   private frustum = new THREE.Frustum();
   private pm = new THREE.Matrix4();
   private sphere = new THREE.Sphere(new THREE.Vector3(), 1.3);
+  private bank: THREE.Sphere | null = null;
   private carousels: [number, number][] = [
     [12.0, -3.9],
     [12.2, -8.9],
@@ -283,7 +293,8 @@ export class SlotRows {
       g.add(t);
       this.world.addCircle(cx, cz, 0.6, 'sign tower');
     });
-    bakeStatic(g);
+    // (Static decor: materials alike but for colour share a draw.)
+    bakeStatic(g, { byColor: true });
     // The seat faces the machine: people at a machine look toward -Z of the person frame.
     for (const c of this.cabinets) if (c.person) c.person.yaw = c.person.homeYaw = c.yaw + Math.PI;
     this.drawScreens(0);
@@ -477,16 +488,25 @@ export class SlotRows {
       camera.updateMatrixWorld();
       this.frustum.setFromProjectionMatrix(this.pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
     }
-    // The jackpot meters tick over a few times a second (small texture upload).
-    if (time - this.lastDraw > 0.25) {
+    // The whole bank: is any of it near, and in view? (Off in the lobby, the suite or the
+    // Promenade its screens and bulbs needn't redraw at all.)
+    if (!this.bank) {
+      const b = new THREE.Box3();
+      for (const c of this.cabinets) b.expandByPoint(c.pos);
+      this.bank = b.getBoundingSphere(new THREE.Sphere());
+      this.bank.center.y = 1.4;
+      this.bank.radius += 1.5;
+    }
+    const bankDist = Math.max(0, this.bank.center.distanceTo(playerPos) - this.bank.radius);
+    const bankSeen = bankDist < 30 && (!camera || this.frustum.intersectsSphere(this.bank));
+    // The jackpot meters tick over a few times a second (small texture upload); once a second from afar.
+    if (bankSeen && time - this.lastDraw > (bankDist < LIVE_DIST ? 0.25 : 1)) {
       this.lastDraw = time;
       this.drawScreens(time);
     }
     let reelsDirty = false,
       colorsDirty = false;
-    const flashA = new THREE.Color(1.5, 1.25, 0.55),
-      flashB = new THREE.Color(1, 1, 1),
-      idle = new THREE.Color(0.92, 0.92, 0.92);
+    const { flashA, flashB, idle } = COLORS;
     this.cabinets.forEach((c, i) => {
       // Only machines near you and in view animate their reels and make noise.
       this.sphere.center.set(c.pos.x, 1.4, c.pos.z);
@@ -547,11 +567,9 @@ export class SlotRows {
     if (colorsDirty) this.reelMesh.instanceColor!.needsUpdate = true;
 
     // Marquee bulbs chase (and run hot on a winning machine).
-    if (time - this.bulbT > 0.12) {
+    if (bankSeen && time - this.bulbT > (bankDist < LIVE_DIST ? 0.12 : 0.24)) {
       this.bulbT = time;
-      const on = new THREE.Color(0xfff0b0),
-        off = new THREE.Color(0x4a3518),
-        hot = new THREE.Color(0xff5a3a);
+      const { on, off, hot } = COLORS;
       const phase = Math.floor(time * 6);
       this.cabinets.forEach((c, i) => {
         const winning = c.winUntil > time;

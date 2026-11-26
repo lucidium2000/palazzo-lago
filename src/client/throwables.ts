@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { allLayers } from './cull';
 import type { World } from './world';
 import type { Sound } from './audio';
 
@@ -58,7 +59,7 @@ export class Throwables {
   private bodies: Body[] = [];
   private shards: Shard[] = [];
   private spills: { m: THREE.Mesh; t: number }[] = [];
-  private ray = new THREE.Raycaster();
+  private ray = allLayers(new THREE.Raycaster());
   private shardGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.018, 0.004, 0.003), new THREE.Vector3(0.006, 0.022, -0.002)]);
   private shardMat = new THREE.MeshStandardMaterial({ color: 0xe8f4ff, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
 

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { allLayers } from './cull';
 import type { Hands } from './hands';
 import type { Interaction } from './interaction';
 import type { Person } from './people';
@@ -101,7 +102,7 @@ export class Piano {
   /** Nobody played while the pianist was off his bench (he grumbles coming back), and it was you who knocked him off. */
   private tookOver = false;
   private iKnocked = false;
-  private ray = new THREE.Raycaster();
+  private ray = allLayers(new THREE.Raycaster());
   private proxy: THREE.Mesh;
   private benchAt = new THREE.Vector3();
   private keysAt = new THREE.Vector3();

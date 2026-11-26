@@ -5,7 +5,7 @@ import type { Quality } from './quality';
 import { canvas, carpet, damask, floorTile, lakeReflection, marble, radial, toTexture, wood } from './textures';
 import { buildCity } from './skyline';
 import { textSign } from './panel';
-import { bakeStatic } from './merge';
+import { bakeStatic, batchSprites } from './merge';
 import { assets } from './assets';
 import { buildCanopy, buildCeiling, buildPilasters } from './hall';
 import { inArcade, onPromenade } from './areas/promenadeplan';
@@ -671,7 +671,10 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   fountains.userData.dynamic = true;
   doors.group.userData.dynamic = true;
   void terraceParts;
-  bakeStatic(root, { shadows: q.shadows });
+  // (The hall's static decor: materials alike but for colour share a draw.)
+  bakeStatic(root, { shadows: q.shadows, byColor: true });
+  // The chandeliers' and lanterns' glows: one draw each kind.
+  batchSprites(root);
 
   // --- Mood: light the place you're in like it would be at night ----------------------------
   // Casino: warm and glowing. Hotel corridors: warm, a touch dimmer. Outdoors (terrace,
@@ -1447,6 +1450,8 @@ function frenchDoors() {
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 8), gold);
     handle.position.set(-side * (leafW - 0.15), 1.05, 0.05);
     leaf.add(handle);
+    // The frame and handle as one mesh per leaf (they swing with it).
+    bakeStatic(leaf);
     leaf.traverse((o) => (o.raycast = () => {}));
     hinge.add(leaf);
     group.add(hinge);

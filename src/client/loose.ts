@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { allLayers } from './cull';
 import type { Grabbable, Hand, Hands } from './hands';
 import type { Interaction } from './interaction';
 import type { Hud } from './hud';
@@ -373,7 +374,7 @@ export class LooseObjects {
   onNet: ((e: LooseNet) => void) | null = null;
   private woken = new Set<LooseBody>();
   private near = new Map<string, { t: number; list: THREE.Object3D[] }>();
-  private ray = new THREE.Raycaster();
+  private ray = allLayers(new THREE.Raycaster());
   private time = 0;
   private swigCool = 0;
   private soundCool = new Map<string, number>();
@@ -427,7 +428,9 @@ export class LooseObjects {
     const cap = def.key.startsWith('chip') ? 64 : 40;
     const mesh = new THREE.InstancedMesh(def.geo, def.mat, cap);
     mesh.count = 0;
-    mesh.frustumCulled = !!def.cull;
+    // Frustum culled by the copies' bounding sphere (dropped whenever one moves: see update), so the
+    // portal culling can skip kinds lying only behind walls. (Spread out ones just have a big sphere.)
+    mesh.frustumCulled = true;
     mesh.castShadow = false;
     mesh.userData.dynamic = true;
     mesh.userData.noLand = true;
