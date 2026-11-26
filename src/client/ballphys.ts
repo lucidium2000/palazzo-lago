@@ -75,6 +75,7 @@ const HEIGHT: Record<string, number> = {
   planter: 0.85,
   hedge: 1.1,
   'dj booth': 1.0,
+  stage: 0.6,
   umbrella: 2.3,
   table: 0.8,
   bench: 0.45,

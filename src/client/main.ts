@@ -604,6 +604,9 @@ async function main() {
     dancers: areas.dancers,
     where: (p) => areas.where(p),
     toast: (t) => hud.toast(t, 'info'),
+    hands,
+    interaction,
+    travel: (v) => player.travel(v),
   });
 
   // A living floor: friends chatting in circles (drinks in hand), people snapping

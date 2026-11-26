@@ -19,6 +19,21 @@ export const POOL = { x: 41, z: -20, w: 18, d: 9 };
 export const TUB = { x: 55, z: -12, r: 2.2 };
 export const BAR = { x: 28.5, z: -26, r: 2.1 };
 export const DJ = { x: 50, z: -32.5 };
+/**
+ * The stage: one riser 0.6 m up along the south edge, the DJ booth at its east
+ * end (the decks, party/decks.ts) and the headliner's stage to the west (his
+ * mic, a truss and his marquee: party/stage.ts). Steps up at the east end.
+ */
+export const STAGE = { x0: 39.6, x1: 47, z0: -34.1, z1: -31.5, y: 0.6, mic: { x: 43.3, z: -31.95 }, spot: { x: 43.3, z: -32.42 } };
+/** The steps up to the booth (east end), 0.3 m. */
+export const STAGE_STEPS = { x0: DJ.x + 3, x1: DJ.x + 3.8, z0: -32.5, z1: STAGE.z1 };
+/** The truss posts at the headliner's stage's corners. */
+const TRUSS: [number, number][] = [
+  [STAGE.x0 + 0.15, STAGE.z1 - 0.15],
+  [STAGE.x1 - 0.15, STAGE.z1 - 0.15],
+  [STAGE.x0 + 0.15, STAGE.z0 + 0.15],
+  [STAGE.x1 - 0.15, STAGE.z0 + 0.15],
+];
 export const LIFT = { doorX: 48, zs: [-7.6, -5.0] };
 
 /** Water surface height, and the pool's floor: wide steps in the shallow end, ~1.1 m deep, sloping to ~2 m. */
@@ -105,7 +120,20 @@ export function registerPool(world: World) {
   world.addWater(POOL.x - POOL.w / 2, POOL.x + POOL.w / 2, POOL.z - POOL.d / 2, POOL.z + POOL.d / 2, WATER_Y);
   world.addCircle(TUB.x, TUB.z, TUB.r + 0.35, 'hot tub');
   world.addCircle(BAR.x, BAR.z, BAR.r + 0.15, 'bar');
-  world.addBox(DJ.x, DJ.z - 0.3, 6.2, 2.6, 0, 'dj booth');
+  // The stage riser (walk up the steps at the booth's east end): its floor, its edges, the console and speaker stacks.
+  const sx1 = DJ.x + 3;
+  world.addGround(STAGE.x0, sx1, STAGE.z0, STAGE.z1, () => STAGE.y);
+  world.addGround(STAGE_STEPS.x0, STAGE_STEPS.x1, STAGE_STEPS.z0, STAGE_STEPS.z1, () => STAGE.y / 2);
+  const mid = (STAGE.x0 + sx1) / 2,
+    w = sx1 - STAGE.x0;
+  world.addBox(mid, STAGE.z1 + 0.05, w, 0.1, 0, 'stage');
+  world.addBox(mid, STAGE.z0 - 0.05, w, 0.1, 0, 'stage');
+  world.addBox(STAGE.x0 - 0.05, (STAGE.z0 + STAGE.z1) / 2, 0.1, STAGE.z1 - STAGE.z0 + 0.2, 0, 'stage');
+  world.addBox(sx1 + 0.05, (STAGE.z0 + STAGE_STEPS.z0) / 2, 0.1, STAGE_STEPS.z0 - STAGE.z0, 0, 'stage');
+  world.addBox(DJ.x, DJ.z + 0.5, 2.4, 0.7, 0, 'dj booth');
+  for (const s of [-1, 1]) world.addBox(DJ.x + s * 2.6, DJ.z - 0.5, 0.9, 0.8, 0, 'dj booth');
+  world.addCircle(STAGE.mic.x, STAGE.mic.z, 0.1, 'stage');
+  for (const [x, z] of TRUSS) world.addCircle(x, z, 0.09, 'stage');
   // Hedges along both long sides.
   for (const x of [22.7, 61.3]) world.addBox(x, -18, 1.0, 34, 0, 'hedge');
   // Loungers (seat and raised back), umbrella poles, palms, urns, light poles.
@@ -388,6 +416,25 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   led.position.set(DJ.x, 2.2, DJ.z - 1.55);
   led.raycast = () => {};
   root.add(led);
+  // The headliner's stage: the riser carries on west of the booth, a truss over it, a backdrop
+  // for his marquee, a mic stand, a glowing strip along the front and steps up at the east end.
+  b.box(m.darkMarble, (STAGE.x0 + STAGE.x1) / 2, STAGE.y / 2, (STAGE.z0 + STAGE.z1) / 2, STAGE.x1 - STAGE.x0, STAGE.y, STAGE.z1 - STAGE.z0);
+  b.box(m.darkMarble, (STAGE_STEPS.x0 + STAGE_STEPS.x1) / 2, STAGE.y / 4, (STAGE_STEPS.z0 + STAGE_STEPS.z1) / 2, STAGE_STEPS.x1 - STAGE_STEPS.x0, STAGE.y / 2, STAGE_STEPS.z1 - STAGE_STEPS.z0);
+  b.box(m.glow(0x9a6cff, 1.3), (STAGE.x0 + DJ.x + 3) / 2, STAGE.y - 0.05, STAGE.z1 + 0.012, DJ.x + 3 - STAGE.x0, 0.035, 0.02);
+  const truss = new THREE.MeshStandardMaterial({ color: 0x2a2a31, metalness: 0.85, roughness: 0.35 });
+  const top = STAGE.y + 3.6;
+  for (const [x, z] of TRUSS) b.box(truss, x, (STAGE.y + top) / 2, z, 0.12, top - STAGE.y, 0.12);
+  for (const z of [TRUSS[0][1], TRUSS[2][1]]) b.box(truss, (STAGE.x0 + STAGE.x1) / 2, top, z, STAGE.x1 - STAGE.x0 - 0.18, 0.14, 0.14);
+  for (const x of [TRUSS[0][0], TRUSS[1][0]]) b.box(truss, x, top, (STAGE.z0 + STAGE.z1) / 2, 0.14, 0.14, STAGE.z1 - STAGE.z0 - 0.18);
+  // Lamps on the truss (the beams are party/stage.ts's).
+  for (const x of [STAGE.x0 + 0.25, STAGE.x1 - 0.25]) b.box(truss, x, top - 0.08, STAGE.z1 - 0.2, 0.2, 0.22, 0.26);
+  for (let k = 0; k < 4; k++) b.box(truss, STAGE.x0 + 1.1 + k * 1.75, top - 0.12, STAGE.z0 + 0.2, 0.22, 0.2, 0.22);
+  // The backdrop behind the marquee.
+  b.box(truss, STAGE.spot.x, STAGE.y + 1.95, STAGE.z0 + 0.06, 6.0, 2.3, 0.06);
+  // Mic stand: a weighted base, the pole and the clip.
+  b.add(new THREE.CylinderGeometry(0.13, 0.14, 0.025, 20), truss, M(STAGE.mic.x, STAGE.y + 0.012, STAGE.mic.z));
+  b.add(new THREE.CylinderGeometry(0.011, 0.011, 1.44, 8), truss, M(STAGE.mic.x, STAGE.y + 0.72, STAGE.mic.z));
+  b.box(truss, STAGE.mic.x, STAGE.y + 1.47, STAGE.mic.z - 0.03, 0.02, 0.05, 0.07);
   const djSign = textSign('Pool Party', { width: 3.2, px: 130, sub: 'DJ  ·  TONIGHT', bg: 'rgba(10,4,20,0.85)' });
   djSign.position.set(DJ.x, 4.2, DJ.z - 1.5);
   root.add(djSign);
@@ -470,6 +517,14 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   for (let k = 0; k < 8; k++) {
     stands.push({ pos: new THREE.Vector3(DJ.x - 2.4 + (k % 4) * 1.5 + (k > 3 ? 0.7 : 0), 0, DJ.z + 2.2 + Math.floor(k / 4) * 1.2), yaw: Math.PI });
   }
+  // Fans in front of the headliner's stage (they dance with the floor and turn to him when he's on).
+  for (const [x, z] of [
+    [41.3, -30.55],
+    [42.7, -30.75],
+    [44.1, -30.6],
+    [45.3, -30.35],
+  ])
+    stands.push({ pos: new THREE.Vector3(x, 0, z), yaw: Math.PI });
   // Two friends chatting on the east deck, by the hot tub (clear of the walkways).
   const chats: PoolArea['chats'] = [
     { pos: new THREE.Vector3(56.4, 0, -14.6), yaw: Math.PI * 0.75 },

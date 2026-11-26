@@ -59,6 +59,14 @@ const HOOK_B: [number, number, number][] = [
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
 export async function renderPartyTrack(sampleRate = 32000): Promise<PartyTrack> {
+  const { data, loop } = await renderPartyRaw(sampleRate);
+  const buffer = new AudioBuffer({ numberOfChannels: 1, length: data.length, sampleRate });
+  buffer.copyToChannel(data, 0);
+  return { buffer, loop };
+}
+
+/** The same set as raw mono samples (handed straight to the decks' audio thread, no AudioBuffer copy). */
+export async function renderPartyRaw(sampleRate = 32000): Promise<{ data: Float32Array<ArrayBuffer>; sampleRate: number; loop: number }> {
   const beat = beatLen();
   const bar = beat * 4;
   const loop = loopLength();
@@ -406,13 +414,11 @@ export async function renderPartyTrack(sampleRate = 32000): Promise<PartyTrack> 
   }
   compress(out, n, sampleRate);
   for (let i = 0; i < pad; i++) out[n + i] = out[i];
-  const buffer = new AudioBuffer({ numberOfChannels: 1, length: n + pad, sampleRate });
-  buffer.copyToChannel(out, 0);
-  return { buffer, loop };
+  return { data: out, sampleRate, loop };
 }
 
 /** Bus compression (−14 dB, 3.5:1, fast attack, ~180 ms release), done once over the whole loop, then a peak of 0.9. */
-function compress(d: Float32Array, n: number, sampleRate: number) {
+export function compress(d: Float32Array, n: number, sampleRate: number) {
   const th = Math.pow(10, -14 / 20),
     ratio = 3.5;
   const att = 1 - Math.exp(-1 / (0.006 * sampleRate)),
