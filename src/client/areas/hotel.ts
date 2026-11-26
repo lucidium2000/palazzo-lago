@@ -168,7 +168,7 @@ export function buildHotel(scene: THREE.Scene, q: Quality, m: Mats): THREE.Group
   const poolSign = textSign('Pool Deck', { width: 1.8, px: 120, sub: 'OPEN LATE  ·  DJ TONIGHT', bg: 'rgba(16,10,8,0.85)' });
   poolSign.position.set(36, 4.05, L.z0 + 0.06);
   root.add(poolSign);
-  const liftSign = textSign('Elevators', { width: 1.6, px: 120, sub: 'SUITES  ·  POOL  ·  CASINO', bg: 'rgba(16,10,8,0.85)' });
+  const liftSign = textSign('Elevators', { width: 1.6, px: 120, sub: 'SUITES  ·  PROMENADE  ·  POOL', bg: 'rgba(16,10,8,0.85)' });
   liftSign.position.set(L.x1 - 0.06, 3.6, 6);
   liftSign.rotation.y = -Math.PI / 2;
   root.add(liftSign);

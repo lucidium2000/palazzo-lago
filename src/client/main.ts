@@ -11,7 +11,10 @@ import { handTo } from './gestures';
 import { SuitePerks } from './suiteperks';
 import { PostFX } from './post';
 import { Dialogue, voiceArbiter } from './dialogue';
-import { AREA_NODES, buildAreas, registerAreas } from './areas';
+import { AREA_NODES, buildAreas, PROMENADE_NODES, registerAreas } from './areas';
+import { ARCADE_SLOTS, mountArcade } from './areas/promenade';
+import { onPromenade } from './areas/promenadeplan';
+import { Boutique, FoodCourt, Wardrobe, WearView } from './promenadelife';
 import { DECK, POOL, WATER_Y } from './areas/pool';
 import { BeachBalls } from './beachball';
 import { Session } from './net/session';
@@ -84,7 +87,7 @@ import { PianoSync } from './net/pianosync';
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
 /** How the parts of the resort read on the room's scoreboard. */
-const AREA_NAMES: Record<AreaId, string> = { casino: 'casino', pool: 'pool', hotel: 'hotel', suite: 'suite' };
+const AREA_NAMES: Record<AreaId, string> = { casino: 'casino', pool: 'pool', hotel: 'hotel', suite: 'suite', promenade: 'promenade' };
 
 function loadBankroll(): Bankroll {
   try {
@@ -284,6 +287,8 @@ async function main() {
     [9.2, -6.5], [9.4, -11.5], [9.4, -1.8], [14.6, -11.5], [14.6, -6], [14.6, -1.2],
     [10.5, 10.5], [14.5, 10], [12.5, 1.2], [-10.1, 9.8], [-13.3, 9.0], [-9, 12.4],
     [0, -15.6], [-5.5, -16], [5.5, -16], [-8.5, -15.2], [8.5, -15.2],
+    // The Promenade (a floor of its own: its nodes only join each other).
+    ...PROMENADE_NODES,
   ]);
 
   // Guests chatting round the rotunda fountain, first, so the middle of the floor is never empty.
@@ -509,7 +514,7 @@ async function main() {
   const waiters: Person[] = [];
   let lastOffer = -60;
   for (let i = 0; i < 2; i++) {
-    const w = crowd.add('waiter', staffLook('waiter'), crowd.randomNode());
+    const w = crowd.add('waiter', staffLook('waiter'), crowd.randomNode((x) => !onPromenade(x)));
     if (!w) continue;
     waiters.push(w);
     const proxy = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2, 0.6), new THREE.MeshBasicMaterial({ visible: false }));
@@ -728,11 +733,12 @@ async function main() {
   crowd.addPhotographer(new THREE.Vector3(-0.4, 0, -14.8), new THREE.Vector3(0, 0, -40));
   if (crowd.capacity - crowd.people.length > 10) crowd.addPhotographer(new THREE.Vector3(-1.6, 0, 1.2), glass);
   const pairs = Math.max(1, Math.min(3, Math.floor((crowd.capacity - crowd.people.length - 3) / 4)));
-  for (let i = 0; i < pairs; i++) crowd.addPair(crowd.randomNode());
+  for (let i = 0; i < pairs; i++) crowd.addPair(crowd.randomNode((x) => !onPromenade(x)));
 
   // Guests wandering the floor fill the rest of the crowd.
   const wanderers = crowd.capacity - crowd.people.length - 1;
-  for (let i = 0; i < wanderers; i++) crowd.add('wander', randomLook(), crowd.randomNode());
+  // (The Promenade's strollers are its own: the floor's wanderers start on the floor.)
+  for (let i = 0; i < wanderers; i++) crowd.add('wander', randomLook(), crowd.randomNode((x) => !onPromenade(x)));
   // Fights: anger, punches and slaps, health bars, knockouts, security (after the crowd: the guards take their own slots).
   const fights = new Fights({
     crowd,
@@ -1011,6 +1017,36 @@ async function main() {
       openChat();
     }
   });
+  // --- The Promenade: the food court's counters, the boutique's register, what you wear, the arcade ---
+  const promenade = areas.promenade;
+  const foodCourt = new FoodCourt({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast });
+  const boutique = new Boutique({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast });
+  const wardrobe = new Wardrobe({ scene, camera, loose, hands, hud, player, sound });
+  const wearView = new WearView(scene, loose);
+  {
+    // The clerk wears the shop's gold-rimmed shades.
+    const clerk = areas.promenadeCast?.clerk;
+    if (clerk) wardrobe.dress(clerk, 'sunglasses', 0xc9a050);
+  }
+  // The arcade's games (src/client/arcade/), when this build has them: they fill the bays.
+  const arcade = mountArcade
+    ? mountArcade(scene, ARCADE_SLOTS, {
+        scene,
+        camera,
+        quality,
+        world,
+        interaction,
+        hands,
+        player,
+        sound,
+        hud,
+        bankroll,
+        feet: () => player.feet(),
+        here: () => onPromenade(player.feet().x),
+        session: () => session,
+        root: promenade.arcadeRoom,
+      })
+    : null;
   let drinkSync: DrinkSync | null = null;
   let looseSync: LooseSync | null = null;
   let liftSync: LiftSync | null = null;
@@ -1086,6 +1122,11 @@ async function main() {
     });
     looseSync?.dispose();
     looseSync = new LooseSync(session, loose, scene, (at, r, k) => void throwables.wipe(at, r, k));
+    // What you wear (sunglasses, a hat) rides along in your state; friends see it on your avatar.
+    {
+      const prev = session.extraState;
+      session.extraState = () => ({ ...(prev?.() ?? {}), wa: wardrobe.state() });
+    }
     // A glass off a waiter's tray: it's gone from her tray for everyone.
     waiterTrays.onTaken = (p) => session?.emit('tray', { u: p.uid });
     session.on('tray', (_f, d) => {
@@ -1650,15 +1691,19 @@ async function main() {
         if (g && g.visible !== v) g.visible = v;
       };
       const inSuite = fx > 500;
-      const onDeck = fx > 21 && feet.z < -0.2 && !inSuite;
+      // The Promenade is far out west, a floor of its own: nothing else is drawn from there, nor it from anywhere else.
+      const inProm = onPromenade(fx);
+      const away = inSuite || inProm;
+      const onDeck = fx > 21 && feet.z < -0.2 && !away;
       show('suite', inSuite);
-      show('skyline', !inSuite);
-      show('pool', !inSuite && fx > 16);
+      show('promenade', inProm);
+      show('skyline', !away);
+      show('pool', !away && fx > 16);
       // The hotel corridor opens off the casino's east wall: draw it from anywhere you can see down it
       // (it used to switch on only east of x = 4, so from most of the floor the hallway was a dark void).
-      show('hotel', !inSuite);
-      show('casino', !inSuite && !onDeck);
-      const inCasino = !inSuite && !onDeck;
+      show('hotel', !away);
+      show('casino', !away && !onDeck);
+      const inCasino = !away && !onDeck;
       for (const o of casinoThings) if (o.visible !== inCasino) o.visible = inCasino;
       // The poker room's furniture, table and lights: from anywhere on the floor (its doorway is in view
       // from most of it; hiding the inside east of x = 3 left an empty dark room behind the door).
@@ -1702,7 +1747,7 @@ async function main() {
   };
   // Each area's own reflections, captured once behind the loading screen (people and your body hidden).
   {
-    const AREA_NAMES: Record<string, string> = { casino: 'the casino floor', hotel: 'the hotel lobby', terrace: 'the terrace and fountains', pool: 'the pool deck', suite: 'the suite' };
+    const AREA_NAMES: Record<string, string> = { casino: 'the casino floor', hotel: 'the hotel lobby', terrace: 'the terrace and fountains', pool: 'the pool deck', suite: 'the suite', promenade: 'the Promenade' };
     // Only where you start, here; the other areas are lit in the background right after (lightTheRest).
     const startZone = envZoneAt(player.feet());
     loadProgress(0.55, `Step 3 of 3 · Lighting ${AREA_NAMES[startZone] ?? startZone}`);
@@ -1713,7 +1758,7 @@ async function main() {
       // Keep the generic HDRI reflections rather than fail to open.
       console.warn('reflection capture failed', e);
     }
-    const restZones = (['casino', 'hotel', 'terrace', 'pool', 'suite'] as EnvZone[]).filter((z) => z !== startZone);
+    const restZones = (['casino', 'hotel', 'terrace', 'pool', 'suite', 'promenade'] as EnvZone[]).filter((z) => z !== startZone);
     lightTheRest = async () => {
       const t0 = performance.now();
       for (const [i, zone] of restZones.entries()) {
@@ -1790,6 +1835,7 @@ async function main() {
     photoSync?.update(dt);
     watch.update(dt, player.inXR);
     looseSync?.update();
+    if (session) wearView.update(session.friendList());
     bjSync?.update(dt);
     pokerSync?.update(dt);
     boxing?.update(dt);
@@ -1871,6 +1917,10 @@ async function main() {
     throwables.update(dt);
     drinkPhysics.update(dt);
     loose.update(dt);
+    foodCourt.update(dt);
+    boutique.update(dt);
+    wardrobe.update();
+    arcade?.update(dt);
     napkins ??= new Napkins({ loose, throwables, drinkPhysics, sound, crowd, camera, onDab: (p) => (p.attendUntil = Math.min(p.attendUntil, crowd.now + 0.5)) });
     napkins.update(dt);
     // Things you throw that hit someone: a thump, and they let you know about it.
@@ -1939,6 +1989,7 @@ async function main() {
       hud.setControls(stationControls());
       if (fights.active) touch.setAction('Punch', () => fights.deskPunch());
       else if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());
+      else if (loose.holding && loose.deskUse() && loose.deskUse() !== 'Swig') touch.setAction(loose.deskUse(), () => loose.useDesk());
       else if (loose.holding) touch.setAction('Throw', () => loose.throwDesk());
       else if (player.seated) touch.setAction('Stand', () => player.stand());
       else {
@@ -2013,7 +2064,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, foodCourt, boutique, wardrobe, wearView, arcade, promenade };
 }
 
 main().catch((e) => {

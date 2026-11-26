@@ -45,7 +45,7 @@ export type { LandingId } from './liftlogic';
  * shut rides it, each keeping their spot in the cab. People outside stay put.
  */
 
-const PANEL_ROWS: (LandingId | 'open')[] = ['suite', 'pool', 'casino', 'open'];
+const PANEL_ROWS: (LandingId | 'open')[] = ['suite', 'promenade', 'pool', 'casino', 'open'];
 const DOOR_W = 0.78;
 const DOOR_H = 2.4;
 /** Landing side: how far in front of the door line the fixtures sit (clear of the walls, wainscot and rail). */

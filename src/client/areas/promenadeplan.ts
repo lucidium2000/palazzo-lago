@@ -217,6 +217,7 @@ export const PROMENADE_NODES: [number, number][] = [
   [-608.5, 5.8],
   [-608.5, 10.6],
   [-603.2, 10.8],
+  [-622.75, 3.3],
   [-622.75, 5.8],
   [-622.75, 10.2],
 ];
@@ -241,3 +242,8 @@ export const onPromenade = (x: number) => x < -500;
 export const inArcade = (x: number, z: number) => x > ARCADE.x0 && x < ARCADE.x1 && z > ARCADE.z0 && z < ARCADE.z1;
 /** In the boutique? */
 export const inStore = (x: number, z: number) => x > STORE.x0 && x < STORE.x1 && z > STORE.z0 && z < STORE.z1;
+
+/** How many guests and staff the Promenade adds to the crowd (on top of the floor's). */
+export function promenadeShare(people: number) {
+  return people >= 60 ? 22 : people >= 45 ? 18 : 14;
+}

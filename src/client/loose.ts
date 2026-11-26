@@ -1301,6 +1301,8 @@ export class LooseObjects {
     const at = this.d.hands.head;
     const it = this.spawnLive(key, at.x, at.z, at.y, { color, paid: true });
     if (!it) return null;
+    // Not straight back on: it has to leave your head first.
+    this.wearDwell.set(it, Infinity);
     if (hand) {
       const g = this.grabs.get(it);
       if (g && this.d.hands.grabWith(hand, g) && it.proxy) {

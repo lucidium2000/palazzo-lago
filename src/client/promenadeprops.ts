@@ -183,13 +183,16 @@ export function dicesetGeometry(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** What a piece of food is called in your hand (a counter's menu has the exact dish). */
+export const FOOD_LABEL: Record<FoodKey, string> = { pizza: 'pizza slice', burger: 'burger', noodles: 'box of noodles', gelato: 'gelato cone' };
+
 const DESK_HOLD: PromKindDef['hold'] = { p: [0.16, -0.18, -0.38], r: [0.3, 0, 0] };
 
 /** The Promenade's loose kinds (loose.ts adds them after its own). */
 export function promenadeKinds(): PromKindDef[] {
   const food = (key: FoodKey, geo: THREE.BufferGeometry, spec: LooseSpec, hold: PromKindDef['hold']): PromKindDef => ({
     key,
-    label: FOOD[key].name.toLowerCase().replace(/^slice of /, 'slice of '),
+    label: FOOD_LABEL[key],
     spec,
     geo,
     mat: vc(0.65),
