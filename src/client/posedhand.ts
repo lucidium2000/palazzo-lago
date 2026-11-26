@@ -26,8 +26,8 @@ export const CURL = {
   /** Thumb: metacarpal, proximal, distal; plus how far it swings across the palm. */
   thumb: [0.35, 0.75, 0.95],
   thumbAcross: 0.55,
-  /** Fingers never go fully flat (a relaxed hand is a little curled). */
-  relaxed: 0.14,
+  /** With nothing pressed the hand is open and flat. */
+  relaxed: 0,
 };
 
 /**
@@ -46,8 +46,8 @@ export const GRIP_HOLD = {
   palm(side: 'left' | 'right') {
     return new THREE.Vector3(side === 'left' ? 1 : -1, 0, 0);
   },
-  /** With nothing pressed your fingers still rest on the controller. */
-  rest: [0.25, 0.3, 0.42, 0.45, 0.48] as const,
+  /** With nothing pressed (or touched) the hand is open and flat; buttons and grip curl it. */
+  rest: [0, 0, 0, 0, 0] as const,
 };
 
 interface Joint {

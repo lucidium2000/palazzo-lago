@@ -25,28 +25,24 @@ import * as THREE from 'three';
  */
 export type FingerPose = [number, number, number, number, number];
 
-export const OPEN: FingerPose = [0.1, 0.1, 0.15, 0.15, 0.15];
+export const OPEN: FingerPose = [0, 0, 0, 0, 0];
 
+/**
+ * A controller hand: completely open and flat unless something is pressed. Only presses curl it
+ * (trigger: the index finger, grip: the other three, a thumb button or stick click: the thumb);
+ * merely resting a finger on a button doesn't.
+ */
 export function controllerPose(gp: Gamepad): FingerPose {
   const b = gp.buttons;
   const trig = b[0];
   const sq = b[1];
-  let index = 0.05;
-  if (trig) {
-    if (trig.value > 0.02) index = 0.35 + 0.65 * trig.value;
-    else if (trig.touched) index = 0.3;
-  }
+  const index = trig && trig.value > 0.02 ? 0.35 + 0.65 * trig.value : 0;
   const grip = sq ? Math.max(sq.value, sq.pressed ? 1 : 0) : 0;
-  const rest = 0.15 + 0.85 * grip;
-  let thumb = 0.05;
-  for (const i of [3, 4, 5, 6]) {
-    const x = b[i];
-    if (!x) continue;
-    if (x.pressed) thumb = Math.max(thumb, 0.85);
-    else if (x.touched) thumb = Math.max(thumb, 0.65);
-  }
-  // A full squeeze with the thumb resting reads as a fist.
-  if (grip > 0.8 && thumb > 0.5) thumb = 0.9;
+  const rest = grip > 0.02 ? 0.15 + 0.85 * grip : 0;
+  let thumb = 0;
+  for (const i of [3, 4, 5, 6]) if (b[i]?.pressed) thumb = 0.85;
+  // A full squeeze reads as a fist (the thumb wraps over).
+  if (grip > 0.8) thumb = Math.max(thumb, 0.9);
   return [thumb, index, rest, rest * 0.98, rest * 0.95];
 }
 
