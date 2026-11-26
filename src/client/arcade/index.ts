@@ -307,6 +307,37 @@ export class Arcade {
     bakeStatic(this.bake, { shadows: false });
 
     this.desk.onLeave = () => this.leaveDesk();
+    // Screens: E by a floor game that seats you (the racing cockpit) sits you in its nearest seat.
+    if (typeof window !== 'undefined')
+      addEventListener(
+        'keydown',
+        (e) => {
+          if (e.code !== 'KeyE' || e.repeat || !this.awake || this.desk.station) return;
+          const p = this.d.player;
+          if (p.inXR || p.seated) return;
+          const t = e.target as HTMLElement | null;
+          if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
+          const feet = p.feet();
+          let best: { g: number; k: number } | null = null,
+            bd = 1.6;
+          this.floors.forEach((fg, g) => {
+            if (!fg.sitOnE) return;
+            fg.viewpoints.forEach((v, k) => {
+              const d = Math.hypot(v.position.x - feet.x, v.position.z - feet.z);
+              if (d < bd) {
+                bd = d;
+                best = { g, k };
+              }
+            });
+          });
+          if (!best) return;
+          const b = best as { g: number; k: number };
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          this.sitAtFloor(b.g, b.k);
+        },
+        true,
+      );
   }
 
   private name() {

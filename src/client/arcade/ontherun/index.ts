@@ -45,46 +45,56 @@ import {
 } from './logic';
 
 /**
- * ON THE RUN: a sit-down twin racing cabinet for the owner's own WebGL
- * racing game (public/arcade/ontherun/, synced from its claude.ai artifact by
- * scripts/sync-ontherun.mjs). Free to play.
+ * ON THE RUN: a classic sit-down racing cabinet (a twin cockpit) for the
+ * owner's own WebGL racing game (public/arcade/ontherun/, synced from its
+ * claude.ai artifact by scripts/sync-ontherun.mjs). Free to play.
  *
- * Two seats side by side, each with its own 16:9 screen, steering wheel,
- * pedals and dashboard buttons. The game itself is the real web page, run by
- * OnTheRunHost in a hidden iframe, frame by frame from the room's loop: its
- * WebGL canvas goes straight to the screen texture, and its HTML HUD and
- * menus are laid over it as a second, slower picture. Only one copy of the
- * game ever runs on a device: on the seat you're in (or as the attract screen
- * on both while you're near and nobody's playing). It loads within 9 m and is
- * gone past 13 m or when you leave the floor.
+ * Two cockpits side by side: each an enclosed bucket seat between side walls,
+ * gas and brake pedals, a steering wheel, a dashboard of buttons, and a 16:9
+ * screen in front at a seated driver's eye height. The seats are world seats
+ * like the stools: walk into one and you sit (in VR your body sits; on a
+ * screen the camera drops to seated eye height facing the screen and the game
+ * takes your keys). On a screen, E next to the cockpit sits you too.
+ *
+ * The game itself is the real web page, run by OnTheRunHost in a hidden
+ * iframe, frame by frame from the room's loop: its WebGL canvas goes straight
+ * to the screen texture, and its HTML HUD and menus are laid over it as a
+ * second, slower picture. Only one copy of the game ever runs on a device: on
+ * the seat you're in (or as the attract screen on both while you're near and
+ * nobody's playing). It loads within 9 m and is gone past 13 m or when you
+ * leave the floor.
  *
  * Controls:
  *  - VR: grab the wheel (grip, or pinch with tracked hands) with one or both
- *    hands and turn it: its angle is the game's analogue steering (through a
- *    virtual Xbox-style controller the game reads with getGamepads). With
- *    your hands on the wheel the controllers drive: right trigger gas, left
- *    trigger brake, A jump / OK, B boost / back, X drift, Y oil, right stick
- *    click guns, left stick click missile; the sticks look around and pitch.
+ *    hands and turn it; it turns with your hands, and its angle is the game's
+ *    analogue steering (through a virtual Xbox-style controller the game reads
+ *    with getGamepads). Hands on the wheel, the controllers drive: right
+ *    trigger gas, left trigger brake, and the face buttons are the wheel's:
+ *    A boost, B guns, X missile, Y jump (right stick click drift, left stick
+ *    click oil); in the menus A is OK and B back, and turning the wheel picks.
  *    With tracked hands (no triggers) the gas stays down while you hold the
+ *    wheel. The game's rumble (crashes, hits, blasts) pulses the hands on the
  *    wheel. The dashboard buttons (START, VIEW, SOUND, JUMP, BOOST, FIRE,
  *    MISSILE) press with a fingertip. While you hold the wheel you don't walk.
- *  - Screens: walk up to a seat (or click its screen) and your keys go
- *    straight to the game (its own keys: arrows / WASD drive, Space guns,
- *    Shift boost, C drift, J jump, R missile, F oil, V view, Enter OK, P pause,
- *    F2 adds a second player on the same keyboard, split screen); M is the
- *    cabinet's SOUND. A click on the screen is Enter. Phones: the arcade's
- *    thumb stick steers and drives (up gas, down brake), its buttons are
- *    JUMP / OK, BOOST / BACK and FIRE.
+ *  - Screens: your keys go straight to the game (its own keys: arrows / WASD
+ *    drive, Space guns, Shift boost, C drift, J jump, R missile, F oil, V view,
+ *    Enter OK, P pause, F2 adds a second player on the same keyboard, split
+ *    screen); the wheel turns with the arrows. M is the cabinet's SOUND. A
+ *    click on the screen is Enter. Phones: the arcade's thumb stick steers and
+ *    drives (up gas, down brake), its buttons are JUMP / OK, BOOST and FIRE.
  *
- * Two players: each seat is its own game, so two friends race side by side;
- * on one keyboard the game's own split screen (F2) gives two players in one
- * race. Friends within 14 m see your seat's screen: a 160x90 JPEG up to four
- * times a second with "NOW PLAYING" and your name.
+ * Two players: each cockpit runs its own game (two copies can't run on one
+ * headset, and a friend's picture over the network is far too coarse to race
+ * on), so two friends race side by side, each seeing the other's screen; on
+ * one keyboard the game's own split screen (F2) puts two players in one race
+ * on one seat's screen. Friends within 14 m see your screen: a 160x90 JPEG up
+ * to four times a second with "NOW PLAYING" and your name.
  *
  * Sound: the game's WebAudio and its <audio> music, radio and voices all go
- * into one gain (`bus`) on a positional speaker between the screens. SOUND
- * steps it 100 / 66 / 33 / 0 (saved per device); a badge by the button and a
- * brief overlay show the level. An analyser on the bus (`level()`) reads what
+ * into one gain (`bus`) on a positional speaker between the screens (a node
+ * source, so three.js moves its panner to the cabinet). SOUND steps it
+ * 100 / 66 / 33 / 0 (saved per device); a badge by the button and a brief
+ * overlay show the level. An analyser on the bus (`level()`) reads what
  * actually comes out.
  */
 
@@ -94,38 +104,45 @@ const URL_PATH = 'arcade/ontherun/index.html';
 const CARD_W = 640;
 const CARD_H = 360;
 
-// The side profile (z, y), back-bottom round to the top: console, the screens' slope, marquee.
+// The front unit's side profile (z, y), back-bottom round to the top: the console (low, over a seated
+// driver's knees), the screens' slope (centred at a seated driver's eye height), the marquee.
 const PROFILE: [number, number][] = [
   [-0.5, 0],
   [0.45, 0],
-  [0.45, 0.78],
-  [0.03, 0.98],
-  [0.0, 1.0],
-  [-0.08, 1.66],
-  [-0.03, 1.7],
-  [0.02, 2.05],
-  [-0.5, 2.05],
+  [0.45, 0.66],
+  [0.05, 0.84],
+  [0.0, 0.86],
+  [-0.07, 1.44],
+  [-0.03, 1.48],
+  [0.02, 1.86],
+  [-0.5, 1.86],
 ];
 const Z0 = -0.5,
   Z1 = 0.45,
-  TOP = 2.05;
-const PANEL_FRONT: [number, number] = [0.45, 0.78];
-const PANEL_BACK: [number, number] = [0.03, 0.98];
-const SCREEN_BOT: [number, number] = [0.0, 1.0];
-const SCREEN_TOP: [number, number] = [-0.08, 1.66];
-const MARQ_BOT: [number, number] = [-0.03, 1.7];
-const MARQ_TOP: [number, number] = [0.02, 2.05];
+  TOP = 1.86;
+const PANEL_FRONT: [number, number] = [0.45, 0.66];
+const PANEL_BACK: [number, number] = [0.05, 0.84];
+const SCREEN_BOT: [number, number] = [0.0, 0.86];
+const SCREEN_TOP: [number, number] = [-0.07, 1.44];
+const MARQ_BOT: [number, number] = [-0.03, 1.48];
+const MARQ_TOP: [number, number] = [0.02, 1.86];
+/** The cockpit behind the front unit: side walls from the console back past the seat (local z), and their height. */
+const COCKPIT_Z1 = 1.5;
+const COCKPIT_H = 1.0;
+/** Seated: the seat's top, and a seated driver's eye height. */
+const SEAT_Y = 0.46;
+const SEATED_EYE = 1.17;
 /** Cabinet width; seat centres at ±SEAT_X; each screen. */
 export const WIDTH = 2.1;
 const SEAT_X = 0.53;
 const SCREEN_W = 0.9;
 const SCREEN_H = (SCREEN_W * 9) / 16;
 /** The wheel: centre (local), rim radius, tilt back from vertical. */
-const WHEEL_AT = new THREE.Vector3(0, 0.94, 0.42);
+const WHEEL_AT = new THREE.Vector3(0, 0.8, 0.52);
 const WHEEL_R = 0.165;
 const WHEEL_TILT = 0.62;
-/** The seat (local z of the driver's spot, in front of the body). */
-const SEAT_Z = 0.95;
+/** The seat: local z of its centre (where you sit; the viewpoint is here too). */
+const SEAT_Z = 1.08;
 /** Dashboard buttons across one seat's console (u 0..1) and how far back (v). */
 const DASH_U: Record<(typeof DASH)[number], number> = { START: 0.08, VIEW: 0.17, SOUND: 0.26, JUMP: 0.72, BOOST: 0.8, FIRE: 0.88, MISSILE: 0.96 };
 const DASH_COL: Record<(typeof DASH)[number], string> = { START: OTR.cream, VIEW: OTR.cyan, SOUND: OTR.cyan, JUMP: OTR.gold, BOOST: OTR.amber, FIRE: OTR.red, MISSILE: OTR.magenta };
@@ -161,6 +178,7 @@ interface Seat {
 export class OnTheRunCabinet implements FloorGame {
   readonly id = ID;
   readonly title = TITLE;
+  readonly sitOnE = true;
   readonly center: THREE.Vector3;
   readonly viewpoints: Viewpoint[] = [];
   readonly desk: DeskStation;
@@ -269,7 +287,7 @@ export class OnTheRunCabinet implements FloorGame {
     this.volTex = new THREE.CanvasTexture(this.volCanvas);
     this.volTex.colorSpace = THREE.SRGBColorSpace;
 
-    for (let i = 0; i < 2; i++) this.seats.push(this.buildSeat(i, slot, fwd));
+    for (let i = 0; i < 2; i++) this.seats.push(this.buildSeat(i, slot));
     const mid = new THREE.Vector3().addVectors(this.seats[0].screen.position, this.seats[1].screen.position).multiplyScalar(0.5);
     this.anchor.position.copy(mid);
     env.liveRoot.add(this.anchor);
@@ -277,10 +295,12 @@ export class OnTheRunCabinet implements FloorGame {
     this.desk = {
       id: ID,
       buttons: ['JUMP / OK', 'BOOST', 'FIRE'],
-      help: `${TITLE} · free · Arrows/WASD drive · Space guns · Shift boost · C drift · J jump · R missile · F oil · V view · Enter OK · P pause · F2 2nd player · M sound · Esc leave`,
+      help: `${TITLE} · free · Arrows/WASD drive · Space guns · Shift boost · C drift · J jump · R missile · F oil · V view · Enter OK · P pause · F2 2nd player · M sound · Esc/E get out`,
       onKey: (e, down) => this.deskKey(e, down),
     };
     if (env.colliders) env.world.addLocalBox(this.group, 0, (Z0 + Z1) / 2, WIDTH + 0.02, Z1 - Z0 + 0.02, 'arcade cabinet');
+    // The cockpit walls are solid (the room's collider is only the front unit): you get in from behind the seats.
+    for (const wx of [-WIDTH / 2 + 0.02, 0, WIDTH / 2 - 0.02]) env.world.addLocalBox(this.group, wx, (Z1 + COCKPIT_Z1) / 2, 0.06, COCKPIT_Z1 - Z1, 'racing cockpit wall');
 
     // Screens: a click on the screen while you're seated is Enter (OK / start).
     if (typeof window !== 'undefined') {
@@ -337,8 +357,8 @@ export class OnTheRunCabinet implements FloorGame {
       const dash = slopePlane(0.98, PANEL_FRONT, PANEL_BACK, otrUV(OTR_REGION.dash), 0.002, m.art);
       dash.position.x = sx;
       g.add(dash);
-      const kick = new THREE.Mesh(plane(0.98, 0.7, otrUV(OTR_REGION.kick)), m.art);
-      kick.position.set(sx, 0.4, Z1 + 0.003);
+      const kick = new THREE.Mesh(plane(0.98, 0.6, otrUV(OTR_REGION.kick)), m.art);
+      kick.position.set(sx, 0.34, Z1 + 0.003);
       g.add(kick);
     }
     // Neon: cyan under the marquee, magenta along the console's lip, amber up the front edges and between the seats.
@@ -350,62 +370,93 @@ export class OnTheRunCabinet implements FloorGame {
       s.position.set(x, y, z);
       g.add(s);
     };
-    strip(OTR.cyan, WIDTH + 0.004, 0.016, 0.03, 0, 1.69, -0.02);
-    strip(OTR.magenta, WIDTH + 0.004, 0.012, 0.012, 0, 0.785, Z1 + 0.006);
-    for (const sx of [-1, 1]) strip(OTR.amber, 0.012, 0.78, 0.012, sx * (WIDTH / 2 + 0.002), 0.39, Z1 + 0.002);
-    strip(OTR.amber, 0.014, 0.64, 0.014, 0, 1.33, -0.035);
-    // The seats' world: pedals and a bucket seat for each driver, in front of the body (nothing to bump into: you sit there).
+    strip(OTR.cyan, WIDTH + 0.004, 0.016, 0.03, 0, 1.47, -0.02);
+    strip(OTR.magenta, WIDTH + 0.004, 0.012, 0.012, 0, 0.665, Z1 + 0.006);
+    strip(OTR.amber, 0.014, 0.56, 0.014, 0, 1.15, -0.03);
+    // The cockpits: each driver sits enclosed between side walls (outer ones with the side art, a shared one between
+    // the seats), on a raised floor, in a bucket seat, with gas and brake pedals under the console.
+    const wall = new THREE.Shape(
+      (
+        [
+          [Z1 - 0.02, 0],
+          [COCKPIT_Z1, 0],
+          [COCKPIT_Z1, 0.62],
+          [COCKPIT_Z1 - 0.3, COCKPIT_H],
+          [Z1 - 0.02, COCKPIT_H - 0.12],
+        ] as [number, number][]
+      ).map(([z, y]) => new THREE.Vector2(z, y)),
+    );
+    const [s0, t0, s1, t1] = otrUV(OTR_REGION.side, 2);
+    for (const wx of [-WIDTH / 2, 0, WIDTH / 2]) {
+      const geo = new THREE.ExtrudeGeometry(wall, { depth: 0.04, bevelEnabled: false });
+      geo.rotateY(-Math.PI / 2);
+      geo.translate(wx + 0.02, 0, 0);
+      if (wx === 0) remap(geo, otrSwatch('#1d1233'));
+      else {
+        // The side art, its lower front part (the road and the stripes), on the outside walls.
+        const pos = geo.attributes.position as THREE.BufferAttribute;
+        const uv = geo.attributes.uv as THREE.BufferAttribute;
+        for (let i = 0; i < pos.count; i++) {
+          let k = (pos.getZ(i) - (Z1 - 0.02)) / (COCKPIT_Z1 - Z1 + 0.02);
+          if (wx < 0) k = 1 - k;
+          uv.setXY(i, s0 + k * (s1 - s0), t0 + (pos.getY(i) / COCKPIT_H) * (t1 - t0) * 0.55);
+        }
+      }
+      g.add(new THREE.Mesh(geo, wx === 0 ? m.body : m.art));
+      // Amber along the top edge.
+      strip(OTR.amber, 0.05, 0.012, COCKPIT_Z1 - 0.3 - Z1, wx, COCKPIT_H - 0.05, (Z1 + COCKPIT_Z1 - 0.3) / 2);
+    }
     for (const sx of [-SEAT_X, SEAT_X]) {
       for (const [px, col] of [
-        [-0.09, '#2a2a30'],
-        [0.09, '#3a3a42'],
+        [-0.1, '#2a2a30'],
+        [0.1, '#3a3a42'],
       ] as const) {
         const pedal = new THREE.Mesh(
           box(0.08, 0.02, 0.2, () => otrSwatch(col)),
           m.body,
         );
-        pedal.position.set(sx + px, 0.09, Z1 + 0.25);
-        pedal.rotation.x = -0.6;
+        pedal.position.set(sx + px, 0.12, Z1 + 0.14);
+        pedal.rotation.x = -0.7;
         g.add(pedal);
       }
       const floorPlate = new THREE.Mesh(
-        box(0.5, 0.03, 0.4, () => otrSwatch('#1a1426')),
+        box(WIDTH / 2 - 0.06, 0.05, COCKPIT_Z1 - Z1, () => otrSwatch('#1a1426')),
         m.body,
       );
-      floorPlate.position.set(sx, 0.015, Z1 + 0.22);
+      floorPlate.position.set(sx, 0.025, (Z1 + COCKPIT_Z1) / 2);
       g.add(floorPlate);
       const base = new THREE.Mesh(
-        box(0.34, 0.3, 0.34, () => otrSwatch('#241838')),
+        box(0.34, SEAT_Y - 0.12, 0.34, () => otrSwatch('#241838')),
         m.body,
       );
-      base.position.set(sx, 0.15, Z1 + SEAT_Z + 0.05);
+      base.position.set(sx, (SEAT_Y - 0.12) / 2, SEAT_Z + 0.05);
       g.add(base);
       const cushion = new THREE.Mesh(
-        box(0.5, 0.12, 0.46, () => otrSwatch('#4a2a6e')),
+        box(0.48, 0.12, 0.44, () => otrSwatch('#4a2a6e')),
         m.body,
       );
-      cushion.position.set(sx, 0.36, Z1 + SEAT_Z + 0.05);
+      cushion.position.set(sx, SEAT_Y - 0.06, SEAT_Z + 0.05);
       g.add(cushion);
       const back = new THREE.Mesh(
-        box(0.5, 0.62, 0.1, () => otrSwatch('#4a2a6e')),
+        box(0.48, 0.66, 0.1, () => otrSwatch('#4a2a6e')),
         m.body,
       );
-      back.position.set(sx, 0.7, Z1 + SEAT_Z + 0.3);
-      back.rotation.x = 0.18;
+      back.position.set(sx, SEAT_Y + 0.3, SEAT_Z + 0.33);
+      back.rotation.x = 0.2;
       g.add(back);
-      for (const bx of [-0.22, 0.22]) {
+      for (const bx of [-0.21, 0.21]) {
         const bolster = new THREE.Mesh(
-          box(0.06, 0.5, 0.12, () => otrSwatch(OTR.amber)),
+          box(0.06, 0.52, 0.12, () => otrSwatch(OTR.amber)),
           m.lit,
         );
-        bolster.position.set(sx + bx, 0.72, Z1 + SEAT_Z + 0.24);
-        bolster.rotation.x = 0.18;
+        bolster.position.set(sx + bx, SEAT_Y + 0.3, SEAT_Z + 0.27);
+        bolster.rotation.x = 0.2;
         g.add(bolster);
       }
     }
   }
 
-  private buildSeat(i: number, slot: ArcadeSlot, fwd: THREE.Vector3): Seat {
+  private buildSeat(i: number, slot: ArcadeSlot): Seat {
     const env = this.env;
     const sx = i === 0 ? -SEAT_X : SEAT_X;
     const gm = this.group.matrixWorld;
@@ -542,22 +593,24 @@ export class OnTheRunCabinet implements FloorGame {
     this.buildBadge(pf, (DASH_U.SOUND - 0.5) * 0.98, -depth / 2 + (DASH_V + 0.3) * depth);
 
     // Where you sit, and the desktop view framed on that seat's screen.
-    const right = new THREE.Vector3(Math.cos(slot.yaw), 0, -Math.sin(slot.yaw));
-    seat.stand.copy(slot.pos).addScaledVector(fwd, slot.footprint[1] / 2 + 0.45).addScaledVector(right, sx);
+    seat.stand.set(sx, 0, SEAT_Z).applyMatrix4(gm);
+    seat.stand.y = 0;
+    // A seat like the stools': walk into the cockpit and you sit (in VR your body sits; on a screen the game takes your keys).
+    env.world.addLocalSeat(this.group, sx, SEAT_Z, 0.3, SEAT_Y, Math.PI, 'racing seat');
     const sc = new THREE.Vector3().setFromMatrixPosition(screen.matrix);
     this.viewpoints.push({
       id: `${ID}${i}`,
       label: `${TITLE} · seat ${i + 1}`,
       position: seat.stand.clone(),
       yaw: slot.yaw,
-      pitch: -0.07,
-      eye: sc.y + 0.07,
-      back: 0.3,
+      pitch: Math.atan2(sc.y - SEATED_EYE, SEAT_Z + 0.06) * 0.5 - 0.03,
+      eye: SEATED_EYE,
+      back: 0,
       portrait: { back: 1.05, eye: sc.y, pitch: -0.05 },
     });
     env.interaction.register({
       object: screen,
-      label: () => (this.atDesk ? null : `Drive ${TITLE} · free`),
+      label: () => (this.atDesk ? null : `Drive ${TITLE} · free (E)`),
       enabled: () => !env.player.inXR && !this.atDesk,
       onSelect: () => env.sit?.(ID, i),
     });
@@ -736,6 +789,11 @@ export class OnTheRunCabinet implements FloorGame {
 
   // --- The frame --------------------------------------------------------------------
 
+  /** Mid-race (not in the game's menus, pause or a scene)? */
+  private racing(): boolean {
+    return this.host.peek((w) => (w as unknown as { __otr?: { state?: string } }).__otr?.state === 'play') ?? false;
+  }
+
   /** Which seat you're at in VR (a hand on its wheel, or standing in it), or -1. */
   private xrSeat(feet: THREE.Vector3): number {
     for (const s of this.seats) if (s.wheel.held) return s.i;
@@ -790,7 +848,7 @@ export class OnTheRunCabinet implements FloorGame {
           else if (handedness === 'left') left = gamepad;
         }
         if (tracked) right = left = null;
-        seatToPad({ steer: wheelToSteer(s.wheel.angle), wheelHeld: s.wheel.held, right, left, dash: downs, autoGas: tracked }, st);
+        seatToPad({ steer: wheelToSteer(s.wheel.angle), wheelHeld: s.wheel.held, right, left, dash: downs, autoGas: tracked, racing: this.racing() }, st);
         if (s.wheel.held || downs.some(Boolean)) {
           plugged = true;
           if (padActive(st)) this.lastInput = this.time;

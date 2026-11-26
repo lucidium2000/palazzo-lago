@@ -125,16 +125,21 @@ describe('On the Run: the virtual controller', () => {
     expect(padList([p, null])).toEqual([p, null, null, null]);
   });
 
-  it('drives from the VR controllers while the wheel is held: triggers are gas and brake, the face buttons the game’s', () => {
+  it('drives from the VR controllers while the wheel is held: triggers are gas and brake, the face buttons boost and weapons', () => {
     const right = xr([0.8, 0, 0, 1, 1, 0]); // trigger, squeeze, -, stick click, A, B
     const left = xr([0.5, 0, 0, 0, 0, 1], [0, 0, 0.5, -0.6]); // trigger, ..., Y; stick pushed
-    const out = seatToPad({ steer: 0.4, wheelHeld: true, right, left, dash: DASH.map(() => false) }, blankState());
+    const out = seatToPad({ steer: 0.4, wheelHeld: true, right, left, dash: DASH.map(() => false), racing: true }, blankState());
     expect(out.buttons[BTN.RT]).toBeCloseTo(0.8);
     expect(out.buttons[BTN.LT]).toBeCloseTo(0.5);
-    expect(out.buttons[BTN.A]).toBe(1);
-    expect(out.buttons[BTN.B]).toBe(0);
-    expect(out.buttons[BTN.Y]).toBe(1);
-    expect(out.buttons[BTN.RB]).toBe(1); // right stick click: guns
+    expect(out.buttons[BTN.B]).toBe(1); // A: boost
+    expect(out.buttons[BTN.RB]).toBe(0); // B (not pressed): guns
+    expect(out.buttons[BTN.A]).toBe(1); // Y: jump
+    expect(out.buttons[BTN.X]).toBe(1); // right stick click: drift
+    // In the menus the face buttons are the game's own: A is OK.
+    const menu = seatToPad({ steer: 0, wheelHeld: true, right, left, dash: DASH.map(() => false), racing: false }, blankState());
+    expect(menu.buttons[BTN.A]).toBe(1);
+    expect(menu.buttons[BTN.B]).toBe(0);
+    expect(menu.buttons[BTN.Y]).toBe(1);
     // The left stick adds to the wheel and pitches.
     expect(out.axes[0]).toBeCloseTo(0.9);
     expect(out.axes[1]).toBeCloseTo(-0.6);

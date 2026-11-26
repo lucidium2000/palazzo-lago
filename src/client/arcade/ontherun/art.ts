@@ -329,8 +329,8 @@ function dash(g: CanvasRenderingContext2D, buttons: readonly [number, string, st
   // The legend along the near edge (the controllers while your hands are on the wheel).
   g.fillStyle = OTR.dim;
   g.font = `600 13px ${UI}`;
-  g.fillText('GRAB THE WHEEL  ·  RIGHT TRIGGER GAS  ·  LEFT TRIGGER BRAKE  ·  A JUMP  ·  B BOOST  ·  X DRIFT  ·  Y OIL', r.x + r.w / 2, r.y + r.h - 34);
-  g.fillText('RIGHT STICK CLICK GUNS  ·  LEFT STICK CLICK MISSILE (LET GO TO FIRE)  ·  TURN THE WHEEL TO PICK IN MENUS', r.x + r.w / 2, r.y + r.h - 14);
+  g.fillText('GRAB THE WHEEL  ·  RIGHT TRIGGER GAS  ·  LEFT TRIGGER BRAKE  ·  A BOOST  ·  B GUNS  ·  X MISSILE  ·  Y JUMP', r.x + r.w / 2, r.y + r.h - 34);
+  g.fillText('RIGHT STICK CLICK DRIFT  ·  LEFT STICK CLICK OIL  ·  MENUS: TURN THE WHEEL TO PICK, A OK, B BACK', r.x + r.w / 2, r.y + r.h - 14);
   g.fillStyle = OTR.amber;
   g.fillRect(r.x, r.y, r.w, 3);
   g.restore();

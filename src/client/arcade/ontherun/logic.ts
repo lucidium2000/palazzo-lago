@@ -256,6 +256,8 @@ export interface SeatInput {
   dash: readonly boolean[];
   /** Tracked hands on the wheel and no controllers: the gas stays down (there are no triggers to squeeze). */
   autoGas?: boolean;
+  /** The game is mid-race (the face buttons are the wheel's boost and weapons; in menus they're A / B / X / Y). */
+  racing?: boolean;
 }
 
 const btn = (p: XRPadLike | null, i: number) => (p?.buttons[i] ? p.buttons[i].value || (p.buttons[i].pressed ? 1 : 0) : 0);
@@ -267,12 +269,14 @@ const axis = (p: XRPadLike | null, i: number) => {
 };
 
 /**
- * VR at the cabinet, hands on the wheel: the controllers become the game's
- * controller. Right trigger gas, left trigger brake; A, B, X, Y are the game's
- * A (jump, OK), B (boost, back), X (drift), Y (oil / smoke); right stick click
- * fires the guns, left stick click locks a missile (let go to fire); the left
- * stick adds steering and pitches the car in the air, the right stick looks
- * around. The dashboard buttons work with or without the wheel. Writes `out`.
+ * VR in the cockpit, hands on the wheel: the controllers become the game's
+ * controller. Right trigger gas, left trigger brake. While racing, the face
+ * buttons are the wheel's buttons: A boost, B guns, X missile (hold to lock,
+ * let go to fire), Y jump; right stick click drifts, left stick click drops
+ * oil / smoke. In the menus they are the game's own A (OK), B (back), X, Y,
+ * and turning the wheel picks. The left stick adds steering and pitches the
+ * car in the air, the right stick looks round. The dashboard buttons work
+ * with or without the wheel. Writes `out`.
  */
 export function seatToPad(i: SeatInput, out: PadState): PadState {
   clearState(out);
@@ -286,12 +290,19 @@ export function seatToPad(i: SeatInput, out: PadState): PadState {
     out.buttons[BTN.RT] = btn(r, 0);
     out.buttons[BTN.LT] = btn(l, 0);
     if (i.autoGas && !r && !l) out.buttons[BTN.RT] = 1;
-    out.buttons[BTN.A] = btn(r, 4);
-    out.buttons[BTN.B] = btn(r, 5);
-    out.buttons[BTN.X] = btn(l, 4);
-    out.buttons[BTN.Y] = btn(l, 5);
-    out.buttons[BTN.RB] = btn(r, 3);
-    out.buttons[BTN.LB] = btn(l, 3);
+    if (i.racing) {
+      out.buttons[BTN.B] = btn(r, 4);
+      out.buttons[BTN.RB] = btn(r, 5);
+      out.buttons[BTN.LB] = btn(l, 4);
+      out.buttons[BTN.A] = btn(l, 5);
+      out.buttons[BTN.X] = btn(r, 3);
+      out.buttons[BTN.Y] = btn(l, 3);
+    } else {
+      out.buttons[BTN.A] = btn(r, 4);
+      out.buttons[BTN.B] = btn(r, 5);
+      out.buttons[BTN.X] = btn(l, 4);
+      out.buttons[BTN.Y] = btn(l, 5);
+    }
   }
   out.axes[0] = steer;
   // The wheel turned hard is a D-pad flick in the menus (the garage reads the stick too).
