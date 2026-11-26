@@ -193,5 +193,14 @@
   "similarity_boost": 0.8,
   "style": 0.35,
   "public_owner_id": "5c9b187b7fc0fd10cfa6bc6e03699490bacc6f4c5e634b9ffcb1e62bd032fdef"
+ },
+ "el_waitress": {
+  "voice_id": "yK2Ny0mq8WplixhD1td3",
+  "name": "Caroline Braden - Warm, Bright & Genuine",
+  "brief": "woman in her twenties, bright, warm, friendly, upbeat American",
+  "stability": 0.4,
+  "similarity_boost": 0.8,
+  "style": 0.4,
+  "public_owner_id": "e3f59c5c065dae143d73d51c5a4a6fa45d1f39e239c78b3fc1557a641de97381"
  }
 }
