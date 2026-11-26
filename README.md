@@ -43,7 +43,11 @@ Tables and machines are walk-up-and-play: stand at one and its controls appear; 
 
 **Beyond the casino:** a corridor off the east wall leads to the hotel elevator lobby. Call a car,
 step in and ride up to Suite 3201 (floor-to-ceiling windows on the Strip) or down to the night pool
-deck: lit pools, palms, cabanas, a pool bar and a DJ. The floor is alive: guests chat in circles with
+deck: lit pools, palms, cabanas, a pool bar and a DJ. The car's **M** button takes you to the Promenade, the
+restaurant and shopping level: a marble concourse under skylights that ends at a glass balcony over a
+garden atrium, a food court (pizza, burgers, noodles, gelato: order at the counter, pick it up, eat it
+bite by bite), the Lago Luxe boutique (sunglasses and fedoras to buy with chips and wear, so your
+friends see them) and the Lago Arcade. The floor is alive: guests chat in circles with
 drinks in hand, friends walk together, people stop to talk and take photos, and they mostly mind their
 own business instead of staring at you.
 
@@ -95,6 +99,8 @@ to force a quality tier.
 | Roulette | Pick a chip (or keys 1–7), click the layout; Space spin, Z undo, C clear, R rebet | Grab chips from your rack (grip) and drop them on the felt, or point and trigger |
 | Slots | − / + bet, SPIN (or click the screen), Info for paytable | Same with the laser; grab and pull the lever on Diamond Sevens |
 | Bar & piano | Click the bar to order (free), click the glass to pick it up, F sip, Q set down; click the tip jar | Point at the bar, grab the glass, raise it to your mouth to sip |
+| Food court | Click a dish on a counter's menu, click the food when it's up, F bite (X throw, Q set down) | Point at the menu and pull the trigger, grab the food, hold it to your mouth for each bite |
+| Boutique | Click an item to pick it up, click the register to pay, F put it on, U take it off | Grab it, hold it to the register (or point at it), then hold shades to your eyes or a hat on your head; grab at your head to take it off |
 | Grand piano | Click the pianist to push him off the bench, then sit (E, or walk onto the bench): A S D F G H J K L white keys, W E T Y U O P black, Z / X octave, Space sustain, Shift louder, Esc stand; or click / tap the keys | Shove (or punch) him off, sit on the bench: every fingertip that presses a key plays it, as hard as it came down (hand tracking: all ten; controllers: index and thumb, the whole hand when open); A / X is the sustain pedal |
 
 ## Layout
@@ -117,6 +123,9 @@ src/client/     Three.js app
   people.ts     guests and staff: instanced bodies, walk/sit/cheer/deal/pour poses, wandering
   hands.ts      VR controller/hand models and grabbing
   lounge.ts     Bar Lago, drinks, lounge seating, grand piano
+  areas/        the hotel, pool, suite and Promenade, the elevators (liftlogic.ts is their pure logic)
+  areas/promenade.ts  the Promenade floor; ARCADE_SLOTS and the mountArcade hook for src/client/arcade/
+  promenadelife.ts    food court ordering, the boutique's register, what you wear (and your friends see)
   piano.ts      the playable piano: 88 keys, fingertips / typing / taps, the pianist's bench
   pianokeys.ts  keyboard layout, hit detection, fingertip strikes, voice allocation (pure)
   pianotone.ts  synthesized piano notes (pianoworker.ts renders them), pianosynth.ts plays them
