@@ -485,7 +485,8 @@ export class Crowd {
       m.raycast = () => {};
       this.group.add(m);
     }
-    this.cullDist = q.name === 'quest2' ? 14 : q.name === 'mobile' ? 14 : q.name === 'quest3' ? 16 : Infinity;
+    // Far enough to see people across the hall and down the hotel corridor.
+    this.cullDist = q.name === 'quest2' ? 18 : q.name === 'mobile' ? 16 : q.name === 'quest3' ? 24 : Infinity;
   }
 
   /** Extra guests for the pool deck, on top of the floor's `people`. */

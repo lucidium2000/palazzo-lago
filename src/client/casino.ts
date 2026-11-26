@@ -389,7 +389,8 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   // Panelling: south (not round the entrance), west (not behind the bar), east (not at the
   // opening to the hotel), and the piers between the lake windows.
   bays(Math.PI, D / 2, -W / 2, 3, [[-W / 2, -3.2], [3.2, W / 2]], true);
-  bays(Math.PI / 2, -W / 2, -D / 2, 3.5, [[-D / 2, 4.5]], true);
+  // (Not across the poker room's doorway: the damask used to hang over its top half.)
+  bays(Math.PI / 2, -W / 2, -D / 2, 3.5, [[-D / 2, POKER_DOOR.z0 - 0.35], [POKER_DOOR.z1 + 0.35, 4.5]], true);
   bays(-Math.PI / 2, W / 2, -D / 2, 3.5, [[-D / 2, 3.9], [9.1, D / 2]], true);
   {
     const piers: [number, number][] = [];

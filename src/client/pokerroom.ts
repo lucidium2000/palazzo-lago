@@ -189,8 +189,9 @@ export function buildPokerRoom(q: Quality): PokerRoom {
     shell.add(b);
   }
   for (let i = 1; i < 3; i++) {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(W, 0.18, 0.16), walnutDark);
-    b.position.set(cx, h - 0.09, z0 + (D * i) / 3);
+    // (Stopping at the door wall: run to x1 and their ends showed through the casino's wall as dark squares.)
+    const b = new THREE.Mesh(new THREE.BoxGeometry(W - 0.12, 0.18, 0.16), walnutDark);
+    b.position.set(cx - 0.06, h - 0.09, z0 + (D * i) / 3);
     shell.add(b);
   }
   const damaskTex = toTexture(damask(512), { repeat: 1 });
@@ -236,9 +237,11 @@ export function buildPokerRoom(q: Quality): PokerRoom {
     const j = new THREE.Mesh(new THREE.BoxGeometry(0.16, dh, 0.06), jambMat);
     j.position.set(x1 - 0.05, dh / 2, z);
     shell.add(j);
+    // Gilt frame on both faces, standing just proud of each side's wainscot (it used to sit inside
+    // the casino's and flush with the room's, so it vanished below the dado rail and flickered).
     for (const side of [-1, 1]) {
-      const f = new THREE.Mesh(new THREE.BoxGeometry(0.03, dh + 0.06, 0.1), gold);
-      f.position.set(x1 - 0.05 + side * 0.085, (dh + 0.06) / 2, z + (z < 0 ? -0.04 : 0.04));
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.07, dh + 0.06, 0.1), gold);
+      f.position.set(x1 - 0.05 + side * 0.13, (dh + 0.06) / 2, z + (z < 0 ? -0.04 : 0.04));
       shell.add(f);
     }
   }
@@ -246,13 +249,13 @@ export function buildPokerRoom(q: Quality): PokerRoom {
   lintel.position.set(x1 - 0.05, dh + 0.03, 0);
   shell.add(lintel);
   for (const side of [-1, 1]) {
-    const f = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.1, dz1 - dz0 + 0.26), gold);
-    f.position.set(x1 - 0.05 + side * 0.085, dh + 0.08, 0);
+    const f = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.1, dz1 - dz0 + 0.26), gold);
+    f.position.set(x1 - 0.05 + side * 0.13, dh + 0.08, 0);
     shell.add(f);
   }
   // A sign over the door on the casino side, and velvet ropes on brass posts.
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.375), new THREE.MeshBasicMaterial({ map: toTexture(signTex()), toneMapped: false }));
-  sign.position.set(x1 + 0.03, dh + 0.42, 0);
+  sign.position.set(x1 + 0.09, dh + 0.42, 0);
   sign.rotation.y = Math.PI / 2;
   shell.add(sign);
   const postGeo = new THREE.CylinderGeometry(0.022, 0.03, 0.95, 10);

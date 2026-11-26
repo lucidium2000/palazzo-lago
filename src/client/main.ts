@@ -1624,12 +1624,15 @@ async function main() {
       show('suite', inSuite);
       show('skyline', !inSuite);
       show('pool', !inSuite && fx > 16);
-      show('hotel', !inSuite && fx > 4);
+      // The hotel corridor opens off the casino's east wall: draw it from anywhere you can see down it
+      // (it used to switch on only east of x = 4, so from most of the floor the hallway was a dark void).
+      show('hotel', !inSuite);
       show('casino', !inSuite && !onDeck);
       const inCasino = !inSuite && !onDeck;
       for (const o of casinoThings) if (o.visible !== inCasino) o.visible = inCasino;
-      // The poker room's furniture, table and lights: only from the west side of the floor (or inside).
-      const pokerOn = inCasino && fx < 3;
+      // The poker room's furniture, table and lights: from anywhere on the floor (its doorway is in view
+      // from most of it; hiding the inside east of x = 3 left an empty dark room behind the door).
+      const pokerOn = inCasino;
       if (pokerRoom.interior.visible !== pokerOn) pokerRoom.interior.visible = pokerOn;
     }
   };
