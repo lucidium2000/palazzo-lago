@@ -51,6 +51,20 @@ friends see them) and the Lago Arcade. The floor is alive: guests chat in circle
 drinks in hand, friends walk together, people stop to talk and take photos, and they mostly mind their
 own business instead of staring at you.
 
+**The Lago Arcade:** six original upright cabinets, $1 a play: **Neon Sentinel** (fly a hover-turret
+and shoot down drone swarms diving at your three beacons; Hive motherships every fifth wave), **Prism
+Drop** (falling gem pairs, four or more shatter and chain; rock rises from below and cracks next to
+clears; a Lucky Chip clears a whole colour), **Rake & Break** (the croupier's rake and a roulette ball
+against chips and playing cards that flip then break; face cards drop favours), **Midnight Strip**
+(a night drive through traffic against the clock, nitro from gold chips), **Velvet Beat** (one-button
+lounge drumming in time with the band) and **Splash Rally** (pool paddle tennis against the pool's
+champions, or a friend on the second controls). Each has attract mode, a high-score table with
+joystick initials (the room's host keeps the tables) and its own chiptune. In VR you grab the stick
+and press the buttons with your fingers; on a screen walk up and the keys (or touch buttons) play.
+On the floor: **Skyline Hoops** (45 seconds, real throws), **Puck Palazzo** air hockey (the house
+or a friend) and the **Lucky Claw** (win a plush pal to carry and toss). Friends nearby watch your
+screen live.
+
 **Hands and talk:** in VR your avatar's fingers follow your real ones: the Quest controllers'
 touch sensors (trigger touch and pull for the index finger, grip for the rest, thumb on the stick /
 buttons / thumb rest) or full hand tracking (25 joints per hand). Walk up to craps in VR and the
@@ -125,6 +139,9 @@ src/client/     Three.js app
   lounge.ts     Bar Lago, drinks, lounge seating, grand piano
   areas/        the hotel, pool, suite and Promenade, the elevators (liftlogic.ts is their pure logic)
   areas/promenade.ts  the Promenade floor; ARCADE_SLOTS and the mountArcade hook for src/client/arcade/
+  arcade/       the arcade: games/ (six cabinet games, pure logic + canvas drawing), machine.ts (coin,
+                attract, initials), cabinet.ts / controls.ts (3D cabinets, sticks and buttons),
+                synth.ts (chiptunes), hoops / hockey / claw (+ their *phys / *logic), net.ts
   promenadelife.ts    food court ordering, the boutique's register, what you wear (and your friends see)
   piano.ts      the playable piano: 88 keys, fingertips / typing / taps, the pianist's bench
   pianokeys.ts  keyboard layout, hit detection, fingertip strikes, voice allocation (pure)

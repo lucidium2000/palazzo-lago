@@ -434,9 +434,9 @@ export class Claw implements FloorGame {
         label: 'Lucky Claw',
         position: new THREE.Vector3(0, 0, W / 2 + 0.5).applyMatrix4(this.group.matrixWorld).setY(0),
         yaw: slot.yaw,
-        pitch: -0.3,
-        eye: 1.5,
-        back: 0.22,
+        pitch: -0.34,
+        eye: 1.62,
+        back: 0.5,
         portrait: { back: 0.55, eye: 1.6, pitch: -0.32 },
       },
     ];

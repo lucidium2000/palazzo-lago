@@ -37,6 +37,11 @@ export class DeskControls {
   readonly pad: RawPad = blankPad();
   station: DeskStation | null = null;
   private keys = new Set<string>();
+  /** Keys pressed since the last poll (a tap between two frames still counts once). */
+  private latched = new Set<string>();
+  private has(c: string) {
+    return this.keys.has(c) || this.latched.has(c);
+  }
   private touchPad = blankPad();
   private root: HTMLElement | null = null;
   private helpEl: HTMLElement | null = null;
@@ -66,13 +71,15 @@ export class DeskControls {
       this.onLeave?.();
       return;
     }
-    if (down) this.keys.add(c);
-    else this.keys.delete(c);
+    if (down) {
+      this.keys.add(c);
+      this.latched.add(c);
+    } else this.keys.delete(c);
   }
 
   /** Merge keys and touch into the pad (call once a frame). */
   poll(): RawPad {
-    const k = this.keys;
+    const k = this;
     const kx = (k.has('ArrowRight') || k.has('KeyD') ? 1 : 0) - (k.has('ArrowLeft') || k.has('KeyA') ? 1 : 0);
     const ky = (k.has('ArrowUp') || k.has('KeyW') ? 1 : 0) - (k.has('ArrowDown') || k.has('KeyS') ? 1 : 0);
     const tp = this.touchPad;
@@ -81,6 +88,7 @@ export class DeskControls {
     this.pad.a = k.has('Space') || k.has('Enter') || k.has('NumpadEnter') || k.has('KeyZ') || k.has('KeyJ') || tp.a;
     this.pad.b = k.has('KeyX') || k.has('ShiftLeft') || k.has('ShiftRight') || k.has('KeyK') || tp.b;
     this.pad.c = k.has('KeyC') || k.has('KeyL') || tp.c;
+    this.latched.clear();
     return this.pad;
   }
 
