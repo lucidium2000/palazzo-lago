@@ -231,3 +231,48 @@ describe('slaps', () => {
     expect(n).toBeLessThanOrEqual(3);
   });
 });
+
+describe('hands on faces (VR)', () => {
+  it('an open hand swiping across a face slaps; a fist punches the head; a slow hand only touches', async () => {
+    const THREE = await import('three');
+    const { Bodies } = await import('../src/client/bodies');
+    const { Person } = await import('../src/client/people');
+    const p = new Person('watch', { dress: false, main: 0, second: 0, skin: 0, hair: 0, hairStyle: 'short', height: 1.75 });
+    const head = new THREE.Object3D();
+    head.position.set(0, 1.6, 0);
+    head.updateMatrixWorld(true);
+    p.rig = { bones: { Head: head } } as never;
+    const grip = new THREE.Group();
+    const hand = { grip, ctrl: { userData: {} }, held: null, carried: null, pos: new THREE.Vector3(), index: 0 };
+    let vel = new THREE.Vector3();
+    let fist = false;
+    const got: string[] = [];
+    const bodies = new Bodies({
+      crowd: { people: [p], now: 0 } as never,
+      world: { move: (x: number, z: number) => [x, z] } as never,
+      player: { feet: () => new THREE.Vector3(0, 0, 1), inXR: false, speed: 0, seated: null } as never,
+      hands: { hands: [hand], velocity: () => vel, onHaptic: null } as never,
+      isFist: () => fist,
+      onSlap: (_p, power) => got.push('slap ' + power.toFixed(2)),
+      onPunch: (_p, _pw, _at, zone) => got.push('punch ' + zone),
+    });
+    const at = (x: number, y: number, z: number) => {
+      grip.position.set(x, y, z);
+      grip.updateMatrixWorld(true);
+    };
+    const swipe = (v: [number, number, number], f: boolean) => {
+      vel = new THREE.Vector3(...v);
+      fist = f;
+      at(0.03, 1.66, 0.1);
+      (bodies as unknown as { handPush(h: unknown): void }).handPush(hand);
+      // Let the per-person cool-down pass.
+      bodies.update(2);
+    };
+    swipe([0.3, 0, 0], false); // a touch
+    expect(got).toEqual([]);
+    swipe([2, 0, 0.2], false); // across the face, open hand
+    expect(got[0]).toMatch(/^slap/);
+    swipe([0, 0, -2.5], true); // a fist into the face
+    expect(got[1]).toBe('punch head');
+  });
+});
