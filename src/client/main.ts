@@ -1789,7 +1789,6 @@ async function main() {
     // Outside: the room tone fades and the fountains swell with the show.
     // (Only the lakeside terrace counts here; the pool deck has its own party.)
     const outside = Math.abs(feet.x) < 14 ? THREE.MathUtils.clamp((-14 - feet.z) / 2, 0, 1) : 0;
-    const doorway = Math.max(outside, casino.doorsOpen() * 0.4);
     sound.setAmbience(1 - outside * 0.75);
     // Music: lively on the floor, softer by the piano and outside.
     const byPiano = THREE.MathUtils.clamp(1 - feet.distanceTo(lounge.piano.position) / 7, 0, 1);
@@ -1802,7 +1801,8 @@ async function main() {
         crew.react('finale', { force: true, cheer: true });
       } else if (Math.random() < 0.002) crew.react('terrace', { chance: 0.6 });
     }
-    fountainVoice.setVolume((0.25 + casino.fountainLevel() * 0.9) * (0.25 + doorway * 0.75));
+    // The fountains are for out on the terrace: inside you barely hear them (a whisper through open doors).
+    fountainVoice.setVolume((0.2 + casino.fountainLevel() * 0.75) * (outside + (1 - outside) * casino.doorsOpen() * 0.03));
 
     // Count the whole frame (all post passes), not just the last one.
     renderer.info.autoReset = false;
