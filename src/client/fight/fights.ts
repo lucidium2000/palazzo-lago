@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Crowd, Look, Person } from '../people';
+import type { Crowd, FightPose, Look, Person } from '../people';
 import { fightPose, staffLook } from '../people';
 import type { World } from '../world';
 import type { Player } from '../player';
@@ -14,7 +14,7 @@ import { mouthOf, voices } from '../voices';
 import type { VoiceId } from '../speech';
 import type { Friend, Session } from '../net/session';
 import { Anger, temperament, type Provocation, type Temperament } from './anger';
-import { Brawl, PHASES, T, type Phase, type PoseOut } from './brawl';
+import { Brawl, MOVES, PHASES, T, type Phase, type PoseOut } from './brawl';
 import type { Blow, Zone } from './health';
 import { You, KO_SECONDS } from './you';
 import { Bars, type OverheadBar } from './bars';
@@ -115,6 +115,10 @@ interface Remote {
 }
 
 const PASSIVE_AFTER = 2.5;
+/** A friend's avatar gets up a little quicker than a guest (their real self is already back on their feet). */
+const AVATAR_GETUP = T.getup / 1.3;
+/** Numbers per fight in the published state (`fx`). */
+const FX = 10;
 const PUNCH_COOL = 0.35;
 const rnd = () => Math.random();
 
@@ -137,8 +141,9 @@ export class Fights {
   private poseOut: PoseOut = {
     guard: 0,
     block: 0,
-    windup: 0,
-    punch: 0,
+    act: 'none',
+    actT: 0,
+    body: false,
     down: 0,
     wobble: 0,
   };
@@ -324,7 +329,7 @@ export class Fights {
     } else if (rf) {
       // A friend's fight: we judge the block from what we see, they apply the damage.
       blocked = rf.puppet.rollBlock(blow, rnd);
-      if (blocked) rf.puppet.show('guard');
+      if (blocked) rf.puppet.blockNow();
     } else {
       // Not fighting (yet).
       p.gaspT = Math.max(p.gaspT, slap ? 0.8 : 1);
@@ -374,7 +379,16 @@ export class Fights {
       volume: slap ? 0.9 + power * 0.5 : 0.8 + power * 0.6,
       rate: (slap ? 1.0 : 0.85) + Math.random() * 0.15,
     });
-    if (blocked || p.fight?.down) return;
+    if (blocked) {
+      this.remoteBy.get(p)?.puppet.blockNow();
+      return;
+    }
+    if (p.fight?.down) return;
+    // A fighter flinches (head snapped back, or doubled over).
+    if (p.fight && !slap) {
+      p.fight.hitT = 0;
+      p.fight.hitZone = zone;
+    }
     // Which way the hand went, across their face: their right is (-cos yaw, sin yaw).
     const across = -v.x * Math.cos(p.yaw) + v.z * Math.sin(p.yaw);
     if (zone === 'head') {
@@ -385,8 +399,10 @@ export class Fights {
         // A hand going to their left came from their right: that cheek.
         p.blushSide = across < 0 ? 1 : 0;
       } else {
-        p.snapX += 0.25 + 0.3 * power;
-        p.snapY += -Math.sign(across || 1) * 0.15 * power;
+        // (A fighter's flinch clip snaps the head back already: a touch more on top.)
+        const k = p.fight ? 0.4 : 1;
+        p.snapX += (0.25 + 0.3 * power) * k;
+        p.snapY += -Math.sign(across || 1) * 0.15 * power * k;
       }
     }
     p.gaspT = Math.max(p.gaspT, slap ? 0.6 : 0.8);
@@ -648,6 +664,8 @@ export class Fights {
       this.d.sound.playLocal('whoosh', 0.5, 1.1);
       return;
     }
+    // They see it coming (and may get their gloves up).
+    (this.local.get(p)?.brawl ?? this.remoteBy.get(p)?.puppet)?.threat(rnd);
     const pitch = this.v1.set(0, 0, -1).applyQuaternion(this.d.camera.getWorldQuaternion(this.q)).y;
     const me = this.d.player.feet();
     this.v1
@@ -713,6 +731,7 @@ export class Fights {
     const head = this.d.camera.getWorldPosition(this.headV);
     const feet = this.d.player.feet();
     this.you.update(dt, this.active);
+    this.watchSwings(dt);
     for (const f of [...this.local.values()]) this.step(f, dt, feet, head);
     this.updatePeacemaker(dt);
     this.updateRemote(dt);
@@ -724,8 +743,13 @@ export class Fights {
         continue;
       }
       this.avatarDown.set(p, left);
-      const k = KO_SECONDS - left;
-      p.fight.down = left < 1.2 ? left / 1.2 : Math.min(1, (k / 0.7) ** 2);
+      // The same fall, lying there and get-up as a guest (their real self is back up a little sooner).
+      const k = KO_SECONDS + AVATAR_GETUP - left;
+      const getup = left < AVATAR_GETUP;
+      p.fight.act = getup ? 'getup' : 'ko';
+      p.fight.actT = getup ? (AVATAR_GETUP - left) * (T.getup / AVATAR_GETUP) : k;
+      p.fight.down = getup ? left / AVATAR_GETUP : Math.min(1, k / T.fall);
+      p.fight.guard = 0;
     }
     this.drawBars();
   }
@@ -794,26 +818,60 @@ export class Fights {
         this.end(f);
         return;
       }
-    } else if (speed !== 0 && dist > 0.01 && !b.down) {
+    } else if ((speed !== 0 || b.strafe !== 0) && dist > 0.01 && !b.down) {
       if (speed > 0) speed = Math.min(speed, Math.max(0, (dist - 0.62) / dt));
-      const st = speed * dt;
-      const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, (dx / dist) * st, (dz / dist) * st, 0.22, true);
+      // Toward you (or back), and circling: their left is (fz, -fx) facing you along (dx, dz).
+      const ux = dx / dist,
+        uz = dz / dist;
+      const mx = (ux * speed + uz * b.strafe) * dt,
+        mz = (uz * speed - ux * b.strafe) * dt;
+      const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, mx, mz, 0.22, true);
       p.pos.x = nx;
       p.pos.z = nz;
-      p.moving = Math.abs(speed);
+      p.moving = Math.hypot(speed, b.strafe);
     } else p.moving = Math.max(0, p.moving - dt * 4);
     // The pose.
     const out = b.pose(this.poseOut);
     const fp = p.fight!;
+    this.toPose(fp, out, b, p);
+    fp.aim.copy(f.aim);
+    p.angry = leaving || b.down ? Math.max(0, p.angry - dt * 0.3) : 1;
+  }
+
+  /** The fight's state (theirs or a friend's puppet) onto the body (fightanim.ts plays it). */
+  private toPose(fp: FightPose, out: PoseOut, b: Brawl, p: Person) {
+    // Security keep their hands down until it's a real fight.
     fp.guard = out.guard * (b.talker && p.role === 'guard' ? 0.15 : 1);
     fp.block = out.block;
-    fp.windup = out.windup;
-    fp.punch = out.punch;
+    fp.act = out.act;
+    fp.actT = out.actT;
+    fp.body = out.body;
     fp.down = out.down;
     fp.wobble = out.wobble;
     fp.side = b.side;
-    fp.aim.copy(f.aim);
-    p.angry = leaving || b.down ? Math.max(0, p.angry - dt * 0.3) : 1;
+  }
+
+  private wristWas: Record<'left' | 'right', THREE.Vector3 | null> = { left: null, right: null };
+  /** VR: a fist coming fast at someone you're fighting: they see it and may get their gloves up. */
+  private watchSwings(dt: number) {
+    if (!this.d.player.inXR || dt <= 0) return;
+    for (const s of ['left', 'right'] as const) {
+      const w = this.d.hands.wrist(s);
+      const was = this.wristWas[s];
+      if (w && was && (this.local.size || this.remote.size)) {
+        const v = this.v1.copy(w).sub(was).divideScalar(dt);
+        const check = (p: Person, b: Brawl) => {
+          if (b.down) return;
+          const to = this.headOf(p, this.v2).sub(w);
+          const d = to.length();
+          if (d < 0.9 && d > 0.05 && v.dot(to) / d > 2.2) b.threat(rnd);
+        };
+        for (const f of this.local.values()) check(f.p, f.brawl);
+        for (const r of this.remote.values()) check(r.p, r.puppet);
+      }
+      if (w) (this.wristWas[s] ??= new THREE.Vector3()).copy(w);
+      else this.wristWas[s] = null;
+    }
   }
 
   private leaveTarget(f: Local, feet: THREE.Vector3): THREE.Vector3 {
@@ -1059,6 +1117,7 @@ export class Fights {
         f.brawl.health.max,
         f.brawl.side,
         f.zone === 'head' ? 1 : 0,
+        MOVES.indexOf(f.brawl.move) + (f.brawl.blocking ? 8 : 0),
       );
     }
     return o.length ? o.slice() : null;
@@ -1184,14 +1243,14 @@ export class Fights {
       const av = fr.person;
       if (!av) return;
       av.fight ??= fightPose();
-      this.avatarDown.set(av, KO_SECONDS);
+      this.avatarDown.set(av, KO_SECONDS + AVATAR_GETUP);
       this.d.crowd.react(av.pos, 6, 'gasp');
       this.d.hud.toast(`${fr.name} got knocked out!`, 'warn');
       return;
     }
     if (d.w === 'u') {
       const av = fr.person;
-      if (av && this.avatarDown.has(av)) this.avatarDown.set(av, Math.min(this.avatarDown.get(av)!, 1.2));
+      if (av && this.avatarDown.has(av)) this.avatarDown.set(av, Math.min(this.avatarDown.get(av)!, AVATAR_GETUP));
       return;
     }
     const r = this.remote.get(`${fr.id}:${Math.round(Number(d.i))}`);
@@ -1209,7 +1268,7 @@ export class Fights {
     for (const fr of s.friendList()) {
       const a = fr.state.fx;
       if (!Array.isArray(a)) continue;
-      for (let k = 0; k + 8 < a.length; k += 9) {
+      for (let k = 0; k + FX - 1 < a.length; k += FX) {
         const key = `${fr.id}:${Math.round(a[k])}`;
         const r = this.remote.get(key);
         if (!r) continue;
@@ -1222,6 +1281,9 @@ export class Fights {
         r.hp = a[k + 5];
         r.max = a[k + 6] || 100;
         r.puppet.side = a[k + 7] ? 1 : 0;
+        r.puppet.head = !!a[k + 8];
+        r.puppet.move = MOVES[a[k + 9] & 7] ?? 'jab';
+        if (a[k + 9] & 8) r.puppet.blockNow(0.2);
         if (ph !== r.puppet.phase) {
           // We never saw the punch itself (it's quick): show it before moving on.
           if (r.puppet.phase === 'windup' && ph !== 'strike') r.owed = ph;
@@ -1260,13 +1322,7 @@ export class Fights {
       const target = s.friendList().find((f) => f.id === r.owner)?.person;
       const out = pz.pose(this.poseOut);
       const fp = p.fight!;
-      fp.guard = out.guard * (pz.talker && p.role === 'guard' ? 0.15 : 1);
-      fp.block = out.block;
-      fp.windup = out.windup;
-      fp.punch = out.punch;
-      fp.down = out.down;
-      fp.wobble = out.wobble;
-      fp.side = pz.side;
+      this.toPose(fp, out, pz, p);
       if (target && (pz.phase === 'windup' || pz.phase === 'strike')) this.headOf(target, fp.aim);
       p.angry = pz.phase === 'leave' || pz.down ? 0.3 : 1;
     }

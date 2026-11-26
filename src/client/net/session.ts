@@ -807,6 +807,13 @@ export class Session {
     const sc = p.look.height / (female ? 1.72 : 1.82);
     if (!r.mouth && b.Head) r.mouth = makeMouth(b.Head, rig.root, p.yaw, sc, rig.mesh);
     if (r.mouth) setOpen(r.mouth, r.open);
+    // Knocked out: the fall and the get-up own the whole body (fightanim.ts); their real hands wait.
+    const floored = !!p.fight && (p.fight.act === 'ko' || p.fight.act === 'getup');
+    if (floored) {
+      for (const ph of [r.posed?.l, r.posed?.r]) if (ph) ph.visible = false;
+      for (const S of ['L', 'R']) (b[`Wrist${S}`] ?? b[`Hand${S}`])?.scale.setScalar(1);
+      return;
+    }
     this.dancer?.(p, r.state, !!(r.hands.l || r.hands.r));
     // Crouching: hips down, knees bent, feet on the floor (before the arms reach their real hands).
     if (r.crouch > 0.005 && !p.seated && p.swimHead === null) {
