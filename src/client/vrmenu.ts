@@ -20,8 +20,9 @@ import type { Session } from './net/session';
  *          change your character, leave the room.
  *  - Menu: music, sound, help, reset chips, exit VR.
  *  - Chips: your wallet. What you have, broken into chips; touch one to pick
- *          it, then touch a table's betting spots to put that chip down, once
- *          per touch. At a table, its controls (spin / roll, undo, take down,
+ *          it, then point at a betting spot and press to put that chip down
+ *          (an open hand on the felt bets nothing). The quicker way is the
+ *          tray over your open left palm (chiptray.ts). At a table, its controls (spin / roll, undo, take down,
  *          rebet, double, odds) are here too, so nothing floats over the felt.
  */
 
@@ -304,7 +305,7 @@ export class VrMenu {
       ctx.textAlign = 'center';
       ctx.fillStyle = '#f6e7c3';
       ctx.font = `italic 26px ${SERIF}`;
-      const lines = controls.length ? [d.tableStatus()] : ['Touch a chip, then touch a betting spot:', 'one chip each time you touch the felt.'];
+      const lines = controls.length ? [d.tableStatus()] : ['Pick a chip, then point and press a spot.'];
       lines.forEach((l, i) => ctx.fillText(fit(ctx, l, w.pxW - 70), w.pxW / 2, top + 26 + i * 32));
     })(w.background);
     let y = top + 76;

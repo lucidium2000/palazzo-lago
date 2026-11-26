@@ -70,6 +70,7 @@ import type { ReactKind } from './reactlines';
 import { DrinkSync } from './net/drinksync';
 import { PhotoSync } from './net/photosync';
 import { LooseObjects } from './loose';
+import { ChipSystem } from './chipsystem';
 import { LooseSync } from './net/loosesync';
 import { Party } from './party';
 import { DJ } from './areas/pool';
@@ -267,9 +268,16 @@ async function main() {
   const hitBy = new WeakMap<object, Person>();
   // Napkins wipe up spills, your face, and (gently) the person you soaked.
   let napkins: Napkins | null = null;
+  // Your chips end to end (the wallet tray, the fingertip chip, the books): made once the tables exist.
+  let chips: ChipSystem | null = null;
   const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics, roulette: roulette.group, craps: craps.group,
-    // A chip you picked up anywhere and set down on a betting spot plays, like cash on a real table.
-    onChipRest: (value, at) => craps.betFound(at, value) || roulette.betFound(at, value) || blackjacks.some((b) => b.betFound(at, value)),
+    // A chip set down on a betting spot plays, like cash on a real table (yours from the wallet, or one you found).
+    onChipRest: (value, at, id) => chips?.chipRest(value, at, id) ?? false,
+    // Let go over your wallet tray, your wrist or your rail: back into your wallet.
+    absorbChip: (value, at, id) => chips?.absorbChip(value, at, id) ?? false,
+    onChipGone: (id) => chips?.chipGone(id),
+    isMine: (id) => !!chips?.ledger.loose.has(id),
+    tapChip: (id) => chips?.tapChip(id) ?? false,
   });
   const slotRows = new SlotRows(ctx, crowd, world);
   // The suite's speaker and minibar, and music in the lift cars.
@@ -1252,16 +1260,8 @@ async function main() {
     photoCams.onPhoto = () => (btn.hidden = false);
   }
   // Touch to press (VR): a pointing index finger presses buttons and menu panels it pushes into.
-  interaction.pokers = () => {
-    if (!player.inXR) return [];
-    const poses = fingerPoses();
-    const out: { id: 'left' | 'right'; tip: THREE.Vector3; extended: boolean }[] = [];
-    for (const side of ['left', 'right'] as const) {
-      const tip = hands.fingertip(side);
-      if (tip) out.push({ id: side, tip, extended: poses[side === 'left' ? 'l' : 'r'][1] < 0.45 });
-    }
-    return out;
-  };
+  // Betting felts take only a deliberate point (index out, the other fingers curled): see chipsystem.ts.
+  interaction.pokers = () => chips?.pokers() ?? [];
   interaction.lasersOn = () => player.comfort.lasers;
   interaction.onPoke = (side) => {
     for (const { handedness, gamepad } of interaction.gamepads()) {
@@ -1308,6 +1308,41 @@ async function main() {
   };
   craps.chip = betChip;
   roulette.chip = betChip;
+  /** The chip the table you're at bets (blackjack keeps its own sizes). */
+  const tableChip = (): ChipDenom => {
+    const st = hud.station;
+    if (st === 'craps') return craps.chip;
+    if (st === 'roulette') return roulette.chip;
+    const bj = blackjacks.find((b) => b.mySeat !== null);
+    return bj ? (bj.chip as ChipDenom) : betChip;
+  };
+  chips = new ChipSystem({
+    scene,
+    camera,
+    bankroll,
+    hands,
+    interaction,
+    sound,
+    inXR: () => player.inXR,
+    poses: () => fingerPoses(),
+    tables: { craps, roulette, blackjacks },
+    betChip: () => betChip,
+    setBetChip,
+    chipFor: () => tableChip(),
+    haptic: buzz,
+  });
+  chips.loose = loose;
+  const chipSystem = chips;
+  // Choosing a chip at a table (its rail stacks, the HUD, the number keys) arms your fingertip too.
+  for (const t of [craps, roulette]) {
+    const choose = t.selectChip.bind(t);
+    t.selectChip = (d: ChipDenom) => {
+      choose(d);
+      chipSystem.armed = true;
+    };
+  }
+  // A chip chosen any other way (a rail stack, the HUD, the number keys) arms your fingertip too.
+  let seenChips = [craps.chip, roulette.chip, ...blackjacks.map((b) => b.chip)].join();
   // The controls and the status line of the game you're at (filled in once everything exists).
   let stationControls: () => Control[] | null = () => null;
   let stationStatus: () => string = () => '';
@@ -1389,7 +1424,7 @@ async function main() {
     exitVR: () => void xrSession?.end(),
     helpText: () => [...document.querySelectorAll('#help .card p')].map((p) => p.textContent ?? ''),
     betChip: () => betChip,
-    setBetChip,
+    setBetChip: (d) => chipSystem.pick(d),
     balance: () => bankroll.balance,
     tableControls: () => stationControls(),
     tableStatus: () => stationStatus(),
@@ -1871,6 +1906,15 @@ async function main() {
     throwables.update(dt);
     drinkPhysics.update(dt);
     loose.update(dt);
+    {
+      const now = [craps.chip, roulette.chip, ...blackjacks.map((b) => b.chip)].join();
+      if (now !== seenChips) {
+        seenChips = now;
+        chipSystem.armed = true;
+        betChip = tableChip();
+      }
+      chipSystem.update(dt);
+    }
     napkins ??= new Napkins({ loose, throwables, drinkPhysics, sound, crowd, camera, onDab: (p) => (p.attendUntil = Math.min(p.attendUntil, crowd.now + 0.5)) });
     napkins.update(dt);
     // Things you throw that hit someone: a thump, and they let you know about it.
@@ -2013,7 +2057,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem };
 }
 
 main().catch((e) => {

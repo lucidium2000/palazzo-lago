@@ -46,6 +46,19 @@ export function controllerPose(gp: Gamepad): FingerPose {
   return [thumb, index, rest, rest * 0.98, rest * 0.95];
 }
 
+/**
+ * A point: index finger out, the other three curled (on a controller: grip
+ * squeezed, finger off the trigger). The only pose that bets on a felt.
+ */
+export function isPointing(p: FingerPose): boolean {
+  return p[1] < 0.35 && (p[2] + p[3] + p[4]) / 3 > 0.5;
+}
+
+/** All four fingers out: an open hand (not a point, not a fist). */
+export function isOpenHand(p: FingerPose): boolean {
+  return (p[1] + p[2] + p[3] + p[4]) / 4 < 0.3;
+}
+
 const FINGERS = ['index-finger', 'middle-finger', 'ring-finger', 'pinky-finger'] as const;
 const _a = new THREE.Vector3();
 const _b = new THREE.Vector3();

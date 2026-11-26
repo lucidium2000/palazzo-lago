@@ -110,8 +110,9 @@ export class CrapsTable {
     ctx.interaction.register({
       object: this.felt,
       kind: 'surface',
-      // VR: tap a bet with your fingertip to put the chosen chip there (tap a rail stack to choose).
+      // VR: point and press a bet with your index finger to put the chosen chip there.
       pokeable: true,
+      felt: true,
       enabled: () => this.phase === 'betting',
       label: (e) => {
         const id = this.betFor(this.regionFromLocal(e.local));
@@ -405,12 +406,6 @@ export class CrapsTable {
       ctx.font = `italic 32px ${SERIF}`;
       ctx.fillStyle = '#cbb991';
       ctx.fillText(this.status(), p.pxW / 2, 60);
-      ctx.textAlign = 'left';
-      ctx.font = `italic 30px ${SERIF}`;
-      ctx.fillStyle = '#a99670';
-      ctx.fillText('Tap a chip stack on the rail, then tap a bet to', 40, 150);
-      ctx.fillText('place it. Or pick chips up and set them down on', 40, 192);
-      ctx.fillText('a bet. Pick a bet back up to take it down.', 40, 234);
     };
     const btn = (id: string, x: number, label: string, onPress: () => void, enabled: () => boolean) => p.add({ id, x, y: 270, w: 200, h: 110, label, onPress, enabled });
     btn('undo', 40, 'Undo', () => this.undo(), () => this.canUndo);
@@ -611,12 +606,29 @@ export class CrapsTable {
    * goes straight on the spot. False (and nothing changes) if it isn't a spot or bets are closed.
    */
   betFound(world: THREE.Vector3, amount: number): boolean {
-    const id = this.phase === 'betting' ? this.betAtWorld(world) : null;
-    if (!id) return false;
+    if (!this.spotAt(world)) return false;
     this.ctx.bankroll.credit(amount, 'refund', 'craps');
-    if (this.bet(id, amount)) return true;
+    if (this.betAt(world, amount)) return true;
     this.ctx.bankroll.debit(amount, 'refund', 'craps');
     return false;
+  }
+
+  /** The bet a chip set down here would be (null: not a spot, or bets are closed). */
+  spotAt(world: THREE.Vector3): string | null {
+    return this.phase === 'betting' ? this.betAtWorld(world) : null;
+  }
+
+  /** Chips set down at a point (paid from your balance): a bet if it's a spot. True if it took. */
+  betAt(world: THREE.Vector3, amount: number): boolean {
+    const id = this.spotAt(world);
+    return !!id && this.bet(id, amount);
+  }
+
+  /** Your chips on the layout right now. */
+  get myStaked(): number {
+    let s = 0;
+    for (const v of this.game.bets.values()) s += v;
+    return s;
   }
 
   /** Places a bet through the game's rules (click, button or chips set down by hand). True if it took. */

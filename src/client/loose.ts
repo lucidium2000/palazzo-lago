@@ -48,8 +48,16 @@ export interface LooseDeps {
   /** The roulette and craps tables' groups (their felts, rails and the wheel are surfaces). */
   roulette?: THREE.Object3D;
   craps?: THREE.Object3D;
-  /** A loose chip of yours came to rest (value, where): true if a table took it as a bet (then it leaves the loose ones). */
-  onChipRest?: (value: number, at: THREE.Vector3) => boolean;
+  /** A loose chip of yours came to rest (value, where, which): true if a table took it as a bet (then it leaves the loose ones). */
+  onChipRest?: (value: number, at: THREE.Vector3, id: string) => boolean;
+  /** A chip let go of from your hand here: true if it went into your wallet (then it leaves the loose ones). */
+  absorbChip?: (value: number, at: THREE.Vector3, id: string) => boolean;
+  /** Is this loose chip one of yours from your wallet (a click puts it back rather than picking it up)? */
+  isMine?: (id: string) => boolean;
+  /** Click / tap on one of your own loose chips: it goes back into your wallet. */
+  tapChip?: (id: string, value: number, at: THREE.Vector3) => boolean;
+  /** A chip of yours left the world on someone else's side (a friend bet it). */
+  onChipGone?: (id: string) => void;
 }
 
 /** What your friend should see happen to a loose object. */
@@ -58,8 +66,10 @@ export type LooseNet =
   | { k: 'put'; id: string; p: number[]; q: number[] }
   | { k: 'throw'; id: string; p: number[]; q: number[]; v: number[]; w: number[] }
   | { k: 'break'; id: string }
-  /** A chip went into a bet on a table: it's gone from the loose ones. */
-  | { k: 'gone'; id: string };
+  /** A chip went into a bet on a table (or back into a wallet): it's gone from the loose ones. */
+  | { k: 'gone'; id: string }
+  /** Chips let go of from a wallet stack: new loose chips, falling from p with velocity v. */
+  | { k: 'spawn'; id: string; key: string; p: number[]; v: number[] };
 
 interface KindDef {
   key: string;
@@ -100,6 +110,13 @@ export interface Item {
   holder: 'vr' | 'desk' | 'remote' | null;
   hand: Hand | null;
   gone: boolean;
+  /** Made while playing (chips let go of from a wallet stack), not part of the venue's props. */
+  dyn?: boolean;
+}
+
+/** The value of a loose chip (0: not a chip). */
+export function chipValue(it: { kind: { key: string } }): number {
+  return it.kind.key.startsWith('chip') ? Number(it.kind.key.slice(4)) || 0 : 0;
 }
 
 const tmpM = new THREE.Matrix4();
@@ -209,6 +226,11 @@ function kinds(): KindDef[] {
     chip(5, 'chip5'),
     chip(25, 'chip25'),
     chip(100, 'chip100'),
+    // The rest only ever appear when you let go of chips from your wallet.
+    chip(1, 'chip1'),
+    chip(500, 'chip500'),
+    chip(1000, 'chip1000'),
+    chip(5000, 'chip5000'),
     {
       key: 'die',
       label: 'souvenir die',
@@ -381,7 +403,7 @@ export class LooseObjects {
   }
 
   private addKind(def: KindDef) {
-    const cap = 40;
+    const cap = def.key.startsWith('chip') ? 64 : 40;
     const mesh = new THREE.InstancedMesh(def.geo, def.mat, cap);
     mesh.count = 0;
     mesh.frustumCulled = false;
@@ -401,11 +423,15 @@ export class LooseObjects {
       label: (e) => {
         const it = e.hit.instanceId !== undefined ? k.items[e.hit.instanceId] : undefined;
         if (!it || it.holder || it.gone) return null;
+        if (this.d.isMine?.(it.id)) return `Put the ${this.labelOf(it)} back in your wallet`;
         return `Pick up the ${this.labelOf(it)}`;
       },
       onSelect: (e) => {
         const it = e.hit.instanceId !== undefined ? k.items[e.hit.instanceId] : undefined;
-        if (it) this.pickUpDesk(it);
+        if (!it) return;
+        // Your own chips lying about: a click (or a tap on a phone) scoops them back.
+        if (!it.holder && !it.gone && this.d.isMine?.(it.id) && this.d.tapChip?.(it.id, chipValue(it), it.body.pos.clone())) return;
+        this.pickUpDesk(it);
       },
     });
   }
@@ -740,8 +766,19 @@ export class LooseObjects {
         // Bottles: bring it to your mouth for a swig.
         if (it.kind.key === 'bottle' && pos.distanceTo(this.d.hands.head) < 0.2 && this.swig(it)) this.d.hands.onHaptic?.(hand, 0.2, 30);
       },
-      release: (hand, _pos, carried) => {
+      release: (hand, pos, carried) => {
         if (it.holder !== 'vr' || !carried) return;
+        // A chip let go of over your wallet (the tray over your palm, your wrist, your rail) goes back in.
+        const value = chipValue(it);
+        if (value > 0 && this.d.absorbChip?.(value, pos.clone(), it.id)) {
+          carried.removeFromParent();
+          it.proxy = null;
+          it.holder = null;
+          it.hand = null;
+          this.collect(it);
+          this.onNet?.({ k: 'gone', id: it.id });
+          return;
+        }
         const v = this.d.hands.velocity(hand);
         this.let(it, carried, v.length() > 1.2 ? v.multiplyScalar(1.15) : v.multiplyScalar(0.8));
       },
@@ -984,8 +1021,8 @@ export class LooseObjects {
       this.stats.landed++;
       this.writeMatrix(it);
       // A chip you set down on a betting spot plays (and joins the table's chips).
-      const value = it.kind.key.startsWith('chip') ? Number(it.kind.key.slice(4)) : 0;
-      if (value > 0 && e.body.mine && this.d.onChipRest?.(value, it.body.pos.clone())) {
+      const value = chipValue(it);
+      if (value > 0 && e.body.mine && this.d.onChipRest?.(value, it.body.pos.clone(), it.id)) {
         this.collect(it);
         this.onNet?.({ k: 'gone', id: it.id });
         return;
@@ -1072,7 +1109,97 @@ export class LooseObjects {
     this.d.sound.play(name, at, { volume: vol, rate: it.kind.rate * (0.9 + Math.random() * 0.2) });
   }
 
-  /** It broke: glass everywhere (a bottle is a bigger mess), and what was in it. */
+  /**
+   * A loose object made while playing (a chip let go of from a wallet stack):
+   * reuses a slot of one that's gone for good, else a new one. Null if that
+   * kind is full.
+   */
+  private spawnDyn(key: string, id: string, at: THREE.Vector3): Item | null {
+    const k = this.kind(key);
+    if (!k) return null;
+    let it = k.items.find((x) => x.dyn && x.gone && !x.holder);
+    const body = this.sim.add(k.spec, id, at.clone(), Math.random() * 6.28);
+    if (it) {
+      this.items.delete(it.id);
+      it.id = id;
+      it.body = body;
+      it.gone = false;
+      it.proxy = null;
+      it.hand = null;
+    } else {
+      if (k.items.length >= k.mesh.instanceMatrix.count) {
+        this.sim.remove(body);
+        return null;
+      }
+      const index = k.items.length;
+      it = { id, kind: k, body, index, color: new THREE.Color(0xffffff), level: 0, liquid: null, proxy: null, holder: null, hand: null, gone: false, dyn: true };
+      k.items.push(it);
+      k.mesh.count = k.items.length;
+      this.registerGrab(it);
+    }
+    body.data.item = it;
+    this.items.set(id, it);
+    this.writeMatrix(it);
+    return it;
+  }
+
+  /**
+   * Chips let go of from your hand (a wallet stack): they fall from `at` with
+   * velocity `v`, one loose chip each, fanned a little. Returns each new
+   * chip's id and value, or null (and nothing made) if there's no room.
+   */
+  dropChips(at: THREE.Vector3, v: THREE.Vector3, chips: readonly number[], tag: string): [string, number][] | null {
+    const made: Item[] = [];
+    for (const [i, d] of chips.entries()) {
+      const id = `w${tag}${(this.dynCount++).toString(36)}`;
+      const p = at.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.01, i * 0.004, (Math.random() - 0.5) * 0.01));
+      const it = this.spawnDyn(`chip${d}`, id, p);
+      if (!it) {
+        for (const m of made) this.collect(m);
+        return null;
+      }
+      made.push(it);
+    }
+    for (const it of made) {
+      const vel = v.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.15, 0, (Math.random() - 0.5) * 0.15));
+      this.launch(it, vel, undefined, true);
+      this.onNet?.({ k: 'spawn', id: it.id, key: it.kind.key, p: round(it.body.pos.toArray(), 3), v: round(vel.toArray(), 2) });
+    }
+    return made.map((it) => [it.id, chipValue(it)]);
+  }
+  private dynCount = 0;
+
+  /** Takes a chip off the table for good (it went back into a wallet); tells your friend. */
+  removeChip(id: string): boolean {
+    const it = this.items.get(id);
+    if (!it || it.gone || it.holder || chipValue(it) <= 0) return false;
+    this.collect(it);
+    this.onNet?.({ k: 'gone', id });
+    return true;
+  }
+
+  /** Chips lying still within r of p (not in a hand). */
+  chipsNear(p: THREE.Vector3, r: number): Item[] {
+    const out: Item[] = [];
+    for (const it of this.items.values()) {
+      // Not ones riding a palm (they're in your hand already).
+      if (it.gone || it.holder || it.body.awake || it.body.plat || chipValue(it) <= 0) continue;
+      const e = extents(it.kind.spec.shape, it.body.pos, it.body.q);
+      if (e.c.distanceTo(p) < r + e.eh) out.push(it);
+    }
+    return out;
+  }
+
+  /** Total value of the loose chips with these ids that are still in the world (in a hand counts). */
+  valueOf(ids: Iterable<string>): number {
+    let s = 0;
+    for (const id of ids) {
+      const it = this.items.get(id);
+      if (it && !it.gone) s += chipValue(it);
+    }
+    return s;
+  }
+
   /** Takes a loose object out of the world quietly (a chip that became a bet). */
   private collect(it: Item) {
     if (it.gone) return;
@@ -1111,6 +1238,14 @@ export class LooseObjects {
   /** Your friend did something to a loose object. */
   remote(e: LooseNet) {
     if (!e || typeof e !== 'object' || typeof e.id !== 'string') return;
+    if (e.k === 'spawn') {
+      const ok = (a: unknown, n: number) => Array.isArray(a) && a.length === n && a.every((x) => Number.isFinite(x));
+      if (this.items.has(e.id) || typeof e.key !== 'string' || !/^chip\d+$/.test(e.key) || !ok(e.p, 3) || !ok(e.v, 3)) return;
+      if (!this.kinds.some((k) => k.key === e.key)) return;
+      const it = this.spawnDyn(e.key, e.id, new THREE.Vector3().fromArray(e.p));
+      if (it) this.launch(it, new THREE.Vector3().fromArray(e.v), undefined, false);
+      return;
+    }
     const it = this.items.get(e.id);
     if (!it || it.gone) return;
     const finite = (a: unknown, n: number) => Array.isArray(a) && a.length === n && a.every((x) => Number.isFinite(x));
@@ -1140,6 +1275,9 @@ export class LooseObjects {
       const at = extents(it.kind.spec.shape, it.body.pos, it.body.q).c.clone();
       this.sim.remove(it.body);
       this.smash(it, at, new THREE.Vector3());
-    } else if (e.k === 'gone') this.collect(it);
+    } else if (e.k === 'gone') {
+      this.collect(it);
+      this.d.onChipGone?.(it.id);
+    }
   }
 }

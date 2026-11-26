@@ -184,8 +184,15 @@ export class RouletteTable {
     this.ctx.interaction.register({
       object: felt,
       kind: 'surface',
-      // Touch a spot with a fingertip to put the chip you picked on your watch there (once per touch).
+      // VR: point and press a spot with your index finger to put the chosen chip there (once per press).
       pokeable: true,
+      felt: true,
+      enabled: () => this.game.phase === 'betting',
+      label: (e) => {
+        const p = this.group.worldToLocal(e.hit.point.clone());
+        const spot = spotAt(p.x, p.z);
+        return spot ? `${describeSpot(spot)} · ${money(this.chip)}` : null;
+      },
       onSelect: (e) => {
         const p = this.group.worldToLocal(e.hit.point.clone());
         const spot = spotAt(p.x, p.z);
@@ -482,14 +489,29 @@ export class RouletteTable {
    * goes straight on the spot. False (and nothing changes) if it isn't a spot or bets are closed.
    */
   betFound(world: THREE.Vector3, amount: number): boolean {
-    if (this.game.phase !== 'betting') return false;
-    const l = this.group.worldToLocal(world.clone());
-    const id = l.y > TOP - 0.05 && l.y < TOP + 0.35 ? spotAt(l.x, l.z)?.id : null;
-    if (!id) return false;
+    if (!this.spotAt(world)) return false;
     this.ctx.bankroll.credit(amount, 'refund', 'roulette');
-    if (this.bet(id, amount)) return true;
+    if (this.betAt(world, amount)) return true;
     this.ctx.bankroll.debit(amount, 'refund', 'roulette');
     return false;
+  }
+
+  /** The spot a chip set down here would bet (null: not a spot, or bets are closed). */
+  spotAt(world: THREE.Vector3): string | null {
+    if (this.game.phase !== 'betting') return null;
+    const l = this.group.worldToLocal(world.clone());
+    return l.y > TOP - 0.05 && l.y < TOP + 0.35 ? (spotAt(l.x, l.z)?.id ?? null) : null;
+  }
+
+  /** Chips set down at a point (paid from your balance): a bet if it's a spot. True if it took. */
+  betAt(world: THREE.Vector3, amount: number): boolean {
+    const id = this.spotAt(world);
+    return !!id && this.bet(id, amount);
+  }
+
+  /** Your chips on the layout right now. */
+  get myStaked(): number {
+    return this.game.totalBet;
   }
 
   private bet(spotId: string, amount: number = this.chip, silent = false): boolean {

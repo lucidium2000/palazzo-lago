@@ -52,6 +52,12 @@ export interface ChipRailOptions {
   hover?(world: THREE.Vector3 | null, denom: ChipDenom): void;
   /** Your bets that can come back down. */
   spots?(): RailSpot[];
+  /**
+   * Chips let go of here go straight back into your wallet (over the wallet
+   * tray on your palm, or at your wrist): true takes them (they leave your
+   * hand and land back on the rail).
+   */
+  absorb?(world: THREE.Vector3, amount: number): boolean;
   /** Mouse / tap on a stack picks that chip size for click betting. */
   interaction?: Interaction;
   onPick?(d: ChipDenom): void;
@@ -168,7 +174,7 @@ export class ChipRail {
       opts.interaction.register({
         object: hit,
         kind: 'surface',
-        // VR: tap a stack with a fingertip to choose that chip (then tap a bet to place it).
+        // VR: point at a stack to choose that chip (then point and press a bet to place it).
         pokeable: true,
         enabled: () => g.visible,
         label: (e) => `Bet ${money(which(e.local.x))} chips`,
@@ -189,6 +195,23 @@ export class ChipRail {
     for (const f of this.flying) s += f.amount;
     for (const p of this.palmStacks) s += p.amount;
     return s;
+  }
+
+  /** Chips let go of where `fn` says (over your wallet) go home instead of resting or betting. */
+  setAbsorb(fn: (world: THREE.Vector3, amount: number) => boolean) {
+    this.opts.absorb = fn;
+  }
+
+  /** Is a world point just over the rail's stacks (chips let go of here go back on it)? */
+  isOver(world: THREE.Vector3): boolean {
+    if (!this.group.visible) return false;
+    const l = this.group.worldToLocal(world.clone());
+    return Math.abs(l.x) < (this.opts.denoms.length * this.spacing) / 2 + 0.04 && Math.abs(l.z) < 0.09 && l.y > -0.04 && l.y < 0.16;
+  }
+
+  /** What the audit reads: the rail's chips, the rail chips in your hands, winnings on their way. */
+  reading(): { total: number; held: number; away: number } {
+    return { total: this.wallet.total, held: this.held, away: this.opts.away?.() ?? 0 };
   }
 
   /** Chips resting in your palms (for tests and the HUD). */
@@ -329,6 +352,15 @@ export class ChipRail {
     const c = this.carries.get(hand);
     if (!c) return;
     this.opts.hover?.(null, c.denom);
+    // Over your wallet: they go home (and the rail's count goes back up).
+    if (this.opts.absorb?.(pos, c.amount)) {
+      this.carries.delete(hand);
+      c.mesh.removeFromParent();
+      this.buzz(hand, 0.3, 25);
+      this.dirty = true;
+      this.refreshSpots();
+      return;
+    }
     // Let go over your other hand, open and palm up: they rest in your palm.
     const side = hand.ctrl.userData.handedness as string | undefined;
     const pl = this.palmUnder(pos, side);

@@ -2,7 +2,8 @@
  * Play-money bankroll shared by every game. Balance changes only through
  * debit/credit calls made by game engines, never directly from the UI.
  */
-export type BankrollReason = 'bet' | 'win' | 'refund' | 'daily-bonus' | 'reset';
+/** 'chips': chips moving between your wallet and your hands or the table top (not a wager, not a win). */
+export type BankrollReason = 'bet' | 'win' | 'refund' | 'daily-bonus' | 'reset' | 'chips';
 
 export interface BankrollChange {
   delta: number;
