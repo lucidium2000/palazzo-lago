@@ -22,7 +22,7 @@ interface Circle {
   kind: string;
 }
 
-interface Box {
+export interface Box {
   x: number;
   z: number;
   hw: number;
@@ -66,8 +66,11 @@ export class World {
   }
 
   /** An obstacle box centred at (x, z), half-sizes along its own axes, rotated by yaw. */
-  addBox(x: number, z: number, w: number, d: number, yaw = 0, kind = 'misc') {
-    this.boxes.push({ x, z, hw: w / 2, hd: d / 2, yaw, kind });
+  addBox(x: number, z: number, w: number, d: number, yaw = 0, kind = 'misc'): Box {
+    const b: Box = { x, z, hw: w / 2, hd: d / 2, yaw, kind };
+    this.boxes.push(b);
+    // (Returned so a moving thing, a parked car, can move its box.)
+    return b;
   }
 
   /**
@@ -97,8 +100,11 @@ export class World {
    * A seat (stool): passable for you, an obstacle for walking guests (see
    * `isFree`'s `seats`). Stand over it (within `r`) and you sit on it.
    */
-  addSeat(x: number, z: number, r: number, y: number, yaw: number | null = null, kind = 'stool') {
-    this.seatList.push({ x, z, r, y, yaw, kind });
+  addSeat(x: number, z: number, r: number, y: number, yaw: number | null = null, kind = 'stool'): Seat {
+    const s: Seat = { x, z, r, y, yaw, kind };
+    this.seatList.push(s);
+    // (Returned so a seat that moves, a car's back seat, can follow it; r < 0 switches it off.)
+    return s;
   }
 
   /** A seat in an object's local frame; `yaw` is local too (0 faces the object's +Z). */

@@ -16,7 +16,7 @@ export const PLAYER_COLORS = [0xffc94a, 0x2fd8ff, 0xff6ad5, 0xa6ff4a] as const;
 
 export const cssColor = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
 
-export type AreaId = 'casino' | 'pool' | 'hotel' | 'suite' | 'promenade';
+export type AreaId = 'casino' | 'pool' | 'hotel' | 'suite' | 'promenade' | 'entrance';
 
 /** Biggest wire packet (the claude.ai room carries at most 4 KiB per player). */
 export const PACKET_BUDGET = 3600;

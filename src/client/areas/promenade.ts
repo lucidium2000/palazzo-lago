@@ -154,7 +154,7 @@ const COLUMNS: [number, number][] = [
 // Signs: one canvas atlas, one draw for every sign and menu board
 // ---------------------------------------------------------------------------
 
-class SignAtlas {
+export class SignAtlas {
   private list: { w: number; h: number; pw: number; ph: number; draw: (g: CanvasRenderingContext2D, w: number, h: number) => void; m: THREE.Matrix4 }[] = [];
 
   /** A sign w × h metres, drawn at pw × ph pixels, placed by `m` (the plane faces +z before it). */

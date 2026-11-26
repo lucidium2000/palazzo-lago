@@ -14,6 +14,7 @@ import { Dialogue, voiceArbiter } from './dialogue';
 import { AREA_NODES, buildAreas, PROMENADE_NODES, registerAreas } from './areas';
 import { ARCADE_SLOTS, mountArcade } from './areas/promenade';
 import { onPromenade } from './areas/promenadeplan';
+import { onEntrance } from './areas/entranceplan';
 import { Boutique, FoodCourt, Wardrobe, WearView } from './promenadelife';
 import { PromenadeSound } from './promenadeaudio';
 import { DECK, POOL, WATER_Y } from './areas/pool';
@@ -92,7 +93,7 @@ import { setOutDisplays } from './stockdisplays';
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
 /** How the parts of the resort read on the room's scoreboard. */
-const AREA_NAMES: Record<AreaId, string> = { casino: 'casino', pool: 'pool', hotel: 'hotel', suite: 'suite', promenade: 'promenade' };
+const AREA_NAMES: Record<AreaId, string> = { casino: 'casino', pool: 'pool', hotel: 'hotel', suite: 'suite', promenade: 'promenade', entrance: 'front entrance' };
 
 function loadBankroll(): Bankroll {
   try {
@@ -1187,6 +1188,8 @@ async function main() {
     });
     liftSync?.dispose();
     liftSync = new LiftSync(session, areas.elevators);
+    // The car doors out front (a friend opening one).
+    areas.entrance.connect(session);
     photoSync?.dispose();
     photoSync = new PhotoSync(session, photoCams);
     (window as unknown as { casino: Record<string, unknown> }).casino.photoSync = photoSync;
@@ -1807,14 +1810,17 @@ async function main() {
       const inSuite = fx > 500;
       // The Promenade is far out west, a floor of its own: nothing else is drawn from there, nor it from anywhere else.
       const inProm = onPromenade(fx);
-      const away = inSuite || inProm;
+      // So is the front entrance (out east): the lobby and the driveway, the Strip all round.
+      const inEnt = onEntrance(fx);
+      const away = inSuite || inProm || inEnt;
       const onDeck = fx > 21 && feet.z < -0.2 && !away;
       show('suite', inSuite);
       show('promenade', inProm);
+      show('entrance', inEnt);
       show('skyline', !away);
       show('party-lights', !away);
       // Loose things lying about elsewhere (chips, bottles): only the kinds with some up here.
-      loose.cullTo(inProm ? onPromenade : inSuite ? (x) => x > 500 : null);
+      loose.cullTo(inProm ? onPromenade : inSuite ? (x) => x > 500 : inEnt ? onEntrance : null);
       show('pool', !away && fx > 16);
       // The hotel corridor opens off the casino's east wall: draw it from anywhere you can see down it
       // (it used to switch on only east of x = 4, so from most of the floor the hallway was a dark void).
@@ -1864,11 +1870,11 @@ async function main() {
   holdText('Lighting the rooms…');
   // Each area's own reflections, captured once behind the loading screen (people and your body hidden).
   {
-    const AREA_NAMES: Record<string, string> = { casino: 'the casino floor', hotel: 'the hotel lobby', terrace: 'the terrace and fountains', pool: 'the pool deck', suite: 'the suite', promenade: 'the Promenade' };
+    const AREA_NAMES: Record<string, string> = { casino: 'the casino floor', hotel: 'the hotel lobby', terrace: 'the terrace and fountains', pool: 'the pool deck', suite: 'the suite', promenade: 'the Promenade', entrance: 'the front entrance' };
     // Every area is lit here, behind the loading screen (where you start first), with the bar
     // showing each one: nothing is left to do after you go in.
     const startZone = envZoneAt(player.feet());
-    const zones = [startZone, ...(['casino', 'hotel', 'terrace', 'pool', 'suite', 'promenade'] as EnvZone[]).filter((z) => z !== startZone)];
+    const zones = [startZone, ...(['casino', 'hotel', 'terrace', 'pool', 'suite', 'promenade', 'entrance'] as EnvZone[]).filter((z) => z !== startZone)];
     const t0 = performance.now();
     for (const [i, zone] of zones.entries()) {
       loadProgress(0.55 + (0.45 * i) / zones.length, `Step 3 of 3 · Lighting ${AREA_NAMES[zone] ?? zone} (${i + 1} of ${zones.length})`);
@@ -2139,13 +2145,15 @@ async function main() {
     const outside = Math.abs(feet.x) < 14 ? THREE.MathUtils.clamp((-14 - feet.z) / 2, 0, 1) : 0;
     // Up on the Promenade: its own murmur, grills and arcade (promenadeaudio.ts); the casino's room tone stays downstairs.
     promSound.update(dt, feet);
-    sound.setAmbience((1 - outside * 0.75) * promSound.ambienceMix);
+    // Out front (the entrance) the street takes over: no room tone, no casino music.
+    const entMix = areas.entrance.sound;
+    sound.setAmbience((1 - outside * 0.75) * promSound.ambienceMix * entMix.ambienceMix);
     // Music: lively on the floor, softer by the piano and outside.
     const byPiano = THREE.MathUtils.clamp(1 - feet.distanceTo(lounge.piano.position) / 7, 0, 1);
     // Out at the pool party the DJ takes over: the casino's groove ducks out.
     // (And it steps aside for your room's speaker or the lift's music.)
     suitePerks.update(dt);
-    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence) * (1 - 0.95 * suitePerks.duck) * promSound.musicMix);
+    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence) * (1 - 0.95 * suitePerks.duck) * promSound.musicMix * entMix.musicMix);
     if (outside > 0.5) {
       if (!finaleSeen && casino.fountainLevel() > 0.8) {
         finaleSeen = true;
