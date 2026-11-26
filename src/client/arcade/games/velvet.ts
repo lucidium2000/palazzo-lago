@@ -103,6 +103,11 @@ export function buildChart(s: SetDef): ChartNote[] {
       }
     }
   });
+  // A long note runs right up to the next hit: end it a quarter beat early so there's time to let go and hit again.
+  for (let k = 0; k + 1 < out.length; k++) {
+    const n = out[k];
+    if (n.len > 0 && n.beat + n.len > out[k + 1].beat - 0.25) n.len = Math.max(0.25, out[k + 1].beat - 0.25 - n.beat);
+  }
   return out;
 }
 

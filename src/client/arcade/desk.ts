@@ -10,8 +10,8 @@ import { blankPad, type RawPad } from './types';
 
 const STYLE = `
 #arc-touch{position:fixed;inset:auto 0 0 0;height:46vh;pointer-events:none;z-index:40;display:none;touch-action:none;user-select:none;-webkit-user-select:none}
-body.arc-on #arc-touch{display:block}
-body.arc-on #touch{display:none !important}
+body.arc-on.touch #arc-touch{display:block}
+body.arc-on.touch #touch{display:none !important}
 body.arc-on #controls{display:none !important}
 #arc-touch .stick{position:absolute;left:5vw;bottom:6vh;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,#ffffff22,#ffffff0a 70%);border:2px solid #ffffff55;pointer-events:auto}
 #arc-touch .stick .knob{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff8a9a,#c8102e);box-shadow:0 4px 12px #0008}

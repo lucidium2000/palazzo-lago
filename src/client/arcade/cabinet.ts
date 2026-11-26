@@ -105,7 +105,7 @@ export function buildCabinetBody(g: THREE.Group, tile: number, width: number, tr
     for (let i = 0; i < uv.count; i++) uv.setXY(i, (coreUV[0] + coreUV[2]) / 2, (coreUV[1] + coreUV[3]) / 2);
   }
   g.add(new THREE.Mesh(core, mats.body));
-  // Side panels with the art, mapped from their shape (mirrored on the left so the art reads the same).
+  // Side panels with the art, mapped from their shape (so the art reads the right way round from either side).
   const side = REGION.side;
   for (const sgn of [-1, 1]) {
     const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.022, bevelEnabled: false });
@@ -117,8 +117,9 @@ export function buildCabinetBody(g: THREE.Group, tile: number, width: number, tr
     for (let i = 0; i < pos.count; i++) {
       const z = pos.getZ(i),
         y = pos.getY(i);
+      // Seen from outside, the front is to your right on the left panel and to your left on the right one.
       let k = (z - Z0) / (Z1 - Z0);
-      if (sgn < 0) k = 1 - k;
+      if (sgn > 0) k = 1 - k;
       uv.setXY(i, u0 + k * (u1 - u0), v0 + (y / TOP) * (v1 - v0));
     }
     g.add(new THREE.Mesh(geo, mats.art));

@@ -9,7 +9,7 @@ import { ATLAS_H, ATLAS_W, atlasTexture, paintCabinet, paintSwatches } from './a
 import { Cabinet, type CabinetMats } from './cabinet';
 import { ControlInstances, TouchPoints } from './controls';
 import { DeskControls, type DeskStation } from './desk';
-import type { FloorEnv, FloorGame } from './floor';
+import type { FloorEnv, FloorFrame, FloorGame } from './floor';
 import { MODES, type Mode } from './machine';
 import { cleanSnap, friendNear, packPad, unpackPad, type ArcadeFriend, type ArcadeSession } from './net';
 import { cleanInitials, packTable, ScoreBook, unpackTable, type ScoreEntry } from './scores';
@@ -87,6 +87,8 @@ export const GAMES: { make: () => Game; top: number }[] = [
   { make: () => new Splash(), top: 12000 },
 ];
 
+const ZERO_PAD: Readonly<RawPad> = Object.freeze(blankPad());
+
 const FLOOR_TOPS: Record<string, number> = { hoops: 60, hockey: 30, claw: 5 };
 
 /** Screen refresh (per second): being played or watched up close, attract mode nearby. */
@@ -136,6 +138,9 @@ export class Arcade {
   private feet = new THREE.Vector3();
   private tmp = new THREE.Vector3();
   private tmpQ = new THREE.Quaternion();
+  /** The floor games' per-frame info (reused). */
+  private ff: FloorFrame = { dt: 0, t: 0, feet: new THREE.Vector3(), inXR: false, desk: null, dist: 0 };
+  private ffDesk: { pad: RawPad; spot: number } = { pad: blankPad(), spot: 0 };
   /** Every game's id and its fresh table's top score. */
   private tops = new Map<string, number>();
 
@@ -360,7 +365,7 @@ export class Arcade {
 
   private dropP2(c: number) {
     this.p2[c] = null;
-    Object.assign(this.p2Pad[c], blankPad());
+    Object.assign(this.p2Pad[c], ZERO_PAD);
     this.cabinets[c].machine.setHuman2(false);
   }
 
@@ -585,7 +590,7 @@ export class Arcade {
         Object.assign(pad, dp);
         set.setFrom(pad);
       }
-    } else Object.assign(pad, blankPad());
+    } else Object.assign(pad, ZERO_PAD);
 
     // Route them: my own game, a friend's game's second controls, or nothing (watching).
     const wasRemote = this.remoteP2;
@@ -596,18 +601,18 @@ export class Arcade {
       const mine = at?.cab === c;
       const friendOwns = !!this.owner[c] && this.owner[c] !== 'me';
       if (mine && friendOwns) {
-        Object.assign(m.pad1, blankPad());
+        Object.assign(m.pad1, ZERO_PAD);
         // A friend's two-player game: my set is player 2's.
         if (cab.sets.length > 1 && at!.set === 1 && this.session) this.remoteP2 = c;
       } else if (mine) {
         Object.assign(m.pad1, pad);
         if (m.mode === 'play' && this.owner[c] !== 'me') this.owner[c] = 'me';
-      } else Object.assign(m.pad1, blankPad());
+      } else Object.assign(m.pad1, ZERO_PAD);
       // A friend on my second controls (dropped if they go quiet).
       if (this.p2[c]) {
         Object.assign(m.pad2, this.p2Pad[c]);
         if (this.time - this.p2Heard[c] > 3) this.dropP2(c);
-      } else Object.assign(m.pad2, blankPad());
+      } else Object.assign(m.pad2, ZERO_PAD);
       // Walked away from a game in progress: it waits a little, then ends.
       if (this.owner[c] === 'me' && !mine && m.mode === 'play') {
         if (!this.walkAway || this.walkAway.cab !== c) this.walkAway = { cab: c, t: 0 };
@@ -644,7 +649,18 @@ export class Arcade {
     for (let g = 0; g < this.floors.length; g++) {
       const fg = this.floors[g];
       const dist = Math.hypot(fg.center.x - feet.x, fg.center.z - feet.z);
-      fg.update({ dt, t, feet, inXR, dist, desk: this.floorAt?.game === g ? { pad: this.desk.poll(), spot: this.floorAt.spot } : null });
+      const ff = this.ff;
+      ff.dt = dt;
+      ff.t = t;
+      ff.feet = feet;
+      ff.inXR = inXR;
+      ff.dist = dist;
+      if (this.floorAt?.game === g) {
+        this.ffDesk.pad = this.desk.poll();
+        this.ffDesk.spot = this.floorAt.spot;
+        ff.desk = this.ffDesk;
+      } else ff.desk = null;
+      fg.update(ff);
     }
 
     this.sendScreens(dt);

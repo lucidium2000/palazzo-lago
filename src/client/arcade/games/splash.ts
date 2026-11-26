@@ -476,7 +476,7 @@ export class Splash implements Game {
 
   snap(o: number[]) {
     o.length = 0;
-    o.push(this.s1, this.s2, this.rival, Math.round(this.bx), Math.round(this.by), Math.round(this.bvx), Math.round(this.bvy), Math.round(this.p1), Math.round(this.p2), Math.round(this.padsPh * 100), this.versus ? 1 : 0, this.over ? 1 : 0, Math.round(this.serveT * 10), this.score, this.flash > 0 ? 1 : 0, ['', 'NEW CHALLENGER', 'MATCH', 'YOU WIN', 'P1 WINS', 'P2 WINS'].indexOf(this.banner), Math.round(this.bannerT * 10), this.spike1 > 0 ? 1 : 0, this.spike2 > 0 ? 1 : 0);
+    o.push(this.s1, this.s2, this.rival, Math.round(this.bx), Math.round(this.by), Math.round(this.bvx), Math.round(this.bvy), Math.round(this.p1), Math.round(this.p2), Math.round(this.padsPh * 100), this.versus ? 1 : 0, this.over ? 1 : 0, Math.round(Math.max(0, this.serveT) * 10), this.score, this.flash > 0 ? 1 : 0, ['', 'NEW CHALLENGER', 'MATCH', 'YOU WIN', 'P1 WINS', 'P2 WINS'].indexOf(this.banner), Math.round(this.bannerT * 10), this.spike1 > 0 ? 1 : 0, this.spike2 > 0 ? 1 : 0);
   }
 
   load(a: readonly number[]) {
