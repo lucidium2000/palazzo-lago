@@ -328,7 +328,7 @@ export interface Worn {
 
 /** Where an accessory sits relative to the head bone (head-turned frame: x right, y up, z forward). */
 const SEAT: Record<Slot, THREE.Vector3> = {
-  eyes: new THREE.Vector3(0, 0.055, 0.1),
+  eyes: new THREE.Vector3(0, 0.058, 0.112),
   head: new THREE.Vector3(0, 0.125, -0.005),
 };
 

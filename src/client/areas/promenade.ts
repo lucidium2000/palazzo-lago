@@ -751,7 +751,7 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
   }
 
   // The elevator foyer: the floor's name over the doors.
-  signs.add(3.0, 0.85, 1024, 290, at(P.x1 - 0.08, 3.55, 0, -Math.PI / 2), goldSign('The Promenade', 'DINING  ·  BOUTIQUE  ·  ARCADE'));
+  signs.add(3.0, 0.85, 1024, 290, at(P.x1 - 0.1, 3.55, 0, -Math.PI / 2), goldSign('The Promenade', 'DINING  ·  BOUTIQUE  ·  ARCADE'));
   b.box(m.gold, P.x1 - 0.06, 3.55, 0, 0.06, 0.95, 3.1);
   // Hanging signs over the food court's edge (both faces), on gilt rods from the ceiling.
   for (const x of [-606, -622]) {
