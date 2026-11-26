@@ -6,15 +6,17 @@
  * friend who walks in late gets.
  */
 
-export type LandingId = 'casino' | 'pool' | 'suite';
+export type LandingId = 'casino' | 'pool' | 'promenade' | 'suite';
 
 export const LANDINGS: Record<LandingId, { label: string; short: string; floor: number }> = {
   pool: { label: 'Pool Deck', short: 'P', floor: 2 },
   casino: { label: 'Casino', short: 'C', floor: 1 },
+  /** The mezzanine promenade: food court, the boutique and the arcade. */
+  promenade: { label: 'Promenade', short: 'M', floor: 3 },
   suite: { label: 'Suite 3201', short: '32', floor: 32 },
 };
 
-export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v === 'pool' || v === 'suite';
+export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v === 'pool' || v === 'promenade' || v === 'suite';
 
 /** Cab interior, from the door line (x) eastwards; half its width (z). */
 export const DEPTH = 2.2;
@@ -53,8 +55,10 @@ export function floorsBetween(from: number, to: number): number[] {
   return Array.from({ length: steps + 1 }, (_, i) => Math.round(from + ((to - from) * i) / steps));
 }
 
+/** What the indicator shows for a floor: a landing's letter (C, P, M), else the number. */
 export function floorLabel(n: number): string {
-  return n === 1 ? 'C' : n === 2 ? 'P' : String(n);
+  for (const l of Object.values(LANDINGS)) if (l.floor === n && l.short.length === 1) return l.short;
+  return String(n);
 }
 
 /** Feet inside a car's cab (past the door line)? */

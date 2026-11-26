@@ -62,6 +62,8 @@ export interface PlayerState {
   rw?: number[] | null;
   /** The drink in your hand: [kind index, level 0-10, 0 = left hand / 1 = right]. */
   dh?: number[] | null;
+  /** What they wear: [eyes kind, colour, head kind, colour] (loose kinds; -1 for nothing). */
+  wa?: number[] | null;
   /** The loose object in their hand: [kind, colour, hand]. */
   lo?: number[] | null;
   /** Chips carried off a table rail (VR): [amount, hand 0 left / 1 right]. */

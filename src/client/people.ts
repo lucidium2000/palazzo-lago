@@ -7,6 +7,10 @@ import { FINGER, orientHand, reach, setFingers } from './net/embody';
 import { lieLegs, sitLegs, standLegs } from './sitpose';
 import { fightAim, fightHandoff, fightMix, type FightPose } from './fightanim';
 import { dry, linkRoutes, pathTo } from './routes';
+import { promenadeShare } from './areas/promenadeplan';
+
+/** Beyond this, people aren't drawn on any tier (the far parts of the resort: the Promenade, the suite). */
+const FAR_CULL = 120;
 
 // Bone offsets for poses the clips don't have (tuned against the Quaternius rig).
 export const POSE = { sitThigh: 1.5, sitShin: -1.6, sitHips: 0.95, trayUpper: 0.9, trayLower: 1.2, trayAxis: 'x' as 'x' | 'z' };
@@ -406,7 +410,8 @@ export class Crowd {
     // Three extra slots are always kept for your crew. The pool party gets its own
     // share on top of the floor's: it's culled from the casino (and the casino from
     // the deck) on headsets and phones, so it costs little to draw.
-    this.max = q.people + Crowd.poolShare(q.people) + 6; // 3 crew + 2 security guards + 1 remote player reserved
+    // (And the Promenade's diners, cooks and shoppers: far from the floor, never drawn from it.)
+    this.max = q.people + Crowd.poolShare(q.people) + promenadeShare(q.people) + 6; // 3 crew + 2 security guards + 1 remote player reserved
     scene.add(this.group);
     const cloth = new THREE.MeshStandardMaterial({ roughness: 0.75, envMapIntensity: 0.6 });
     const satin = new THREE.MeshStandardMaterial({ roughness: 0.35, envMapIntensity: 1.0 });
@@ -672,8 +677,10 @@ export class Crowd {
     return { nodes: this.nodes.length, edges: this.edges.reduce((a, e) => a + e.length, 0) / 2, isolated: this.edges.filter((e) => e.length === 0).length };
   }
 
-  randomNode(): THREE.Vector3 {
-    const n = this.nodes[Math.floor(rnd() * this.nodes.length)];
+  /** A random walking-graph node (optionally only where `ok`: the floor's wanderers stay off the Promenade). */
+  randomNode(ok?: (x: number, z: number) => boolean): THREE.Vector3 {
+    const list = ok ? this.nodes.filter((n) => ok(n.x, n.y)) : this.nodes;
+    const n = (list.length ? list : this.nodes)[Math.floor(rnd() * (list.length || this.nodes.length))];
     return new THREE.Vector3(n.x, 0, n.y);
   }
 
@@ -756,7 +763,8 @@ export class Crowd {
       const toP = this.v.set(playerHead.x - p.pos.x, 0, playerHead.z - p.pos.z);
       const dist = toP.length();
       // Far away on a headset or phone: not drawn at all (the crowd still moves).
-      const cull = dist > this.cullDist && p.role !== 'buddy';
+      // (Never across the resort: the Promenade and the suite are hundreds of metres from the floor.)
+      const cull = (dist > this.cullDist || dist > FAR_CULL) && p.role !== 'buddy';
       if (cull !== p.culled) {
         p.culled = cull;
         if (p.rig) p.rig.root.visible = !cull;
