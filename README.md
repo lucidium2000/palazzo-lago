@@ -65,6 +65,14 @@ On the floor: **Skyline Hoops** (45 seconds, real throws), **Puck Palazzo** air 
 or a friend) and the **Lucky Claw** (win a plush pal to carry and toss). Friends nearby watch your
 screen live.
 
+**Featured cabinet: The Last Mile** (by Christopher G. Hunt, MIT; [thelastmile.live](http://thelastmile.live)), on a
+wide 16:9 cabinet against the arcade's east wall, free to play. It's the real web game: a copy in
+`public/arcade/lastmile/` (refresh it with `node scripts/sync-lastmile.mjs [path/to/the-last-mile]`) runs in a hidden
+iframe while you're near, driven frame by frame from the room's loop (so it keeps going inside the
+headset), and its screen is copied onto the cabinet. Stick and CROSS / SOUND buttons in VR; on a screen walk up
+and your keys, clicks, taps and swipes go to the game. Its sound comes from the cabinet; friends nearby see a
+small live picture of your game.
+
 **Hands and talk:** in VR your avatar's fingers follow your real ones: the Quest controllers'
 touch sensors (trigger touch and pull for the index finger, grip for the rest, thumb on the stick /
 buttons / thumb rest) or full hand tracking (25 joints per hand). Walk up to craps in VR and the
@@ -142,6 +150,8 @@ src/client/     Three.js app
   arcade/       the arcade: games/ (six cabinet games, pure logic + canvas drawing), machine.ts (coin,
                 attract, initials), cabinet.ts / controls.ts (3D cabinets, sticks and buttons),
                 synth.ts (chiptunes), hoops / hockey / claw (+ their *phys / *logic), net.ts
+  arcade/lastmile/  the featured cabinet: host.ts (the game's iframe, rAF and audio takeover), logic.ts
+                (frame queue, keys, rates; pure), art.ts, index.ts (cabinet, controls, friends' view)
   promenadelife.ts    food court ordering, the boutique's register, what you wear (and your friends see)
   piano.ts      the playable piano: 88 keys, fingertips / typing / taps, the pianist's bench
   pianokeys.ts  keyboard layout, hit detection, fingertip strikes, voice allocation (pure)
@@ -152,7 +162,7 @@ src/client/     Three.js app
   touch.ts      phone joystick and context button
   merge.ts      static-mesh merging (keeps draw calls inside the Quest budget)
 tests/          vitest suites
-scripts/        RTP report and reel-strip tuner
+scripts/        RTP report and reel-strip tuner; sync-lastmile.mjs copies The Last Mile into public/
 art/LICENSES.md asset licence log
 ```
 
