@@ -125,3 +125,32 @@ describe('World seats (stools)', () => {
     expect(w.counts()).toEqual({ 'slot machine': 1, 'seat:slot stool': 1 });
   });
 });
+
+describe('World furniture you walk onto (bed, loungers)', () => {
+  function room() {
+    const w = new World();
+    w.addWalkable(-10, 10, -10, 10);
+    w.addFurniture(0, 0, 2.4, 2.2, 0, 'bed');
+    for (const x of [-0.55, 0.55]) for (const z of [-0.5, 0.5]) w.addSeat(x, z, 0.58, 0.6, null, 'bed');
+    return w;
+  }
+
+  it('lets you walk onto it, and sits you down there', () => {
+    const w = room();
+    let x = -3,
+      z = 0.4;
+    for (let i = 0; i < 30; i++) [x, z] = w.move(x, z, 0.1, 0, 0.25);
+    expect(x).toBeCloseTo(0, 5); // walked right across
+    expect(w.seatAt(-0.5, 0.4)?.kind).toBe('bed');
+  });
+
+  it('is solid for walking guests', () => {
+    const w = room();
+    expect(w.isFree(0, 0, 0.22)).toBe(true);
+    expect(w.isFree(0, 0, 0.22, true)).toBe(false);
+    let x = -3,
+      z = 0.4;
+    for (let i = 0; i < 30; i++) [x, z] = w.move(x, z, 0.1, 0, 0.22, true);
+    expect(x).toBeLessThanOrEqual(-1.2 - 0.22 + 1e-6);
+  });
+});

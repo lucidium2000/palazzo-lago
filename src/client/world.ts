@@ -29,6 +29,8 @@ interface Box {
   hd: number;
   yaw: number;
   kind: string;
+  /** Furniture you can climb onto (a bed, a lounger): solid for walking guests, passable for you (its seats sit you down). */
+  soft?: boolean;
 }
 
 /**
@@ -66,6 +68,15 @@ export class World {
   /** An obstacle box centred at (x, z), half-sizes along its own axes, rotated by yaw. */
   addBox(x: number, z: number, w: number, d: number, yaw = 0, kind = 'misc') {
     this.boxes.push({ x, z, hw: w / 2, hd: d / 2, yaw, kind });
+  }
+
+  /**
+   * Furniture you get onto by walking over it, like a stool (a bed, a lounger,
+   * a cabana's daybed): guests walk round it, you walk onto it. Give it seats
+   * (addSeat) where you'd sit.
+   */
+  addFurniture(x: number, z: number, w: number, d: number, yaw = 0, kind = 'misc') {
+    this.boxes.push({ x, z, hw: w / 2, hd: d / 2, yaw, kind, soft: true });
   }
 
   /** Adds a box in an object's local frame (e.g. a table group). */
@@ -197,6 +208,7 @@ export class World {
       for (const c of this.circles) [x, z] = pushCircle(x, z, r, c.x, c.z, c.r);
       if (seats) for (const c of this.seatList) [x, z] = pushCircle(x, z, r, c.x, c.z, SEAT_SOLID);
       for (const b of this.boxes) {
+        if (b.soft && !seats) continue;
         const cos = Math.cos(b.yaw),
           sin = Math.sin(b.yaw);
         // World -> box local (box yaw rotates local +X to (cos, -sin)).

@@ -21,7 +21,10 @@ export function registerSuite(world: World) {
   world.addBox(592.2, -3.0, 3.0, 1.22, 0, 'sofa'); // sofa (seat and back)
   world.addBox(589.95, -1.6, 1.1, 2.4, 0, 'sofa'); // sofa return
   world.addBox(592.2, -1.2, 1.3, 0.7, 0, 'table'); // coffee table
-  world.addBox(593.2, 3.98, 2.4, 2.52, 0, 'bed'); // bed and headboard
+  // The bed: walk onto it and you sit on it (a stool's way); the headboard stays solid.
+  world.addFurniture(593.2, 3.85, 2.4, 2.25, 0, 'bed');
+  world.addBox(593.2, 5.12, 2.4, 0.2, 0, 'headboard');
+  for (const x of [592.65, 593.75]) for (const z of [3.25, 4.3]) world.addSeat(x, z, 0.58, 0.6, null, 'bed');
   world.addBox(598.5, -5.3, 2.7, 0.7, 0, 'bar'); // minibar
   world.addBox(596.8, -1.0, 1.4, 0.9, 0, 'table'); // dining table
   // Armchairs by the coffee table (seat and back), turned toward the sofa.

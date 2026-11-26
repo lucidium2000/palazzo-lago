@@ -137,7 +137,13 @@ export function registerPool(world: World) {
   // Hedges along both long sides.
   for (const x of [22.7, 61.3]) world.addBox(x, -18, 1.0, 34, 0, 'hedge');
   // Loungers (seat and raised back), umbrella poles, palms, urns, light poles.
-  for (const sp of loungerSpots()) world.addBox(sp.x + Math.sin(sp.yaw) * 0.05, sp.z + Math.cos(sp.yaw) * 0.05, 0.74, 1.98, sp.yaw, 'lounger');
+  // Loungers: walk onto one and you sit on it, facing along it (guests still walk round them).
+  for (const sp of loungerSpots()) {
+    const s = Math.sin(sp.yaw),
+      c = Math.cos(sp.yaw);
+    world.addFurniture(sp.x + s * 0.05, sp.z + c * 0.05, 0.74, 1.98, sp.yaw, 'lounger');
+    for (const lz of [0.45, -0.3]) world.addSeat(sp.x + s * lz, sp.z + c * lz, 0.42, 0.37, sp.yaw, 'lounger');
+  }
   for (const [x, z] of umbrellaSpots()) world.addCircle(x, z, 0.1, 'umbrella');
   PALMS.forEach(([x, z], i) => world.addCircle(x + 0.03, z, 0.2 * palmScale(i), 'palm'));
   for (const [x, z] of URNS) world.addCircle(x, z, 0.42, 'planter');
@@ -150,7 +156,13 @@ export function registerPool(world: World) {
   world.addBox(LIFT.doorX + 1.3, -6.3, 2.9, 0.68, 0, 'lift');
   world.addBox(LIFT.doorX + 1.3, -3.65, 2.9, 0.7, 0, 'lift');
   world.addBox(LIFT.doorX + 2.55, -6.3, 0.5, 6, 0, 'lift');
-  for (const z of [-30, -24, -18]) world.addBox(59.5, z, 2.6, 3.2, 0, 'cabana');
+  // Cabanas: curtained on three sides, open to the west; walk onto the daybed and you sit on it.
+  for (const z of [-30, -24, -18]) {
+    world.addFurniture(59.5, z, 2.6, 3.2, 0, 'cabana');
+    for (const dz of [-1.65, 1.65]) world.addBox(59.8, z + dz, 2.3, 0.12, 0, 'cabana curtain');
+    world.addBox(60.85, z, 0.12, 3.3, 0, 'cabana curtain');
+    for (const x of [59.2, 60.2]) for (const dz of [-0.7, 0.7]) world.addSeat(x, z + dz, 0.55, 0.5, -Math.PI / 2, 'cabana');
+  }
 }
 
 export interface PoolArea {
