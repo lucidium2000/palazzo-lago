@@ -492,7 +492,7 @@ export class SlotRows {
       this.sphere.center.set(c.pos.x, 1.4, c.pos.z);
       const near = c.pos.distanceTo(playerPos) < LIVE_DIST;
       const live = near && (!camera || this.frustum.intersectsSphere(this.sphere));
-      if (c.person && !c.spinning && time > c.nextSpin) {
+      if (c.person && c.person.seated && !c.spinning && time > c.nextSpin) {
         c.nextSpin = time + 6 + Math.random() * 9;
         // Not while you're sitting on that stool.
         const sitting = Math.hypot(playerPos.x - c.seat.x, playerPos.z - c.seat.z) < 0.45;

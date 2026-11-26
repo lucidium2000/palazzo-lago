@@ -81,6 +81,10 @@ export class Person {
   /** Where this guest likes to be (the pool deck…): most of their trips end there. */
   haunt: ((x: number, z: number) => boolean) | null = null;
   seated = false;
+  /** Knocked off their seat (see seatshove.ts): standing, walking about, coming back to it. */
+  offSeat = false;
+  /** Never knocked off their seat (a game seats them itself: the poker table). */
+  keepSeat = false;
   /** Hip height when seated (bar stools are taller than slot stools). */
   seatY = 0.62;
   /**

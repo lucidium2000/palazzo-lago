@@ -250,7 +250,7 @@ async function main() {
   });
   // Loose things to pick up and throw: chips, dice, bottles, fruit, napkins, menus, ashtrays, buckets.
   const hitBy = new WeakMap<object, Person>();
-  const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics });
+  const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics, roulette: roulette.group, craps: craps.group });
   const slotRows = new SlotRows(ctx, crowd, world);
 
   // Walking routes through the open floor; edges are found automatically.
@@ -355,7 +355,11 @@ async function main() {
   const pokerGuests = pokerRoom.seats.map((s) => {
     const look = randomLook();
     const p = crowd.add('patron', look, s.pos, s.yaw);
-    if (p) p.seatY = 0.62;
+    if (p) {
+      p.seatY = 0.62;
+      // The card game seats and stands them itself (they give up a chair for you).
+      p.keepSeat = true;
+    }
     return { person: p ?? null, female: look.dress };
   });
   const poker = new PokerPlay(
