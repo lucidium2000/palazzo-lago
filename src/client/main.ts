@@ -620,6 +620,7 @@ async function main() {
   };
   const dialogue = new Dialogue({
     listener,
+    hands,
     scene,
     camera,
     crowd,

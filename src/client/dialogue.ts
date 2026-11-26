@@ -3,7 +3,7 @@ import type { Crowd, Person, Talk } from './people';
 import type { Sound } from './audio';
 import type { Hud } from './hud';
 import type { Interaction } from './interaction';
-import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
+import { PinchHold, pinchFinger, ReplyHud, replyButtons, replyPrompt, type ReplyInput } from './replyhud';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Audience, type Ctx, type Exchange, type Node, type Reply } from './dialogueLines';
 import { CONVO_BYE, HUH_LINES, STAFF, sceneVoice, type VoiceId } from './speech';
 import { interpret, vocabulary } from './understand';
@@ -79,13 +79,19 @@ export interface DialogueDeps {
   listener?: Listener;
   /** Is your character a woman (for your voice)? */
   playerFemale?(): boolean;
+  /** Your VR hands (hand tracking answers replies with a pinch). */
+  hands?: {
+    tracked(side: 'left' | 'right'): boolean;
+    fingertips(side: 'left' | 'right', out: THREE.Vector3[], has: boolean[]): 'hand' | 'ctrl' | null;
+  };
 }
 
 /**
  * Guests talk to each other (speech bubbles near you, the closest voiced) and
  * sometimes to you: look at someone up close and they may strike up a short
  * conversation, with two or three replies to pick (chips on screen, keys 1-3,
- * or a small panel beside them in VR). Staff speak in role.
+ * or a head-locked strip low in your view in VR: say it, press A/B/X, or
+ * pinch). Staff speak in role.
  */
 export class Dialogue {
   private scenes = new Map<Talk, Scene>();
@@ -99,7 +105,13 @@ export class Dialogue {
   private globalCd = 8;
   private talkedTo = new Map<Person, number>();
   private chips: HTMLElement;
-  private panel: CanvasPanel;
+  /** VR replies: a head-locked strip low in your view (see replyhud.ts). */
+  private vrReplies: ReplyHud;
+  private replyPads: [boolean, boolean, boolean] = [true, true, true];
+  private pinches = { left: new PinchHold(), right: new PinchHold() };
+  private tips = Array.from({ length: 5 }, () => new THREE.Vector3());
+  private tipsHas = [false, false, false, false, false];
+  private replyInput: ReplyInput = 'buttons';
   private time = 0;
   /** Called with every line you'd want your friends to hear (reactions, conversation lines, your replies). */
   onSpeak: ((l: SpokenLine) => void) | null = null;
@@ -108,12 +120,7 @@ export class Dialogue {
     this.chips = document.createElement('div');
     this.chips.id = 'replies';
     document.getElementById('hud')?.appendChild(this.chips);
-    this.panel = new CanvasPanel(0.56, 840, 400);
-    this.panel.mesh.visible = false;
-    (this.panel.mesh.material as THREE.MeshBasicMaterial).depthTest = false;
-    this.panel.mesh.renderOrder = 900;
-    this.panel.register(d.interaction);
-    d.scene.add(this.panel.mesh);
+    this.vrReplies = new ReplyHud(d.scene);
     // Keys 1-3 answer while replies are up (before the tables' chip hotkeys).
     addEventListener(
       'keydown',
@@ -141,13 +148,12 @@ export class Dialogue {
   }
 
   update(dt: number) {
-    // The floating reply panel is for VR only; screens use the reply chips.
-    if (!this.d.inXR() && this.panel.mesh.visible) this.panel.mesh.visible = false;
     this.time += dt;
     const feet = this.d.feet();
     const on = this.d.enabled?.() ?? true;
     this.ambient(feet);
     this.updateConvo(dt, feet, on);
+    this.updateVrReplies(dt);
     if (on) this.passBy(dt, feet);
     // Bubbles ride above heads and fade out.
     for (const [p, b] of this.bubbles) {
@@ -294,7 +300,6 @@ export class Dialogue {
         }
         if (c.replies && this.time - c.waitingSince > 15) return this.endConvo(this.isGuest(c.npc) ? this.character(c.npc).bye.timedOut : CONVO_BYE.timedOut);
       }
-      if (c.replies && this.d.inXR()) this.placePanel(c.npc);
       return;
     }
     this.globalCd -= dt;
@@ -400,7 +405,7 @@ export class Dialogue {
     const c = this.convo;
     if (!c) return;
     this.d.listener?.stop();
-    this.hideReplies();
+    this.hideReplies(c.replies?.indexOf(r) ?? -1);
     if (voices.captions) this.d.hud.say('You', r.label);
     // You say it (unless you already did, into the mic); they answer once you're done.
     const mine = spokenAloud ? 0 : this.sayMine(r.label);
@@ -636,7 +641,7 @@ export class Dialogue {
   }
 
   // ---------------------------------------------------------------------------
-  // Reply UI: chips on screen, a small panel in VR
+  // Reply UI: chips on screen, a head-locked strip in VR
   // ---------------------------------------------------------------------------
 
   private showReplies(replies: Reply[]) {
@@ -652,60 +657,68 @@ export class Dialogue {
       this.chips.appendChild(b);
     });
     this.chips.classList.add('on');
-    // VR panel with the same choices.
-    const p = this.panel;
-    p.buttons.length = 0;
-    p.background = (ctx) => {
-      roundRect(ctx, 4, 4, p.pxW - 8, p.pxH - 8, 30);
-      ctx.fillStyle = 'rgba(14,10,8,0.9)';
-      ctx.fill();
-      ctx.strokeStyle = GOLD;
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      ctx.fillStyle = GOLD_LIGHT;
-      ctx.textAlign = 'center';
-      ctx.font = `italic 600 30px ${SERIF}`;
-      ctx.fillText('Your reply', p.pxW / 2, 42);
-    };
-    const h = Math.min(100, (p.pxH - 80) / replies.length - 12);
-    replies.forEach((r, i) => p.add({ id: `r${i}`, x: 30, y: 66 + i * (h + 12), w: p.pxW - 60, h, label: r.label, onPress: () => this.pick(r) }));
-    p.redraw();
-    p.mesh.visible = false;
-    if (this.convo && this.d.inXR()) this.placePanel(this.convo.npc);
+    document.body.classList.add('replying');
+    // The subtitle sits just above the strip (style.css).
+    document.body.style.setProperty('--replies-h', `${this.chips.offsetHeight}px`);
   }
 
-  private hideReplies() {
+  private hideReplies(picked = -1) {
     this.chips.classList.remove('on');
     this.chips.innerHTML = '';
-    this.panel.mesh.visible = false;
+    document.body.classList.remove('replying');
+    this.vrReplies.hide(picked);
+    replyPrompt.set(false);
   }
 
   /**
-   * The reply panel sits within arm's reach (chest high, a little toward the person you're talking to),
-   * so you answer by touching it. It stays put while you lean in to press, and only re-settles if you
-   * walk off or turn away.
+   * VR: while replies are up, the strip shows them low in your view and the
+   * controller buttons (A, B, X/Y) or a held pinch (thumb to index, middle,
+   * ring) answer. Nothing in the room to touch.
    */
-  private placePanel(npc: Person) {
-    const head = this.d.camera.getWorldPosition(new THREE.Vector3());
-    const m = this.panel.mesh;
-    if (m.visible) {
-      const dx = m.position.x - head.x,
-        dz = m.position.z - head.z;
-      const reach = Math.hypot(dx, dz);
-      const look = this.d.camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
-      const facing = reach > 1e-3 ? (dx * look.x + dz * look.z) / reach : 1;
-      if (reach > 0.2 && reach < 0.8 && facing > 0.35 && Math.abs(m.position.y - (head.y - 0.3)) < 0.35) return;
+  private updateVrReplies(dt: number) {
+    const c = this.convo;
+    const replies = c?.replies && c.waitingSince > 0 && this.d.inXR() ? c.replies : null;
+    const hud = this.vrReplies;
+    if (replies && !hud.isShown) {
+      hud.show(replies.map((r) => r.label));
+      // Buttons or pinches already held don't count: let go and press again.
+      this.replyPads = [true, true, true];
+      this.pinches.left.block();
+      this.pinches.right.block();
+    } else if (!replies && hud.isShown) hud.hide();
+    replyPrompt.set(!!replies);
+    let input: ReplyInput = replies ? 'buttons' : this.replyInput;
+    const progress = [0, 0, 0];
+    if (replies) {
+      this.replyInput = 'buttons';
+      // Controller buttons: a fresh press answers.
+      const now = replyButtons(this.d.interaction.gamepads());
+      const hit = now.findIndex((down, i) => down && !this.replyPads[i] && i < replies.length);
+      this.replyPads = now;
+      if (hit >= 0) return this.pick(replies[hit]);
+      // Hand tracking: hold a pinch.
+      for (const side of ['left', 'right'] as const) {
+        const hold = this.pinches[side];
+        const h = this.d.hands;
+        const src = h?.tracked(side) ? h.fingertips(side, this.tips, this.tipsHas) : null;
+        if (src !== 'hand') {
+          hold.step(0, dt);
+          continue;
+        }
+        input = this.replyInput = 'pinch';
+        const got = hold.step(pinchFinger(this.tips, this.tipsHas, hold.finger), dt);
+        if (got !== null && got < replies.length) return this.pick(replies[got]);
+        for (let i = 0; i < 3; i++) progress[i] = Math.max(progress[i], hold.progress(i));
+      }
     }
-    const toNpc = new THREE.Vector3(npc.pos.x - head.x, 0, npc.pos.z - head.z);
-    const look = this.d.camera.getWorldDirection(new THREE.Vector3()).setY(0);
-    if (look.lengthSq() < 1e-4) look.copy(toNpc);
-    look.normalize();
-    // Between where you look and where they stand (mostly where you look).
-    const dir = toNpc.lengthSq() > 1e-4 ? look.clone().lerp(toNpc.normalize(), 0.35).normalize() : look;
-    m.scale.setScalar(0.68);
-    m.position.set(head.x, head.y - 0.3, head.z).addScaledVector(dir, 0.42);
-    m.lookAt(head.x, head.y - 0.05, head.z);
-    m.visible = true;
+    if (!hud.visible && !hud.isShown) return;
+    const l = this.d.listener;
+    hud.update(dt, this.d.camera, { input, mic: !l?.enabled ? 'off' : l.state === 'listening' ? 'listening' : 'on', progress });
+  }
+
+  /** Debug/test: the VR reply strip. */
+  get replyHud() {
+    return this.vrReplies;
   }
 }
 
