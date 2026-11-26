@@ -65,7 +65,8 @@ export function pizzaGeometry(): THREE.BufferGeometry {
   const base = new THREE.ExtrudeGeometry(shape, { depth: 0.006, bevelEnabled: false, curveSegments: 6 }).rotateX(Math.PI / 2).translate(0, 0.006, 0);
   const cheese = new THREE.ExtrudeGeometry(shape, { depth: 0.004, bevelEnabled: false, curveSegments: 6 }).rotateX(Math.PI / 2).scale(0.92, 1, 0.92).translate(0, 0.01, 0.004);
   const parts = [paint(base, 0xd9a35a), paint(cheese, 0xf2b63a)];
-  const rim = new THREE.CylinderGeometry(0.011, 0.011, 0.13, 8).rotateZ(Math.PI / 2).translate(0, 0.01, 0.065);
+  // The crust's rim along the wide back edge (the shape's tip is at +z until the turn below).
+  const rim = new THREE.CylinderGeometry(0.011, 0.011, 0.13, 8).rotateZ(Math.PI / 2).translate(0, 0.01, -0.065);
   parts.push(paint(rim, 0xb87a3a));
   for (const [x, z] of [
     [0, -0.035],
@@ -233,4 +234,12 @@ export function promenadeKinds(): PromKindDef[] {
 export function biteScale(left: number, total: number): number {
   if (total <= 0) return 1;
   return 0.45 + 0.55 * Math.max(0, Math.min(1, left / total));
+}
+
+/** A food court soda cup on show: paper cup, lid and straw (white: tinted per cup when drawn). */
+export function sodaCupGeometry(): THREE.BufferGeometry {
+  const cup = new THREE.LatheGeometry([[0.0, 0], [0.03, 0], [0.031, 0.004], [0.04, 0.125], [0.0, 0.125]].map(([r, y]) => new THREE.Vector2(r, y)), 16);
+  const lid = new THREE.CylinderGeometry(0.041, 0.041, 0.008, 16).translate(0, 0.128, 0);
+  const straw = new THREE.CylinderGeometry(0.003, 0.003, 0.08, 6).rotateZ(0.15).translate(0.008, 0.16, 0);
+  return merge([paint(cup, 0xffffff), paint(lid, 0xf4f4f4), paint(straw, 0xffffff)]);
 }

@@ -445,29 +445,14 @@ export function buildPokerRoom(q: Quality): PokerRoom {
   }
 
   // --- Furniture -------------------------------------------------------------------------
-  // Credenza on the back wall, decanters and glasses on it, and the lake over it.
+  // Credenza on the back wall, decanters on it, and the lake over it.
   const cred = new THREE.Mesh(new RoundedBoxGeometry(0.48, 0.92, 2.4, 2, 0.02), walnut);
   cred.position.set(x0 + 0.26, 0.46, 0);
   interior.add(cred);
   const credTop = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.03, 2.44), new THREE.MeshStandardMaterial({ color: 0x1a1210, roughness: 0.15, metalness: 0.2 }));
   credTop.position.set(x0 + 0.27, 0.935, 0);
   interior.add(credTop);
-  const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xd8c8a8, roughness: 0.05, transmission: 0, transparent: true, opacity: 0.45, metalness: 0 });
-  const whisky = new THREE.MeshStandardMaterial({ color: 0x7a3a0c, roughness: 0.2, transparent: true, opacity: 0.85 });
-  for (const [z, kind] of [
-    [-0.8, 0],
-    [-0.5, 1],
-    [0.55, 0],
-    [0.85, 1],
-  ] as const) {
-    const body = new THREE.Mesh(kind ? new THREE.SphereGeometry(0.08, 14, 10) : new THREE.CylinderGeometry(0.06, 0.07, 0.2, 14), glassMat);
-    body.position.set(x0 + 0.3, 0.95 + (kind ? 0.08 : 0.1), z);
-    const liquid = new THREE.Mesh(kind ? new THREE.SphereGeometry(0.066, 12, 8, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55) : new THREE.CylinderGeometry(0.052, 0.06, 0.12, 12), whisky);
-    liquid.position.set(x0 + 0.3, 0.95 + (kind ? 0.07 : 0.065), z);
-    const stopper = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), glassMat);
-    stopper.position.set(x0 + 0.3, 0.95 + (kind ? 0.2 : 0.24), z);
-    interior.add(body, liquid, stopper);
-  }
+  // The decanters of whisky on it are loose (loose.ts): pick one up, pour yourself a glass, swig.
   const painting = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.0), new THREE.MeshBasicMaterial({ map: toTexture(lakeView(512, 256)), color: 0x9a8a7a }));
   painting.position.set(x0 + 0.055, 1.95, 0);
   painting.rotation.y = Math.PI / 2;
