@@ -6,7 +6,7 @@ import { SEAT_R } from '../world';
 import type { Crowd, Person } from '../people';
 import { randomLook, staffLook } from '../people';
 import { canvas, marble, radial, toTexture } from '../textures';
-import { burgerGeometry, dicesetGeometry, gelatoGeometry, hatGeometry, noodlesGeometry, pizzaGeometry, plushGeometry } from '../promenadeprops';
+import { dicesetGeometry, hatGeometry, plushGeometry } from '../promenadeprops';
 import { Batch, M, plane, wallQuad, type Mats } from './kit';
 import { chandelier } from './hotel';
 import {
@@ -35,6 +35,7 @@ import {
   TABLES,
   type ArcadeSlotSpec,
   type CounterSpec,
+  type FoodKey,
 } from './promenadeplan';
 
 export * from './promenadeplan';
@@ -551,7 +552,42 @@ function palm(b: Batch, urn: THREE.Material, trunkMat: THREE.Material, frondMat:
   }
 }
 
-/** One vertex-coloured mesh: food on the tables and in the kitchens' displays. */
+/**
+ * Food and drink on show: a slice of a pie on the pass, a burger on the
+ * counter, a diner's plate, a soda cup, a tub in the gelato case. stock.ts
+ * draws them (instanced, one draw per kind) and hands you the real thing when
+ * you reach for one.
+ */
+export interface DisplaySpec {
+  /** Unique, and the same on every machine. */
+  id: string;
+  /** What's drawn there: a food kind, a soda cup, or nothing extra (a tub in the case, a patty on the grill: reach in). */
+  draw: FoodKey | 'cup' | null;
+  /** Where it stands (base centre, world) and how it's turned; `scale` for a half-eaten leftover. */
+  pos: THREE.Vector3;
+  yaw: number;
+  scale?: number;
+  /** A soda cup's colour. */
+  color?: number;
+  /** What you get: a piece of food (bites left, if not whole), or a drink by its name (bar.ts). */
+  give: { food: FoodKey; bites?: number } | { drink: string; level: number };
+  /** Seconds until the kitchen sets out another (0: it never runs out: a tub, the grill). */
+  restock: number;
+  /** Whose plate it's on (index into `eaters`). */
+  diner?: number;
+  /** How close a hand has to come (VR). */
+  reach?: number;
+}
+
+/** The food court's fountain drinks by cup colour (bar.ts has them as drinks). */
+const SODAS: [number, string][] = [
+  [0xb8101a, 'Cola'],
+  [0xe8b040, 'Lemonade'],
+  [0x3a1a0a, 'Iced tea'],
+  [0xf2f2f2, 'Vanilla shake'],
+];
+
+/** One vertex-coloured mesh: plates, pans, the kitchens' tubs and grills (what you can take is in DisplaySpec). */
 class ColorBatch {
   private parts: THREE.BufferGeometry[] = [];
   add(geo: THREE.BufferGeometry, m: THREE.Matrix4, color?: number) {
@@ -591,6 +627,8 @@ export interface PromenadeArea {
   register: THREE.Vector3;
   /** Where the eaters at the tables sit (food is set in front of them). */
   eaters: { pos: THREE.Vector3; yaw: number }[];
+  /** The food and drink on show (counters, the gelato case, the grill, the tables): stock.ts makes it takeable. */
+  displays: DisplaySpec[];
   update(t: number): void;
 }
 
@@ -763,10 +801,11 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
 
   // --- Food court ---------------------------------------------------------------------
   const menuSpots: PromenadeArea['menuSpots'] = [];
-  const pizza = pizzaGeometry(),
-    burger = burgerGeometry(),
-    noodles = noodlesGeometry(),
-    gelato = gelatoGeometry();
+  const displays: DisplaySpec[] = [];
+  const show = (d: Omit<DisplaySpec, 'pos'> & { at: [number, number, number] }) => {
+    const { at: a, ...rest } = d;
+    displays.push({ ...rest, pos: new THREE.Vector3(...a) });
+  };
   const plate = new THREE.CylinderGeometry(0.12, 0.1, 0.012, 20).translate(0, 0.006, 0);
   for (const c of COUNTERS) {
     const x = c.x,
@@ -799,18 +838,30 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
       b.box(m.stone, x + 1.2, 0.5, P.z0 + 0.9, 1.9, 1.0, 1.6);
       b.add(new THREE.CircleGeometry(0.32, 16, 0, Math.PI), fire, M(x + 1.2, 1.0, P.z0 + 1.76));
       halo(x + 1.2, 1.15, P.z0 + 1.8, 1.4, 0);
+      // Three pies on the pass, cut in eight: take a slice (the cook puts out a fresh pie's worth later).
       for (let k = 0; k < 3; k++) {
-        food.add(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 20), M(x - 1.6 + k * 0.45, COUNTER.top + 0.01, z - 0.2), 0xe2a84a);
-        food.add(new THREE.CylinderGeometry(0.15, 0.15, 0.006, 20), M(x - 1.6 + k * 0.45, COUNTER.top + 0.023, z - 0.2), k === 1 ? 0xf2d27a : 0xf2b63a);
-        for (let p = 0; p < 7; p++) food.add(new THREE.CylinderGeometry(0.022, 0.022, 0.004, 8), M(x - 1.6 + k * 0.45 + Math.cos(p * 0.9) * 0.09 * (p % 2 ? 1 : 0.5), COUNTER.top + 0.028, z - 0.2 + Math.sin(p * 0.9) * 0.09 * (p % 2 ? 1 : 0.5)), k === 1 ? 0x3a8a2a : 0xa8241a);
+        const px = x - 1.6 + k * 0.45,
+          pz = z - 0.2;
+        food.add(new THREE.CylinderGeometry(0.19, 0.19, 0.008, 24), M(px, COUNTER.top + 0.004, pz), 0x6a6a70);
+        for (let n = 0; n < 8; n++) {
+          const a = (n / 8) * Math.PI * 2 + k * 0.4;
+          // The slice's tip at the pie's middle, its crust out at the rim.
+          show({ id: `pie${k}-${n}`, draw: 'pizza', at: [px + Math.sin(a) * 0.1, COUNTER.top + 0.008, pz + Math.cos(a) * 0.1], yaw: a, give: { food: 'pizza' }, restock: 90 });
+        }
       }
     } else if (c.id === 'burger') {
       // A flat-top grill with patties sizzling, fry baskets.
       b.box(m.darkMarble, x - 0.8, 0.96, P.z0 + 0.55, 2.2, 0.04, 0.7);
       b.box(fire, x - 0.8, 0.94, P.z0 + 0.92, 2.2, 0.02, 0.02);
-      for (let k = 0; k < 6; k++) food.add(new THREE.CylinderGeometry(0.055, 0.055, 0.016, 12), M(x - 1.6 + k * 0.32, 0.99, P.z0 + 0.55 + (k % 2) * 0.15), 0x5a2a14);
+      // Patties sizzling on the grill (point at one and the cook makes it a burger for you).
+      for (let k = 0; k < 6; k++) {
+        const gx = x - 1.6 + k * 0.32,
+          gz = P.z0 + 0.55 + (k % 2) * 0.15;
+        food.add(new THREE.CylinderGeometry(0.055, 0.055, 0.016, 12), M(gx, 0.99, gz), 0x5a2a14);
+        show({ id: `grill${k}`, draw: null, at: [gx, 0.99, gz], yaw: Math.PI, give: { food: 'burger' }, restock: 0, reach: 0.09 });
+      }
       for (let k = 0; k < 2; k++) b.box(steel, x + 1.2 + k * 0.5, 1.05, P.z0 + 0.55, 0.35, 0.2, 0.3);
-      for (let k = 0; k < 3; k++) food.add(burger, M(x - 1.6 + k * 0.35, COUNTER.top, z - 0.22, k));
+      for (let k = 0; k < 3; k++) show({ id: `burger${k}`, draw: 'burger', at: [x - 1.6 + k * 0.35, COUNTER.top, z - 0.22], yaw: k, give: { food: 'burger' }, restock: 60 });
     } else if (c.id === 'noodles') {
       // Two woks over flames, red lanterns under the canopy.
       for (const dx of [-1.4, -0.5]) {
@@ -821,9 +872,10 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
         b.add(new THREE.SphereGeometry(0.2, 12, 8).scale(1, 1.25, 1), m.glow(0xd8241a, 1.3), M(x + dx, 2.55, -11.35));
         b.box(m.gold, x + dx, 2.79, -11.35, 0.1, 0.06, 0.1);
       }
-      for (let k = 0; k < 3; k++) food.add(noodles, M(x - 1.6 + k * 0.3, COUNTER.top, z - 0.22, 0.3 * k));
+      for (let k = 0; k < 3; k++) show({ id: `noodles${k}`, draw: 'noodles', at: [x - 1.6 + k * 0.3, COUNTER.top, z - 0.22], yaw: 0.3 * k, give: { food: 'noodles' }, restock: 60 });
     } else {
-      // A gelato case: glass over a dozen colourful tubs.
+      // A gelato case: glass over a dozen colourful tubs, open at the back (and to a reaching hand):
+      // dip in and you come away with a cone.
       b.box(glass, x - 0.6, COUNTER.top + 0.12, z - 0.05, 2.4, 0.24, 0.5);
       const flavours = [0xa8c87a, 0xf6e8c8, 0x5a3418, 0xf2a0b0, 0xf6d24a, 0xe84a3a, 0xc8a0e8, 0xf6f6f0, 0x8ad0e0, 0x7a4a2a, 0xf0c060, 0x6ab84a];
       flavours.forEach((col, k) => {
@@ -831,11 +883,12 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
           tz = z - 0.17 + Math.floor(k / 6) * 0.22;
         food.add(new THREE.BoxGeometry(0.36, 0.06, 0.18), M(tx, COUNTER.top + 0.03, tz), 0xc8ccd2);
         food.add(new THREE.SphereGeometry(0.11, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).scale(1.4, 0.5, 0.7), M(tx, COUNTER.top + 0.055, tz), col);
+        show({ id: `tub${k}`, draw: null, at: [tx, COUNTER.top + 0.06, tz], yaw: Math.PI, give: { food: 'gelato' }, restock: 0, reach: 0.13 });
       });
       // An espresso machine on the back counter.
       b.box(steel, x + 1.3, 1.2, P.z0 + 0.5, 0.8, 0.5, 0.45);
       b.box(m.gold, x + 1.3, 1.47, P.z0 + 0.5, 0.82, 0.04, 0.47);
-      for (let k = 0; k < 3; k++) food.add(gelato, M(x + 0.9 + k * 0.12, COUNTER.top, z + 0.05));
+      for (let k = 0; k < 3; k++) show({ id: `cone${k}`, draw: 'gelato', at: [x + 0.9 + k * 0.12, COUNTER.top, z + 0.05], yaw: 0, give: { food: 'gelato' }, restock: 60 });
     }
   }
   // Tables and stools.
@@ -855,19 +908,21 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
   }
   // Dinner in front of the guests at the tables (they're seated by populate; same seats).
   const eaters = eaterSeats(EATERS_MAX);
-  const dishes = [pizza, burger, noodles, gelato];
+  const dishes: FoodKey[] = ['pizza', 'burger', 'noodles', 'gelato'];
   eaters.forEach((e, i) => {
     const [tx, tz] = e.table;
     const d = new THREE.Vector3(e.pos.x - tx, 0, e.pos.z - tz).normalize();
     const px = tx + d.x * 0.24,
       pz = tz + d.z * 0.24;
     food.add(plate, M(px, TABLE_TOP, pz), 0xf6f2ea);
-    food.add(dishes[i % 4], M(px, TABLE_TOP + 0.012, pz, e.yaw + Math.PI));
-    food.add(new THREE.CylinderGeometry(0.035, 0.03, 0.12, 10).translate(0, 0.06, 0), M(tx - d.z * 0.22, TABLE_TOP, tz + d.x * 0.22), [0xb8101a, 0xe8b040, 0x3a1a0a, 0xf2f2f2][i % 4]);
+    // Their dinner and their drink: real, and theirs (take it and they'll say so).
+    show({ id: `plate${i}`, draw: dishes[i % 4], at: [px, TABLE_TOP + 0.012, pz], yaw: e.yaw + Math.PI, give: { food: dishes[i % 4] }, restock: 120, diner: i });
+    const [cup, soda] = SODAS[i % 4];
+    show({ id: `soda${i}`, draw: 'cup', at: [tx - d.z * 0.22, TABLE_TOP, tz + d.x * 0.22], yaw: e.yaw, color: cup, give: { drink: soda, level: 0.7 }, restock: 120, diner: i });
   });
-  // A couple of tables with leftovers nobody's sitting at (napkins, a drink).
+  // A table with leftovers nobody's sitting at (the last bite of a slice).
   food.add(plate, M(TABLES[6][0] + 0.15, TABLE_TOP, TABLES[6][1] - 0.1), 0xf6f2ea);
-  food.add(pizza, M(TABLES[6][0] + 0.15, TABLE_TOP + 0.012, TABLES[6][1] - 0.1, 1.2, 0.55));
+  show({ id: 'leftover', draw: 'pizza', at: [TABLES[6][0] + 0.15, TABLE_TOP + 0.012, TABLES[6][1] - 0.1], yaw: 1.2, scale: 0.55, give: { food: 'pizza', bites: 1 }, restock: 240 });
   // Palms in urns along the concourse and at the food court's west end.
   PLANTERS.forEach(([x, z], i) => palm(b, m.stone, trunk, frond, x, z, 2.6 + (i % 3) * 0.35, i + 1));
 
@@ -1169,6 +1224,7 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
     menuSpots,
     register: new THREE.Vector3(STORE_FIX.register.x, STORE_FIX.counter.top, STORE_FIX.register.z),
     eaters: eaters.map((e) => ({ pos: e.pos, yaw: e.yaw })),
+    displays,
     update(t) {
       if (!root.visible) return;
       // The neon breathes a little (the arcade's tubes, the door frame).
@@ -1188,6 +1244,8 @@ export interface PromenadeCast {
   servers: Map<string, Person>;
   clerk: Person | null;
   people: Person[];
+  /** Who's sitting at each of the area's `eaters` seats (null: nobody), so their plate knows whose it is. */
+  diners: (Person | null)[];
 }
 
 /**
@@ -1211,9 +1269,11 @@ export function populatePromenade(crowd: Crowd, area: PromenadeArea, budget: num
   const left = () => budget - people.length;
   // Dinner at the tables.
   const nEat = Math.min(area.eaters.length, Math.max(3, Math.round(left() * 0.5)));
-  for (const e of area.eaters.slice(0, nEat)) {
+  const diners: (Person | null)[] = area.eaters.map(() => null);
+  for (const [i, e] of area.eaters.slice(0, nEat).entries()) {
     const p = keep(crowd.add('patron', randomLook(), e.pos.clone(), e.yaw));
     if (!p) break;
+    diners[i] = p;
     p.seatY = STOOL_Y;
     p.onUpdate = (q) => {
       // A bite now and then (hand to mouth), a sip less often.
@@ -1242,5 +1302,5 @@ export function populatePromenade(crowd: Crowd, area: PromenadeArea, budget: num
     p.speed = 0.65 + Math.random() * 0.25;
     p.haunt = (hx) => onPromenade(hx);
   }
-  return { servers, clerk, people };
+  return { servers, clerk, people, diners };
 }

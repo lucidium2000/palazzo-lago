@@ -47,7 +47,11 @@ deck: lit pools, palms, cabanas, a pool bar and a DJ. The car's **M** button tak
 restaurant and shopping level: a marble concourse under skylights that ends at a glass balcony over a
 garden atrium, a food court (pizza, burgers, noodles, gelato: order at the counter, pick it up, eat it
 bite by bite), the Lago Luxe boutique (sunglasses and fedoras to buy with chips and wear, so your
-friends see them) and the Lago Arcade. The floor is alive: guests chat in circles with
+friends see them) and the Lago Arcade. Every bite of food and every drink you can see is real: take a
+slice off a pie on the pizza pass, a cone out of the gelato case, a diner's burger or soda off their
+table (they'll say something), a bottle off the back bar or the pool bar's column, a decanter in the poker
+room, a lime from the garnish bowl, the drink out of a guest's hand; then eat it, sip it, pour it, mix it,
+throw it. The floor is alive: guests chat in circles with
 drinks in hand, friends walk together, people stop to talk and take photos, and they mostly mind their
 own business instead of staring at you.
 
@@ -114,6 +118,7 @@ to force a quality tier.
 | Slots | − / + bet, SPIN (or click the screen), Info for paytable | Same with the laser; grab and pull the lever on Diamond Sevens |
 | Bar & piano | Click the bar to order (free), click the glass to pick it up, F sip, Q set down; click the tip jar | Point at the bar, grab the glass, raise it to your mouth to sip |
 | Food court | Click a dish on a counter's menu, click the food when it's up, F bite (X throw, Q set down) | Point at the menu and pull the trigger, grab the food, hold it to your mouth for each bite |
+| Food and drink on show | Click it (a slice on the pie, a tub in the gelato case, a bottle on the back bar, a guest's drink): it's in your hand; F bite / sip / swig, hold P to pour | Reach out and close your hand on it; out of reach (the back bar, the grill), point at it and pull the trigger and it comes to your hand |
 | Boutique | Click an item to pick it up, click the register to pay, F put it on, U take it off | Grab it, hold it to the register (or point at it), then hold shades to your eyes or a hat on your head; grab at your head to take it off |
 | Grand piano | Click the pianist to push him off the bench, then sit (E, or walk onto the bench): A S D F G H J K L white keys, W E T Y U O P black, Z / X octave, Space sustain, Shift louder, Esc stand; or click / tap the keys | Shove (or punch) him off, sit on the bench: every fingertip that presses a key plays it, as hard as it came down (hand tracking: all ten; controllers: index and thumb, the whole hand when open); A / X is the sustain pedal |
 
@@ -143,6 +148,9 @@ src/client/     Three.js app
                 attract, initials), cabinet.ts / controls.ts (3D cabinets, sticks and buttons),
                 synth.ts (chiptunes), hoops / hockey / claw (+ their *phys / *logic), net.ts
   promenadelife.ts    food court ordering, the boutique's register, what you wear (and your friends see)
+  loose.ts      loose things to pick up and throw (chips, bottles, fruit, food, shop stock), loosephys.ts their physics
+  stock.ts      food and drink on show: drawn instanced, promoted to a real loose thing or glass when taken,
+                restocked later, capped; stockdisplays.ts says what's on show where
   piano.ts      the playable piano: 88 keys, fingertips / typing / taps, the pianist's bench
   pianokeys.ts  keyboard layout, hit detection, fingertip strikes, voice allocation (pure)
   pianotone.ts  synthesized piano notes (pianoworker.ts renders them), pianosynth.ts plays them

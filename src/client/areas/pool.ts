@@ -181,6 +181,8 @@ export interface PoolArea {
   /** A pair chatting on the deck. */
   chats: { pos: THREE.Vector3; yaw: number }[];
   bartender: { pos: THREE.Vector3; yaw: number };
+  /** The bottles round the pool bar's central column (their bases, world) and colours: stock.ts draws them. */
+  bottles: { pos: THREE.Vector3; color: number }[];
   /** What the party's lights drive: the water's and the basin's colour, the deck glow, the LED wall. */
   party: { water: THREE.ShaderMaterial; led: THREE.ShaderMaterial; tile: THREE.MeshStandardMaterial; floor: THREE.MeshStandardMaterial; glow: THREE.MeshBasicMaterial };
 }
@@ -406,11 +408,12 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     const a = (pole / 4) * Math.PI * 2 + 0.4;
     b.add(new THREE.CylinderGeometry(0.06, 0.06, 2.9, 8), m.gold, M(BAR.x + Math.cos(a) * 2.45, 1.45, BAR.z + Math.sin(a) * 2.45));
   }
-  // Bottles on the central column.
+  // Bottles on the central column, lit from below: one instanced draw, each one takeable (stock.ts).
   const bottleCols = [0x2a6a3a, 0x8a5a1a, 0xd8d0c0, 0x3a1a4a, 0x8a1a1a];
+  const columnBottles: PoolArea['bottles'] = [];
   for (let i = 0; i < 26; i++) {
     const a = (i / 26) * Math.PI * 2;
-    b.add(new THREE.CylinderGeometry(0.035, 0.04, 0.28, 8), m.glow(bottleCols[i % 5], 0.9), M(BAR.x + Math.cos(a) * 0.82, 1.32 + (i % 2) * 0.4, BAR.z + Math.sin(a) * 0.82));
+    columnBottles.push({ pos: new THREE.Vector3(BAR.x + Math.cos(a) * 0.82, 1.32 + (i % 2) * 0.4 - 0.14, BAR.z + Math.sin(a) * 0.82), color: bottleCols[i % 5] });
   }
   const stools: PoolArea['seats'] = [];
   for (const { x, z, yaw } of barStools()) {
@@ -563,6 +566,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
     stands,
     chats,
     bartender: { pos: new THREE.Vector3(BAR.x + 1.15, 0, BAR.z), yaw: Math.PI / 2 },
+    bottles: columnBottles,
     update(t: number) {
       waterMat.uniforms.time.value = t;
       ledMat.uniforms.time.value = t;
