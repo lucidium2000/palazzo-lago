@@ -769,7 +769,10 @@ export class Fights {
       }
       p.moving = td > 0.12 ? sp : 0;
       const home = f.home && Math.hypot(f.home.pos.x - feet.x, f.home.pos.z - feet.z) > 2.5;
-      if ((home && td <= 0.12) || (!home && (f.leaveT > 6 || dist > 9)) || f.leaveT > 14) this.end(f);
+      if ((home && td <= 0.12) || (!home && (f.leaveT > 6 || dist > 9)) || f.leaveT > 14) {
+        this.end(f);
+        return;
+      }
     } else if (speed !== 0 && dist > 0.01 && !b.down) {
       if (speed > 0) speed = Math.min(speed, Math.max(0, (dist - 0.62) / dt));
       const st = speed * dt;
