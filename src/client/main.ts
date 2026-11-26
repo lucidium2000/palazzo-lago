@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Bankroll, type BankrollState } from '../rules/bankroll';
+import { Bankroll, STARTING_BALANCE, type BankrollState } from '../rules/bankroll';
 import { DIAMOND_SEVENS, LAGO_FORTUNA, ROYAL_CONSERVATORY } from '../rules/machines';
 import { pocketColor, pocketLabel } from '../rules/roulette';
 import { CryptoRng } from '../rules/rng';
@@ -54,7 +54,7 @@ import { LiftSync } from './net/liftsync';
 import { Night } from './night';
 import { TouchControls } from './touch';
 import type { Control } from './hud';
-import { CHIP_COLORS, CHIP_DENOMS, chipLabel } from './textures';
+import { CHIP_COLORS, CHIP_DENOMS, chipLabel, type ChipDenom } from './textures';
 import { CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
 import { mouthOf, voices } from './voices';
 import { Faces } from './faces';
@@ -88,7 +88,8 @@ const AREA_NAMES: Record<AreaId, string> = { casino: 'casino', pool: 'pool', hot
 function loadBankroll(): Bankroll {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) return new Bankroll(JSON.parse(raw) as BankrollState);
+    // Every game starts with a fresh $2,000 (STARTING_BALANCE); your stats and the daily bonus carry over.
+    if (raw) return new Bankroll({ ...(JSON.parse(raw) as BankrollState), balance: STARTING_BALANCE });
   } catch {
     /* private mode or corrupt save: start fresh */
   }
@@ -265,7 +266,10 @@ async function main() {
   const hitBy = new WeakMap<object, Person>();
   // Napkins wipe up spills, your face, and (gently) the person you soaked.
   let napkins: Napkins | null = null;
-  const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics, roulette: roulette.group, craps: craps.group });
+  const loose = new LooseObjects({ scene, camera, world, sound, hands, interaction, hud, player, lounge, throwables, drinkPhysics, roulette: roulette.group, craps: craps.group,
+    // A chip you picked up anywhere and set down on a betting spot plays, like cash on a real table.
+    onChipRest: (value, at) => craps.betFound(at, value) || roulette.betFound(at, value) || blackjacks.some((b) => b.betFound(at, value)),
+  });
   const slotRows = new SlotRows(ctx, crowd, world);
 
   // Walking routes through the open floor; edges are found automatically.
@@ -1262,6 +1266,21 @@ async function main() {
     }
     return g;
   };
+  // The chip you bet with at every table: the VR wallet on the watch picks it,
+  // then each touch on a betting spot puts one of it down.
+  let betChip: ChipDenom = 25;
+  let walletT = 0;
+  const setBetChip = (d: ChipDenom) => {
+    betChip = d;
+    craps.selectChip(d);
+    roulette.selectChip(d);
+    for (const b of blackjacks) if (b.denoms.includes(d)) b.chip = d;
+  };
+  craps.chip = betChip;
+  roulette.chip = betChip;
+  // The controls and the status line of the game you're at (filled in once everything exists).
+  let stationControls: () => Control[] | null = () => null;
+  let stationStatus: () => string = () => '';
   // --- Everything in the screen menus, in VR (left wrist) ----------------------------------
   const vrMenu = new VrMenu(hud.wrist, {
     hud,
@@ -1339,6 +1358,11 @@ async function main() {
     resetChips: () => document.getElementById('reset')!.click(),
     exitVR: () => void xrSession?.end(),
     helpText: () => [...document.querySelectorAll('#help .card p')].map((p) => p.textContent ?? ''),
+    betChip: () => betChip,
+    setBetChip,
+    balance: () => bankroll.balance,
+    tableControls: () => stationControls(),
+    tableStatus: () => stationStatus(),
   });
   vrMenu.redraw();
   renderer.xr.addEventListener('sessionend', () => vrMenu.close());
@@ -1362,12 +1386,11 @@ async function main() {
     if (e.code === 'Escape') hud.toggleMap(false);
   });
 
-  // --- Welcome and daily top-up -----------------------------------------------
-  const today = new Date().toISOString().slice(0, 10);
-  const bonus = bankroll.claimDailyBonus(today);
+  // --- Welcome ---------------------------------------------------------------------
+  // Every game starts you with the same $2,000 (no daily top-up: nothing carries over).
   night.resetBaseline();
   setTimeout(() => {
-    hud.toast(bonus ? `Welcome to Palazzo Lago · daily bonus ${money(bonus)}` : 'Welcome back to Palazzo Lago', 'win');
+    hud.toast(`Welcome to Palazzo Lago · ${money(STARTING_BALANCE)} to play with`, 'win');
   }, 900);
   // Two-step reset (no browser dialogs: they are blocked in embedded viewers).
   const resetBtn = document.getElementById('reset')!;
@@ -1724,6 +1747,11 @@ async function main() {
       showBoard();
       if (player.inXR && (wristT = (wristT + 1) % 2) === 0) vrMenu.redrawRoom();
     }
+    // The watch's wallet page follows the table (bets, spins, rolls) twice a second while it's open.
+    if (player.inXR && (walletT -= dt) <= 0) {
+      walletT = 0.5;
+      vrMenu.redrawChips();
+    }
     drinkSync?.update();
     photoCams.update(dt);
     photoSync?.update(dt);
@@ -1852,12 +1880,14 @@ async function main() {
     night.update(dt);
     adapt();
 
-    roulette.setPanelVisible(player.inXR);
-    craps.setPanelVisible(player.inXR);
+    // No floating panels over the tables: in VR the wallet on your watch has the controls.
+    roulette.setPanelVisible(false);
+    craps.setPanelVisible(false);
     // Game controls, the touch context button, and seated state for the layout.
     document.body.classList.toggle('seated', !!player.seated);
-    if (!player.inXR) {
-      // Walk up and play: the game's controls show as soon as you're at it, sitting or not.
+    // Walk up and play: the game's controls show as soon as you're at it, sitting or not
+    // (on screen along the bottom; in VR on the watch's Chips page).
+    stationControls = (): Control[] | null => {
       const station = hud.station;
       const m = machines.find((mm) => mm.machine.id === station);
       const bjAt = station?.startsWith('bj') ? bjSeats.find((s) => s.vp.id === station) : undefined;
@@ -1869,7 +1899,11 @@ async function main() {
         return bjAt ? [{ id: 'bjsit', label: 'SIT', sub: 'blackjack', kind: 'primary', onPress: () => player.sit(bjAt.vp) }] : null;
       };
       const pianoControls = (): Control[] | null => (player.seated?.id === 'piano' ? piano!.controls() : [{ id: 'psit', label: 'SIT', sub: 'play the piano', kind: 'primary', onPress: () => piano!.sit() }]);
-      hud.setControls(station === 'piano' ? pianoControls() : station === 'roulette' ? rouletteControls() : station === 'craps' ? crapsControls() : m ? slotControls(m) : station === piggy.machine.id ? piggyControls(piggy) : bjAt || blackjacks.some((b) => b.mySeat !== null) ? bjControls() : pkAt || poker.mySeat !== null ? pkControls() : null);
+      return station === 'piano' ? pianoControls() : station === 'roulette' ? rouletteControls() : station === 'craps' ? crapsControls() : m ? slotControls(m) : station === piggy.machine.id ? piggyControls(piggy) : bjAt || blackjacks.some((b) => b.mySeat !== null) ? bjControls() : pkAt || poker.mySeat !== null ? pkControls() : null;
+    };
+    stationStatus = () => (hud.station === 'craps' ? craps.status() : hud.station === 'roulette' ? roulette.statusLine() : hud.station ? `Betting ${money(betChip)} chips · ${money(bankroll.balance)} in your wallet` : '');
+    if (!player.inXR) {
+      hud.setControls(stationControls());
       if (fights.active) touch.setAction('Punch', () => fights.deskPunch());
       else if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());
       else if (loose.holding) touch.setAction('Throw', () => loose.throwDesk());

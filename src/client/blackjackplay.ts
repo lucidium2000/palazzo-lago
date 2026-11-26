@@ -396,10 +396,11 @@ export class BlackjackPlay {
     lm.userData.dynamic = true;
     table.group.add(lm);
     this.label = { mesh: lm, g: c.getContext('2d')!, tex, text: '' };
-    // Screens: click your circle to bet the selected chip.
+    // Click your circle (screens) or touch it with a fingertip (VR) to bet the selected chip, once per touch.
     this.target = {
       object: table.group,
       kind: 'surface',
+      pokeable: true,
       enabled: () => this.mySeat !== null,
       label: (e) => (this.mySeat !== null && this.inCircle(e.local, this.mySeat) && this.canBet() ? `Bet ${money(this.chip)}` : null),
       onSelect: (e) => {
@@ -629,6 +630,16 @@ export class BlackjackPlay {
     const near = (p: THREE.Vector3, r: number) => Math.hypot(l.x - p.x, l.z - p.z) < r && l.y > TOP - 0.05 && l.y < TOP + 0.3;
     if (this.isMyTurn && this.waiting && near(this.stackAt(k, 0, 'bet'), 0.24)) return this.addSide(amount);
     if (near(this.stackAt(k, 0, 'bet'), 0.1) && this.canBet()) return this.addBet(amount);
+    return false;
+  }
+
+  /** A loose chip (found anywhere) set down in your circle: its value joins your money and goes on as a bet. */
+  betFound(world: THREE.Vector3, amount: number): boolean {
+    const bank = this.ctx.bankroll;
+    if (this.mySeat === null || !bank) return false;
+    bank.credit(amount, 'refund', 'blackjack');
+    if (this.dropChips(amount, world)) return true;
+    bank.debit(amount, 'refund', 'blackjack');
     return false;
   }
 
@@ -1468,9 +1479,9 @@ export class BlackjackPlay {
       const cards = this.myRoundSeat === k ? this.cardsOf.get(`${k}:${this.waiting?.seat === k ? this.waiting.hand : 0}`) ?? [] : [];
       const v = handValue(cards);
       const tot = cards.length ? `${v.soft && v.total < 21 ? 'soft ' : ''}${v.total}` : '';
-      if (this.isMyTurn) text = this.vr ? `${tot} · tap = hit · wave = stand` : `${tot} · hit or stand?`;
+      if (this.isMyTurn) text = this.vr ? (tot ? `Your hand: ${tot}` : '') : `${tot} · hit or stand?`;
       else if (this.myRoundSeat === k && this.phase === 'round') text = tot ? `Your hand: ${tot}` : '';
-      else if (this.canBet()) text = this.vr && this.myPending === 0 ? 'Drop chips in your circle' : this.myPending > 0 ? `Bet ${money(this.myPending)}${this.myPending < this.min ? ` · min ${money(this.min)}` : ''}` : `Place your bet · ${money(this.min)}–${money(this.max)}`;
+      else if (this.canBet()) text = this.vr && this.myPending === 0 ? '' : this.myPending > 0 ? `Bet ${money(this.myPending)}${this.myPending < this.min ? ` · min ${money(this.min)}` : ''}` : `Place your bet · ${money(this.min)}–${money(this.max)}`;
     }
     const L = this.label;
     L.mesh.visible = !!text;

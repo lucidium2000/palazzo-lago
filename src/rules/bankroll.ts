@@ -24,7 +24,8 @@ export interface BankrollState {
   stats: BankrollStats;
 }
 
-export const STARTING_BALANCE = 10_000;
+/** Every game starts you with this much (main.ts doesn't carry the balance over from the last one). */
+export const STARTING_BALANCE = 2_000;
 export const DAILY_BONUS = 2_500;
 
 export class InsufficientFunds extends Error {

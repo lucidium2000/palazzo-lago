@@ -45,6 +45,18 @@ export class RouletteTable {
   private away = 0;
 
   /** The floating 3D control panel is for VR; screens use the on-screen controls. */
+  /** What the table says now: no more bets, the hovered bet, the last result, or place your bets. */
+  statusLine(): string {
+    const hover = this.hoverSpot ? SPOTS_BY_ID.get(this.hoverSpot) : null;
+    return this.game.phase === 'spinning'
+      ? 'No more bets'
+      : hover
+        ? `${describeSpot(hover)}  ·  pays ${hover.payout} to 1`
+        : this.lastResult
+          ? `Last: ${pocketLabel(this.lastResult.pocket)} ${pocketColor(this.lastResult.pocket)}  ·  ${this.lastResult.net >= 0 ? 'won' : 'lost'} ${money(Math.abs(this.lastResult.net))}`
+          : `Place your bets${this.game.totalBet ? ' · ' + money(this.game.totalBet) + ' down' : ''}`;
+  }
+
   setPanelVisible(v: boolean) {
     this.panel.mesh.visible = v;
   }
@@ -172,6 +184,8 @@ export class RouletteTable {
     this.ctx.interaction.register({
       object: felt,
       kind: 'surface',
+      // Touch a spot with a fingertip to put the chip you picked on your watch there (once per touch).
+      pokeable: true,
       onSelect: (e) => {
         const p = this.group.worldToLocal(e.hit.point.clone());
         const spot = spotAt(p.x, p.z);
@@ -375,15 +389,7 @@ export class RouletteTable {
       ctx.textAlign = 'center';
       ctx.font = `italic 34px ${SERIF}`;
       ctx.fillStyle = '#cbb991';
-      const hover = this.hoverSpot ? SPOTS_BY_ID.get(this.hoverSpot) : null;
-      const msg = this.game.phase === 'spinning'
-        ? 'No more bets'
-        : hover
-          ? `${describeSpot(hover)}  ·  pays ${hover.payout} to 1`
-          : this.lastResult
-            ? `Last: ${pocketLabel(this.lastResult.pocket)} ${pocketColor(this.lastResult.pocket)}  ·  ${this.lastResult.net >= 0 ? 'won' : 'lost'} ${money(Math.abs(this.lastResult.net))}`
-            : 'Place your bets';
-      ctx.fillText(msg, p.pxW / 2, 60);
+      ctx.fillText(this.statusLine(), p.pxW / 2, 60);
       ctx.textAlign = 'left';
       ctx.font = `italic 30px ${SERIF}`;
       ctx.fillStyle = '#a99670';
@@ -470,6 +476,22 @@ export class RouletteTable {
   // ---------------------------------------------------------------------------
 
   /** Places a bet through the game's rules (click, button or chips set down by hand). True if it took. */
+  /**
+   * A loose chip (picked up anywhere, even off the floor) set down on a betting
+   * spot: it plays, like cash on a real table. Its value joins your money and
+   * goes straight on the spot. False (and nothing changes) if it isn't a spot or bets are closed.
+   */
+  betFound(world: THREE.Vector3, amount: number): boolean {
+    if (this.game.phase !== 'betting') return false;
+    const l = this.group.worldToLocal(world.clone());
+    const id = l.y > TOP - 0.05 && l.y < TOP + 0.35 ? spotAt(l.x, l.z)?.id : null;
+    if (!id) return false;
+    this.ctx.bankroll.credit(amount, 'refund', 'roulette');
+    if (this.bet(id, amount)) return true;
+    this.ctx.bankroll.debit(amount, 'refund', 'roulette');
+    return false;
+  }
+
   private bet(spotId: string, amount: number = this.chip, silent = false): boolean {
     let ok = false;
     try {

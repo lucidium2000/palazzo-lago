@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import type { Comfort } from './player';
 import { money } from './game';
-import type { Hud, NavItem } from './hud';
+import type { Control, Hud, NavItem } from './hud';
+import { CHIP_COLORS, CHIP_DENOMS, chipLabel, type ChipDenom } from './textures';
+import { greedyBreakdown } from '../rules/chiprack';
 import type { Interaction } from './interaction';
-import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
+import { CanvasPanel, GOLD, GOLD_LIGHT, INK, roundRect, SERIF, type PanelButton } from './panel';
 import { AVATARS } from './net/avatars';
 import { cssColor, MAX_PLAYERS, signedMoney } from './net/party';
 import type { Session } from './net/session';
@@ -17,9 +19,13 @@ import type { Session } from './net/session';
  *          button to jump to them, voice chat on/mute, quick chat phrases,
  *          change your character, leave the room.
  *  - Menu: music, sound, help, reset chips, exit VR.
+ *  - Chips: your wallet. What you have, broken into chips; touch one to pick
+ *          it, then touch a table's betting spots to put that chip down, once
+ *          per touch. At a table, its controls (spin / roll, undo, take down,
+ *          rebet, double, odds) are here too, so nothing floats over the felt.
  */
 
-type Tab = 'go' | 'room' | 'menu' | 'keypad';
+type Tab = 'chips' | 'go' | 'room' | 'menu' | 'keypad';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const PHRASES = ["Let's go!", 'Come to roulette', 'Craps time', 'Drinks at the bar?', 'Nice!', 'One more spin'];
 /** In a room the scoreboard takes space: fewer quick phrases. */
@@ -54,10 +60,18 @@ export interface VrMenuDeps {
   resetChips(): void;
   exitVR(): void;
   helpText(): string[];
+  /** The chip you bet with (touch a table to put one down). */
+  betChip(): ChipDenom;
+  setBetChip(d: ChipDenom): void;
+  /** Your balance (what the wallet holds). */
+  balance(): number;
+  /** The controls for the game you're at (or null away from a table), and what it says. */
+  tableControls(): Control[] | null;
+  tableStatus(): string;
 }
 
 export class VrMenu {
-  private tab: Tab = 'go';
+  private tab: Tab = 'chips';
   private code = '';
   private busy = '';
   private help: CanvasPanel;
@@ -136,18 +150,20 @@ export class VrMenu {
     };
     // Tabs.
     const tabs: [Tab, string][] = [
+      ['chips', 'Chips'],
       ['go', 'Go'],
       ['room', 'Room'],
       ['menu', 'Menu'],
     ];
-    const tw = (w.pxW - 80 - 20) / 3;
+    const tw = (w.pxW - 80 - 30) / 4;
     tabs.forEach(([t, label], i) =>
       w.add({ id: `tab-${t}`, x: 40 + i * (tw + 10), y: 130, w: tw, h: 66, label, active: () => this.tab === t || (t === 'room' && this.tab === 'keypad'), onPress: () => this.go(t) }),
     );
     const col = (i: number, n = 2) => 40 + (i % n) * ((w.pxW - 80 - 12 * (n - 1)) / n + 12);
     const cw = (n = 2) => (w.pxW - 80 - 12 * (n - 1)) / n;
 
-    if (this.tab === 'go') {
+    if (this.tab === 'chips') this.buildChips(col, cw);
+    else if (this.tab === 'go') {
       d.nav()
         .filter((n) => !n.disabled)
         .forEach((item, i) => {
@@ -252,6 +268,67 @@ export class VrMenu {
       }) });
     }
     w.redraw();
+  }
+
+  /** The wallet: your chips (touch one to bet with it) and the controls of the table you're at. */
+  private buildChips(col: (i: number, n?: number) => number, cw: (n?: number) => number) {
+    const w = this.w;
+    const d = this.d;
+    const counts = greedyBreakdown(Math.floor(d.balance()), CHIP_DENOMS).counts;
+    const R = 52;
+    const per = 4;
+    CHIP_DENOMS.forEach((den, i) => {
+      const row = Math.floor(i / per);
+      const inRow = Math.min(per, CHIP_DENOMS.length - row * per);
+      const gap = (w.pxW - 80 - inRow * 2 * R) / Math.max(1, inRow - 1);
+      const x = 40 + (i % per) * (2 * R + gap) + (inRow < per ? (w.pxW - 80 - inRow * 2 * R - (inRow - 1) * gap) / 2 : 0);
+      w.add({
+        id: `chip-${den}`,
+        x,
+        y: 214 + row * 150,
+        w: 2 * R,
+        h: 2 * R + 34,
+        label: chipLabel(den),
+        active: () => d.betChip() === den,
+        paint: (ctx, b, st) => paintChip(ctx, b, den, counts[i], st.active, st.hover),
+        onPress: () => {
+          d.setBetChip(den);
+          this.build();
+        },
+      });
+    });
+    const controls = (d.tableControls() ?? []).filter((c) => c.kind !== 'chip' && c.kind !== 'slider');
+    const top = 214 + 2 * 150 + 6;
+    w.background = ((bg) => (ctx: CanvasRenderingContext2D) => {
+      bg?.(ctx);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f6e7c3';
+      ctx.font = `italic 26px ${SERIF}`;
+      const lines = controls.length ? [d.tableStatus()] : ['Touch a chip, then touch a betting spot:', 'one chip each time you touch the felt.'];
+      lines.forEach((l, i) => ctx.fillText(fit(ctx, l, w.pxW - 70), w.pxW / 2, top + 26 + i * 32));
+    })(w.background);
+    let y = top + 76;
+    const add = (c: Control, x: number, width: number) =>
+      w.add({ id: `tc-${c.id}`, x, y, w: width, h: 66, label: c.label, sub: c.sub, enabled: () => !c.disabled, active: () => !!c.active, onPress: () => {
+        c.onPress();
+        this.build();
+      } });
+    // The main action (spin, roll, deal…) across the panel, then the rest two by two.
+    for (const c of controls.filter((c) => c.kind === 'primary')) {
+      add(c, 40, w.pxW - 80);
+      y += 76;
+    }
+    controls
+      .filter((c) => c.kind !== 'primary')
+      .forEach((c, i, all) => {
+        add(c, col(i), i === all.length - 1 && i % 2 === 0 ? w.pxW - 80 : cw());
+        if (i % 2 === 1) y += 76;
+      });
+  }
+
+  /** The wallet page while it's open (bets and the table move on). */
+  redrawChips() {
+    if (this.tab === 'chips' && this.w.mesh.visible) this.build();
   }
 
   /** Tonight's scoreboard rows: colour, name, where they are and how far, chips won or lost. */
@@ -365,6 +442,43 @@ function fit(ctx: CanvasRenderingContext2D, text: string, width: number) {
   let t = text;
   while (t.length > 1 && ctx.measureText(t + '…').width > width) t = t.slice(0, -1);
   return t + '…';
+}
+
+/** A casino chip button: the denomination's colours, its value, and how many of it your money makes. */
+function paintChip(ctx: CanvasRenderingContext2D, b: PanelButton, den: ChipDenom, count: number, active: boolean, hover: boolean) {
+  const [base, accent] = CHIP_COLORS[den];
+  const r = b.w / 2;
+  const cx = b.x + r,
+    cy = b.y + r;
+  if (active) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 7, 0, Math.PI * 2);
+    ctx.fillStyle = GOLD_LIGHT;
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = base;
+  ctx.fill();
+  // Edge spots.
+  ctx.fillStyle = accent;
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(a) * r * 0.82, cy + Math.sin(a) * r * 0.82, r * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.6, 0, Math.PI * 2);
+  ctx.fillStyle = hover ? '#fffaf0' : '#f4ead4';
+  ctx.fill();
+  ctx.fillStyle = INK;
+  ctx.textAlign = 'center';
+  ctx.font = `bold ${den >= 1000 ? 24 : 28}px ${SERIF}`;
+  ctx.fillText(chipLabel(den), cx, cy + 9);
+  ctx.fillStyle = count ? '#f6e7c3' : '#8a7a5c';
+  ctx.font = `600 24px ${SERIF}`;
+  ctx.fillText(`×${count}`, cx, b.y + b.h - 4);
 }
 
 function speedIx(v: number) {

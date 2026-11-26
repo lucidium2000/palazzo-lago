@@ -587,7 +587,8 @@ export class CrapsTable {
     return `${info.name}${pays ? ' · ' + pays : ''}${cur ? ` · ${money(cur)} on it` : ''}`;
   }
 
-  private status(): string {
+  /** What the table says now (the panel's middle line; the VR wallet shows it too). */
+  status(): string {
     if (this.phase !== 'betting') return 'Dice are out';
     if (this.hover) return this.describe(this.hover);
     if (this.last) return `${this.last.call}  ${this.last.totalWon > 0 ? '· won ' + money(this.last.totalWon) : ''}`;
@@ -602,6 +603,20 @@ export class CrapsTable {
 
   setPanelVisible(v: boolean) {
     this.panel.mesh.visible = v;
+  }
+
+  /**
+   * A loose chip (picked up anywhere, even off the floor) set down on a betting
+   * spot: it plays, like cash on a real table. Its value joins your money and
+   * goes straight on the spot. False (and nothing changes) if it isn't a spot or bets are closed.
+   */
+  betFound(world: THREE.Vector3, amount: number): boolean {
+    const id = this.phase === 'betting' ? this.betAtWorld(world) : null;
+    if (!id) return false;
+    this.ctx.bankroll.credit(amount, 'refund', 'craps');
+    if (this.bet(id, amount)) return true;
+    this.ctx.bankroll.debit(amount, 'refund', 'craps');
+    return false;
   }
 
   /** Places a bet through the game's rules (click, button or chips set down by hand). True if it took. */

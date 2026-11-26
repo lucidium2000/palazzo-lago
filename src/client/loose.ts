@@ -48,6 +48,8 @@ export interface LooseDeps {
   /** The roulette and craps tables' groups (their felts, rails and the wheel are surfaces). */
   roulette?: THREE.Object3D;
   craps?: THREE.Object3D;
+  /** A loose chip of yours came to rest (value, where): true if a table took it as a bet (then it leaves the loose ones). */
+  onChipRest?: (value: number, at: THREE.Vector3) => boolean;
 }
 
 /** What your friend should see happen to a loose object. */
@@ -55,7 +57,9 @@ export type LooseNet =
   | { k: 'take'; id: string }
   | { k: 'put'; id: string; p: number[]; q: number[] }
   | { k: 'throw'; id: string; p: number[]; q: number[]; v: number[]; w: number[] }
-  | { k: 'break'; id: string };
+  | { k: 'break'; id: string }
+  /** A chip went into a bet on a table: it's gone from the loose ones. */
+  | { k: 'gone'; id: string };
 
 interface KindDef {
   key: string;
@@ -970,6 +974,13 @@ export class LooseObjects {
     } else if (e.type === 'settle') {
       this.stats.landed++;
       this.writeMatrix(it);
+      // A chip you set down on a betting spot plays (and joins the table's chips).
+      const value = it.kind.key.startsWith('chip') ? Number(it.kind.key.slice(4)) : 0;
+      if (value > 0 && e.body.mine && this.d.onChipRest?.(value, it.body.pos.clone())) {
+        this.collect(it);
+        this.onNet?.({ k: 'gone', id: it.id });
+        return;
+      }
       // A bottle lying on its side glugs out what's left.
       if (it.kind.key === 'bottle' && it.liquid !== null && it.level > 0.05 && Math.abs(it.body.axis().y) < 0.5) {
         const at = extents(it.kind.spec.shape, it.body.pos, it.body.q).c;
@@ -1053,6 +1064,14 @@ export class LooseObjects {
   }
 
   /** It broke: glass everywhere (a bottle is a bigger mess), and what was in it. */
+  /** Takes a loose object out of the world quietly (a chip that became a bet). */
+  private collect(it: Item) {
+    if (it.gone) return;
+    this.sim.remove(it.body);
+    it.gone = true;
+    this.writeMatrix(it);
+  }
+
   private smash(it: Item, at: THREE.Vector3, v: THREE.Vector3) {
     it.gone = true;
     this.stats.broken++;
@@ -1112,6 +1131,6 @@ export class LooseObjects {
       const at = extents(it.kind.spec.shape, it.body.pos, it.body.q).c.clone();
       this.sim.remove(it.body);
       this.smash(it, at, new THREE.Vector3());
-    }
+    } else if (e.k === 'gone') this.collect(it);
   }
 }
