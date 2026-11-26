@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { World } from '../src/client/world';
+import { CLERK_LINES, COOK_LINES, promenadeLines } from '../src/client/promenadelines';
+import { SPEAKERS } from '../src/client/cast';
+import { STAFF } from '../src/client/speech';
+import { REACTIONS } from '../src/client/reactlines';
 import { registerHall } from '../src/client/casino';
 import { registerAreas } from '../src/client/areas';
 import {
@@ -161,6 +165,51 @@ describe('food', () => {
         expect(s).toBeGreaterThan(0.4);
         prev = s;
       }
+    }
+  });
+});
+
+describe('Promenade staff voices', () => {
+  const ids = ['cook_pizza', 'cook_burger', 'cook_noodles', 'cook_gelato', 'clerk'] as const;
+
+  it('every dish on every counter has its own order and ready lines (fixed strings to record)', () => {
+    for (const c of COUNTERS) {
+      const l = COOK_LINES[c.id as keyof typeof COOK_LINES];
+      expect(l, c.id).toBeTruthy();
+      for (const it of c.items) {
+        expect(l.order[it.name]?.length, `${c.id} order ${it.name}`).toBeGreaterThan(0);
+        expect(l.ready[it.name]?.length, `${c.id} ready ${it.name}`).toBeGreaterThan(0);
+      }
+      expect(l.hello.length && l.busy.length && l.broke.length).toBeTruthy();
+    }
+    for (const k of Object.keys(MERCH)) expect(CLERK_LINES.paid[k as keyof typeof MERCH].length, k).toBeGreaterThan(0);
+  });
+
+  it('each speaker has a cast entry, a stand-in voice and reactions', () => {
+    const lines = promenadeLines();
+    for (const id of ids) {
+      expect(SPEAKERS.find((s) => s.id === id)?.voiceHint, id).toBeTruthy();
+      expect((STAFF as Record<string, string>)[id], id).toBeTruthy();
+      expect(lines[id].length, id).toBeGreaterThan(5);
+      for (const k of ['pushed', 'punched', 'doused', 'hit', 'security'] as const) expect(REACTIONS[id]?.[k]?.length, `${id} ${k}`).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('Promenade ambience', () => {
+  it('renders quiet, finite, seamless loops', async () => {
+    const { renderMurmur, renderSizzle, renderArcadeBed } = await import('../src/client/promenadeaudio');
+    for (const f of [renderMurmur, renderSizzle, renderArcadeBed]) {
+      const sr = 8000;
+      const a = f(sr, 2);
+      expect(a.length).toBe(sr * 2);
+      let peak = 0;
+      for (const v of a) {
+        expect(Number.isFinite(v)).toBe(true);
+        peak = Math.max(peak, Math.abs(v));
+      }
+      expect(peak).toBeGreaterThan(0.3);
+      expect(peak).toBeLessThanOrEqual(0.5 + 1e-6);
     }
   });
 });

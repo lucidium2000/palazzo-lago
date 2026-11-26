@@ -17,6 +17,12 @@ export const STAFF = {
   waiter: 'bm_fable',
   waitress: 'af_river',
   security: 'am_adam',
+  // The Promenade: a cook at each food counter, the boutique's clerk.
+  cook_pizza: 'am_santa',
+  cook_burger: 'am_onyx',
+  cook_noodles: 'af_aoede',
+  cook_gelato: 'af_sky',
+  clerk: 'bf_isabella',
 } as const;
 
 export const CREW_VOICES: VoiceId[] = ['am_michael', 'am_fenrir', 'am_eric'];

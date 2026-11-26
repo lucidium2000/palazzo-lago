@@ -282,6 +282,960 @@
   "p": 1
  },
  {
+  "id": "02a31fc3",
+  "voice": "el_clerk",
+  "text": "Wonderful choice. Very Riviera.",
+  "p": 1
+ },
+ {
+  "id": "0af8f4e0",
+  "voice": "el_clerk",
+  "text": "Ahem. The register is right here, darling.",
+  "p": 1
+ },
+ {
+  "id": "0fd48212",
+  "voice": "el_clerk",
+  "text": "[groans] Ow! You'll be leaving. Immediately.",
+  "p": 1
+ },
+ {
+  "id": "1a8dbb89",
+  "voice": "el_clerk",
+  "text": "[cold] I'll add the dry cleaning to your bill.",
+  "p": 1
+ },
+ {
+  "id": "1caf4a6a",
+  "voice": "el_clerk",
+  "text": "All yours. The fedora looks great on you.",
+  "p": 1
+ },
+ {
+  "id": "29801307",
+  "voice": "el_clerk",
+  "text": "All yours. He's very soft, isn't he?",
+  "p": 1
+ },
+ {
+  "id": "2bc64ccf",
+  "voice": "el_clerk",
+  "text": "Excuse me? You'll want to pay for that at the counter.",
+  "p": 1
+ },
+ {
+  "id": "2dc86b7a",
+  "voice": "el_clerk",
+  "text": "Thank you. Enjoy the dice.",
+  "p": 1
+ },
+ {
+  "id": "2ea84bdb",
+  "voice": "el_clerk",
+  "text": "Welcome in. Sunglasses are on the front table, hats by the mirror.",
+  "p": 1
+ },
+ {
+  "id": "36cc5a46",
+  "voice": "el_clerk",
+  "text": "Welcome to Lago Luxe. Try anything on.",
+  "p": 1
+ },
+ {
+  "id": "41176dec",
+  "voice": "el_clerk",
+  "text": "Thank you. Lucky will take good care of you.",
+  "p": 1
+ },
+ {
+  "id": "4b69cbca",
+  "voice": "el_clerk",
+  "text": "[cold] Do that again and you will shop elsewhere.",
+  "p": 1
+ },
+ {
+  "id": "5a4e5402",
+  "voice": "el_clerk",
+  "text": "[firm, loud] Security! To the boutique, right now!",
+  "p": 1
+ },
+ {
+  "id": "5a75dd28",
+  "voice": "el_clerk",
+  "text": "Oh! Excuse you.",
+  "p": 1
+ },
+ {
+  "id": "6cf84ca3",
+  "voice": "el_clerk",
+  "text": "Ow! Not in the boutique!",
+  "p": 1
+ },
+ {
+  "id": "789daf66",
+  "voice": "el_clerk",
+  "text": "[shouting] SECURITY! Lago Luxe, please!",
+  "p": 1
+ },
+ {
+  "id": "85f06aed",
+  "voice": "el_clerk",
+  "text": "[cool] Careful, please. The displays are glass.",
+  "p": 1
+ },
+ {
+  "id": "86249e0a",
+  "voice": "el_clerk",
+  "text": "All yours. The sunglasses look great on you.",
+  "p": 1
+ },
+ {
+  "id": "8d3f0548",
+  "voice": "el_clerk",
+  "text": "Do mind the shelves.",
+  "p": 1
+ },
+ {
+  "id": "8ef111f5",
+  "voice": "el_clerk",
+  "text": "[icy] Charming. This is silk.",
+  "p": 1
+ },
+ {
+  "id": "adca58a7",
+  "voice": "el_clerk",
+  "text": "Wonderful choice. Have a great night.",
+  "p": 1
+ },
+ {
+  "id": "b713b61e",
+  "voice": "el_clerk",
+  "text": "A fedora. Very Rat Pack. Have a great night.",
+  "p": 1
+ },
+ {
+  "id": "ce01fa9b",
+  "voice": "el_clerk",
+  "text": "[cries out] OW! How DARE you!",
+  "p": 1
+ },
+ {
+  "id": "ce247605",
+  "voice": "el_clerk",
+  "text": "All yours. May they roll sevens.",
+  "p": 1
+ },
+ {
+  "id": "d5eae3d2",
+  "voice": "el_clerk",
+  "text": "I'm sorry, chips only, and you're a little short.",
+  "p": 1
+ },
+ {
+  "id": "e112181f",
+  "voice": "el_clerk",
+  "text": "[startled] Excuse me! Was that thrown at me?",
+  "p": 1
+ },
+ {
+  "id": "e2e7aaa8",
+  "voice": "el_clerk",
+  "text": "Thank you. Enjoy the fedora.",
+  "p": 1
+ },
+ {
+  "id": "f019e9df",
+  "voice": "el_clerk",
+  "text": "Good evening. Have a look around, take your time.",
+  "p": 1
+ },
+ {
+  "id": "f04f8fc0",
+  "voice": "el_clerk",
+  "text": "[yelling] OUCH! Security! Now!",
+  "p": 1
+ },
+ {
+  "id": "f47b1471",
+  "voice": "el_clerk",
+  "text": "Thank you. Enjoy the sunglasses.",
+  "p": 1
+ },
+ {
+  "id": "f5159463",
+  "voice": "el_clerk",
+  "text": "[gasps] On the cashmere? Really?",
+  "p": 1
+ },
+ {
+  "id": "05638d29",
+  "voice": "el_cook_burger",
+  "text": "[hollering] SECURITY! Trouble at the burger counter!",
+  "p": 1
+ },
+ {
+  "id": "0a8adc62",
+  "voice": "el_cook_burger",
+  "text": "Ow! Quit it, ya knucklehead!",
+  "p": 1
+ },
+ {
+  "id": "0b2ef86a",
+  "voice": "el_cook_burger",
+  "text": "[laughs] Easy now, the grill ain't goin' anywhere.",
+  "p": 1
+ },
+ {
+  "id": "17156029",
+  "voice": "el_cook_burger",
+  "text": "Hold your horses, I got yours on the grill!",
+  "p": 1
+ },
+ {
+  "id": "28dc90f8",
+  "voice": "el_cook_burger",
+  "text": "Smash burger, you got it. Give me a minute.",
+  "p": 1
+ },
+ {
+  "id": "2ee89d65",
+  "voice": "el_cook_burger",
+  "text": "Whoa there, partner!",
+  "p": 1
+ },
+ {
+  "id": "2fbb3ca5",
+  "voice": "el_cook_burger",
+  "text": "[annoyed] Well, that's one way to cool off the grill.",
+  "p": 1
+ },
+ {
+  "id": "303e841e",
+  "voice": "el_cook_burger",
+  "text": "Lago double, hot off the grill. Enjoy!",
+  "p": 1
+ },
+ {
+  "id": "317c8ff3",
+  "voice": "el_cook_burger",
+  "text": "[angry] Hey! I just washed this apron!",
+  "p": 1
+ },
+ {
+  "id": "35f80e43",
+  "voice": "el_cook_burger",
+  "text": "Real funny, friend. Real funny.",
+  "p": 1
+ },
+ {
+  "id": "370758ff",
+  "voice": "el_cook_burger",
+  "text": "Hungry? You came to the right place, friend.",
+  "p": 1
+ },
+ {
+  "id": "44210ec2",
+  "voice": "el_cook_burger",
+  "text": "[hollering] OW! Now that ain't how you order a burger!",
+  "p": 1
+ },
+ {
+  "id": "46fdbd49",
+  "voice": "el_cook_burger",
+  "text": "[shouting] Somebody get security over here, now!",
+  "p": 1
+ },
+ {
+  "id": "59788e4e",
+  "voice": "el_cook_burger",
+  "text": "The double cheeseburger? Atta way! Give me a few.",
+  "p": 1
+ },
+ {
+  "id": "68661e33",
+  "voice": "el_cook_burger",
+  "text": "Sorry, friend. Chips only, and you're comin' up short.",
+  "p": 1
+ },
+ {
+  "id": "700d888a",
+  "voice": "el_cook_burger",
+  "text": "[angry] Hey! Who's chuckin' things at the grill?!",
+  "p": 1
+ },
+ {
+  "id": "8230efe0",
+  "voice": "el_cook_burger",
+  "text": "Hey! Mind the spatula!",
+  "p": 1
+ },
+ {
+  "id": "866a3673",
+  "voice": "el_cook_burger",
+  "text": "[groans] Oh, that smarts! Security!",
+  "p": 1
+ },
+ {
+  "id": "89834f3c",
+  "voice": "el_cook_burger",
+  "text": "Smash burger, hot off the grill!",
+  "p": 1
+ },
+ {
+  "id": "91cb37be",
+  "voice": "el_cook_burger",
+  "text": "Order up! One smash burger.",
+  "p": 1
+ },
+ {
+  "id": "92878cfe",
+  "voice": "el_cook_burger",
+  "text": "[annoyed] Throw one more thing and you're flippin' burgers yourself.",
+  "p": 1
+ },
+ {
+  "id": "9d953e74",
+  "voice": "el_cook_burger",
+  "text": "Double cheese, double patty. You got it.",
+  "p": 1
+ },
+ {
+  "id": "a142990b",
+  "voice": "el_cook_burger",
+  "text": "Single smash? Good call. Comin' right up.",
+  "p": 1
+ },
+ {
+  "id": "afae116b",
+  "voice": "el_cook_burger",
+  "text": "[yelling] OUCH! You're eighty-sixed, buddy!",
+  "p": 1
+ },
+ {
+  "id": "c82aa2f2",
+  "voice": "el_cook_burger",
+  "text": "Howdy! Grill's hot. What're we havin'?",
+  "p": 1
+ },
+ {
+  "id": "d49608d7",
+  "voice": "el_cook_burger",
+  "text": "There ya go, one single smash. Dig in!",
+  "p": 1
+ },
+ {
+  "id": "d608584b",
+  "voice": "el_cook_burger",
+  "text": "Order up! One Lago double cheeseburger.",
+  "p": 1
+ },
+ {
+  "id": "dbf63f08",
+  "voice": "el_cook_burger",
+  "text": "One Lago double, comin' right up!",
+  "p": 1
+ },
+ {
+  "id": "f0270caf",
+  "voice": "el_cook_burger",
+  "text": "One at a time, partner. Yours is comin'.",
+  "p": 1
+ },
+ {
+  "id": "f44cbb6d",
+  "voice": "el_cook_burger",
+  "text": "One smash burger, on the grill!",
+  "p": 1
+ },
+ {
+  "id": "fb7c4411",
+  "voice": "el_cook_burger",
+  "text": "Here's your double. Napkins are on me!",
+  "p": 1
+ },
+ {
+  "id": "fcd2689d",
+  "voice": "el_cook_burger",
+  "text": "[laughs] Step on up! Nothin' fixes a bad night like a burger.",
+  "p": 1
+ },
+ {
+  "id": "017d00c6",
+  "voice": "el_cook_gelato",
+  "text": "[yelling] OUCH! Security! Aiuto!",
+  "p": 1
+ },
+ {
+  "id": "11608ce4",
+  "voice": "el_cook_gelato",
+  "text": "Ecco! One stracciatella cone. Enjoy!",
+  "p": 1
+ },
+ {
+  "id": "16138a09",
+  "voice": "el_cook_gelato",
+  "text": "Pistachio gelato, just for you. Buon appetito!",
+  "p": 1
+ },
+ {
+  "id": "18111b02",
+  "voice": "el_cook_gelato",
+  "text": "[yelling] Security! At the gelato counter, please!",
+  "p": 1
+ },
+ {
+  "id": "1948cbda",
+  "voice": "el_cook_gelato",
+  "text": "Un momento! I'm still scooping yours.",
+  "p": 1
+ },
+ {
+  "id": "22221db6",
+  "voice": "el_cook_gelato",
+  "text": "[annoyed] Not at the gelato, per favore!",
+  "p": 1
+ },
+ {
+  "id": "2469dd0a",
+  "voice": "el_cook_gelato",
+  "text": "[annoyed] Now I'm all sticky. Grazie mille.",
+  "p": 1
+ },
+ {
+  "id": "24ece6e0",
+  "voice": "el_cook_gelato",
+  "text": "One stracciatella cone, coming up!",
+  "p": 1
+ },
+ {
+  "id": "267ee2d8",
+  "voice": "el_cook_gelato",
+  "text": "Here you go, stracciatella. Eat it before it melts!",
+  "p": 1
+ },
+ {
+  "id": "29502471",
+  "voice": "el_cook_gelato",
+  "text": "[shouting] SECURITY! Aiuto! Help!",
+  "p": 1
+ },
+ {
+  "id": "57c90589",
+  "voice": "el_cook_gelato",
+  "text": "Easy! I'm holding a scoop!",
+  "p": 1
+ },
+ {
+  "id": "57f285f6",
+  "voice": "el_cook_gelato",
+  "text": "One pistachio cone, subito!",
+  "p": 1
+ },
+ {
+  "id": "6bf77a8e",
+  "voice": "el_cook_gelato",
+  "text": "Stracciatella! Molto bene. One moment.",
+  "p": 1
+ },
+ {
+  "id": "6d851d3f",
+  "voice": "el_cook_gelato",
+  "text": "Ciao! Something sweet tonight?",
+  "p": 1
+ },
+ {
+  "id": "6f347b3d",
+  "voice": "el_cook_gelato",
+  "text": "[startled] Ehi! Who threw that?!",
+  "p": 1
+ },
+ {
+  "id": "73e61cd2",
+  "voice": "el_cook_gelato",
+  "text": "Che schifo! That's disgusting!",
+  "p": 1
+ },
+ {
+  "id": "77f44e63",
+  "voice": "el_cook_gelato",
+  "text": "Ow! Basta!",
+  "p": 1
+ },
+ {
+  "id": "7cb18248",
+  "voice": "el_cook_gelato",
+  "text": "Ciao! Gelato, sorbetto, espresso. What makes you happy?",
+  "p": 1
+ },
+ {
+  "id": "819e737f",
+  "voice": "el_cook_gelato",
+  "text": "[groans] Ow! No gelato for you. Never!",
+  "p": 1
+ },
+ {
+  "id": "83c843d6",
+  "voice": "el_cook_gelato",
+  "text": "[cries out] OW! Mamma mia! Why?!",
+  "p": 1
+ },
+ {
+  "id": "888736f4",
+  "voice": "el_cook_gelato",
+  "text": "Here you go, pistachio. Eat it before it melts!",
+  "p": 1
+ },
+ {
+  "id": "9168bb05",
+  "voice": "el_cook_gelato",
+  "text": "Piano, piano! One at a time, yours is coming.",
+  "p": 1
+ },
+ {
+  "id": "9bd8ba61",
+  "voice": "el_cook_gelato",
+  "text": "Buonasera! Come, come, have a look.",
+  "p": 1
+ },
+ {
+  "id": "9f5cc9d9",
+  "voice": "el_cook_gelato",
+  "text": "Oh, mi dispiace. Chips only, and you're a little short.",
+  "p": 1
+ },
+ {
+  "id": "a93ed44b",
+  "voice": "el_cook_gelato",
+  "text": "Stracciatella, just for you. Buon appetito!",
+  "p": 1
+ },
+ {
+  "id": "b9b1b944",
+  "voice": "el_cook_gelato",
+  "text": "Ecco! One pistachio cone. Enjoy!",
+  "p": 1
+ },
+ {
+  "id": "c477316f",
+  "voice": "el_cook_gelato",
+  "text": "[startled] Ehi! Careful, please!",
+  "p": 1
+ },
+ {
+  "id": "ca77e91a",
+  "voice": "el_cook_gelato",
+  "text": "Pistachio! Bravo, the best one.",
+  "p": 1
+ },
+ {
+  "id": "d0d14228",
+  "voice": "el_cook_gelato",
+  "text": "[gasps] Ma dai! Seriously?!",
+  "p": 1
+ },
+ {
+  "id": "d5c22c9d",
+  "voice": "el_cook_gelato",
+  "text": "Ah! Piano, piano!",
+  "p": 1
+ },
+ {
+  "id": "eb305fb9",
+  "voice": "el_cook_gelato",
+  "text": "Ah, stracciatella. A classic. Subito!",
+  "p": 1
+ },
+ {
+  "id": "f7e34bc1",
+  "voice": "el_cook_gelato",
+  "text": "Pistachio, my favourite. Un momento.",
+  "p": 1
+ },
+ {
+  "id": "0321a930",
+  "voice": "el_cook_noodles",
+  "text": "One wok, one order. Yours is next.",
+  "p": 1
+ },
+ {
+  "id": "052f3d05",
+  "voice": "el_cook_noodles",
+  "text": "One sesame beef. My favourite.",
+  "p": 1
+ },
+ {
+  "id": "07018328",
+  "voice": "el_cook_noodles",
+  "text": "Hey. Careful.",
+  "p": 1
+ },
+ {
+  "id": "14419842",
+  "voice": "el_cook_noodles",
+  "text": "One garlic chili. Hope you like it spicy.",
+  "p": 1
+ },
+ {
+  "id": "1e729fcd",
+  "voice": "el_cook_noodles",
+  "text": "Garlic chili noodles. Good choice. Give me a minute.",
+  "p": 1
+ },
+ {
+  "id": "1fbb80cf",
+  "voice": "el_cook_noodles",
+  "text": "Here you go. Garlic chili noodles. Careful, they bite back.",
+  "p": 1
+ },
+ {
+  "id": "248a38df",
+  "voice": "el_cook_noodles",
+  "text": "Evening. Take your time. The menu's short and it's all good.",
+  "p": 1
+ },
+ {
+  "id": "257d9f5c",
+  "voice": "el_cook_noodles",
+  "text": "Really? That's the move?",
+  "p": 1
+ },
+ {
+  "id": "2c0480bf",
+  "voice": "el_cook_noodles",
+  "text": "Sorry. Chips only, and you're a little short.",
+  "p": 1
+ },
+ {
+  "id": "3350924f",
+  "voice": "el_cook_noodles",
+  "text": "Sesame beef noodles, hot from the wok.",
+  "p": 1
+ },
+ {
+  "id": "36a602be",
+  "voice": "el_cook_noodles",
+  "text": "[annoyed] I'm going to need a minute. And a towel.",
+  "p": 1
+ },
+ {
+  "id": "37739e19",
+  "voice": "el_cook_noodles",
+  "text": "Garlic chili noodles, coming right up.",
+  "p": 1
+ },
+ {
+  "id": "75b19b2d",
+  "voice": "el_cook_noodles",
+  "text": "[shouting] OW! Are you serious?!",
+  "p": 1
+ },
+ {
+  "id": "76b08943",
+  "voice": "el_cook_noodles",
+  "text": "Sesame beef. Into the wok it goes.",
+  "p": 1
+ },
+ {
+  "id": "78451b30",
+  "voice": "el_cook_noodles",
+  "text": "Sesame beef noodles, coming up.",
+  "p": 1
+ },
+ {
+  "id": "7e7a545c",
+  "voice": "el_cook_noodles",
+  "text": "Patience. Good noodles take a minute.",
+  "p": 1
+ },
+ {
+  "id": "9bee58e1",
+  "voice": "el_cook_noodles",
+  "text": "Welcome to Golden Dragon. Noodles are pulled fresh.",
+  "p": 1
+ },
+ {
+  "id": "aa66986e",
+  "voice": "el_cook_noodles",
+  "text": "Easy. Personal space.",
+  "p": 1
+ },
+ {
+  "id": "aa7d796d",
+  "voice": "el_cook_noodles",
+  "text": "Order up. Your garlic chili noodles.",
+  "p": 1
+ },
+ {
+  "id": "aadd65fd",
+  "voice": "el_cook_noodles",
+  "text": "Hi there. Hungry? The wok's ready when you are.",
+  "p": 1
+ },
+ {
+  "id": "ab5afeb1",
+  "voice": "el_cook_noodles",
+  "text": "Ow! Watch it.",
+  "p": 1
+ },
+ {
+  "id": "b55e5e29",
+  "voice": "el_cook_noodles",
+  "text": "[dry] The wok is hot. So is my temper.",
+  "p": 1
+ },
+ {
+  "id": "bd3f063e",
+  "voice": "el_cook_noodles",
+  "text": "[dry] Nice throw. Terrible idea.",
+  "p": 1
+ },
+ {
+  "id": "be06862e",
+  "voice": "el_cook_noodles",
+  "text": "Here you go. Sesame beef noodles. Enjoy.",
+  "p": 1
+ },
+ {
+  "id": "c90f6983",
+  "voice": "el_cook_noodles",
+  "text": "[yelling] OUCH! Okay. You're banned from noodles.",
+  "p": 1
+ },
+ {
+  "id": "cd5ab818",
+  "voice": "el_cook_noodles",
+  "text": "[groans] Ow. Security. Now, please.",
+  "p": 1
+ },
+ {
+  "id": "cf47fef1",
+  "voice": "el_cook_noodles",
+  "text": "[shouting] SECURITY! Noodle bar, please!",
+  "p": 1
+ },
+ {
+  "id": "d6beb8a8",
+  "voice": "el_cook_noodles",
+  "text": "Order up. Your sesame beef noodles.",
+  "p": 1
+ },
+ {
+  "id": "e67a7d74",
+  "voice": "el_cook_noodles",
+  "text": "[deadpan] Wonderful. Thank you for that.",
+  "p": 1
+ },
+ {
+  "id": "e9b079fa",
+  "voice": "el_cook_noodles",
+  "text": "[firm, loud] Security! Over here, right now!",
+  "p": 1
+ },
+ {
+  "id": "f028205f",
+  "voice": "el_cook_noodles",
+  "text": "[annoyed] Hey! Not at the kitchen!",
+  "p": 1
+ },
+ {
+  "id": "f04813be",
+  "voice": "el_cook_noodles",
+  "text": "Garlic chili noodles, hot from the wok.",
+  "p": 1
+ },
+ {
+  "id": "002d491d",
+  "voice": "el_cook_pizza",
+  "text": "Whoa, easy, pal!",
+  "p": 1
+ },
+ {
+  "id": "0e871e7e",
+  "voice": "el_cook_pizza",
+  "text": "[yelling] OUCH! You just lost your slice privileges, pal!",
+  "p": 1
+ },
+ {
+  "id": "128f76f8",
+  "voice": "el_cook_pizza",
+  "text": "Watch it, I got a hot oven here!",
+  "p": 1
+ },
+ {
+  "id": "17b9ad86",
+  "voice": "el_cook_pizza",
+  "text": "Real nice. Real nice. You want a slice with that?",
+  "p": 1
+ },
+ {
+  "id": "2918f25f",
+  "voice": "el_cook_pizza",
+  "text": "Pepperoni? Now we're talkin'. Gimme a minute.",
+  "p": 1
+ },
+ {
+  "id": "2cc8f3c8",
+  "voice": "el_cook_pizza",
+  "text": "[angry] Hey! I'm workin' here, ya know!",
+  "p": 1
+ },
+ {
+  "id": "2ccfebcc",
+  "voice": "el_cook_pizza",
+  "text": "Margherita! A classic. Comin' up.",
+  "p": 1
+ },
+ {
+  "id": "38055aa4",
+  "voice": "el_cook_pizza",
+  "text": "[angry] Hey! Who's throwin' stuff at the cook?!",
+  "p": 1
+ },
+ {
+  "id": "3e8fe9a7",
+  "voice": "el_cook_pizza",
+  "text": "One margherita, fresh basil and everything.",
+  "p": 1
+ },
+ {
+  "id": "48d79548",
+  "voice": "el_cook_pizza",
+  "text": "[laughs] Look at you, you look hungry. What'll it be?",
+  "p": 1
+ },
+ {
+  "id": "51a23c17",
+  "voice": "el_cook_pizza",
+  "text": "Order up! Your margherita slice.",
+  "p": 1
+ },
+ {
+  "id": "5e158b81",
+  "voice": "el_cook_pizza",
+  "text": "Order up! Your pepperoni slice.",
+  "p": 1
+ },
+ {
+  "id": "6894c2bc",
+  "voice": "el_cook_pizza",
+  "text": "Step right up! Best slice west of Brooklyn.",
+  "p": 1
+ },
+ {
+  "id": "74eddeeb",
+  "voice": "el_cook_pizza",
+  "text": "[annoyed] Aw, come on! On the apron?",
+  "p": 1
+ },
+ {
+  "id": "7a101d32",
+  "voice": "el_cook_pizza",
+  "text": "[yelling] Hey, SECURITY! Over here!",
+  "p": 1
+ },
+ {
+  "id": "8e444b83",
+  "voice": "el_cook_pizza",
+  "text": "Ah, sorry pal. Chips only, and you're a little short.",
+  "p": 1
+ },
+ {
+  "id": "91de03b9",
+  "voice": "el_cook_pizza",
+  "text": "Easy, easy! I got yours in already.",
+  "p": 1
+ },
+ {
+  "id": "98c784c8",
+  "voice": "el_cook_pizza",
+  "text": "[laughs] Hey, no shovin' at the counter!",
+  "p": 1
+ },
+ {
+  "id": "9fe68a3d",
+  "voice": "el_cook_pizza",
+  "text": "One pepperoni, comin' right up!",
+  "p": 1
+ },
+ {
+  "id": "a178b96f",
+  "voice": "el_cook_pizza",
+  "text": "Margherita, hot outta the oven. Enjoy!",
+  "p": 1
+ },
+ {
+  "id": "a20194a8",
+  "voice": "el_cook_pizza",
+  "text": "[annoyed] Knock it off, pal!",
+  "p": 1
+ },
+ {
+  "id": "a4a7d12f",
+  "voice": "el_cook_pizza",
+  "text": "[shouting] SECURITY! We got a wise guy at the pizza counter!",
+  "p": 1
+ },
+ {
+  "id": "acde99a7",
+  "voice": "el_cook_pizza",
+  "text": "Here ya go, one pepperoni. Careful, it's hot!",
+  "p": 1
+ },
+ {
+  "id": "b087746c",
+  "voice": "el_cook_pizza",
+  "text": "Ow! Throw the dough, not at the guy makin' it!",
+  "p": 1
+ },
+ {
+  "id": "cbf7f213",
+  "voice": "el_cook_pizza",
+  "text": "Pepperoni, hot outta the oven. Enjoy!",
+  "p": 1
+ },
+ {
+  "id": "d96ec1b4",
+  "voice": "el_cook_pizza",
+  "text": "You got it. One slice of margherita, into the oven.",
+  "p": 1
+ },
+ {
+  "id": "db441c5c",
+  "voice": "el_cook_pizza",
+  "text": "[shouting] OW! Hey! What're you, nuts?!",
+  "p": 1
+ },
+ {
+  "id": "e61e4115",
+  "voice": "el_cook_pizza",
+  "text": "[groans] Ohh, right in the kisser. Security!",
+  "p": 1
+ },
+ {
+  "id": "e98c7977",
+  "voice": "el_cook_pizza",
+  "text": "Here ya go, one margherita. Careful, it's hot!",
+  "p": 1
+ },
+ {
+  "id": "ed1b4dd7",
+  "voice": "el_cook_pizza",
+  "text": "Whoa, one at a time, boss. Yours is in the oven.",
+  "p": 1
+ },
+ {
+  "id": "f4fc9c8e",
+  "voice": "el_cook_pizza",
+  "text": "You got it, one slice of pepperoni. Into the oven.",
+  "p": 1
+ },
+ {
+  "id": "faf82275",
+  "voice": "el_cook_pizza",
+  "text": "Hey, how you doin'? Slices are hot, oven's hotter.",
+  "p": 1
+ },
+ {
   "id": "05d87aaa",
   "voice": "el_crew_dev",
   "text": "Easy there, champ!",

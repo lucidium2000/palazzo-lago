@@ -472,7 +472,8 @@ export class Hoops implements FloorGame {
       b.vx = Number(v[0]) || 0;
       b.vy = Number(v[1]) || 0;
       b.vz = Number(v[2]) || 0;
-      b.scored = true; // Their baskets count on their machine.
+      // The machine is everyone's: a friend's basket counts in the game running here (if one is).
+      b.scored = this.phase !== 'play';
     } else if (d.k === 's') {
       this.remote = { name: f.name, score: Number(d.s) || 0, timer: Number(d.t) || 0, until: this.time + (d.on ? 2 : 0) };
     }

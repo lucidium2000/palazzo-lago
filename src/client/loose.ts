@@ -423,6 +423,15 @@ export class LooseObjects {
     return this.kinds.find((k) => k.key === key)!;
   }
 
+  /**
+   * Adds kinds made elsewhere (the arcade's claw prizes) after the venue's.
+   * Every player's game adds the same ones in the same order, so a kind's
+   * index (what friends are told you're holding) is the same everywhere.
+   */
+  addKinds(defs: KindDef[]) {
+    for (const def of defs) if (!this.kindOf(def.key)) this.addKind(def);
+  }
+
   private addKind(def: KindDef) {
     const cap = def.key.startsWith('chip') ? 64 : 40;
     const mesh = new THREE.InstancedMesh(def.geo, def.mat, cap);

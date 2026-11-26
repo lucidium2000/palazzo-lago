@@ -7,7 +7,8 @@ import { lineId, type VoiceId } from './speech';
  * People talking out loud. Every line is a recorded clip (public/voices, made
  * with tools/voices/render.py) played as 3D sound from the speaker's mouth, so
  * you hear who is talking and where. Lines without a clip fall back to the
- * browser's speech voice. Captions are off unless you turn them on (or a line
+ * browser's speech voice, unless the caller asks for recordings only
+ * (`recordedOnly`: then it's a caption). Captions are off unless you turn them on (or a line
  * has no recording).
  */
 
@@ -50,6 +51,8 @@ export interface TalkOpts {
   captionFallback?: boolean;
   /** Browser speech fallback tone. */
   fallback?: { pitch?: number; rate?: number; voice?: number };
+  /** Never the browser's speech voice: a line with no recording is a caption only (if captionFallback allows). */
+  recordedOnly?: boolean;
 }
 
 const now = () => performance.now() / 1000;
@@ -150,6 +153,7 @@ class Voices {
     const s = this.sound;
     if (!s || s.muted) return dur ?? est;
     if (dur === null) {
+      if (o.recordedOnly) return est;
       s.say(shown, { ...o.fallback, volume: o.volume, interrupt: !!o.group && o.priority });
       return est;
     }

@@ -9,6 +9,21 @@ import type { ArcadeFriend, ArcadeSession } from './net';
 import type { CabinetMats } from './cabinet';
 import type { RawPad } from './types';
 import type { ControlInstances, TouchPoints } from './controls';
+import type { KindDef } from '../loose';
+
+/**
+ * The room's loose objects (loose.ts), as far as the floor games use them:
+ * the claw's prizes become real loose things (carried, thrown, put down and
+ * seen in your hands by friends like anything else).
+ */
+export interface ArcadeLoose {
+  /** New kinds of loose thing (every player's game adds the same, in the same order). */
+  addKinds(defs: KindDef[]): void;
+  /** Puts a new one into the world now (friends get it too, with the same id). */
+  spawnLive(key: string, x: number, z: number, fromY: number, o?: { yaw?: number; paid?: boolean }): unknown;
+  /** Tops loose things rest on. */
+  surfaces: { boxIn(fx: number, fz: number, fyaw: number, lx: number, lz: number, w: number, d: number, y: number): void };
+}
 
 /**
  * The physical floor games (hoops, air hockey, the claw) share this shape:
@@ -45,6 +60,8 @@ export interface FloorEnv {
   sit?(game: string, spot: number): void;
   /** A light quality tier (Quest 2, phones): games run their screens at lower rates. */
   light?: boolean;
+  /** The room's loose objects (won prizes go there), if it has them. */
+  loose?: ArcadeLoose | null;
 }
 
 export interface FloorFrame {

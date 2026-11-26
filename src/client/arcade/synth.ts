@@ -109,7 +109,8 @@ export class CabinetSound {
 
   /** A note with a pitch glide and a quick envelope. */
   tone(c: AudioContext, t: number, f0: number, f1: number, dur: number, wave: Wave, vol: number, dest?: AudioNode) {
-    if (voices >= MAX_VOICES) return;
+    // Silent (a puck barely touching a rail): nothing to play, and an exponential ramp to 0 throws.
+    if (voices >= MAX_VOICES || !(vol > 0.0002) || !(f0 > 0)) return;
     const o = this.osc(c, wave);
     const g = c.createGain();
     o.frequency.setValueAtTime(f0, t);
@@ -130,7 +131,7 @@ export class CabinetSound {
 
   /** Filtered noise (drums, explosions, swishes). */
   hiss(c: AudioContext, t: number, dur: number, type: BiquadFilterType, f0: number, f1: number, vol: number) {
-    if (voices >= MAX_VOICES) return;
+    if (voices >= MAX_VOICES || !(vol > 0.0002)) return;
     const s = c.createBufferSource();
     s.buffer = this.audio.noise(c);
     const f = c.createBiquadFilter();

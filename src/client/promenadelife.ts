@@ -8,8 +8,12 @@ import type { Item, LooseObjects } from './loose';
 import type { Crowd, Person } from './people';
 import type { Player } from './player';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
-import { COUNTERS, inStore, MERCH, onPromenade, servePoint, type CounterSpec, type FoodItemSpec, type MerchKey } from './areas/promenadeplan';
+import { COUNTER, COUNTERS, inStore, MERCH, onPromenade, servePoint, type CounterSpec, type FoodItemSpec, type MerchKey } from './areas/promenadeplan';
 import type { PromenadeArea, PromenadeCast } from './areas/promenade';
+import { elVoice } from './cast';
+import { CLERK_LINES, COOK_LINES, cookSpeaker, type CookId, type PromSpeaker } from './promenadelines';
+import { STAFF } from './speech';
+import { mouthOf, voices } from './voices';
 
 /**
  * Life on the Promenade: ordering at the food court's counters (like ordering
@@ -18,25 +22,36 @@ import type { PromenadeArea, PromenadeCast } from './areas/promenade';
  * up, pay at the counter), and your wardrobe (sunglasses on your eyes, a hat
  * on your head, shown to your friends).
  *
- * Staff speak in captions only: their lines (PROMENADE_LINES) aren't voiced
- * yet, so nothing here is synthesized.
+ * Staff speak in their own recorded voices (promenadelines.ts: Tony, Duke,
+ * Mei and Lucia at the counters, Simone at the register), from their mouths.
+ * A line that isn't recorded yet is a caption only: never the browser's
+ * robot voice. Your friends nearby hear (or read) the same line (onLine:
+ * net/npcsync.ts).
  */
-
-/** The cooks' and the clerk's lines (captions; to be recorded later). */
-export const PROMENADE_LINES = {
-  cookHello: ['What can I get you?', 'Hey fellas, what are we having?', 'Step right up. Hungry?'],
-  cookOrder: (dish: string) => [`One ${dish}, coming up.`, `${dish}? Good call. Give me a minute.`, `You got it. One ${dish}.`],
-  cookReady: (dish: string) => [`Here you go, one ${dish}. Enjoy!`, `${dish}, hot and ready.`, `Order up! Your ${dish}.`],
-  cookBusy: 'One at a time, boss. Yours is coming.',
-  broke: "Sorry, chips only, and you're a little short.",
-  clerkHello: ['Welcome to Lago Luxe. Try anything on.', 'Evening, gentlemen. Have a look around.', "Welcome in. Sunglasses are on the front table, hats by the mirror."],
-  clerkPaid: (what: string) => [`Thank you. Enjoy the ${what}.`, `All yours. The ${what} look${/s$/.test(what) ? '' : 's'} great on you.`, 'Wonderful choice. Have a great night.'],
-  clerkShoplift: "Sir? You'll want to pay for that at the counter.",
-};
 
 const pick = <T>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
 /** A dish's name mid-sentence ("one slice of pepperoni", but "one Lago double cheeseburger"). */
 const dish = (name: string) => (/^(Lago|Palazzo)\b/.test(name) ? name : name[0].toLowerCase() + name.slice(1));
+
+/** A staff line for your friends (the same take, from the same person). */
+export type StaffLine = { text: string; voice: string; alt?: string; who: string };
+
+/**
+ * One of the Promenade's staff says a line: their recorded voice from their
+ * mouth, or a caption if it isn't recorded (never synthesized speech).
+ * Returns how long they talk.
+ */
+export function staffSay(crowd: Crowd, p: Person | null, speaker: PromSpeaker, who: string, text: string, at: THREE.Vector3, onLine: ((p: Person, l: StaffLine) => void) | null): number {
+  const voice = elVoice(speaker);
+  const alt = STAFF[speaker];
+  if (p) onLine?.(p, { text, voice, alt, who });
+  const dur = voices.talk({ who, text, voice, alt, at: p ? mouthOf(p) : () => at, priority: true, group: speaker, recordedOnly: true });
+  if (p) {
+    crowd.speak(p, dur);
+    p.attendUntil = crowd.now + dur + 1;
+  }
+  return dur;
+}
 
 // ---------------------------------------------------------------------------
 // Food court
@@ -72,6 +87,8 @@ export class FoodCourt {
   readonly stats = { ordered: 0, served: 0 };
   /** You got food (night goals, the crew can comment). */
   onServed: ((item: Item, spec: FoodItemSpec) => void) | null = null;
+  /** A cook said a line to you (your friends nearby hear it too: net/npcsync.ts). */
+  onLine: ((p: Person, l: StaffLine) => void) | null = null;
 
   constructor(private d: FoodCourtDeps) {
     for (const spot of d.area.menuSpots) {
@@ -131,30 +148,29 @@ export class FoodCourt {
     return this.d.cast()?.servers.get(c.id) ?? null;
   }
 
+  private lines(c: CounterSpec) {
+    return COOK_LINES[c.id as CookId];
+  }
+
   private say(c: CounterSpec, text: string) {
-    this.d.hud.say(c.brand, text);
-    const p = this.cook(c);
-    if (p) {
-      this.d.crowd.speak(p, Math.min(3, 0.8 + text.length * 0.05));
-      p.attendUntil = this.d.crowd.now + 2.5;
-    }
+    staffSay(this.d.crowd, this.cook(c), cookSpeaker(c.id), c.brand, text, new THREE.Vector3(c.x, 1.6, COUNTER.z - 0.85), this.onLine);
   }
 
   /** Order a dish at a counter: pay, the cook makes it, it lands on the counter for you. */
   order(c: CounterSpec, item: FoodItemSpec): boolean {
     if (this.orders.has(c.id)) {
-      this.say(c, PROMENADE_LINES.cookBusy);
+      this.say(c, pick(this.lines(c).busy));
       return false;
     }
     if (!this.d.bankroll.canAfford(item.price)) {
-      this.say(c, PROMENADE_LINES.broke);
+      this.say(c, pick(this.lines(c).broke));
       this.d.sound.play('denied', this.d.area.menuSpots.find((s) => s.counter === c)!.pos, { volume: 0.5 });
       return false;
     }
     this.d.bankroll.debit(item.price, 'bet', 'food');
     this.orders.set(c.id, { counter: c, item, t: 0, total: item.prep });
     this.stats.ordered++;
-    this.say(c, pick(PROMENADE_LINES.cookOrder(dish(item.name))));
+    this.say(c, pick(this.lines(c).order[item.name] ?? this.lines(c).hello));
     const cook = this.cook(c);
     if (cook) {
       cook.actionKind = 'pour';
@@ -174,7 +190,7 @@ export class FoodCourt {
     const sp = servePoint(c, slot);
     const it = this.d.loose.spawnLive(o.item.key, sp.x, sp.z, sp.y + 0.25, { yaw: Math.PI + (Math.random() - 0.5) * 0.4 });
     this.d.sound.play('ding', new THREE.Vector3(sp.x, sp.y + 0.3, sp.z), { volume: 0.5, rate: 1.3 });
-    this.say(c, pick(PROMENADE_LINES.cookReady(dish(o.item.name))));
+    this.say(c, pick(this.lines(c).ready[o.item.name] ?? this.lines(c).hello));
     this.d.hud.toast(this.d.player.inXR ? `Your ${dish(o.item.name)} is on the counter · grab it, bring it to your mouth` : `Your ${dish(o.item.name)} is on the counter · click it, F to take a bite`, 'win');
     this.stats.served++;
     if (it) this.onServed?.(it, o.item);
@@ -198,7 +214,7 @@ export class FoodCourt {
       const last = this.greeted.get(c.id) ?? -Infinity;
       if (this.time - last > 60 && !this.orders.has(c.id)) {
         this.greeted.set(c.id, this.time);
-        this.say(c, pick(PROMENADE_LINES.cookHello));
+        this.say(c, pick(this.lines(c).hello));
       }
     }
   }
@@ -227,6 +243,8 @@ export class Boutique {
   private warnedAt = -Infinity;
   private time = 0;
   readonly stats = { sold: 0, spent: 0 };
+  /** The clerk said a line to you (your friends nearby hear it too). */
+  onLine: ((p: Person, l: StaffLine) => void) | null = null;
 
   constructor(private d: BoutiqueDeps) {
     // The register: click it (or point and pull the trigger) with stock in your hand to pay.
@@ -251,12 +269,7 @@ export class Boutique {
   }
 
   private say(text: string) {
-    this.d.hud.say('Lago Luxe', text);
-    const p = this.d.cast()?.clerk;
-    if (p) {
-      this.d.crowd.speak(p, Math.min(3, 0.8 + text.length * 0.05));
-      p.attendUntil = this.d.crowd.now + 3;
-    }
+    staffSay(this.d.crowd, this.d.cast()?.clerk ?? null, 'clerk', 'Lago Luxe', text, this.d.area.register.clone().setY(1.6), this.onLine);
   }
 
   /** Pays for whatever stock you're holding. */
@@ -268,7 +281,7 @@ export class Boutique {
     }
     const cost = this.total(due);
     if (!this.d.bankroll.canAfford(cost)) {
-      this.say(PROMENADE_LINES.broke);
+      this.say(pick(CLERK_LINES.broke));
       this.d.sound.play('denied', this.d.area.register, { volume: 0.5 });
       return false;
     }
@@ -279,8 +292,7 @@ export class Boutique {
     this.d.sound.play('chips', this.d.area.register, { volume: 0.6 });
     setTimeout(() => this.d.sound.play('ding', this.d.area.register, { volume: 0.45, rate: 1.6 }), 250);
     const first = due[0];
-    const name = MERCH[first.kind.merch!].name.replace(/^Lago Luxe |^Palazzo /, '');
-    this.say(pick(PROMENADE_LINES.clerkPaid(name)));
+    this.say(pick(CLERK_LINES.paid[first.kind.merch!]));
     const wear = MERCH[first.kind.merch!].wear;
     this.d.hud.toast(
       wear ? (this.d.player.inXR ? `Paid $${cost} · hold ${wear === 'eyes' ? 'them to your eyes' : 'it on your head'} to put ${wear === 'eyes' ? 'them' : 'it'} on` : `Paid $${cost} · F to put ${wear === 'eyes' ? 'them' : 'it'} on`) : `Paid $${cost} · it's yours`,
@@ -295,12 +307,12 @@ export class Boutique {
     const inside = inStore(f.x, f.z);
     if (inside && !this.wasIn && this.time - this.greetedAt > 90) {
       this.greetedAt = this.time;
-      this.say(pick(PROMENADE_LINES.clerkHello));
+      this.say(pick(CLERK_LINES.hello));
     }
     // Walking out with something you haven't paid for: the clerk notices (no harm done).
     if (!inside && this.wasIn && this.d.loose.unpaidHeld().length && this.time - this.warnedAt > 30) {
       this.warnedAt = this.time;
-      this.say(PROMENADE_LINES.clerkShoplift);
+      this.say(pick(CLERK_LINES.shoplift));
     }
     this.wasIn = inside;
     // VR: hold a piece of stock up to the register and it rings up.

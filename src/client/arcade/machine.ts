@@ -32,6 +32,101 @@ export interface MachineHooks {
 
 const PAGE = 5.5;
 
+/** A machine's whole running state (for handing a game over to another player): see saveState. */
+export interface MachineState {
+  mode: Mode;
+  modeT: number;
+  beat: number;
+  lastScore: number;
+  placed: number;
+  human2: boolean;
+  /** Initials being entered: the letters so far and where the cursor is. */
+  entry: { text: string; pos: number } | null;
+  game: unknown;
+}
+
+// --- Generic deep state (any game: numbers, strings, typed arrays, arrays, objects, Maps, Sets) ---------
+
+/** Keys never carried: the game's fixed description and its sound hook. */
+const SKIP = new Set(['meta', 'sfx']);
+
+/**
+ * A game object's whole state as plain JSON-safe data: every own field, deep
+ * (typed arrays as number lists, non-finite numbers as markers), functions
+ * left out. Works for any game class without it doing anything (a new
+ * cabinet's game is covered as long as its state lives in its fields).
+ */
+export function deepState(v: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : { $n: String(v) };
+  if (v === null || typeof v === 'string' || typeof v === 'boolean') return v;
+  if (typeof v !== 'object' || depth > 10) return undefined;
+  if (seen.has(v)) return undefined;
+  seen.add(v);
+  if (ArrayBuffer.isView(v)) return { $t: Array.from(v as unknown as ArrayLike<number>, (x) => (Number.isFinite(x) ? x : 0)) };
+  if (Array.isArray(v)) return v.map((x) => deepState(x, depth + 1, seen) ?? null);
+  if (v instanceof Map) return { $m: [...v].map(([k, x]) => [deepState(k, depth + 1, seen), deepState(x, depth + 1, seen)]) };
+  if (v instanceof Set) return { $s: [...v].map((x) => deepState(x, depth + 1, seen)) };
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(v)) {
+    if (depth === 0 && SKIP.has(k)) continue;
+    const x = (v as Record<string, unknown>)[k];
+    if (typeof x === 'function') continue;
+    const d = deepState(x, depth + 1, seen);
+    if (d !== undefined) out[k] = d;
+  }
+  return out;
+}
+
+/** Plain data back to values (no target to merge into). */
+function revive(d: unknown): unknown {
+  if (d === null || typeof d !== 'object') return d;
+  if (Array.isArray(d)) return d.map(revive);
+  const o = d as Record<string, unknown>;
+  if ('$n' in o) return Number(o.$n);
+  if ('$t' in o) return Float64Array.from(o.$t as number[]);
+  if ('$m' in o) return new Map((o.$m as unknown[][]).map(([k, x]) => [revive(k), revive(x)]));
+  if ('$s' in o) return new Set((o.$s as unknown[]).map(revive));
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(o)) out[k] = revive(o[k]);
+  return out;
+}
+
+/**
+ * Pours deepState's data back into a live object: fields of class instances
+ * (and typed arrays) are filled in place, so methods and array types stay.
+ */
+export function loadDeepState(target: object, data: unknown, depth = 0) {
+  if (!data || typeof data !== 'object' || Array.isArray(data) || depth > 10) return;
+  const t = target as Record<string, unknown>;
+  for (const k of Object.keys(data as Record<string, unknown>)) {
+    if (depth === 0 && SKIP.has(k)) continue;
+    const dv = (data as Record<string, unknown>)[k];
+    const tv = t[k];
+    if (typeof tv === 'function') continue;
+    if (ArrayBuffer.isView(tv) && dv && typeof dv === 'object' && '$t' in dv) {
+      const arr = (dv as { $t: number[] }).$t;
+      const ta = tv as unknown as { length: number; set(a: ArrayLike<number>): void; fill(v: number): void; constructor: new (n: number) => unknown };
+      if (ta.length === arr.length) ta.set(arr);
+      else {
+        const fresh = new ta.constructor(arr.length) as { set(a: ArrayLike<number>): void };
+        fresh.set(arr);
+        t[k] = fresh;
+      }
+    } else if (Array.isArray(dv)) {
+      if (Array.isArray(tv)) {
+        for (let i = 0; i < dv.length; i++) {
+          const e = tv[i];
+          if (e && typeof e === 'object' && !Array.isArray(e) && !ArrayBuffer.isView(e) && dv[i] && typeof dv[i] === 'object' && !Array.isArray(dv[i])) loadDeepState(e, dv[i], depth + 1);
+          else tv[i] = revive(dv[i]);
+        }
+        tv.length = dv.length;
+      } else t[k] = revive(dv);
+    } else if (dv && typeof dv === 'object' && !('$n' in dv) && !('$t' in dv) && !('$m' in dv) && !('$s' in dv) && tv && typeof tv === 'object' && !(tv instanceof Map) && !(tv instanceof Set)) {
+      loadDeepState(tv, dv, depth + 1);
+    } else t[k] = revive(dv);
+  }
+}
+
 export class Machine {
   mode: Mode = 'attract';
   /** Raw controls from whoever is at each set (hands, keys, a friend's messages). */
@@ -120,6 +215,60 @@ export class Machine {
       else this.setMode('attract');
       this.attractT = 0;
     }
+  }
+
+  /**
+   * Everything about the running game (mode, timers, initials, and the game's
+   * own fields, deep): another player's machine can load it and carry on
+   * exactly where this one is, as its new owner.
+   */
+  saveState(): MachineState {
+    return {
+      mode: this.mode === 'mirror' ? 'attract' : this.mode,
+      modeT: this.modeT,
+      beat: this.beat,
+      lastScore: this.lastScore,
+      placed: this.placed,
+      human2: this.human2,
+      entry: this.entry ? { text: this.entry.text, pos: this.entry.pos } : null,
+      game: deepState(this.game),
+    };
+  }
+
+  /** Carries on from another machine's saveState (taking the game over). False if it doesn't look like one. */
+  loadState(st: unknown): boolean {
+    const s = st as Partial<MachineState> | null;
+    if (!s || typeof s !== 'object' || !MODES.includes(s.mode as Mode) || s.mode === 'mirror') return false;
+    loadDeepState(this.game, s.game);
+    this.mode = s.mode as Mode;
+    this.modeT = Number(s.modeT) || 0;
+    this.beat = Number(s.beat) || 0;
+    this.lastScore = Number(s.lastScore) || 0;
+    this.placed = Number.isInteger(s.placed) ? (s.placed as number) : -1;
+    this.human2 = !!s.human2;
+    this.entry = null;
+    if (s.entry && typeof s.entry.text === 'string') {
+      this.entry = new InitialsEntry(s.entry.text);
+      this.entry.pos = Math.max(0, Math.min(2, Number(s.entry.pos) || 0));
+    }
+    if (this.mode === 'initials' && !this.entry) this.entry = new InitialsEntry(this.hooks.lastInitials?.() ?? 'AAA');
+    // Fresh edges: a button someone was already holding isn't a new press here.
+    this.e1.reset();
+    this.e2.reset();
+    this.acc = 0;
+    this.dirty = true;
+    return true;
+  }
+
+  /** I handed my running game to a friend: from now on this screen shows theirs. */
+  handOff(name: string) {
+    const was = this.mode;
+    this.mode = 'mirror';
+    this.modeT = 0;
+    this.mirrorName = name;
+    this.mirrorMode = was === 'mirror' ? 'play' : was;
+    this.mirrorT = 2.5;
+    this.dirty = true;
   }
 
   /** Shows a friend's game (their snapshot), until they stop sending. */
