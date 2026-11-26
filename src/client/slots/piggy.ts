@@ -701,7 +701,7 @@ export class PiggyMachineView {
     if (out.lineWin > 0) {
       const bet = out.bet;
       const big = out.lineWin >= bet * 10;
-      this.ctx.sound.play(big ? 'winBig' : 'winSmall', this.screen.mesh);
+      this.ctx.sound.play(big ? 'jackpot' : 'winSmall', this.screen.mesh);
       if (big && !out.free) celebrateFor = this.celebrateWin(out.lineWin, bet);
       else if (big) this.shower(Math.min(120, 30 + out.lineWin / bet));
       this.tweens.add(Math.min(3, 0.6 + out.lineWin / bet / 8), (k) => {
@@ -721,7 +721,7 @@ export class PiggyMachineView {
       this.after(0.4 + 0.15 * out.jackpotCoins.length, () => {
         this.showBanner(`${JACKPOT_NAMES[w.jackpot]}!`, money(w.amount), JP_COLORS[w.jackpot], 2.6, true);
         this.jpFlash[w.jackpot] = this.time + 1.5;
-        this.ctx.sound.play('winBig', this.screen.mesh);
+        this.ctx.sound.play('jackpot', this.screen.mesh);
         this.shower(40 + w.jackpot * 30, JACKPOT_NAMES[w.jackpot]);
         if (w.jackpot >= 2) this.ctx.sound.play('cheer', this.screen.mesh, { volume: 0.8 });
         if (!this.remote) this.ctx.hud.toast(`${JACKPOT_NAMES[w.jackpot]} jackpot · ${money(w.amount)}`, 'win');
@@ -931,7 +931,7 @@ export class PiggyMachineView {
     const b = this.game.bonus!;
     this.mode = 'bonusEnd';
     const big = b.won >= b.totalBet * 30;
-    this.ctx.sound.play(big ? 'winBig' : 'winSmall', this.screen.mesh);
+    this.ctx.sound.play(big ? 'jackpot' : 'winSmall', this.screen.mesh);
     if (big) this.ctx.sound.play('banjo', this.screen.mesh, { volume: 0.7 });
     this.shower(Math.min(160, 30 + b.won / b.totalBet));
     for (const c of COLORS) this.pig2[c].cheer = 3;

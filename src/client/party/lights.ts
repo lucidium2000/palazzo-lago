@@ -444,7 +444,7 @@ export class PartyLights {
     this.beams.instanceColor!.needsUpdate = true;
 
     // Lasers on the drop (and strobing through the build's last bar).
-    const lastBar = b.section === 'build' && b.cycleBar === 31;
+    const lastBar = b.section === 'build' && b.secBar === b.secLen - 1;
     const laserOn = b.section === 'drop' || lastBar;
     const n = laserOn ? this.lasers.instanceMatrix.count : 0;
     this.lasers.count = n;
@@ -464,7 +464,7 @@ export class PartyLights {
         this.lasers.setMatrixAt(i, this.dummy.matrix);
         // Alternate halves blink on the beat in the second half of the drop.
         let on = 1;
-        if (b.cycleBar >= 8 && b.section === 'drop') on = (i + b.beat) % 2 ? 1 : 0.15;
+        if (b.secBar >= 8 && b.section === 'drop') on = (i + b.beat) % 2 ? 1 : 0.15;
         if (lastBar) on = Math.sin(ph * Math.PI * 8) > 0 ? 1 : 0;
         this.col.setHSL(i % 3 === 0 ? (lh + 0.5) % 1 : lh, 1, 0.5).multiplyScalar(on * (0.6 + 0.4 * b.pulse));
         this.lasers.setColorAt(i, this.col);

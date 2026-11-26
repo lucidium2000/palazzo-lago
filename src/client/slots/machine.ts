@@ -575,7 +575,8 @@ export class SlotMachineView {
     if (this.game.phase === 'freeSpins' || this.wasFeature) this.featureTotal += pending;
     if (out.win > 0) {
       const big = out.win >= (this.game.phase === 'freeSpins' ? this.game.freeSpinBet : this.game.bet) * 15;
-      this.ctx.sound.play(big ? 'winBig' : 'winSmall', this.screen.mesh);
+      // A big win rings the recorded jackpot bells (coins into the tray).
+      this.ctx.sound.play(big ? 'jackpot' : 'winSmall', this.screen.mesh);
       this.tweens.add(Math.min(2.5, 0.6 + out.win / 200), (k) => {
         this.shownWin = Math.round(out.win * k * 100) / 100;
         this.dirty = true;
@@ -610,7 +611,7 @@ export class SlotMachineView {
     this.mode = 'showing';
     this.winTimer = 0;
     if (out.win > 0) {
-      this.ctx.sound.play(out.win >= this.remoteBet * 15 ? 'winBig' : 'winSmall', this.screen.mesh, { volume: 0.7 });
+      this.ctx.sound.play(out.win >= this.remoteBet * 15 ? 'jackpot' : 'winSmall', this.screen.mesh, { volume: 0.7 });
       this.tweens.add(Math.min(2.5, 0.6 + out.win / 200), (k) => {
         this.shownWin = Math.round(out.win * k * 100) / 100;
         this.dirty = true;
@@ -655,7 +656,7 @@ export class SlotMachineView {
     const won = this.game.pick(i);
     this.onPick?.(won, st.picksLeft === 0, st.won);
     this.pickRevealAt.set(i, this.time);
-    this.ctx.sound.play(won >= st.totalBet * 20 ? 'winBig' : 'winSmall', this.screen.mesh);
+    this.ctx.sound.play(won >= st.totalBet * 20 ? 'jackpot' : 'winSmall', this.screen.mesh);
     this.dirty = true;
     this.deck.redraw();
     if (st.picksLeft === 0) {

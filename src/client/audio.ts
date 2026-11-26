@@ -1,11 +1,19 @@
 import * as THREE from 'three';
-import { buildWalla, renderFloor } from './ambience';
+import { AMBIENCE_RATE, buildWalla, renderFloor } from './ambience';
+import { decodeAudio } from './musicload';
+import { arrangement, detectSections, plainArrangement, type Arrangement } from './party/beat';
+import { TRACKS } from './party/setlist';
 
 /**
- * Synthesized sound effects. Every sound is generated in code at startup, so
- * there are no audio files to download. Sounds are positional: in VR a chip
- * clack comes from the felt, the slot jingle from the machine. (The room
- * tone's crowd murmur is the exception: see ambience.ts.)
+ * The game's sound. Most effects are synthesized in code at startup; a few
+ * are recordings (public/audio/: the slot jackpot, the pool crowd's cheer and
+ * applause), fetched once audio is unlocked, with a synthesized stand-in until
+ * they arrive (or if they can't be had). Sounds are positional: in VR a chip
+ * clack comes from the felt, the slot jingle from the machine.
+ *
+ * The casino floor's music is a real track (casino_lounge.mp3, fetched after
+ * the loading screen), and the room tone is procedural with a recorded room
+ * underneath (see ambience.ts).
  */
 
 type SoundName =
@@ -46,7 +54,13 @@ type SoundName =
   | 'whoosh'
   | 'thunk'
   | 'swim'
-  | 'land';
+  | 'land'
+  | SampleName;
+
+/** Recorded effects (public/audio/<name>.mp3) and the synthesized sound that stands in for each until it's loaded. */
+const SAMPLES = { jackpot: 'winBig', crowdCheer: 'cheer', applause: 'cheer' } as const;
+type SampleName = keyof typeof SAMPLES;
+const SAMPLE_FILES: Record<SampleName, string> = { jackpot: 'jackpot', crowdCheer: 'cheer', applause: 'applause' };
 
 const rand = (() => {
   let s = 12345;
@@ -70,7 +84,7 @@ function bell(f: number, t: number, decay = 0.4) {
   return (Math.sin(2 * Math.PI * f * t) + 0.35 * Math.sin(2 * Math.PI * f * 2.01 * t) + 0.15 * Math.sin(2 * Math.PI * f * 3.02 * t)) * env(t, 0.004, decay);
 }
 
-type Buffers = Record<SoundName, AudioBuffer> & { variants: Partial<Record<SoundName, AudioBuffer[]>> };
+type Buffers = Record<Exclude<SoundName, SampleName>, AudioBuffer> & { variants: Partial<Record<SoundName, AudioBuffer[]>> };
 
 function buildBuffers(ctx: BaseAudioContext): Buffers {
   // One-pole filters, stateful per buffer.
@@ -401,10 +415,73 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
 const AMB_WALLA = 0.135;
 const AMB_FLOOR = 0.115;
 
-const pick = (b: Buffers, name: SoundName) => {
+/** The recorded room under the procedural floor (floor_loop.mp3), mixed low. */
+const AMB_ROOM = 0.06;
+
+const pick = (b: Buffers, name: Exclude<SoundName, SampleName>) => {
   const v = b.variants[name];
   return v ? v[Math.floor(Math.random() * v.length)] : b[name];
 };
+
+/** A loop's seam smoothed: its last `fade` seconds crossfaded into its start (the loop gets that much shorter). */
+function smoothSeam(buf: AudioBuffer, fade = 0.08): AudioBuffer {
+  const sr = buf.sampleRate,
+    f = Math.round(fade * sr),
+    n = buf.length - f;
+  const out = new AudioBuffer({ numberOfChannels: buf.numberOfChannels, length: n, sampleRate: sr });
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    const src = buf.getChannelData(c),
+      dst = out.getChannelData(c);
+    dst.set(src.subarray(0, n));
+    for (let i = 0; i < f; i++) {
+      const k = i / f;
+      dst[i] = src[i] * Math.sin((k * Math.PI) / 2) + src[n + i] * Math.cos((k * Math.PI) / 2);
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// The casino floor's music: casino_lounge.mp3, lounge house at 116 bpm.
+// ---------------------------------------------------------------------------
+
+/** The lounge track as measured. */
+export const LOUNGE = TRACKS.casino_lounge;
+/** Bars of it that are music (it rings out into silence after its 56th bar): the loop. */
+export const LOUNGE_BARS = (() => {
+  const lv = LOUNGE.perBar.map((p) => p.level);
+  const loud = Math.max(...lv);
+  let n = lv.length;
+  while (n > 1 && lv[n - 1] < loud - 30) n--;
+  return n;
+})();
+/** What the lounge track is doing bar by bar (the guests dance to it). */
+export const LOUNGE_SET: Arrangement = arrangement(LOUNGE.bpm, detectSections(LOUNGE.perBar.slice(0, LOUNGE_BARS), true));
+/** Decoded and kept at this rate (stereo): ~30 MB for the 116 s loop instead of ~45 MB at 48 kHz. */
+const MUSIC_RATE = 32000;
+
+/**
+ * The lounge track as a seamless loop: from its first beat, `LOUNGE_BARS` long,
+ * with its ring-out folded back onto the start and its pickup onto the end.
+ */
+async function loadLounge(): Promise<AudioBuffer> {
+  const src = await decodeAudio('casino_lounge', MUSIC_RATE);
+  const sr = src.sampleRate;
+  const n = Math.round(((LOUNGE_BARS * 4 * 60) / LOUNGE.bpm) * sr);
+  const s0 = Math.round(LOUNGE.firstBeat * sr);
+  const out = new AudioBuffer({ numberOfChannels: src.numberOfChannels, length: n, sampleRate: sr });
+  for (let c = 0; c < src.numberOfChannels; c++) {
+    const d = src.getChannelData(c),
+      o = out.getChannelData(c);
+    o.set(d.subarray(s0, s0 + n));
+    // The tail past the loop (up to 4 s of ring-out) onto the start, faded out so nothing is cut.
+    const tail = Math.min(d.length - s0 - n, 4 * sr);
+    for (let i = 0; i < tail; i++) o[i % n] += d[s0 + n + i] * (1 - i / tail);
+    for (let i = 0; i < s0; i++) o[n - s0 + i] += d[i];
+  }
+  return out;
+}
+
 
 export class Sound {
   readonly listener = new THREE.AudioListener();
@@ -424,6 +501,7 @@ export class Sound {
       this.startAmbience();
       this.flushAmbient();
       this.startMusic();
+      this.loadSamples();
     };
     addEventListener('pointerdown', unlock);
     addEventListener('keydown', unlock);
@@ -432,6 +510,35 @@ export class Sound {
   private ensure() {
     if (!this.buffers) this.buffers = buildBuffers(this.listener.context);
     return this.buffers;
+  }
+
+  /** The recorded effects, once loaded (until then, and if they fail, their synthesized stand-ins play). */
+  private samples: Partial<Record<SampleName, AudioBuffer>> = {};
+  private samplesAsked = false;
+
+  private loadSamples() {
+    if (this.samplesAsked) return;
+    this.samplesAsked = true;
+    for (const name of Object.keys(SAMPLES) as SampleName[]) {
+      decodeAudio(SAMPLE_FILES[name], this.listener.context.sampleRate).then(
+        (b) => (this.samples[name] = b),
+        (e) => console.warn('Sound: no recording for', name, e),
+      );
+    }
+  }
+
+  /** The buffer a sound plays (a recording if it's in, else synthesized). */
+  private bufferOf(name: SoundName): AudioBuffer {
+    if (name in SAMPLES) {
+      const s = name as SampleName;
+      return this.samples[s] ?? pick(this.ensure(), SAMPLES[s]);
+    }
+    return pick(this.ensure(), name as Exclude<SoundName, SampleName>);
+  }
+
+  /** Whether a recorded effect is loaded (else its stand-in plays). */
+  hasRecording(name: SampleName): boolean {
+    return !!this.samples[name];
   }
 
   // Room tone: two seamless loops (see ambience.ts). The slot floor + air
@@ -465,6 +572,8 @@ export class Sound {
     // Slots thin out faster than the crowd as you step outside (curve > 1).
     renderFloor().then((b) => add(b, AMB_FLOOR, 1.6), () => {});
     buildWalla().then((b) => add(b, AMB_WALLA, 1), () => {});
+    // A recorded room under it, low: real air and distance the synthesized floor doesn't have.
+    decodeAudio('floor_loop', AMBIENCE_RATE).then((b) => add(smoothSeam(b), AMB_ROOM, 1.6), () => {});
   }
 
   /** Room tone level (quieter out on the terrace). */
@@ -479,17 +588,17 @@ export class Sound {
   }
 
   /** Plays a one-shot at a world position (or attached to an object). */
-  play(name: SoundName, at?: THREE.Vector3 | THREE.Object3D, opts: { volume?: number; rate?: number } = {}) {
+  play(name: SoundName, at?: THREE.Vector3 | THREE.Object3D, opts: { volume?: number; rate?: number; ref?: number; rolloff?: number } = {}) {
     if (this.listener.context.state !== 'running') return null;
-    const buffers = this.ensure();
     let a = this.pool.find((p) => !p.isPlaying);
     if (!a) {
       if (this.pool.length >= 24) return null;
       a = new THREE.PositionalAudio(this.listener);
-      a.setRefDistance(1.2);
-      a.setRolloffFactor(1.4);
       this.pool.push(a);
     }
+    // A crowd far across the deck carries (ref/rolloff); a chip clack doesn't.
+    a.setRefDistance(opts.ref ?? 1.2);
+    a.setRolloffFactor(opts.rolloff ?? 1.4);
     a.removeFromParent();
     if (at instanceof THREE.Object3D) {
       a.position.set(0, 0, 0);
@@ -498,7 +607,7 @@ export class Sound {
       a.position.copy(at ?? new THREE.Vector3());
       this.scene.add(a);
     }
-    a.setBuffer(pick(buffers, name));
+    a.setBuffer(this.bufferOf(name));
     a.setLoop(false);
     a.setVolume(opts.volume ?? 1);
     a.setPlaybackRate(opts.rate ?? 1);
@@ -511,14 +620,13 @@ export class Sound {
   /** A one-shot that is not placed in the world (your own footsteps). */
   playLocal(name: SoundName, volume = 1, rate = 1) {
     if (this.listener.context.state !== 'running') return;
-    const buffers = this.ensure();
     let a = this.local.find((p) => !p.isPlaying);
     if (!a) {
       if (this.local.length >= 6) return;
       a = new THREE.Audio(this.listener);
       this.local.push(a);
     }
-    a.setBuffer(pick(buffers, name));
+    a.setBuffer(this.bufferOf(name));
     a.setVolume(volume);
     a.setPlaybackRate(rate);
     a.play();
@@ -532,7 +640,7 @@ export class Sound {
     a.setDistanceModel('inverse');
     at.add(a);
     const start = async () => {
-      const buf = typeof name === 'function' ? await name() : this.ensure()[name];
+      const buf = typeof name === 'function' ? await name() : this.bufferOf(name);
       a.setBuffer(buf);
       a.setLoop(true);
       a.setVolume(opts.volume ?? 1);
@@ -582,23 +690,51 @@ export class Sound {
   private music: THREE.Audio | null = null;
   private musicLevel = 0.2;
   musicOn = true;
+  /** What the casino music is doing bar by bar (the lounge track's, or the synthesized groove's if it failed). */
+  musicArr: Arrangement = LOUNGE_SET;
+  /** performance.now() when the casino music started (the party's tracks load after it), or -1. */
+  musicReadyAt = -1;
+  /** Which casino music is playing: the recording, or the synthesized fallback. */
+  musicSource: 'track' | 'synth' | null = null;
+  private musicLoad: Promise<AudioBuffer> | null = null;
 
-  /** Starts the casino-floor groove once audio is unlocked. */
+  /** Fetches and decodes the casino track ahead of time (after the loading screen: it doesn't need audio unlocked). */
+  preloadMusic() {
+    if (!this.musicLoad) {
+      this.musicLoad = loadLounge();
+      this.musicLoad.catch(() => {});
+    }
+    return this.musicLoad;
+  }
+
+  /** Starts the casino-floor music once audio is unlocked (the synthesized groove if the track can't be had). */
   startMusic() {
     if (this.music) return;
     const m = new THREE.Audio(this.listener);
     this.music = m;
-    renderGroove(this.listener.context.sampleRate).then((buf) => {
-      m.setBuffer(buf);
-      m.setLoop(true);
-      m.setVolume(this.musicOn ? this.musicLevel : 0);
-      m.play();
-      this.musicAt = this.listener.context.currentTime;
-    });
+    const sr = this.listener.context.sampleRate;
+    this.preloadMusic()
+      .then(
+        (buf) => ({ buf, arr: LOUNGE_SET, source: 'track' as const }),
+        async (e) => {
+          console.warn('Casino music: falling back to the synthesized groove', e);
+          return { buf: await renderGroove(sr), arr: GROOVE_SET, source: 'synth' as const };
+        },
+      )
+      .then(({ buf, arr, source }) => {
+        this.musicArr = arr;
+        this.musicSource = source;
+        m.setBuffer(buf);
+        m.setLoop(true);
+        m.setVolume(this.musicOn ? this.musicLevel : 0);
+        m.play();
+        this.musicAt = this.listener.context.currentTime;
+        this.musicReadyAt = performance.now();
+      });
   }
 
   private musicAt = -1;
-  /** Seconds into the casino groove's loop (for dancing to it), or null before it plays. */
+  /** Seconds into the casino music's loop from its first beat (for dancing to it), or null before it plays. */
   musicTime(): number | null {
     if (this.musicAt < 0 || !this.music?.isPlaying) return null;
     const ctx = this.listener.context;
@@ -627,7 +763,7 @@ export class Sound {
       set: (volume, rate = 1) => {
         if (this.listener.context.state !== 'running') return;
         if (!started) {
-          a.setBuffer(this.ensure()[name]);
+          a.setBuffer(this.bufferOf(name));
           a.setLoop(true);
           a.play();
           started = true;
@@ -740,10 +876,12 @@ async function renderPiano(sampleRate: number): Promise<AudioBuffer> {
 }
 
 // ---------------------------------------------------------------------------
-// Casino-floor groove: 8 bars of lounge house in A minor at 116 bpm.
+// The fallback casino-floor groove (if casino_lounge.mp3 can't be fetched):
+// 8 bars of lounge house in A minor at 116 bpm, synthesized.
 // ---------------------------------------------------------------------------
 
 export const GROOVE = { bpm: 116, bars: 8 };
+const GROOVE_SET = plainArrangement(GROOVE.bpm, GROOVE.bars);
 
 async function renderGroove(sampleRate: number): Promise<AudioBuffer> {
   const bpm = GROOVE.bpm;

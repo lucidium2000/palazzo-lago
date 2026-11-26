@@ -1,19 +1,21 @@
 import * as THREE from 'three';
-import { GROOVE, type Sound } from '../audio';
+import type { Sound } from '../audio';
+import { copyMono, decodeAudio } from '../musicload';
 import type { Hands } from '../hands';
 import type { Interaction } from '../interaction';
 import type { Viewpoint } from '../player';
 import type { Session } from '../net/session';
 import type { PlayerState } from '../net/transport';
 import type { Crowd, Person } from '../people';
-import { BeatClock, beatAt, type Beat } from './beat';
+import { BeatClock, SYNTH_SET, beatAt, type Beat } from './beat';
 import { DESK_MOVES, Dancer, MOVE_NAMES, type Move } from './dance';
 import { PartyLights, type PoolLights } from './lights';
 import { DeckAudio } from './deckaudio';
 import { Decks } from './decks';
 import type { Performers } from './performers';
 import { BobDetector } from './rhythm';
-import { renderHeadlinerTrack, renderScratchRecord } from './song';
+import { DJ_ONLY, FULL_SET, SET_BPM, slotLayout } from './setlist';
+import { renderScratchRecord, type RawTrack } from './song';
 import { HEADLINER, Stage } from './stage';
 import { renderPartyRaw } from './track';
 
@@ -26,12 +28,26 @@ import { renderPartyRaw } from './track';
  * hands up on the drop; screen: J cycles dance moves) and your friends
  * dancing too (a tiny `dn` field in their state).
  *
- * Everyone in a room hears the same bar at the same time: the track's
+ * Everyone in a room hears the same bar at the same time: the set's
  * position comes from the wall clock. The set list alternates the DJ's 64
- * bars and the headliner's (stage.ts, song.ts) on that clock, through one
- * engine: the decks (decks.ts, deckaudio.ts), which you can step up to and
- * scratch.
+ * bars (dj_set.mp3) and the headliner's two songs (orlo_*.mp3, stage.ts) on
+ * that clock, through one engine: the decks (decks.ts, deckaudio.ts), which
+ * you can step up to and scratch. The beat clock follows the real tracks'
+ * measured tempo and first beats, and their drops, breakdowns and builds as
+ * measured bar by bar (beat.ts, setlist.ts).
+ *
+ * Loading: nothing here is fetched until you head for the pool (or the
+ * casino's own music has been playing a while). The mp3s are decoded mono at
+ * 32 kHz and handed to the decks' audio thread (transferred, not copied): the
+ * DJ's 126 s is ~16 MB, the headliner's two songs another ~16 MB, and nothing
+ * stays on the main thread. If the DJ's track can't be had, the synthesized
+ * set (track.ts) plays instead, so the party is never silent.
  */
+
+/** Samples per second the party's tracks are kept at (mono). */
+const PARTY_RATE = 32000;
+/** Start fetching the party's music this long after the casino's started, wherever you are (ms). */
+const PREFETCH_AFTER = 25000;
 
 export interface PartyDeps {
   scene: THREE.Scene;
@@ -60,7 +76,8 @@ const DOORS = new THREE.Vector3(36, 0, -0.5);
 const STACK_VOL = 0.55;
 
 export class Party {
-  readonly clock = new BeatClock();
+  /** The beat everything follows: the whole set list (the DJ's slot, then the headliner's). */
+  readonly clock = new BeatClock(DJ_ONLY);
   readonly lights: PartyLights;
   /** 0..1: how much you're at the party (casino music ducks by this). */
   presence = 0;
@@ -74,7 +91,9 @@ export class Party {
   private friends = new Map<Person, { d: Dancer; amt: number }>();
   private stacks: THREE.PositionalAudio[] = [];
   private filters: BiquadFilterNode[] = [];
-  private playing: { ctx: number; offset: number; loop: number } | null = null;
+  private playing: { ctx: number; offset: number } | null = null;
+  /** Where the set's music comes from: the recordings, or the synthesized fallback. */
+  source: 'track' | 'synth' | null = null;
   private rendering = false;
   private runningFor = 0;
   private dt = 0;
@@ -89,6 +108,8 @@ export class Party {
   /** The headliner's set is rendered and in the set list. */
   liveReady = false;
   private announced = -1;
+  /** Drops that have landed (for the curious: window.casino.party). */
+  drops = 0;
 
   constructor(private d: PartyDeps) {
     this.lights = new PartyLights(d.scene, d.dj, d.lights, d.poles);
@@ -143,20 +164,14 @@ export class Party {
     return this.deskMove;
   }
 
-  /** Where the DJ's track is now (seconds into the loop): the audio clock while it plays, else the wall clock. */
-  trackTime(): number {
-    const loop = this.clock.loop;
-    if (this.playing) {
-      const ctx = this.d.sound.listener.context;
-      const lat = ctx.outputLatency || ctx.baseLatency || 0;
-      return (ctx.currentTime - this.playing.ctx + this.playing.offset - lat) % loop;
-    }
-    return (Date.now() / 1000) % loop;
+  /** One slot of the set list (s): the DJ's 64 bars, or the headliner's two songs. */
+  get slot(): number {
+    return this.clock.loop / 2;
   }
 
-  /** Where the set list is (seconds into two loops: the DJ's, then the headliner's). */
+  /** Where the set list is (seconds into it: the DJ's slot, then the headliner's): the audio clock while it plays, else the wall clock. */
   setTime(): number {
-    const period = this.clock.loop * 2;
+    const period = this.clock.loop;
     if (this.playing) {
       const ctx = this.d.sound.listener.context;
       const lat = ctx.outputLatency || ctx.baseLatency || 0;
@@ -167,7 +182,7 @@ export class Party {
 
   /** Who's playing now. */
   get onAir(): 'dj' | 'live' {
-    return this.liveReady && this.setTime() >= this.clock.loop ? 'live' : 'dj';
+    return this.liveReady && this.setTime() >= this.slot ? 'live' : 'dj';
   }
 
   /** How much a spot is at the party (1 on the deck, a little by the doors in the corridor). */
@@ -182,7 +197,7 @@ export class Party {
   beatFor(p: THREE.Vector3): Beat {
     if (this.presenceAt(p) > 0.25) return this.clock.now;
     const t = this.d.sound.musicTime();
-    return t === null ? this.clock.now : beatAt(t, GROOVE.bpm, GROOVE.bars);
+    return t === null ? this.clock.now : beatAt(t, this.d.sound.musicArr);
   }
 
   /** Your body's size follows your average head height while you dance (the knees take the bob). */
@@ -224,29 +239,46 @@ export class Party {
   }
 
   /**
-   * Renders the DJ's set and starts it through the decks (in time with the wall
-   * clock), then the battle record and the headliner's set, which joins the set list.
+   * Fetches the DJ's set and starts it through the decks (in time with the wall
+   * clock), then the battle record and the headliner's songs, which join the
+   * set list. The synthesized set stands in if the DJ's track can't be had.
    */
   private startAudio() {
     if (this.rendering) return;
     this.rendering = true;
     const ctx = this.d.sound.listener.context;
     (async () => {
-      const [dj, deck] = await Promise.all([renderPartyRaw(32000), DeckAudio.create(ctx)]);
-      const period = dj.loop * 2;
+      const deckP = DeckAudio.create(ctx);
+      let dj: RawTrack;
+      try {
+        dj = await loadDjSet();
+        this.source = 'track';
+      } catch (e) {
+        console.warn('Party: the DJ set could not be loaded, playing the synthesized set', e);
+        dj = await renderPartyRaw(PARTY_RATE);
+        this.source = 'synth';
+        this.clock.setArrangement(SYNTH_SET);
+      }
+      const deck = await deckP;
       this.stacks.forEach((a, i) => {
         deck.output.connect(this.filters[i]);
         this.filters[i].connect(a.getOutput());
         a.setVolume(0);
       });
-      const offset = (Date.now() / 1000) % period;
+      const offset = (Date.now() / 1000) % this.clock.loop;
       deck.setTrack(0, 2, dj);
       deck.sync(ctx.currentTime, offset);
       this.deck = deck;
-      this.playing = { ctx: ctx.currentTime, offset, loop: dj.loop };
-      deck.setRecord(await renderScratchRecord(32000));
-      deck.setTrack(1, 2, await renderHeadlinerTrack(32000));
-      this.liveReady = true;
+      this.playing = { ctx: ctx.currentTime, offset };
+      deck.setRecord(await renderScratchRecord(PARTY_RATE, this.clock.bpm));
+      if (this.source !== 'track') return;
+      try {
+        deck.setTrack(1, 2, await loadSongs());
+        this.clock.setArrangement(FULL_SET);
+        this.liveReady = true;
+      } catch (e) {
+        console.warn("Party: the headliner's songs could not be loaded (the DJ plays on)", e);
+      }
     })().catch((e) => console.warn('Party track failed', e));
   }
 
@@ -258,11 +290,15 @@ export class Party {
     this.dt = dt;
     this.time += dt;
     this.lastFeet.copy(you.feet);
-    const b = this.clock.update(this.trackTime());
+    const b = this.clock.update(this.setTime());
     const ctx = this.d.sound.listener.context;
     if (ctx.state === 'running') {
       this.runningFor += dt;
-      if (this.runningFor > 3) this.startAudio();
+      // Fetched as you head for the pool, or once the casino's music has been playing a while.
+      const w = this.d.where(you.feet);
+      const ready = this.d.sound.musicReadyAt;
+      const idle = ready >= 0 && performance.now() - ready > PREFETCH_AFTER;
+      if (this.runningFor > 1 && (w === 'pool' || w === 'hotel' || idle)) this.startAudio();
     }
 
     // Where you are: the music opens up as you come out to the deck.
@@ -276,18 +312,20 @@ export class Party {
 
     // The set list: the headliner on the stage, the decks (and you on them).
     const P = this.setTime();
-    this.stage.update(dt, b, P, this.clock.loop, this.liveReady);
+    this.stage.update(dt, b, P, this.slot, this.liveReady);
     const params = this.decks.update(dt, b, { feet: you.feet, xr: you.xr });
     this.deck?.set(params);
-    const set = Math.floor((Date.now() / 1000) / (this.clock.loop * 2));
+    const set = Math.floor(Date.now() / 1000 / this.clock.loop);
     if (this.stage.live && this.presence > 0.5 && this.announced !== set) {
       this.announced = set;
       this.d.toast(`Live on the pool stage: ${HEADLINER.name}`);
     }
 
-    // The drop lands.
-    if (this.clock.onDrop) this.lights.drop(true);
-    else if (this.clock.onBar && b.section === 'drop' && b.cycleBar === 8) this.lights.drop(false);
+    // The drop lands (where the measured drums jump), and the lights kick again half a phrase in.
+    if (this.clock.onDrop) {
+      this.lights.drop(true);
+      this.drops++;
+    } else if (this.clock.onBar && b.section === 'drop' && b.secBar === 8) this.lights.drop(false);
 
     // You dancing.
     const myBeat = this.beatFor(you.feet);
@@ -307,15 +345,15 @@ export class Party {
     // Hands up (both above your head in VR; the hands-up move on a screen).
     const h = you.hands;
     this.handsUp = you.xr ? !!(h && h.l && h.r && h.l.y > you.head.y + 0.02 && h.r.y > you.head.y + 0.02) : this.deskMove === 'up';
-    const dropWindow = (b.section === 'drop' && b.sinceDrop < 16) || (b.section === 'build' && b.cycleBar === 31);
-    const dropBar = b.bar - b.cycleBar + (b.section === 'build' ? 32 : 0);
+    const dropWindow = (b.section === 'drop' && b.sinceDrop < 16) || (b.section === 'build' && b.secBar === b.secLen - 1);
+    const dropBar = b.section === 'build' ? b.bar + 1 : b.bar - Math.floor(b.sinceDrop / 4);
     if (this.handsUp && dropWindow && this.presence > 0.5 && dropBar !== this.cheeredDrop && this.time - this.cheeredAt > 8) {
       this.cheeredDrop = dropBar;
       this.cheeredAt = this.time;
       const at = you.head.clone();
       this.lights.showerAt(at, you.feet.y);
       this.d.crowd.react(you.feet, 9, 'cheer');
-      this.d.sound.play('cheer', you.feet.clone().setY(1.5), { volume: 0.9 });
+      this.d.sound.play('crowdCheer', you.feet.clone().setY(1.5), { volume: 0.8, ref: 3, rolloff: 1 });
       this.session?.emit('confetti', { x: +at.x.toFixed(2), y: +at.y.toFixed(2), z: +at.z.toFixed(2) });
     }
     // The dancers near you throw their hands up with you on the drop.
@@ -346,4 +384,30 @@ export class Party {
     if (this.level <= 0.01) return;
     this.me.pose(rig, { beat: this.beatFor(this.lastFeet), dt, amount: this.level, move: 'groove', arms: false, scale: rig.root.scale.x, dip: Math.min(0.12, this.bob.dip) * this.level, still: true });
   }
+}
+
+/** The DJ's set as the decks want it: mono samples from its first beat, one slot long (plus a second of its start, for the wrap). */
+async function loadDjSet(): Promise<RawTrack> {
+  const L = slotLayout(SET_BPM);
+  const buf = await decodeAudio(L.dj.name, PARTY_RATE);
+  const n = Math.round(L.slot * PARTY_RATE);
+  const data = new Float32Array(n + PARTY_RATE);
+  copyMono(buf, L.dj.firstBeat, data, 0, n);
+  // It loops: the second past the end is its start again.
+  data.copyWithin(n, 0, PARTY_RATE);
+  return { data, sampleRate: PARTY_RATE, loop: L.slot };
+}
+
+/** The headliner's slot: his two songs back to back, each from its first beat, one after the other on the bar grid. */
+async function loadSongs(): Promise<RawTrack> {
+  const L = slotLayout(SET_BPM);
+  const n = Math.round(L.slot * PARTY_RATE);
+  const data = new Float32Array(n + PARTY_RATE);
+  // One at a time, so only one decoded song is held beside the slot.
+  for (const s of L.songs) {
+    const buf = await decodeAudio(s.name, PARTY_RATE);
+    const at = Math.round(s.at * PARTY_RATE);
+    copyMono(buf, s.firstBeat, data, at, Math.round(s.length * PARTY_RATE));
+  }
+  return { data, sampleRate: PARTY_RATE, loop: L.slot };
 }
