@@ -1453,6 +1453,7 @@ async function main() {
       mirror = null;
       session?.leave();
       session = null;
+      party.disconnect();
       looseSync?.dispose();
       looseSync = null;
       liftSync?.dispose();
@@ -1506,6 +1507,8 @@ async function main() {
     },
     captionsOn: () => voices.captions,
     toggleCaptions: () => document.getElementById('captions')!.click(),
+    stageMonitor: () => party.mic.monitor,
+    toggleStageMonitor: () => document.getElementById('stage-monitor')!.click(),
     resetChips: () => document.getElementById('reset')!.click(),
     exitVR: () => void xrSession?.end(),
     helpText: () => [...document.querySelectorAll('#help .card p')].map((p) => p.textContent ?? ''),
@@ -1576,6 +1579,16 @@ async function main() {
   captionsBtn.addEventListener('click', () => {
     voices.setCaptions(!voices.captions);
     showCaptions();
+  });
+  // Hearing yourself on the pool stage's PA (party/stagemic.ts).
+  const monitorBtn = document.getElementById('stage-monitor')!;
+  const showMonitor = () => (monitorBtn.textContent = party.mic.monitor ? 'Monitor on' : 'Monitor off');
+  showMonitor();
+  monitorBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    party.mic.setMonitor(!party.mic.monitor);
+    showMonitor();
+    vrMenu.redraw();
   });
   const help = document.getElementById('help')!;
   document.getElementById('help-btn')!.addEventListener('click', () => help.classList.toggle('open'));

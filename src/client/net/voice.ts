@@ -23,7 +23,12 @@ interface Link {
   /** Listens to their incoming voice (drives their avatar's mouth, in sync with what you hear). */
   analyser: AnalyserNode | null;
   level: number;
+  /** Their voice is playing through the stage PA (party/stagemic.ts), so their avatar's own voice is silent. */
+  onPA: boolean;
 }
+
+/** A friend's voice from their avatar (its gain; 0 while they're on the stage PA). */
+const AVATAR_VOL = 1.6;
 
 export class Voice {
   /** Mic is on and we're taking part. */
@@ -130,6 +135,27 @@ export class Voice {
     return this.smooth;
   }
 
+  /** The mic stream voice chat holds (the stage mic borrows it rather than asking again). */
+  get micStream(): MediaStream | null {
+    return this.enabled ? this.stream : null;
+  }
+
+  /** A friend's incoming voice, before their avatar's distance falloff (the stage PA taps it). */
+  remoteSource(id: string): AudioNode | null {
+    return (this.links.get(id)?.audio?.source as AudioNode | undefined) ?? null;
+  }
+
+  /**
+   * Their voice is on the stage PA (true): their avatar's positional voice is
+   * silenced so you never hear them twice; false puts it back.
+   */
+  setOnPA(id: string, on: boolean) {
+    const l = this.links.get(id);
+    if (!l) return;
+    l.onPA = on;
+    l.audio?.setVolume(on ? 0 : AVATAR_VOL);
+  }
+
   get connectedCount() {
     let n = 0;
     for (const l of this.links.values()) if (l.pc.connectionState === 'connected') n++;
@@ -152,7 +178,7 @@ export class Voice {
 
   private makeLink(id: string): Link {
     const pc = new RTCPeerConnection({ iceServers: ICE });
-    const link: Link = { pc, audio: null, el: null, parts: new Map(), started: false, analyser: null, level: 0 };
+    const link: Link = { pc, audio: null, el: null, parts: new Map(), started: false, analyser: null, level: 0, onPA: false };
     for (const t of this.stream?.getAudioTracks() ?? []) pc.addTrack(t, this.stream!);
     pc.ontrack = (ev) => {
       const stream = ev.streams[0] ?? new MediaStream([ev.track]);
@@ -166,7 +192,7 @@ export class Voice {
       audio.setRefDistance(1.2);
       audio.setRolloffFactor(0.8);
       audio.setDistanceModel('inverse');
-      audio.setVolume(1.6);
+      audio.setVolume(link.onPA ? 0 : AVATAR_VOL);
       // Tap their voice (before distance attenuation) to move their mouth.
       try {
         const an = this.listener.context.createAnalyser();

@@ -58,6 +58,9 @@ export interface VrMenuDeps {
   setComfort(c: Partial<Comfort>): void;
   captionsOn(): boolean;
   toggleCaptions(): void;
+  /** Hear yourself through the pool stage's PA when you're on its mic. */
+  stageMonitor(): boolean;
+  toggleStageMonitor(): void;
   resetChips(): void;
   exitVR(): void;
   helpText(): string[];
@@ -192,6 +195,7 @@ export class VrMenu {
             ] as [string, () => string, () => void][])
           : []),
         ['camera', () => 'Get a camera', () => d.giveCamera()],
+        ['stagemon', () => (d.stageMonitor() ? 'Stage mic monitor: on' : 'Stage mic monitor: off'), () => d.toggleStageMonitor()],
         ['voicereply', () => (d.voiceReplies() ? 'Answer by voice: on' : 'Answer by voice: off'), () => d.toggleVoiceReplies()],
         ['help', () => 'Help', () => this.toggleHelp()],
         ['reset', () => 'Reset chips', () => d.resetChips()],

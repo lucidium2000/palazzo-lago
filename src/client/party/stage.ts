@@ -76,6 +76,11 @@ export class Stage {
   private prevP = -1;
   private prevPart = '';
   private hands = { l: new THREE.Vector3(), r: new THREE.Vector3(), init: false };
+  /** You've lifted the mic off its stand (VR): it's in your hand, not his. */
+  private youHold = false;
+  /** Someone on the mic he points out to (and how long he keeps pointing). */
+  private fan = new THREE.Vector3();
+  private fanT = 0;
   private t = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   private m = new THREE.Matrix4();
   private q = new THREE.Quaternion();
@@ -126,6 +131,38 @@ export class Stage {
     }
   }
 
+  /** Where the mic's head is (world): on its stand, in his hand or in yours. */
+  micHead(out = new THREE.Vector3()): THREE.Vector3 {
+    this.mic.updateWorldMatrix(true, false);
+    return this.mic.localToWorld(out.set(0, 0, 0.03));
+  }
+
+  /** The mic is resting on its stand. */
+  get micOnStand(): boolean {
+    return !this.youHold && this.held < 0.01;
+  }
+
+  /** You lift the mic off its stand: the mesh to carry in your hand. */
+  takeMic(): THREE.Object3D {
+    this.youHold = true;
+    this.held = 0;
+    return this.mic;
+  }
+
+  /** You let go of it: back on its stand. */
+  returnMic() {
+    this.youHold = false;
+    this.root.add(this.mic);
+    this.mic.position.copy(MIC_ON_STAND);
+    this.mic.lookAt(MIC_AIM);
+  }
+
+  /** Someone just stepped up to the mic while he's on: he points out to them. */
+  pointAt(at: THREE.Vector3) {
+    this.fan.copy(at);
+    this.fanT = 2.2;
+  }
+
   /**
    * One frame: `P` seconds into the set list (two loops: the DJ's, then his),
    * `ready` his track is loaded (else the DJ plays on through).
@@ -156,6 +193,7 @@ export class Stage {
       else if (his && b.part === 'outro' && prevPart !== 'outro') this.react('song');
     }
     this.point = Math.max(0, this.point - dt);
+    this.fanT = Math.max(0, this.fanT - dt);
 
     // The crowd faces him while he's on.
     const want = this.onStage;
@@ -168,11 +206,11 @@ export class Stage {
     }
 
     // The mic: off the stand for the chorus (still in his hand as the song ends, back on the stand for the next verse).
-    const chorus = this.live && (b.part === 'chorus' || (b.part === 'outro' && this.held > 0.5));
+    const chorus = this.live && !this.youHold && (b.part === 'chorus' || (b.part === 'outro' && this.held > 0.5));
     this.held += ((chorus ? 1 : 0) - this.held) * Math.min(1, dt * 5);
     // Singing (the recordings are sung all the way through: a breath at the end of each line).
     this.sing += ((this.live ? b.voice : 0) - this.sing) * Math.min(1, dt * 12);
-    if (!this.singer?.rig || this.held < 0.01) {
+    if (!this.youHold && (!this.singer?.rig || this.held < 0.01)) {
       this.mic.position.copy(MIC_ON_STAND);
       this.mic.lookAt(MIC_AIM);
     }
@@ -316,7 +354,11 @@ export class Stage {
     const shoulder = this.t[3];
     (bones.UpperArmL ?? bones.Head)?.getWorldPosition(shoulder);
     const lineEnd = b.bar % 2 === 1 && b.beatInBar >= 2;
-    if (this.point > 0 || (chorus && b.secBar < 1)) {
+    if (this.fanT > 0) {
+      // Pointing out to whoever just stepped up to the mic.
+      const dir = this.t[4].copy(this.fan).sub(shoulder).normalize();
+      L.set(shoulder.x + dir.x * 0.55, shoulder.y + 0.1 + dir.y * 0.3, shoulder.z + dir.z * 0.55);
+    } else if (this.point > 0 || (chorus && b.secBar < 1)) {
       L.set(shoulder.x + fx * 0.48 + lx * 0.22, shoulder.y + 0.16, shoulder.z + fz * 0.48 + lz * 0.22);
     } else if (chorus && b.secLen - b.secBar <= 4 && sing > 0.3) {
       // The big finish: his free hand up and out.
@@ -337,7 +379,7 @@ export class Stage {
     armTo(bones, 'R', this.hands.r, yaw, this.t[4]);
 
     // The mic follows his hand when he holds it.
-    if (this.held >= 0.01) {
+    if (this.held >= 0.01 && !this.youHold) {
       const wrist = bones.WristR ?? bones.HandR;
       if (wrist) {
         const hand = wrist.getWorldPosition(this.t[1]);
