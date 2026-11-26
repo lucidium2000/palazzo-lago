@@ -94,6 +94,9 @@ export class Player {
   private vs = newVState();
   private vEv: VEvents = { land: 0, splash: 0 };
   /** Height of your feet (0 on the casino floor; lower in the pool). */
+  /** Knocked out (fight/): no walking or turning until you come round. */
+  stunned = false;
+
   get feetY() {
     return this.vs.feetY;
   }
@@ -659,7 +662,9 @@ export class Player {
       this.airborne = false;
     }
     this.crouchBtn = this.inXR ? interaction.gamepads().some(({ handedness, gamepad }) => handedness === 'right' && !!gamepad.buttons[3]?.pressed) : this.keys.has('KeyC');
-    if (!this.inXR) this.updateDesktop(dt);
+    // Knocked out: you stay where you are (nothing moves you, nothing turns you) until you come round.
+    if (this.stunned) this.speedNow = 0;
+    else if (!this.inXR) this.updateDesktop(dt);
     else this.updateXR(dt, interaction);
     if (this.nudgeT > 0) this.updateNudge(dt);
     if (!this.tween && !this.seated) this.updateVertical(dt, this.feet(), this.speedNow > 0.2);

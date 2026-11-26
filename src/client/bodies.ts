@@ -54,8 +54,12 @@ export interface BodiesDeps {
   hands: Hands;
   /** Someone reacts out loud (strength 0..1): a breath, a word if one's recorded. */
   onBump?(p: Person, strength: number): void;
-  /** A fist (or a very fast hand) landed on someone: power 0..1, where it landed. */
-  onPunch?(p: Person, power: number, at: THREE.Vector3): void;
+  /** A fist (or a very fast hand) landed on someone: power 0..1, where it landed, head or body, the hand's velocity. */
+  onPunch?(p: Person, power: number, at: THREE.Vector3, zone: 'head' | 'body', v: THREE.Vector3): void;
+  /** An open hand swiped across someone's face: power 0..1, where, the hand's velocity. */
+  onSlap?(p: Person, power: number, at: THREE.Vector3, v: THREE.Vector3): void;
+  /** In a fight (fight/): punches don't shove them around (the fight handles the knock-back). */
+  fighting?(p: Person): boolean;
   /** Is this hand making a fist (grip squeezed)? */
   isFist?(h: Hand): boolean;
   /** You pushed your friend: send it to their game (dx, dz metres). */
@@ -63,6 +67,20 @@ export interface BodiesDeps {
 }
 
 const SHOVE_T = 0.38;
+/** An open hand across a face faster than this (m/s) is a slap; slower is a touch. */
+export const SLAP_SPEED = 1.2;
+/** A closed fist faster than this (m/s) is a punch (any hand faster than PUNCH_ANY). */
+export const PUNCH_SPEED = 1.9;
+export const PUNCH_ANY = 3.2;
+/** How near the middle of the head a hand has to pass (m). */
+export const FACE_R = 0.17;
+
+/** What a fast hand meeting someone's head is: a punch, a slap, or just a touch. */
+export function faceContact(speed: number, fist: boolean): 'punch' | 'slap' | null {
+  if ((fist && speed > PUNCH_SPEED) || speed > PUNCH_ANY) return 'punch';
+  if (!fist && speed > SLAP_SPEED) return 'slap';
+  return null;
+}
 
 /** What your crew says when you bump them (lines they already have recorded, see speech.ts). */
 export const BUMP_LINES = ['Whoa!', 'Ouch.', 'Easy there, champ!'];
@@ -331,7 +349,7 @@ export class Bodies {
     const s = this.st(p);
     s.cool = Math.max(s.cool, 1);
     p.gaspT = Math.max(p.gaspT, 0.9);
-    if (punch) this.d.onPunch?.(p, power, at.clone());
+    if (punch) this.d.onPunch?.(p, power, at.clone(), 'body', new THREE.Vector3(ux, 0, uz).multiplyScalar(2 + power * 2));
     return true;
   }
 
@@ -424,7 +442,8 @@ export class Bodies {
     return [hx + dx * 1.2, hz + dz * 1.2];
   }
 
-  /** A VR hand moving into someone's body pushes them (gently) that way. */
+  private headP = new THREE.Vector3();
+  /** A VR hand moving into someone's body pushes them (gently) that way; a fast one punches or slaps. */
   private handPush(h: Hand) {
     if (h.ctrl.userData.connected === false) return;
     h.grip.updateMatrixWorld(true);
@@ -436,21 +455,49 @@ export class Bodies {
       const ox = hp.x - p.pos.x,
         oz = hp.z - p.pos.z;
       if (Math.abs(ox) > 0.45 || Math.abs(oz) > 0.45) continue;
+      const s = this.st(p);
+      if (s.cool > 0) continue;
+      const fighting = this.d.fighting?.(p) ?? false;
+      // The face: a fist is a punch to the head, an open hand swiping across it a slap.
+      const head = p.driven ? null : p.rig?.bones.Head;
+      if (head) {
+        head.getWorldPosition(this.headP);
+        this.headP.y += 0.08 * (p.look.height / 1.75);
+        if (this.headP.distanceToSquared(hp) < FACE_R * FACE_R) {
+          const v = this.d.hands.velocity(h);
+          const speed = v.length();
+          const kind = faceContact(speed, this.d.isFist?.(h) ?? false);
+          if (kind === 'punch') {
+            const power = Math.min(1, (speed - 1.6) / 3);
+            const vl = Math.hypot(v.x, v.z) || 1;
+            if (!fighting) this.shove(p, v.x / vl, v.z / vl, 0.35, Math.min(0.7, 0.3 + power * 0.4), this.d.player.feet(), true);
+            s.cool = Math.max(s.cool, fighting ? 0.3 : 0.8);
+            this.d.hands.onHaptic?.(h, 0.6 + power * 0.4, 70);
+            this.d.onPunch?.(p, power, hp.clone(), 'head', v);
+            continue;
+          }
+          if (kind === 'slap') {
+            const power = Math.min(1, (speed - SLAP_SPEED) / 2.5 + 0.2);
+            s.cool = Math.max(s.cool, 0.5);
+            this.d.hands.onHaptic?.(h, 0.45 + power * 0.4, 35);
+            this.d.onSlap?.(p, power, hp.clone(), v);
+            continue;
+          }
+        }
+      }
       const k = p.look.height / 1.75;
       const y0 = p.pos.y + (p.seated ? p.seatY - 0.1 : 0.5 * k);
       const y1 = p.pos.y + (p.seated ? p.seatY + 0.55 * k : 1.42 * k);
       if (capsuleDepth(hp.x, hp.y, hp.z, p.pos.x, p.pos.z, y0, y1, 0.2) <= 0) continue;
-      const s = this.st(p);
-      if (s.cool > 0) continue;
       const v = this.d.hands.velocity(h);
       const into = handInto(v.x, v.z, ox, oz);
       if (into < 0.5) continue;
       const vl = Math.hypot(v.x, v.z) || 1;
       // A punch: a fist moving fast, or any hand moving very fast (hand tracking has no grip button).
       const speed = v.length();
-      const punch = (speed > 1.9 && !!this.d.isFist?.(h)) || speed > 3.2;
-      // Hard enough, and they're sitting: off the seat they go.
-      if (unseatable(p) && knocksOffSeat(into, punch)) {
+      const punch = (speed > PUNCH_SPEED && !!this.d.isFist?.(h)) || speed > PUNCH_ANY;
+      // Hard enough, and they're sitting (and not squared up for a fight): off the seat they go.
+      if (!fighting && unseatable(p) && knocksOffSeat(into, punch)) {
         const power = Math.min(1, (speed - 1.2) / 3);
         this.knockOffSeat(p, v.x / vl, v.z / vl, power, punch, hp);
         this.d.hands.onHaptic?.(h, 0.6 + power * 0.4, 70);
@@ -458,12 +505,13 @@ export class Bodies {
       }
       if (punch) {
         const power = Math.min(1, (speed - 1.6) / 3);
-        this.shove(p, v.x / vl, v.z / vl, Math.min(1, handShove(into) + 0.4), Math.min(0.7, 0.3 + power * 0.4), this.d.player.feet(), true);
-        s.cool = Math.max(s.cool, 1);
+        if (!fighting) this.shove(p, v.x / vl, v.z / vl, Math.min(1, handShove(into) + 0.4), Math.min(0.7, 0.3 + power * 0.4), this.d.player.feet(), true);
+        s.cool = Math.max(s.cool, fighting ? 0.3 : 1);
         this.d.hands.onHaptic?.(h, 0.6 + power * 0.4, 70);
-        this.d.onPunch?.(p, power, hp.clone());
+        this.d.onPunch?.(p, power, hp.clone(), 'body', v);
         continue;
       }
+      if (fighting) continue;
       this.shove(p, v.x / vl, v.z / vl, handShove(into), Math.min(0.5, 0.15 + into * 0.12), this.d.player.feet());
       s.cool = Math.max(s.cool, 0.7);
       this.d.hands.onHaptic?.(h, Math.min(0.6, 0.25 + into * 0.1), 40);

@@ -42,6 +42,8 @@ type SoundName =
   | 'shatter'
   | 'punch'
   | 'block'
+  | 'slap'
+  | 'whoosh'
   | 'thunk'
   | 'swim'
   | 'land';
@@ -335,6 +337,18 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
     const l = lp(0.08);
     return synth(ctx, 0.25, (t) => Math.sin(2 * Math.PI * 140 * t) * 0.5 * env(t, 0.001, 0.035) + l(rand()) * 1.2 * env(t, 0.001, 0.03));
   })();
+  // A slap: a crisp, bright clap (skin on skin), no low thump.
+  const slap = (() => {
+    const b = hp(0.55),
+      b2 = hp(0.8);
+    return synth(ctx, 0.22, (t) => b(rand()) * 1.1 * env(t, 0.0003, 0.012) + b2(rand()) * 0.45 * env(t, 0.0004, 0.035) + Math.sin(2 * Math.PI * 1150 * t) * 0.12 * env(t, 0.0005, 0.02));
+  })();
+  // A punch that misses: air going past.
+  const whoosh = (() => {
+    const l = lp(0.25),
+      b = hp(0.6);
+    return synth(ctx, 0.3, (t) => b(l(rand())) * 2.4 * Math.sin(Math.PI * Math.min(1, t / 0.3)) ** 2);
+  })();
   // A glass landing without breaking: a dull knock with a little ring.
   const thunk = synth(ctx, 0.35, (t) => Math.sin(2 * Math.PI * 180 * t) * 0.5 * env(t, 0.001, 0.04) + Math.sin(2 * Math.PI * 2900 * t) * 0.08 * env(t, 0.001, 0.09));
   const pour = (() => {
@@ -377,7 +391,7 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
 
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, denied,
-    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, punch, block, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
+    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, punch, block, slap, whoosh, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
     ding, liftHum, splash, swim, land,
     variants: stepVariants,
   };

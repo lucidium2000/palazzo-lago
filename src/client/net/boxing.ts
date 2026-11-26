@@ -4,6 +4,8 @@ import type { Hands } from '../hands';
 import type { Sound } from '../audio';
 import type { Hud } from '../hud';
 import type { Player } from '../player';
+import type { You } from '../fight/you';
+import { SLAP_SPEED } from '../bodies';
 
 /**
  * Boxing with your friend. In VR, make a fist and throw a real punch: a fast
@@ -13,9 +15,14 @@ import type { Player } from '../player';
  * back if you stop getting hit, and if it runs out, you're knocked down for a
  * moment, then back on your feet.
  *
- * Each player owns their own stamina; the one who throws decides whether a
- * punch landed (they see their fist and your avatar), the one who gets hit
- * takes the damage and tells the other how they're doing.
+ * An open hand swiped across their face is a slap: a sharp clap, their head
+ * turns, a sting more than damage.
+ *
+ * Each player owns their own health (the same health as fights with guests,
+ * fight/you.ts: at zero you're knocked out, fade to black, come round); the
+ * one who throws decides whether a punch landed (they see their fist and your
+ * avatar), the one who gets hit takes the damage and tells the other how
+ * they're doing.
  */
 
 const COOLDOWN = 0.35;
@@ -34,52 +41,37 @@ export interface BoxingDeps {
   /** Grip squeeze per hand 0..1 (a fist when high). */
   grip(): { l: number; r: number };
   haptic(side: 'left' | 'right', strength: number, ms: number): void;
+  /** Your health (shared with fights with guests). */
+  you: You;
 }
 
 type Zone = 'head' | 'body';
 
 export class Boxing {
-  /** Your stamina (0..100). */
-  hp = 100;
-  private sinceHit = 99;
-  private ko = 0;
   private cool = new Map<string, number>();
   private prevHand = new Map<string, THREE.Vector3>();
-  private flash: THREE.Mesh;
-  private flashA = 0;
-  private dark = 0;
-  /** What you know of your friends' stamina (they tell you after each hit). */
+  /** What you know of your friends' health (they tell you after each hit). */
   private theirs = new Map<string, number>();
   private jabSide: 'l' | 'r' = 'l';
   private time = 0;
+  /** Who you last traded blows with, and when (for the health bars). */
+  private last: { id: string; name: string; t: number } | null = null;
+
+  /** Your health. */
+  get hp() {
+    return this.d.you.health.hp;
+  }
+
+  private get ko() {
+    return this.d.you.out ? 1 : 0;
+  }
 
   constructor(private d: BoxingDeps) {
-    // A red (or, when knocked down, dark) veil over your eyes, on the camera.
-    const c = document.createElement('canvas');
-    c.width = c.height = 128;
-    const g = c.getContext('2d')!;
-    const grad = g.createRadialGradient(64, 64, 20, 64, 64, 92);
-    grad.addColorStop(0, 'rgba(255,255,255,0.15)');
-    grad.addColorStop(1, 'rgba(255,255,255,1)');
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 128, 128);
-    this.flash = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.6, 0.6),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), color: 0xc00010, transparent: true, opacity: 0, depthTest: false, depthWrite: false }),
-    );
-    this.flash.position.z = -0.12;
-    this.flash.renderOrder = 2000;
-    this.flash.visible = false;
-    this.flash.raycast = () => {};
-    d.camera.add(this.flash);
-
     d.session.on('punch', (f, data) => this.takeHit(f, data));
     d.session.on('ouch', (f, data) => {
       this.theirs.set(f.id, Math.max(0, Math.min(100, Number(data.hp) || 0)));
-      if (data.ko) {
-        this.d.hud.toast(`You knocked ${f.name} down!`, 'win');
-        if (f.person) f.person.gaspT = 2.5;
-      }
+      // Knocked out: their game tells everyone (fight/fights.ts shows them going down).
+      if (data.ko && f.person) f.person.gaspT = 2.5;
     });
     d.session.on('jab', (f, data) => {
       // A screen player's avatar throws the jab.
@@ -120,29 +112,22 @@ export class Boxing {
     this.d.sound.playLocal('block', 0.15);
   }
 
+  private wasOut = false;
+
   update(dt: number) {
     this.time += dt;
     for (const [k, v] of this.cool) this.cool.set(k, v - dt);
-    this.sinceHit += dt;
-    // Stamina comes back once you stop getting hit.
-    if (this.sinceHit > 2.5 && this.hp < 100 && this.ko <= 0) this.hp = Math.min(100, this.hp + 12 * dt);
-    if (this.ko > 0) {
-      this.ko -= dt;
-      if (this.ko <= 0) {
-        this.hp = 100;
-        this.d.hud.toast('Back on your feet!', 'info');
-        this.d.session.emit('ouch', { hp: this.hp });
-      }
-    }
-    // The veil: red flashes fade fast; a knockdown dims the world, then lifts.
-    this.flashA = Math.max(0, this.flashA - dt * 2.4);
-    this.dark = this.ko > 0 ? Math.min(0.85, this.dark + dt * 2) : Math.max(0, this.dark - dt * 1.2);
-    const m = this.flash.material as THREE.MeshBasicMaterial;
-    const a = Math.max(this.flashA, this.dark);
-    this.flash.visible = a > 0.01;
-    m.opacity = a;
-    m.color.set(this.dark > this.flashA ? 0x100808 : 0xc00010);
+    // Came round after a knockout: tell them.
+    if (this.wasOut && !this.d.you.out) this.d.session.emit('ouch', { hp: Math.round(this.hp) });
+    this.wasOut = this.d.you.out;
     if (this.d.player.inXR && this.ko <= 0) this.vrPunches();
+  }
+
+  /** The friend you're trading blows with (for the health bars), if it's been recent. */
+  current(): { name: string; frac: number } | null {
+    const l = this.last;
+    if (!l || this.time - l.t > 12) return null;
+    return { name: l.name, frac: (this.theirs.get(l.id) ?? 100) / 100 };
   }
 
   /** VR: is either fist flying into your friend? */
@@ -157,10 +142,22 @@ export class Boxing {
       const prev = this.prevHand.get(key) ?? now;
       this.prevHand.set(key, now);
       if (hand.held || hand.carried) continue;
-      if ((side === 'left' ? g.l : g.r) < 0.55) continue; // only a fist
       if ((this.cool.get(key) ?? 0) > 0) continue;
+      const fist = (side === 'left' ? g.l : g.r) >= 0.55;
       const v = this.d.hands.velocity(hand);
       const speed = v.length();
+      // An open hand across their face: a slap (any direction across it counts).
+      if (!fist) {
+        if (speed < SLAP_SPEED) continue;
+        for (const f of friends) {
+          const t = targets(f);
+          if (!t || distToSegment(t.head, prev, now) > HEAD_R) continue;
+          this.cool.set(key, 0.5);
+          this.land(f, 'head', THREE.MathUtils.clamp((speed - SLAP_SPEED) / 2.5 + 0.2, 0.2, 1), v.clone().normalize(), false, side, true);
+          break;
+        }
+        continue;
+      }
       if (speed < PUNCH_SPEED) continue;
       for (const f of friends) {
         const t = targets(f);
@@ -181,16 +178,26 @@ export class Boxing {
   }
 
   /** Your punch lands on a friend (as you see it). */
-  private land(f: Friend, zone: Zone, power: number, dir: THREE.Vector3, blocked: boolean, side: 'left' | 'right' | null) {
+  private land(f: Friend, zone: Zone, power: number, dir: THREE.Vector3, blocked: boolean, side: 'left' | 'right' | null, slap = false) {
     const at = targets(f)?.[zone === 'head' ? 'head' : 'chest'] ?? f.person?.pos.clone().setY(1.3);
-    if (at) this.d.sound.play(blocked ? 'block' : 'punch', at, { volume: 0.6 + power * 0.5, rate: 0.9 + Math.random() * 0.2 });
-    if (side) this.d.haptic(side, blocked ? 0.4 : 0.6 + power * 0.4, blocked ? 40 : 70);
+    if (at) this.d.sound.play(slap ? 'slap' : blocked ? 'block' : 'punch', at, { volume: 0.6 + power * 0.5, rate: 0.9 + Math.random() * 0.2 });
+    if (side) this.d.haptic(side, blocked ? 0.4 : slap ? 0.45 + power * 0.3 : 0.6 + power * 0.4, blocked || slap ? 40 : 70);
+    this.last = { id: f.id, name: f.name, t: this.time };
     // Their avatar reels (they see the real hit on their side).
-    if (f.person && !blocked) {
-      f.person.gaspT = 0.6 + power * 0.5;
-      if (zone === 'head') f.person.headYaw += (Math.random() < 0.5 ? -1 : 1) * 0.5 * power;
+    const p = f.person;
+    if (p && !blocked) {
+      p.gaspT = 0.6 + power * 0.5;
+      const across = -dir.x * Math.cos(p.yaw) + dir.z * Math.sin(p.yaw);
+      if (slap) {
+        p.snapY += -Math.sign(across || 1) * (0.45 + 0.35 * power);
+        p.blush = 6;
+        p.blushSide = across < 0 ? 1 : 0;
+      } else if (zone === 'head') {
+        p.snapX += 0.25 + 0.3 * power;
+        p.snapY += -Math.sign(across || 1) * 0.15 * power;
+      }
     }
-    this.d.session.emit('punch', { z: zone, p: Math.round(power * 100) / 100, b: blocked ? 1 : 0, d: dir.toArray().map((x) => Math.round(x * 100) / 100) });
+    this.d.session.emit('punch', { z: zone, p: Math.round(power * 100) / 100, b: blocked ? 1 : 0, sl: slap ? 1 : 0, d: dir.toArray().map((x) => Math.round(x * 100) / 100) });
   }
 
   /** You got hit. */
@@ -199,19 +206,17 @@ export class Boxing {
     const zone: Zone = data.z === 'head' ? 'head' : 'body';
     const power = THREE.MathUtils.clamp(Number(data.p) || 0.5, 0.1, 1);
     const blocked = !!data.b;
-    const dmg = (zone === 'head' ? 20 : 11) * power * (blocked ? 0.2 : 1);
-    this.hp = Math.max(0, this.hp - dmg);
-    this.sinceHit = 0;
-    this.d.sound.playLocal(blocked ? 'block' : 'punch', blocked ? 0.6 : 0.9);
-    this.flashA = Math.min(0.75, this.flashA + (blocked ? 0.12 : 0.3 + power * 0.35));
-    for (const s of ['left', 'right'] as const) this.d.haptic(s, blocked ? 0.3 : 0.5 + power * 0.5, blocked ? 50 : 110);
-    if (this.hp <= 0) {
-      this.ko = 3;
-      this.d.hud.toast(`${f.name} knocked you down!`, 'warn');
+    const slap = !!data.sl;
+    this.last = { id: f.id, name: f.name, t: this.time };
+    const r = this.d.you.hurt({ zone, power, blocked, slap });
+    this.d.sound.playLocal(slap ? 'slap' : blocked ? 'block' : 'punch', blocked ? 0.6 : 0.9);
+    if (r.ko) {
+      this.d.hud.toast(`${f.name} knocked you out!`, 'warn');
       this.d.session.emit('ouch', { hp: 0, ko: 1 });
       return;
     }
-    if (!blocked && zone === 'head' && power > 0.6) this.d.hud.toast(`Big shot from ${f.name}!`, 'warn');
+    if (slap) this.d.hud.toast(`${f.name} slapped you!`, 'warn');
+    else if (!blocked && zone === 'head' && power > 0.6) this.d.hud.toast(`Big shot from ${f.name}!`, 'warn');
     this.d.session.emit('ouch', { hp: Math.round(this.hp) });
   }
 
@@ -222,7 +227,6 @@ export class Boxing {
 
   dispose() {
     removeEventListener('keydown', this.onKey);
-    this.flash.removeFromParent();
   }
 }
 

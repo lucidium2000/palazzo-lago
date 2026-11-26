@@ -76,6 +76,10 @@ export interface PlayerState {
   nt?: number;
   /** Dancing: move × 10 + how much (1-9); move 0 = legs only (a VR player's real hands do the arms). */
   dn?: number;
+  /** Fights you're driving (fight/fights.ts): per guest, [index, x, z, yaw, phase, hp, max hp, fist, head] (×100 for x/z/yaw). */
+  fx?: number[] | null;
+  /** Your health while in a fight (0-100). */
+  fh?: number | null;
   /** Acks: for each friend (their id), the last event number handled from them. */
   a?: Record<string, number>;
   /** Host only: the colour slot of each guest (by id); the host is slot 0. */

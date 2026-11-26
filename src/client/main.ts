@@ -74,6 +74,7 @@ import { renderPartyTrack } from './party/track';
 import { DJ } from './areas/pool';
 import { Boxing } from './net/boxing';
 import { NpcSync } from './net/npcsync';
+import { Fights } from './fight/fights';
 import { Bodies, friendShove } from './bodies';
 import { avatarLook } from './net/avatars';
 
@@ -253,7 +254,10 @@ async function main() {
     world,
     inXR: () => player.inXR,
     douse: (p, c) => drinkSync?.douse(p, c) ?? false,
-    react: (p, kind) => reactTo(p, kind),
+    react: (p, kind) => {
+      reactTo(p, kind);
+      fights.provoke(p, kind === 'doused' ? 'doused' : 'hit');
+    },
   });
   // Loose things to pick up and throw: chips, dice, bottles, fruit, napkins, menus, ashtrays, buckets.
   const hitBy = new WeakMap<object, Person>();
@@ -516,15 +520,15 @@ async function main() {
     hands,
     onBump: (p, k) => {
       // They notice: a word (in their own voice), or at least a breath for the lightest brush.
+      if (k > 0.2) fights.provoke(p, 'pushed', k);
       if (k > 0.2 && reactTo(p, 'pushed') > 0) return;
       if (k > 0.1) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * k, rate: 1.2 + Math.random() * 0.25 });
     },
-    onPunch: (p, power, at) => {
-      // A thud you feel, a stumble, and a loud ouch.
-      sound.play('punch', at, { volume: 0.9 + power * 0.6, rate: 0.85 + Math.random() * 0.15 });
-      p.gaspT = Math.max(p.gaspT, 1);
-      reactTo(p, 'punched');
-    },
+    // A thud you feel, a stumble, a loud ouch, and maybe a fight (fight/fights.ts).
+    onPunch: (p, power, _at, zone, v) => fights.hitPerson(p, power, zone, v),
+    // An open hand across the face: a slap.
+    onSlap: (p, power, _at, v) => fights.hitPerson(p, power, 'head', v, true),
+    fighting: (p) => fights.fighting(p),
     isFist: (h) => {
       const g = gripValues();
       return (h.ctrl.userData.handedness === 'left' ? g.l : g.r) > 0.55;
@@ -667,6 +671,23 @@ async function main() {
   // Guests wandering the floor fill the rest of the crowd.
   const wanderers = crowd.capacity - crowd.people.length - 1;
   for (let i = 0; i < wanderers; i++) crowd.add('wander', randomLook(), crowd.randomNode());
+  // Fights: anger, punches and slaps, health bars, knockouts, security (after the crowd: the guards take their own slots).
+  const fights = new Fights({
+    crowd,
+    world,
+    player,
+    hands,
+    camera,
+    scene,
+    sound,
+    hud,
+    dialogue,
+    crew,
+    react: (p, kind) => reactTo(p, kind),
+    haptic: (side, strength, ms) => buzz(side, strength, ms),
+    handsBusy: () => lounge.holdingDrink || loose.holding,
+    canvas: renderer.domElement,
+  });
   // Beach balls at the pool party: one floating in the shallow end, one on the deck.
   const beachBalls = new BeachBalls({
     scene,
@@ -1034,13 +1055,17 @@ async function main() {
           (gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(strength, ms);
         }
       },
+      you: fights.you,
     });
+    fights.boxing = boxing;
     (window as unknown as { casino: Record<string, unknown> }).casino.boxing = boxing;
     npcSync?.dispose();
     npcSync = new NpcSync({ session, dialogue, crowd, bodies, sound, feet: () => player.feet() });
     (window as unknown as { casino: Record<string, unknown> }).casino.npcSync = npcSync;
     lounge.onLine = (p, l) => npcSync?.share(p, l);
     pushFriend = friendShove(session, player, buzz);
+    // After the drinks and loose things: fights add to what you publish (extraState chains).
+    fights.connect(session);
     session.onCheers = (at, name) => {
       lounge.cheers(at, undefined, true);
       hud.toast(`Cheers with ${name}!`, 'win');
@@ -1242,6 +1267,8 @@ async function main() {
       boxing = null;
       npcSync?.dispose();
       npcSync = null;
+      fights.boxing = null;
+      fights.disconnect();
       roomPill.hidden = true;
       roomBoard.hidden = true;
       voiceBtn.hidden = true;
@@ -1757,8 +1784,10 @@ async function main() {
       who.gaspT = Math.max(who.gaspT, 0.8);
       b.v.multiplyScalar(-0.3);
       reactTo(who, 'hit');
+      fights.provoke(who, 'hit', Math.min(1, b.v.length() / 8));
     }
     bodies.update(dt);
+    fights.update(dt);
     party.update(dt, {
       feet,
       head,
@@ -1802,7 +1831,8 @@ async function main() {
         return bjAt ? [{ id: 'bjsit', label: 'SIT', sub: 'blackjack', kind: 'primary', onPress: () => player.sit(bjAt.vp) }] : null;
       };
       hud.setControls(station === 'roulette' ? rouletteControls() : station === 'craps' ? crapsControls() : m ? slotControls(m) : station === piggy.machine.id ? piggyControls(piggy) : bjAt || blackjacks.some((b) => b.mySeat !== null) ? bjControls() : pkAt || poker.mySeat !== null ? pkControls() : null);
-      if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());
+      if (fights.active) touch.setAction('Punch', () => fights.deskPunch());
+      else if (lounge.holdingDrink) touch.setAction('Sip', () => lounge.sipHeld());
       else if (loose.holding) touch.setAction('Throw', () => loose.throwDesk());
       else if (player.seated) touch.setAction('Stand', () => player.stand());
       else {
@@ -1873,7 +1903,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
 }
 
 main().catch((e) => {
