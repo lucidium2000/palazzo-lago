@@ -3,7 +3,7 @@ import type { Quality } from './quality';
 import type { World } from './world';
 import { spawnCharacter, type PeopleLib } from './assets';
 import type { Paint, Surface } from './peopleshade';
-import { FINGER, orientHand, reach, setFingers } from './net/embody';
+import { FINGER, curlFingers, orientHand, reach, setFingers } from './net/embody';
 import { lieLegs, sitLegs, standLegs } from './sitpose';
 import { dry, linkRoutes, pathTo } from './routes';
 
@@ -69,6 +69,37 @@ export interface Look {
   jewel?: number;
   glint?: boolean;
   lipstick?: number;
+}
+
+/**
+ * How a fighter holds themselves (fight/): set by the fight module, applied on
+ * top of the animation clips every frame (fists up, a wind-up, the punch
+ * reaching its target, the head snapping back, lying on the floor).
+ */
+export interface FightPose {
+  /** Fists up in front of the chin, 0..1. */
+  guard: number;
+  /** Forearms up over the face (blocking), 0..1. */
+  block: number;
+  /** The punching fist drawn back (the tell), 0..1. */
+  windup: number;
+  /** The punching arm reaching for `aim`, 0..1. */
+  punch: number;
+  /** Which fist throws: 0 = left, 1 = right. */
+  side: 0 | 1;
+  /** Where the punch goes (world). */
+  aim: THREE.Vector3;
+  /** Head knocked back (pitch) and sideways (yaw), radians. */
+  snapX: number;
+  snapY: number;
+  /** 0 standing … 1 flat on their back on the floor. */
+  down: number;
+  /** Groggy sway (after getting up), 0..1. */
+  wobble: number;
+}
+
+export function fightPose(): FightPose {
+  return { guard: 0, block: 0, windup: 0, punch: 0, side: 1, aim: new THREE.Vector3(), snapX: 0, snapY: 0, down: 0, wobble: 0 };
 }
 
 export class Person {
@@ -150,6 +181,13 @@ export class Person {
   attendUntil = 0;
   /** Saying a line (outside a circle): talking gestures until then. */
   speakUntil = 0;
+  /** In a fight (fight/): the fight module moves them and poses their arms; their usual walking stops. */
+  fight: FightPose | null = null;
+  /** How angry they look, 0..1 (brows down). */
+  angry = 0;
+  /** A slapped cheek going red (seconds left), and which side (0 = their left, 1 = their right). */
+  blush = 0;
+  blushSide: 0 | 1 = 0;
 
   constructor(
     readonly role: Role,
@@ -688,9 +726,13 @@ export class Crowd {
     let gi = 0,
       ph = 0;
     this.people.forEach((p, i) => {
-      p.onUpdate?.(p, dt);
-      if (p.role === 'wander' || p.role === 'waiter') this.walk(p, dt, player);
-      else if (p.role === 'pair') this.walkBeside(p, dt);
+      const fighting = p.fight !== null && !p.driven;
+      if (!fighting) {
+        p.onUpdate?.(p, dt);
+        if (p.role === 'wander' || p.role === 'waiter') this.walk(p, dt, player);
+        else if (p.role === 'pair') this.walkBeside(p, dt);
+      }
+      p.blush = Math.max(0, p.blush - dt);
       p.cheer = Math.max(0, p.cheer - dt);
       p.gaspT = Math.max(0, p.gaspT - dt);
       p.laughT = Math.max(0, p.laughT - dt);
@@ -989,6 +1031,16 @@ export class Crowd {
     const sb = p;
     sb.swimBlend += ((p.swimHead !== null ? 1 : 0) - sb.swimBlend) * Math.min(1, dt * 3);
     rig.root.rotation.x = 1.32 * sb.swimBlend;
+    const down = p.fight ? p.fight.down : 0;
+    if (down > 0) {
+      // Knocked out: over backwards onto the floor (the body's thickness keeps it above the carpet).
+      rig.root.rotation.x = -1.48 * down;
+      rig.root.position.y += 0.13 * down;
+    } else if (p.fight && p.fight.wobble > 0) {
+      const t = this.time + p.seed;
+      rig.root.rotation.z = Math.sin(t * 1.7) * 0.06 * p.fight.wobble;
+      rig.root.rotation.x = Math.sin(t * 1.1) * 0.04 * p.fight.wobble;
+    } else rig.root.rotation.z = 0;
     if (sb.swimBlend > 0.01 && p.swimHead !== null) {
       const female = (p.look.kind ?? '').startsWith('female');
       const neck = 1.48 * (p.look.height / (female ? 1.72 : 1.82));
@@ -1017,7 +1069,7 @@ export class Crowd {
     const gasp = p.gaspT > 0 ? Math.min(1, p.gaspT * 3) : 0;
     const busy =
       p.role === 'pianist' || (p.role !== 'slots' && p.action > 0 && p.actionKind !== 'none' && p.actionKind !== 'offer') ? 1 : 0;
-    const over = Math.max(cheer, gasp, busy * 0.9);
+    const over = Math.max(cheer, gasp * (1 - down), busy * 0.9);
     const baseW = 1 - over;
     const w = (name: string, v: number) => a[name]?.setEffectiveWeight(v);
     w('Idle_Neutral', baseW * (1 - walk - run) * 0.7);
@@ -1048,7 +1100,8 @@ export class Crowd {
       standLegs(b);
     }
     // Social overlays: talking hands, a drink or phone in hand, laughing.
-    if (!p.seated && walk + run < 0.5 && cheer < 0.3) {
+    const fists = p.fight ? Math.max(p.fight.guard, p.fight.block, p.fight.punch) : 0;
+    if (!p.seated && walk + run < 0.5 && cheer < 0.3 && fists < 0.05 && down === 0) {
       const t = this.time + p.seed;
       const still = 1 - Math.min(1, (walk + run) * 2);
       if (p.talking > 0.05) {
@@ -1085,12 +1138,68 @@ export class Crowd {
     // Look at the player / glance around.
     b.Head?.rotateY(p.headYaw * 0.8);
     b.Head?.rotateX(-p.headPitch);
+    if (p.fight) this.fightArms(p);
     if (p.onPose) {
       rig.root.updateMatrixWorld(true);
       p.onPose(p);
     }
     this.shadowAt(p, i, sc);
     if (p.proxy) p.proxy.position.set(p.pos.x, 1.0, p.pos.z);
+  }
+
+  private fv = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  /**
+   * A fighter's arms and head on top of the clips: fists up by the chin (or
+   * forearms over the face), the throwing fist drawn back, then reaching out
+   * to where the punch is aimed; the head knocked back by a hit.
+   */
+  private fightArms(p: Person) {
+    const f = p.fight!,
+      rig = p.rig!,
+      b = rig.bones;
+    if (f.down > 0.02) return;
+    const head = b.Head;
+    if (head && (f.snapX !== 0 || f.snapY !== 0)) {
+      head.rotateX(-f.snapX);
+      head.rotateY(f.snapY);
+      b.Neck?.rotateX(-f.snapX * 0.5);
+    }
+    const arms = Math.max(f.guard, f.block, f.punch, f.windup);
+    if (arms < 0.01 || !head) return;
+    // The body turns into the punch: away on the wind-up, through on the throw.
+    const sgnT = f.side === 1 ? 1 : -1;
+    b.Torso?.rotateY(sgnT * (0.3 * f.windup - 0.35 * f.punch));
+    b.Torso?.rotateX(0.12 * f.punch + 0.06 * f.guard);
+    rig.root.updateMatrixWorld(true);
+    const [H, T, P, fwd, right, up] = this.fv;
+    head.getWorldPosition(H);
+    fwd.set(Math.sin(p.yaw), 0, Math.cos(p.yaw));
+    right.set(-Math.cos(p.yaw), 0, Math.sin(p.yaw));
+    up.set(0, 1, 0);
+    const blk = f.block / Math.max(1e-3, Math.max(f.guard, f.block));
+    for (let s = 0; s < 2; s++) {
+      const side = s === 0 ? 'L' : 'R';
+      const sg = s === 0 ? -1 : 1;
+      const upper = b['UpperArm' + side],
+        lower = b['LowerArm' + side],
+        wrist = b['Wrist' + side];
+      if (!upper || !lower || !wrist) continue;
+      const throwing = s === f.side;
+      // Guard: fists a hand in front of the chin; a block brings the forearms up over the face.
+      T.copy(H).addScaledVector(up, -0.13 + 0.08 * blk).addScaledVector(fwd, 0.25 - 0.06 * blk).addScaledVector(right, sg * (0.1 - 0.04 * blk));
+      let w = Math.max(f.guard, f.block);
+      if (throwing) {
+        if (f.windup > 0) T.addScaledVector(fwd, -0.12 * f.windup).addScaledVector(right, sg * 0.07 * f.windup).addScaledVector(up, -0.04 * f.windup);
+        if (f.punch > 0) T.lerp(f.aim, f.punch);
+        w = Math.max(w, f.windup, f.punch);
+      }
+      if (w < 0.01) continue;
+      upper.getWorldPosition(P);
+      P.addScaledVector(right, sg * 0.3).addScaledVector(fwd, -0.1);
+      P.y -= throwing && f.punch > 0.3 ? 0.25 : 0.6;
+      reach(upper, lower, wrist, T, P, Math.min(1, w));
+      curlFingers(b, side as 'L' | 'R', Math.min(1, w * 1.2));
+    }
   }
 
   private hipV = [new THREE.Vector3(), new THREE.Vector3()];

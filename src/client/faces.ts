@@ -299,6 +299,7 @@ const C = {
   inner: new THREE.Color(MOUTH.inner.color),
   teeth: new THREE.Color(MOUTH.teeth.color).multiplyScalar(1.1),
   glint: new THREE.Color(2.4, 2.4, 2.3),
+  blush: new THREE.Color(0.85, 0.12, 0.1),
 };
 const SQUARE = 0,
   ROUND = 1,
@@ -330,6 +331,7 @@ export class Faces {
   private lc = new THREE.Vector3();
   private hp = new THREE.Vector3();
   private cand: { p: Person; d: number }[] = [];
+  private cheek = new THREE.Color();
   private warm = false;
 
   constructor(
@@ -382,7 +384,7 @@ export class Faces {
       const a = -(i / 14) * Math.PI;
       d.lineTo(0.5 * Math.cos(a), 0.5 + Math.sin(a));
     }
-    this.meshes = [mk(blob(6), this.max * 18), mk(blob(2), this.max * 4), mk(new THREE.ShapeGeometry(d), this.max)];
+    this.meshes = [mk(blob(6), this.max * 18), mk(blob(2), this.max * 5), mk(new THREE.ShapeGeometry(d), this.max)];
   }
 
   /** Lays one flat piece on the face (head-bone space → world through `hm`). */
@@ -527,7 +529,7 @@ export class Faces {
     const blink = blinkCurve(time - st.blinkAt);
     const upper = Math.max(blink, 0.22 * st.smile * (1 - st.wide));
     const lower = 0.42 * st.smile * (1 - blink);
-    const browUp = 0.0055 * st.wide + 0.0018 * cheer + (heard ? 0.0012 * heard.level : 0);
+    const browUp = 0.0055 * st.wide + 0.0018 * cheer + (heard ? 0.0012 * heard.level : 0) - 0.0032 * p.angry * (1 - st.wide);
     st.brow += (browUp - st.brow) * Math.min(1, dt * 12);
 
     // This person's own skin and brow colour (painted), else the model's.
@@ -554,8 +556,14 @@ export class Faces {
             lh = lower * e.h;
           this.put(SQUARE, e.c, e.x, e.y, e.n, e.w * 1.3, lh, skin, 0, bot + lh / 2, 0.0026);
         }
-        // Brows lift: skin over the model's brow, the brow drawn higher.
-        if (st.brow > 0.0004) {
+        // A slapped cheek reddens under the eye on that side.
+        if (p.blush > 0 && s === p.blushSide) {
+          const k = Math.min(1, p.blush / 2);
+          this.cheek.copy(skin).lerp(C.blush, 0.55 * k);
+          this.put(ROUND, e.c, e.x, e.y, e.n, e.w * 2.1, e.h * 1.9, this.cheek, (s === 0 ? 1 : -1) * e.w * 0.35, -e.h * 2.1, 0.0009);
+        }
+        // Brows lift (or come down, angry): skin over the model's brow, the brow drawn moved.
+        if (Math.abs(st.brow) > 0.0004) {
           for (const b of lay.brows[s]) {
             this.put(SQUARE, b.c, b.x, b.y, b.n, b.w * 1.12, b.h * 1.3, skin, 0, 0, 0.0006);
             this.put(SQUARE, b.c, b.x, b.y, b.n, b.w, b.h, browCol ?? b.color, 0, st.brow, 0.0012);
