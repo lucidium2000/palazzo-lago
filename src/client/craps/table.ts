@@ -1017,3 +1017,34 @@ export class CrapsTable {
 }
 
 export { isPoint };
+
+/** How long the stickman's stick is, grip to hook (metres). */
+export const STICK_LEN = 1.12;
+
+/**
+ * The stickman's craps stick: a long, thin, slightly flexible wand (dark
+ * wood with a brass ferrule at the grip) ending in the little L-shaped hook
+ * he pushes and pulls the dice with. Built along +Y from the grip (y = 0) to
+ * the hook (y = STICK_LEN); the hook bends off along +X.
+ */
+export function makeCrapsStick(): THREE.Group {
+  const g = new THREE.Group();
+  const wood = new THREE.MeshStandardMaterial({ color: 0x4a2c18, roughness: 0.45 });
+  const brass = new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 1, roughness: 0.3 });
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.008, STICK_LEN, 8), wood);
+  shaft.position.y = STICK_LEN / 2;
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.14, 10), wood);
+  grip.position.y = 0.06;
+  const ferrule = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.02, 10), brass);
+  ferrule.position.y = 0.14;
+  // The hook: a short bend down then a flat foot that cradles the dice.
+  const bend = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.05, 6), wood);
+  bend.position.set(0.018, STICK_LEN + 0.012, 0);
+  bend.rotation.z = -0.9;
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.012, 0.02), wood);
+  foot.position.set(0.06, STICK_LEN + 0.03, 0);
+  g.add(shaft, grip, ferrule, bend, foot);
+  g.traverse((o) => ((o as THREE.Mesh).castShadow = false));
+  return g;
+}
+

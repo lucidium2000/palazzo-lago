@@ -6,7 +6,8 @@ import { CryptoRng } from '../rules/rng';
 import { Sound } from './audio';
 import { buildCasino, envZoneAt, POSITIONS, registerHall, SLOTS_YAW, type EnvZone } from './casino';
 import { preloadChips } from './chips';
-import { CrapsTable } from './craps/table';
+import { CrapsTable, FELT_Y, makeCrapsStick } from './craps/table';
+import { handTo } from './gestures';
 import { PostFX } from './post';
 import { Dialogue, voiceArbiter } from './dialogue';
 import { AREA_NODES, buildAreas, registerAreas } from './areas';
@@ -301,6 +302,30 @@ async function main() {
   const cs = craps.spots();
   const stickman = crowd.add('croupier', staffLook('dealer'), cs.stickman.pos, cs.stickman.yaw);
   const crapsDealers = [cs.boxman, ...cs.dealers].map((d) => crowd.add('croupier', staffLook('dealer'), d.pos, d.yaw));
+  // The stickman works with a real stick: held out over the felt, it sweeps in to the dice on each roll.
+  if (stickman) {
+    const stick = makeCrapsStick();
+    scene.add(stick);
+    const toward = new THREE.Vector3();
+    const up = new THREE.Vector3(0, 1, 0);
+    stickman.onPose = (p) => {
+      const fwd = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
+      const right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+      // Out over the rail at rest; further in (and lower) as he rakes the dice on a roll.
+      const act = p.action > 0 && p.actionKind === 'reach' ? Math.sin(Math.min(1, p.action) * Math.PI) : 0;
+      const hand = p.pos.clone().addScaledVector(fwd, 0.36 + act * 0.18).addScaledVector(right, -0.14).setY(p.pos.y + 1.02 - act * 0.06);
+      handTo(p, 'R', hand, 1);
+      const wrist = p.rig?.bones['WristR'];
+      const grip = wrist ? wrist.getWorldPosition(new THREE.Vector3()) : hand;
+      // The hook comes to rest just above the felt toward the middle of the layout.
+      const tip = craps.group.localToWorld(new THREE.Vector3(0, FELT_Y + 0.05, 0.15 - act * 0.35));
+      toward.subVectors(tip, grip).normalize();
+      stick.position.copy(grip);
+      stick.quaternion.setFromUnitVectors(up, toward);
+      // Keep the hook's foot flat on the felt side (turned to the table's side, not up in the air).
+      stick.rotateY(Math.atan2(fwd.x, fwd.z));
+    };
+  }
   for (const w of light ? cs.players.slice(0, 3) : cs.players) crowd.add('watch', randomLook(), w.pos, w.yaw);
   // Blackjack tables in the pit, each with a dealer and a few players.
   const blackjacks: BlackjackPlay[] = [];
