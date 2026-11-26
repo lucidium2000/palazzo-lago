@@ -41,6 +41,11 @@ export class NpcSync {
     });
   }
 
+  /** A line someone said to you elsewhere in the game (the bartender, a guest you clinked with). */
+  share(p: Person, l: { text: string; voice: string; alt?: string; who: string }) {
+    this.send({ p, kind: 'line', text: l.text, voice: l.voice as SpokenLine['voice'], alt: l.alt as SpokenLine['alt'], who: l.who, volume: 1 });
+  }
+
   private send(l: SpokenLine) {
     if (!this.d.session.friendList().length) return;
     const at = l.p ? l.p.pos : this.d.feet();

@@ -1010,6 +1010,7 @@ async function main() {
     npcSync?.dispose();
     npcSync = new NpcSync({ session, dialogue, crowd, bodies, sound, feet: () => player.feet() });
     (window as unknown as { casino: Record<string, unknown> }).casino.npcSync = npcSync;
+    lounge.onLine = (p, l) => npcSync?.share(p, l);
     pushFriend = friendShove(session, player, buzz);
     session.onCheers = (at, name) => {
       lounge.cheers(at, undefined, true);

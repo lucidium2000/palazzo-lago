@@ -555,10 +555,14 @@ export class Lounge {
     this.menuCard.show();
   }
 
+  /** Someone at the bar said a line to you (your friends nearby hear it too: net/npcsync.ts). */
+  onLine: ((p: Person, l: { text: string; voice: string; alt?: string; who: string }) => void) | null = null;
+
   /** The bartender talks to you (her own voice, from behind the bar). */
   private greet(line: string, force = false) {
     if (!force && voiceArbiter.busy()) return;
     const b = this.bartender;
+    if (b) this.onLine?.(b, { text: line, voice: elVoice('bartender'), alt: STAFF.bartender, who: 'Bartender' });
     const dur = voices.talk({ who: 'Bartender', text: line, voice: elVoice('bartender'), alt: STAFF.bartender, at: b ? mouthOf(b) : null, priority: true, group: 'bartender', fallback: { pitch: 1.1, rate: 1.02, voice: 2 } });
     if (b) this.d.crowd.speak(b, dur);
     voiceArbiter.claim(dur);
@@ -1225,7 +1229,9 @@ export class Lounge {
       const ch = characterFor(with_.seed, female);
       const pool = Math.random() < 0.7 ? ch.cheers : CHEERS_LINES;
       const text = pool[Math.floor(Math.random() * pool.length)];
-      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt: voices.pick(text, ch.fallback, guestVoice(with_.seed, female)), at: mouthOf(with_), priority: true });
+      const alt = voices.pick(text, ch.fallback, guestVoice(with_.seed, female));
+      this.onLine?.(with_, { text, voice: elVoice(ch.id), alt, who: ch.name });
+      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt, at: mouthOf(with_), priority: true });
       this.d.crowd.speak(with_, dur);
     } else if (voices.captions) this.d.hud.say('You', 'Cheers!');
     if (with_) {
