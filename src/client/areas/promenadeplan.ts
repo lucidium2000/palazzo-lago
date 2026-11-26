@@ -154,7 +154,8 @@ export const PLANTERS: [number, number][] = [
 /** An arcade bay: a place for a game, and the collider that goes with it. */
 export interface ArcadeSlotSpec {
   id: string;
-  kind: 'cabinet' | 'floor';
+  /** 'feature': a wider bay for a featured game. */
+  kind: 'cabinet' | 'floor' | 'feature';
   /** Centre of the footprint, on the floor. */
   x: number;
   z: number;
@@ -179,6 +180,8 @@ export const ARCADE_SLOT_SPECS: ArcadeSlotSpec[] = [
   { id: 'hoops', kind: 'floor', x: -628.2, z: 12.55, yaw: Math.PI, footprint: [1.3, 2.8], hint: 'basketball' },
   { id: 'airhockey', kind: 'floor', x: -628.6, z: 7.4, yaw: Math.PI / 2, footprint: [1.3, 2.3], hint: 'air hockey' },
   { id: 'claw', kind: 'floor', x: -618.1, z: 12.8, yaw: -Math.PI / 2, footprint: [1.1, 1.1], hint: 'claw machine' },
+  // The featured game: a wide 16:9 cabinet against the east wall, facing into the room (The Last Mile).
+  { id: 'feature', kind: 'feature', x: -617.5, z: 9.0, yaw: -Math.PI / 2, footprint: [1.45, 0.95], hint: 'featured wide cabinet' },
 ];
 
 /** The change machine by the arcade door. */

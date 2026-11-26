@@ -1,7 +1,7 @@
 # Asset licences
 
 Every third-party asset is logged here: source, author, licence, and what it is used for.
-All current third-party assets are CC0 1.0 (public domain); no attribution is required, but we credit anyway.
+All third-party assets are CC0 1.0 (public domain; no attribution is required, but we credit anyway), except The Last Mile, which is MIT (keep its copyright notice and licence with it).
 
 | Asset | Source | Author | Licence | Used for |
 | --- | --- | --- | --- | --- |
@@ -16,6 +16,7 @@ All current third-party assets are CC0 1.0 (public domain); no attribution is re
 | Ballroom HDRI (1K) | https://polyhaven.com/a/ballroom | Sergej Majboroda | CC0 1.0 | First bounce of the per-area reflection captures, then freed (`tex/ballroom.hdr`) |
 | Ultimate Modular Men & Women: Suit, Casual 2, Beach (male); Formal, Suit, Casual (female) | https://quaternius.com (copies from github.com/LuanDucate/Ducz.CharacterCreator, `public/models/LICENSE-Quaternius.txt`) | Quaternius | CC0 1.0 | Guests, staff and your crew (`public/assets/people/*`, sources in `art/source/people/`) |
 | Universal Animation Library (Standard, free): guard, jab, cross, head and body hits, knockdown | https://quaternius.com/packs/universalanimationlibrary.html (itch.io release of 2025-06-10, via the CC0 mirror github.com/J-Ponzo/gltf-universal-animation-library; trimmed copy in `art/source/anims/ual_standard.glb`, licence text `art/source/anims/LICENSE-UAL.txt`) | Quaternius | CC0 1.0 | The boxing moves (`public/assets/people/fight.glb`) |
+| The Last Mile (the whole game: one HTML file, its code, drawings and the two original voice clips) | https://github.com/lucidium2000/the-last-mile (also thelastmile.live); copied by `scripts/sync-lastmile.mjs`, licence text `public/arcade/lastmile/LICENSE` | Christopher G. Hunt | MIT | The featured arcade cabinet on the Promenade (`public/arcade/lastmile/index.html`). Two marked patches: a one-line hook so the cabinet can drive it, and the four third-party audio clips its README says are not covered by the MIT grant (`FREE_B64`, `WOAH_B64`, `KEN_B64`, `RING_B64`) emptied. Not an official Cisco or ThousandEyes product |
 
 Built people assets come from `scripts/build-people.mjs` (props removed, colours baked to vertex colours with each body region in the alpha, flat-shaded normals smoothed with creases, meshopt-compressed).
 The fight clips come from `scripts/build-fight-anims.mjs`: the library's moves retargeted onto the Ultimate Modular rig, plus a hook, block, stagger, footwork, lying and the get-up hand-keyed in that script.

@@ -11,7 +11,7 @@ import type { RawPad } from './types';
  *  arcJ  {c, on}           you took (1) / left (0) a cabinet's second-player controls
  *  arcH+ {g, n, s}         a score for the table (to the host)
  *  arcHT {g, t}            a game's table (from the host)
- *  arcF  {k, ...}          the floor games (hoops, hockey, claw): see each game
+ *  arcF  {k, ...}          the floor games (hoops, hockey, claw, The Last Mile): see each game
  */
 
 export interface ArcadeFriend {
@@ -27,6 +27,8 @@ export interface ArcadeSession {
   emit(k: string, data?: unknown): void;
   on(kind: string, fn: (friend: ArcadeFriend, d: Record<string, unknown>) => void): void;
   friendList(): ArcadeFriend[];
+  /** How many of my events of a kind friends haven't confirmed yet (to pace bulky ones). */
+  unconfirmed?(k: string): number;
 }
 
 /** A pad in one number: stick quantised to 1/7 steps (x, y in 4 bits each) and three button bits. */
