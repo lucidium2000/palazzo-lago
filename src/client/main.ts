@@ -50,6 +50,7 @@ import { SEAT_R, World } from './world';
 import { ColliderDebug } from './colliderdebug';
 import { assets } from './assets';
 import { Crew } from './crew';
+import { LiftSync } from './net/liftsync';
 import { Night } from './night';
 import { TouchControls } from './touch';
 import type { Control } from './hud';
@@ -490,6 +491,16 @@ async function main() {
   const waiterTrays = new WaiterTrays({ crowd, lounge, hands, inXR: () => player.inXR, feet: () => player.feet() }, waiters);
   // Your crew for the night, and the shape of the night.
   const crew = new Crew(crowd, world, player, hud, sound, randomLook);
+  // Elevators: NPCs standing in a cab ride along; your crew, if they're with you, come too.
+  {
+    const lifts = areas.elevators;
+    const toastRide = lifts.onRide;
+    lifts.passengers = () => crowd.people.filter((p) => !p.driven && !crew.buddies.some((b) => b.person === p));
+    lifts.onRide = (dest, info) => {
+      toastRide?.(dest, info);
+      crew.rideAlong(info.from, info.to);
+    };
+  }
   // People are solid: you squeeze past them, and push them if you keep going.
   let pushFriend: ((dx: number, dz: number) => void) | null = null;
   /** Someone you got physical with says so (see Dialogue.react). */
@@ -917,6 +928,7 @@ async function main() {
   });
   let drinkSync: DrinkSync | null = null;
   let looseSync: LooseSync | null = null;
+  let liftSync: LiftSync | null = null;
   let boxing: Boxing | null = null;
   let npcSync: NpcSync | null = null;
   const buzz = (side: 'left' | 'right', strength: number, ms: number) => {
@@ -993,6 +1005,8 @@ async function main() {
       const w = crowd.people.find((p) => p.role === 'waiter' && p.uid === Number(d.u));
       if (w) waiterTrays.takeRemote(w);
     });
+    liftSync?.dispose();
+    liftSync = new LiftSync(session, areas.elevators);
     party.connect(session);
     bjSync?.dispose();
     bjSync = new BlackjackSync(session, blackjacks);
@@ -1208,6 +1222,8 @@ async function main() {
       session = null;
       looseSync?.dispose();
       looseSync = null;
+      liftSync?.dispose();
+      liftSync = null;
       bjSync?.dispose();
       bjSync = null;
       pokerSync?.dispose();

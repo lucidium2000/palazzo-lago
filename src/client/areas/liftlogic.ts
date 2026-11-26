@@ -1,0 +1,153 @@
+/**
+ * The pure parts of the elevators (no three.js, no DOM), so they're unit
+ * tested: the landings, which car a ride ends in, the floors the indicator
+ * counts through, who may start a ride (the host arbitrates, so two presses
+ * never conflict), the ride's clock, who is in a cab, and the snapshot a
+ * friend who walks in late gets.
+ */
+
+export type LandingId = 'casino' | 'pool' | 'suite';
+
+export const LANDINGS: Record<LandingId, { label: string; short: string; floor: number }> = {
+  pool: { label: 'Pool Deck', short: 'P', floor: 2 },
+  casino: { label: 'Casino', short: 'C', floor: 1 },
+  suite: { label: 'Suite 3201', short: '32', floor: 32 },
+};
+
+export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v === 'pool' || v === 'suite';
+
+/** Cab interior, from the door line (x) eastwards; half its width (z). */
+export const DEPTH = 2.2;
+export const HALF = 0.95;
+
+/** Seconds for the doors to go fully open or shut. */
+export const DOOR_SECS = 1.1;
+/** Seconds sealed in, moving between landings. */
+export const TRAVEL_SECS = 2.6;
+/** A called car shows up after this long. */
+export const CALL_SECS = 1.4;
+/** Doors stay open this long after the last press (unless someone is in the way). */
+export const HOLD_SECS = 9;
+/** After arriving, the doors open this long later (a beat, then the chime). */
+export const ARRIVE_OPEN_SECS = 0.25;
+
+export interface CarRef {
+  landing: LandingId;
+  /** Which car at its landing (0 = first). */
+  index: number;
+  /** Position in the shared list of every car (the same on every machine). */
+  slot: number;
+  x: number;
+  z: number;
+}
+
+/** The identical car at the destination landing (the one a ride ends in). */
+export function destSlot(cars: readonly CarRef[], from: CarRef, dest: LandingId): number {
+  const at = cars.filter((c) => c.landing === dest);
+  return at[Math.min(from.index, at.length - 1)].slot;
+}
+
+/** The floors the indicator counts through, start and end included (at most 9 numbers). */
+export function floorsBetween(from: number, to: number): number[] {
+  const steps = Math.max(1, Math.min(8, Math.abs(to - from)));
+  return Array.from({ length: steps + 1 }, (_, i) => Math.round(from + ((to - from) * i) / steps));
+}
+
+export function floorLabel(n: number): string {
+  return n === 1 ? 'C' : n === 2 ? 'P' : String(n);
+}
+
+/** Feet inside a car's cab (past the door line)? */
+export function insideCab(car: { x: number; z: number }, p: { x: number; z: number }): boolean {
+  return p.x > car.x + 0.15 && p.x < car.x + DEPTH && Math.abs(p.z - car.z) < HALF;
+}
+
+/** In the doorway (where closing doors would catch you)? */
+export function inDoorway(car: { x: number; z: number }, p: { x: number; z: number }): boolean {
+  return Math.abs(p.x - car.x) < 0.4 && Math.abs(p.z - car.z) < 0.7;
+}
+
+/** A ride under way: from one car (`car`) to its twin at the destination (`dest`). */
+export interface RideRef {
+  id: number;
+  car: number;
+  dest: number;
+}
+
+/**
+ * May a ride start from `car` to `dest`? Not if either car is already part
+ * of a ride (leaving or arriving). The host asks this, so of two presses the
+ * first wins and the second simply rides along (or waits).
+ */
+export function canRide(rides: readonly RideRef[], car: number, dest: number): boolean {
+  if (car === dest) return false;
+  return !rides.some((r) => r.car === car || r.dest === car || r.car === dest || r.dest === dest);
+}
+
+/** The ride's clock: doors shut, then the trip; nothing moves while the doors are open. */
+export class RideClock {
+  /** Seconds of travel so far (counts only once the doors are shut). */
+  t = 0;
+  done = false;
+
+  constructor(readonly travel = TRAVEL_SECS) {}
+
+  /** Advance; `sealed` = the doors are fully shut. Returns true the moment it arrives. */
+  step(dt: number, sealed: boolean): boolean {
+    if (this.done) return false;
+    if (!sealed) return false;
+    this.t += dt;
+    if (this.t >= this.travel) {
+      this.done = true;
+      return true;
+    }
+    return false;
+  }
+
+  /** 0..1 through the trip. */
+  get k() {
+    return Math.min(1, this.t / this.travel);
+  }
+
+  get moving() {
+    return this.t > 0 && !this.done;
+  }
+
+  /** Which of `floors` the indicator shows now. */
+  floor(floors: readonly number[]): number {
+    return floors[Math.min(floors.length - 1, Math.floor(this.k * floors.length))];
+  }
+}
+
+/** What a friend who walks in late needs: every car's doors and indicator, and rides under way. */
+export interface LiftSnapshot {
+  /** Per car slot: [doors wanted open (0/1), indicator text]. */
+  cars: [number, string][];
+  /** Rides under way: [id, from slot, to landing, seconds travelled]. */
+  rides: [number, number, LandingId, number][];
+}
+
+/** Checks a snapshot from the wire (anything malformed is dropped). */
+export function readSnapshot(d: unknown, nCars: number): LiftSnapshot | null {
+  if (!d || typeof d !== 'object') return null;
+  const s = d as { cars?: unknown; rides?: unknown };
+  if (!Array.isArray(s.cars) || s.cars.length !== nCars || !Array.isArray(s.rides)) return null;
+  const cars: [number, string][] = [];
+  for (const c of s.cars) {
+    if (!Array.isArray(c)) return null;
+    cars.push([c[0] ? 1 : 0, String(c[1] ?? '').slice(0, 3)]);
+  }
+  const rides: LiftSnapshot['rides'] = [];
+  for (const r of s.rides.slice(0, nCars)) {
+    if (!Array.isArray(r)) continue;
+    const [id, car, dest, t] = r;
+    if (!Number.isInteger(id) || !Number.isInteger(car) || car < 0 || car >= nCars || !isLanding(dest)) continue;
+    rides.push([id, car, dest, Math.max(0, Math.min(TRAVEL_SECS, Number(t) || 0))]);
+  }
+  return { cars, rides };
+}
+
+/** A car slot from the wire, or null. */
+export function readSlot(v: unknown, nCars: number): number | null {
+  return Number.isInteger(v) && (v as number) >= 0 && (v as number) < nCars ? (v as number) : null;
+}
