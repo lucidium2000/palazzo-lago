@@ -325,3 +325,76 @@ export class FrameAssembler {
     this.got = 0;
   }
 }
+
+// --- Volume ---------------------------------------------------------------------------------
+
+/**
+ * The cabinet's SOUND button steps the volume: each press goes one step down,
+ * and from mute back to full. The level is ours (a gain on the cabinet's
+ * speaker); the game itself is kept at its own full volume, so its mute and
+ * ours never disagree.
+ */
+export const VOLUME_STEPS = [1, 0.66, 0.33, 0] as const;
+/** Where the level is kept, per device (an index into VOLUME_STEPS). */
+export const VOLUME_KEY = 'palazzo-lago.lastmile.volume';
+/** How long the screen shows the level after a press (s). */
+export const VOLUME_SHOW = 1.6;
+
+/** Whether a key is the game's sound key (the cabinet handles it; the game never sees it). */
+export function isSoundKey(k: { key: string; code: string }): boolean {
+  return k.code === KEYS.sound.code || k.key === 'm' || k.key === 'M';
+}
+
+export function nextVolume(step: number): number {
+  return (step + 1) % VOLUME_STEPS.length;
+}
+
+export function volumeLevel(step: number): number {
+  return VOLUME_STEPS[step] ?? 1;
+}
+
+/** The level as a whole percent (100, 66, 33, 0). */
+export function volumePercent(step: number): number {
+  return Math.round(volumeLevel(step) * 100);
+}
+
+/** Lit bars out of three: 3 at full, 0 muted. */
+export function volumeBars(step: number): number {
+  return VOLUME_STEPS.length - 1 - Math.min(VOLUME_STEPS.length - 1, Math.max(0, step));
+}
+
+/** The level as the screen shows it, e.g. "VOL ▮▮▯" or "VOL MUTE". */
+export function volumeLabel(step: number): string {
+  const n = volumeBars(step);
+  return n ? `VOL ${'▮'.repeat(n)}${'▯'.repeat(VOLUME_STEPS.length - 1 - n)}` : 'VOL MUTE';
+}
+
+type Store = Pick<Storage, 'getItem' | 'setItem'>;
+
+function defaultStore(): Store | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/** The saved step (full if there's none, it's unreadable, or storage is blocked). */
+export function loadVolume(store: Store | null = defaultStore()): number {
+  try {
+    const v = store?.getItem(VOLUME_KEY);
+    if (v == null) return 0;
+    const i = Number.parseInt(v, 10);
+    return Number.isInteger(i) && i >= 0 && i < VOLUME_STEPS.length ? i : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function saveVolume(step: number, store: Store | null = defaultStore()): void {
+  try {
+    store?.setItem(VOLUME_KEY, String(step));
+  } catch {
+    /* private window, blocked storage, quota: it just isn't remembered */
+  }
+}
