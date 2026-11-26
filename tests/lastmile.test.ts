@@ -211,6 +211,58 @@ describe('The Last Mile: keys', () => {
   });
 });
 
+describe('The Last Mile: the stick moves him all four ways in the real game', () => {
+  // The game's own keydown branches, read from the shipped copy: which e.key values make which move.
+  const reads = (dir: string) => {
+    const m = shipped.match(new RegExp(`if \\(([^)]*)\\)\\{ act\\("${dir}"\\); e\\.preventDefault\\(\\); \\}`));
+    expect(m, `the game's keydown handler for "${dir}"`).not.toBeNull();
+    return [...m![1].matchAll(/k==="([^"]+)"/g)].map((x) => x[1]);
+  };
+  const handler = { f: reads('f'), b: reads('b'), l: reads('l'), r: reads('r') };
+
+  /** A pad held at (x, y) for `frames` frames at 72 Hz, then let go: the moves the game makes. */
+  const moves = (pk: PadKeys, x: number, y: number, frames = 1) => {
+    const out: KeyStroke[] = [];
+    for (let i = 0; i < frames; i++) pk.update({ x, y, a: false, c: false }, 1 / 72, out);
+    pk.update({ x: 0, y: 0, a: false, c: false }, 1 / 72, out);
+    return out
+      .filter((s) => s.type === 'keydown')
+      .map((s) => (Object.keys(handler) as (keyof typeof handler)[]).find((d) => handler[d].includes(s.key)) ?? `?${s.key}`);
+  };
+
+  it('reads arrows (and WASD / Space) for the four moves', () => {
+    expect(handler.r).toContain('ArrowRight');
+    expect(handler.l).toContain('ArrowLeft');
+    expect(handler.f).toEqual(expect.arrayContaining(['ArrowUp', ' ']));
+    expect(handler.b).toContain('ArrowDown');
+  });
+
+  it('a push each way is one move that way, even a one-frame flick; diagonals go along the stronger axis', () => {
+    const pk = new PadKeys();
+    expect(moves(pk, 1, 0)).toEqual(['r']);
+    expect(moves(pk, -1, 0)).toEqual(['l']);
+    expect(moves(pk, 0, 1)).toEqual(['f']);
+    expect(moves(pk, 0, -1)).toEqual(['b']);
+    expect(moves(pk, 0.75, 0.7, 10)).toEqual(['r']);
+    expect(moves(pk, 0.8, -0.6, 10)).toEqual(['r']);
+    expect(moves(pk, -0.7, 0.7, 10)).toEqual(['f']);
+    // A VR stick at partial tilt (past the 0.55 threshold) still counts.
+    expect(moves(pk, 0.6, 0.1, 5)).toEqual(['r']);
+    // Straight from left to right without passing through the middle.
+    const out: KeyStroke[] = [];
+    pk.update({ x: -1, y: 0, a: false, c: false }, 1 / 72, out);
+    pk.update({ x: 1, y: 0, a: false, c: false }, 1 / 72, out);
+    expect(out.filter((s) => s.type === 'keydown').map((s) => s.key)).toEqual(['ArrowLeft', 'ArrowRight']);
+  });
+
+  it('held right keeps stepping right (repeats are keydowns the game acts on)', () => {
+    const pk = new PadKeys();
+    const got = moves(pk, 1, 0, Math.round(72 * 1.2));
+    expect(got.every((d) => d === 'r')).toBe(true);
+    expect(got.length).toBe(1 + Math.floor((1.2 - REPEAT_DELAY) / REPEAT_EVERY) + 1);
+  });
+});
+
 describe('The Last Mile: when it runs', () => {
   const base = { here: true, dist: 3, playing: false, loaded: false, friend: false, light: false };
 
