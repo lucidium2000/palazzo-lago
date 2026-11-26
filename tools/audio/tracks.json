@@ -1,0 +1,12 @@
+{
+ "dj_set": {"kind": "music", "use": "Pool party DJ set (replaces the synthesized party/track.ts). Deep house, A minor, instrumental. Planned as 16-bar drop, 8 breakdown, 8 build, twice; loops.", "bpm": 122, "loop": true, "lufs": -14},
+ "orlo_neon_on_the_water": {"kind": "music", "use": "Headliner Orlo Vante, song 1 (replaces party/song.ts song 1). Sung lyrics. Sections: verse bars 1-8, pre-chorus 9-16, chorus 17-32.", "bpm": 122, "loop": false, "lufs": -14,
+  "sections": [{"name": "verse", "bar": 0, "bars": 8, "sung": true}, {"name": "pre-chorus", "bar": 8, "bars": 8, "sung": true}, {"name": "chorus", "bar": 16, "bars": 16, "sung": true}]},
+ "orlo_last_call_heart": {"kind": "music", "use": "Headliner Orlo Vante, song 2 (replaces party/song.ts song 2). Sung lyrics. Sections: verse bars 1-8, pre-chorus 9-16, chorus 17-32.", "bpm": 122, "loop": false, "lufs": -14,
+  "sections": [{"name": "verse", "bar": 0, "bars": 8, "sung": true}, {"name": "pre-chorus", "bar": 8, "bars": 8, "sung": true}, {"name": "chorus", "bar": 16, "bars": 16, "sung": true}]},
+ "casino_lounge": {"kind": "music", "use": "Casino floor music (replaces the 8-bar renderGroove loop in audio.ts). Lounge house / nu-jazz, A minor, 116 BPM, 64 bars, loops.", "bpm": 116, "loop": true, "stereo": true, "lufs": -18},
+ "jackpot": {"kind": "sfx", "use": "Slot jackpot: bells and coins into a tray.", "lufs": -16},
+ "cheer": {"kind": "sfx", "use": "Pool crowd cheering as Orlo finishes a song.", "lufs": -16},
+ "applause": {"kind": "sfx", "use": "Crowd applause at the stage, with whistles.", "lufs": -16},
+ "floor_loop": {"kind": "sfx", "use": "Optional casino floor room tone, seamless 30 s loop (the procedural floor in ambience.ts may already be better: compare before using).", "loop": true, "stereo": true, "lufs": -24}
+}
