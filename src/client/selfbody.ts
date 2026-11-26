@@ -7,6 +7,7 @@ import { skinTone } from './posedhand';
 import { POSE, lookPaint } from './people';
 import { crouchLegs, hipOnSeat, leanToward, sitLegs, standLegs } from './sitpose';
 import type { Seat } from './world';
+import { bodyYaw as facing, neckPivot } from './bodyframe';
 
 /**
  * Your own body in VR: the character you picked, standing under your headset
@@ -14,10 +15,15 @@ import type { Seat } from './world';
  * real controllers, hands closing into fists when you squeeze grip, and legs
  * walking when you move. Look down and it's you.
  */
-/** How far (metres, at your size) the body sits behind your eyes. */
-// 13 cm plus 5% of the body's height: far enough that looking down you see the
-// outside of your chest and shoulders, never down your own collar.
-export const BODY_BACK = 0.13 + 0.05 * 1.8;
+/**
+ * How far (metres, at your size) the body's root sits behind your neck's pivot
+ * (bodyframe.ts: about 9 cm behind and 10 cm below your eyes). The body hangs
+ * from the neck, so nodding doesn't push it ahead of you: look straight down
+ * and you look down your own chest, centred under your head.
+ */
+export const BODY_BACK = 0.1;
+/** On a stool, your hips stay on the seat but follow your head this far (metres) from its centre. */
+const SEAT_SHIFT = 0.12;
 /** Size of the character's own (hidden) hand inside the real one. */
 const HIDDEN_HAND = 0.001;
 /** The forearm runs this far into the hand model (past its open wrist), metres. */
@@ -74,7 +80,7 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null; eyeY?: number; crouch?: number }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; up?: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null; eyeY?: number; crouch?: number }) {
     this.root.visible = o.on && !!this.rig;
     const rig = this.rig;
     if (!o.on || !rig) return;
@@ -93,16 +99,23 @@ export class SelfBody {
     const sc = this.standScale;
     rig.root.scale.setScalar(sc);
     // The body turns with you when you look far to one side or walk.
-    const headYaw = Math.atan2(o.dir.x, o.dir.z);
+    // (From the head's forward and up together: steady even looking straight down, see bodyframe.ts.)
+    const up = o.up ?? new THREE.Vector3(0, 1, 0);
+    const headYaw = facing(o.dir, up);
     const diff = Math.atan2(Math.sin(headYaw - this.bodyYaw), Math.cos(headYaw - this.bodyYaw));
     if (Math.abs(diff) > 0.6 || o.speed > 0.2) this.bodyYaw += diff * Math.min(1, dt * (o.speed > 0.2 ? 8 : 3));
     const fwd = new THREE.Vector3(Math.sin(this.bodyYaw), 0, Math.cos(this.bodyYaw));
-    // Neck under the eyes, set back so the body sits a little behind your
-    // point of view (as your real one does) and the chest doesn't fill your view.
-    rig.root.position.set(o.head.x, o.floorY, o.head.z).addScaledVector(fwd, -BODY_BACK * sc);
+    // The body hangs from your neck's pivot (not your eyes, which swing forward
+    // as you nod), set a little behind it as your real one is.
+    const neckAt = neckPivot(o.head, o.dir, up, sc);
+    rig.root.position.set(neckAt.x, o.floorY, neckAt.z).addScaledVector(fwd, -BODY_BACK * sc);
     if (sit > 0 && this.sitOn) {
-      // Hips on the seat, toward its back edge (the stool swivels: you still face where you look).
-      const seated = new THREE.Vector3(this.sitOn.x, hipOnSeat(this.sitOn.y) - POSE.sitHips * sc, this.sitOn.z).addScaledVector(fwd, -0.07);
+      // Hips on the seat, toward its back edge (the stool swivels: you still face where you look),
+      // shifted toward where your body really is so it never sits out in front of you.
+      const hx = rig.root.position.x - this.sitOn.x,
+        hz = rig.root.position.z - this.sitOn.z;
+      const k = Math.min(1, SEAT_SHIFT / Math.max(1e-6, Math.hypot(hx, hz)));
+      const seated = new THREE.Vector3(this.sitOn.x + hx * k, hipOnSeat(this.sitOn.y) - POSE.sitHips * sc, this.sitOn.z + hz * k).addScaledVector(fwd, -0.04);
       rig.root.position.lerp(seated, sit);
     }
     rig.root.rotation.order = 'YXZ';
@@ -141,7 +154,7 @@ export class SelfBody {
       // Seated: thighs along the seat, shins down to the floor; the torso leans
       // from the hips toward your real head (under and a little behind your eyes).
       sitLegs(b, this.bodyYaw, o.floorY, sit);
-      const neck = o.head.clone().addScaledVector(fwd, -BODY_BACK * sc).add(new THREE.Vector3(0, -0.14 * sc, 0));
+      const neck = new THREE.Vector3(neckAt.x, neckAt.y, neckAt.z).addScaledVector(fwd, -0.04 * sc);
       leanToward(b, neck, 0.5, sit);
       rig.root.updateMatrixWorld(true);
     } else if (this.sitOn) {

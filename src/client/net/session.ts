@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { bodyYaw } from '../bodyframe';
 import { crouchLegs, hipOnSeat } from '../sitpose';
 import type { Crowd, Person } from '../people';
 import { AVATARS, avatarLook } from './avatars';
@@ -244,7 +245,9 @@ export class Session {
     // On a stool you walked onto: you're sitting on its centre.
     const stool = !p.seated && p.stool ? p.stool : null;
     const f = p.seated ? p.seated.position : stool ? new THREE.Vector3(stool.x, p.feetY, stool.z) : p.feet();
-    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(p.camera.getWorldQuaternion(new THREE.Quaternion()));
+    const camQ = p.camera.getWorldQuaternion(new THREE.Quaternion());
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camQ);
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camQ);
     return {
       name: this.d.name,
       host: this.host,
@@ -252,7 +255,7 @@ export class Session {
       x: Math.round(f.x * 100) / 100,
       y: Math.round(f.y * 100) / 100,
       z: Math.round(f.z * 100) / 100,
-      yaw: Math.round(Math.atan2(dir.x, dir.z) * 100) / 100,
+      yaw: Math.round(bodyYaw(dir, up) * 100) / 100,
       pitch: Math.round(Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1)) * 100) / 100,
       moving: 0,
       seat: p.seated?.id ?? null,
