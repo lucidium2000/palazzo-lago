@@ -30,11 +30,13 @@ export const PROMENADE_LINES = {
   cookBusy: 'One at a time, boss. Yours is coming.',
   broke: "Sorry, chips only, and you're a little short.",
   clerkHello: ['Welcome to Lago Luxe. Try anything on.', 'Evening, gentlemen. Have a look around.', "Welcome in. Sunglasses are on the front table, hats by the mirror."],
-  clerkPaid: (what: string) => [`Thank you. The ${what} suits you.`, `All yours. Enjoy the ${what}.`, `Wonderful choice. Have a great night.`],
+  clerkPaid: (what: string) => [`Thank you. Enjoy the ${what}.`, `All yours. The ${what} look${/s$/.test(what) ? '' : 's'} great on you.`, 'Wonderful choice. Have a great night.'],
   clerkShoplift: "Sir? You'll want to pay for that at the counter.",
 };
 
 const pick = <T>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
+/** A dish's name mid-sentence ("one slice of pepperoni", but "one Lago double cheeseburger"). */
+const dish = (name: string) => (/^(Lago|Palazzo)\b/.test(name) ? name : name[0].toLowerCase() + name.slice(1));
 
 // ---------------------------------------------------------------------------
 // Food court
@@ -118,7 +120,7 @@ export class FoodCourt {
     ctx.font = `italic 24px ${SERIF}`;
     ctx.fillStyle = '#cbb991';
     const o = this.orders.get(c.id);
-    ctx.fillText(o ? `Making your ${o.item.name.toLowerCase()}…` : 'Point at a dish and pull the trigger (or click)', p.pxW / 2, 108, p.pxW - 40);
+    ctx.fillText(o ? `Making your ${dish(o.item.name)}…` : 'Point at a dish and pull the trigger (or click)', p.pxW / 2, 108, p.pxW - 40);
     ctx.font = `20px ${SERIF}`;
     ctx.fillStyle = '#9a8a6a';
     ctx.fillText('Pay with chips · pick it up off the counter', p.pxW / 2, p.pxH - 26);
@@ -152,7 +154,7 @@ export class FoodCourt {
     this.d.bankroll.debit(item.price, 'bet', 'food');
     this.orders.set(c.id, { counter: c, item, t: 0, total: item.prep });
     this.stats.ordered++;
-    this.say(c, pick(PROMENADE_LINES.cookOrder(item.name.toLowerCase())));
+    this.say(c, pick(PROMENADE_LINES.cookOrder(dish(item.name))));
     const cook = this.cook(c);
     if (cook) {
       cook.actionKind = 'pour';
@@ -172,8 +174,8 @@ export class FoodCourt {
     const sp = servePoint(c, slot);
     const it = this.d.loose.spawnLive(o.item.key, sp.x, sp.z, sp.y + 0.25, { yaw: Math.PI + (Math.random() - 0.5) * 0.4 });
     this.d.sound.play('ding', new THREE.Vector3(sp.x, sp.y + 0.3, sp.z), { volume: 0.5, rate: 1.3 });
-    this.say(c, pick(PROMENADE_LINES.cookReady(o.item.name.toLowerCase())));
-    this.d.hud.toast(this.d.player.inXR ? `Your ${o.item.name.toLowerCase()} is on the counter · grab it, bring it to your mouth` : `Your ${o.item.name.toLowerCase()} is on the counter · click it, F to take a bite`, 'win');
+    this.say(c, pick(PROMENADE_LINES.cookReady(dish(o.item.name))));
+    this.d.hud.toast(this.d.player.inXR ? `Your ${dish(o.item.name)} is on the counter · grab it, bring it to your mouth` : `Your ${dish(o.item.name)} is on the counter · click it, F to take a bite`, 'win');
     this.stats.served++;
     if (it) this.onServed?.(it, o.item);
   }
@@ -327,7 +329,7 @@ export interface Worn {
 /** Where an accessory sits relative to the head bone (head-turned frame: x right, y up, z forward). */
 const SEAT: Record<Slot, THREE.Vector3> = {
   eyes: new THREE.Vector3(0, 0.055, 0.1),
-  head: new THREE.Vector3(0, 0.145, -0.005),
+  head: new THREE.Vector3(0, 0.125, -0.005),
 };
 
 /**

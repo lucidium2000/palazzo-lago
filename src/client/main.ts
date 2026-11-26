@@ -1698,6 +1698,9 @@ async function main() {
       show('suite', inSuite);
       show('promenade', inProm);
       show('skyline', !away);
+      show('party-lights', !away);
+      // Loose things lying about elsewhere (chips, bottles): only the kinds with some up here.
+      loose.cullTo(inProm ? onPromenade : inSuite ? (x) => x > 500 : null);
       show('pool', !away && fx > 16);
       // The hotel corridor opens off the casino's east wall: draw it from anywhere you can see down it
       // (it used to switch on only east of x = 4, so from most of the floor the hallway was a dark void).

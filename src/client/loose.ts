@@ -1178,6 +1178,19 @@ export class LooseObjects {
     return it.kind.food ? biteScale(it.bites, it.kind.food.bites) : 1;
   }
 
+  /**
+   * Zone culling: draw only the kinds with something lying within `here` (by x;
+   * null draws them all). The rest are hundreds of metres away, out of sight,
+   * but instanced and never frustum culled they'd still cost a draw each.
+   */
+  cullTo(here: ((x: number) => boolean) | null) {
+    for (const k of this.kinds) {
+      if (k.cull) continue;
+      const v = !here || k.items.some((it) => !it.gone && !it.holder && here(it.body.pos.x));
+      if (k.mesh.visible !== v) k.mesh.visible = v;
+    }
+  }
+
   /** The kind with this key (food and shop kinds, for the food court and the wardrobe). */
   kindOf(key: string) {
     return this.kinds.find((k) => k.key === key) ?? null;

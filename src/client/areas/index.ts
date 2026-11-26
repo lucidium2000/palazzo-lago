@@ -196,10 +196,9 @@ export function buildAreas(deps: {
       return where(f) === 'pool' ? 1 : 0;
     },
     populate(crowd) {
-      const people = populatePool(crowd, pool, dancers, performers);
-      // The Promenade has its own share of the crowd (see Crowd's capacity).
+      // The Promenade has its own share of the crowd (see Crowd's capacity): first, as the pool party takes all it can.
       areas.promenadeCast = populatePromenade(crowd, promenade, promenadeShare(q.people));
-      return people;
+      return populatePool(crowd, pool, dancers, performers);
     },
   };
   return areas;

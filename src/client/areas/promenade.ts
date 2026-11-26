@@ -913,7 +913,9 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
     sw = S.x1 - S.x0,
     scx = (S.x0 + S.x1) / 2,
     scz = (S.z0 + S.z1) / 2;
-  b.add(plane(sw, S.z1 - S.z0, 1), m.walnut, M(scx, 0.003, scz));
+  // Bright and white like a jeweller's: pale marble underfoot, ivory walls, a glowing ceiling.
+  const ivory = new THREE.MeshStandardMaterial({ color: 0xf4ece0, roughness: 0.7, emissive: 0x6a5a48, emissiveIntensity: 0.6 });
+  b.add(plane(sw, S.z1 - S.z0, 1), m.marble, M(scx, 0.003, scz));
   {
     const rug = new THREE.MeshStandardMaterial({ color: 0x5a1220, roughness: 0.95, emissive: 0x1a0408, emissiveIntensity: 0.5 });
     b.add(new THREE.PlaneGeometry(7, 4.2).rotateX(-Math.PI / 2), rug, M(scx, 0.006, 8.9));
@@ -923,10 +925,19 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
   b.add(plane(sw, S.z1 - S.z0, 1, false), m.cream, M(scx, SHOP_H, scz));
   b.box(m.glowWarm, scx, SHOP_H - 0.02, scz, sw - 2, 0.01, S.z1 - S.z0 - 2.4);
   b.box(m.cream, scx, SHOP_H - 0.06, scz, sw - 2.6, 0.06, S.z1 - S.z0 - 3);
-  wallRun(b, m.silk, 'z', S.x0, S.z0, S.z1, Math.PI / 2, 0, SHOP_H);
-  wallRun(b, m.silk, 'z', S.x1, S.z0, S.z1, -Math.PI / 2, 0, SHOP_H);
-  wallRun(b, m.silk, 'x', S.z1, S.x0, S.x1, Math.PI, 0, SHOP_H);
-  wallRun(b, m.silk, 'x', FRONT_Z + 0.12, S.x0, S.x1, 0, 0, SHOP_H, [[sd.x0, sd.x1, 0, 2.8], ...winW.map(([a, c]) => [a, c, 0.45, 2.8] as [number, number, number, number])]);
+  for (const x of [S.x0 + 3.5, scx, S.x1 - 3.5]) b.box(m.glow(0xfff2dc, 1.3), x, SHOP_H - 0.1, 9.4, 2.2, 0.02, 4.2);
+  wallRun(b, ivory, 'z', S.x0, S.z0, S.z1, Math.PI / 2, 0, SHOP_H);
+  wallRun(b, ivory, 'z', S.x1, S.z0, S.z1, -Math.PI / 2, 0, SHOP_H);
+  wallRun(b, ivory, 'x', S.z1, S.x0, S.x1, Math.PI, 0, SHOP_H);
+  wallRun(b, ivory, 'x', FRONT_Z + 0.12, S.x0, S.x1, 0, 0, SHOP_H, [[sd.x0, sd.x1, 0, 2.8], ...winW.map(([a, c]) => [a, c, 0.45, 2.8] as [number, number, number, number])]);
+  // Gilt panel mouldings on the ivory walls.
+  for (const [x, z, w, d] of [
+    [S.x0 + 0.02, 6.2, 0.02, 1.6],
+    [S.x1 - 0.02, 6.2, 0.02, 1.6],
+    [S.x0 + 0.02, 12.6, 0.02, 1.6],
+    [S.x1 - 0.02, 12.6, 0.02, 1.6],
+  ] as const)
+    for (const y of [0.9, 2.7]) b.box(m.gold, x, y, z, w || 0.02, 0.03, d || 0.02);
   for (const x of [S.x0 + 0.06, S.x1 - 0.06]) b.box(m.walnut, x, 0.08, scz, 0.12, 0.16, S.z1 - S.z0);
   // Wall shelving: walnut frames, glass shelves lit from behind.
   for (const sh of STORE_FIX.shelves) {
@@ -937,9 +948,10 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
     for (const y of STORE_FIX.shelfYs) b.box(glass, sh.x, y - 0.01, sh.z, sh.d, 0.02, sh.w);
     b.box(m.walnut, sh.x, 2.22, sh.z, sh.d + 0.04, 0.06, sh.w + 0.1);
   }
-  // Display tables.
+  // Display tables: white marble tops on gilt legs, so the stock stands out.
   for (const t of STORE_FIX.tables) {
-    b.box(m.walnut, t.x, t.top - 0.025, t.z, t.w, 0.05, t.d);
+    b.box(m.marble, t.x, t.top - 0.025, t.z, t.w, 0.05, t.d);
+    b.box(m.gold, t.x, t.top - 0.055, t.z, t.w + 0.02, 0.02, t.d + 0.02);
     for (const [sx, sz] of [
       [-1, -1],
       [1, -1],
@@ -947,7 +959,8 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
       [1, 1],
     ])
       b.box(m.gold, t.x + sx * (t.w / 2 - 0.06), (t.top - 0.05) / 2, t.z + sz * (t.d / 2 - 0.06), 0.04, t.top - 0.05, 0.04);
-    pool(t.x, t.z, 2.4);
+    pool(t.x, t.z, 2.4, t.top + 0.003);
+    pool(t.x, t.z, 3.2);
   }
   // The counter and the register.
   {
@@ -1000,7 +1013,7 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
     const carpetTex = arcadeCarpet(512);
     const carpet = new THREE.MeshStandardMaterial({ map: carpetTex, roughness: 0.95, emissive: 0xffffff, emissiveMap: carpetTex, emissiveIntensity: 0.35 });
     ab.add(plane(aw, A.z1 - A.z0, 1 / 2.2), carpet, M(acx, 0.003, acz));
-    const dark = new THREE.MeshStandardMaterial({ color: 0x1a1426, roughness: 0.8, emissive: 0x0a0614, emissiveIntensity: 0.6 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x2a2040, roughness: 0.8, emissive: 0x140c26, emissiveIntensity: 0.9 });
     ab.add(plane(aw, A.z1 - A.z0, 1, false), dark, M(acx, SHOP_H, acz));
     wallRun(ab, dark, 'z', A.x0, A.z0, A.z1, Math.PI / 2, 0, SHOP_H);
     wallRun(ab, dark, 'z', A.x1, A.z0, A.z1, -Math.PI / 2, 0, SHOP_H);

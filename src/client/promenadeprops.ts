@@ -223,7 +223,7 @@ export function promenadeKinds(): PromKindDef[] {
     food('noodles', noodlesGeometry(), { name: 'noodles', shape: { type: 'cyl', r: 0.045, h: 0.1 }, mass: 0.35, bounce: 0.08, friction: 0.7, tumble: 0.4 }, { p: [0.15, -0.2, -0.38], r: [0.15, 0, 0] }),
     food('gelato', gelatoGeometry(), { name: 'gelato', shape: { type: 'cyl', r: 0.035, h: 0.16 }, mass: 0.1, bounce: 0.05, friction: 0.7, tumble: 0.5 }, { p: [0.14, -0.2, -0.34], r: [0.1, 0, 0] }),
     merch('sunglasses', sunglassesGeometry(), vc(0.25, { metalness: 0.35, envMapIntensity: 1.6 }), { name: 'sunglasses', shape: { type: 'box', x: 0.066, y: 0.021, z: 0.066 }, mass: 0.03, bounce: 0.2, friction: 0.5, tumble: 0.4 }, 'click', { p: [0.12, -0.15, -0.32], r: [0.2, Math.PI, 0] }),
-    merch('hat', hatGeometry(), vc(0.85), { name: 'hat', shape: { type: 'cyl', r: 0.15, h: 0.12 }, mass: 0.15, bounce: 0.1, friction: 0.7, drag: 1.2, tumble: 0.2 }, 'thunk', { p: [0.2, -0.22, -0.48], r: [0.35, 0, 0] }),
+    merch('hat', hatGeometry(), vc(0.85), { name: 'hat', shape: { type: 'cyl', r: 0.15, h: 0.12 }, mass: 0.15, bounce: 0.1, friction: 0.7, drag: 1.2, tumble: 0.2 }, 'thunk', { p: [0.3, -0.3, -0.6], r: [0.5, 0, 0] }),
     merch('plush', plushGeometry(), vc(0.95), { name: 'plush', shape: { type: 'cyl', r: 0.055, h: 0.18 }, mass: 0.15, bounce: 0.3, friction: 0.8, drag: 0.4, tumble: 0.6 }, 'thunk'),
     merch('diceset', dicesetGeometry(), vc(0.35, { envMapIntensity: 1.4 }), { name: 'diceset', shape: { type: 'box', x: 0.06, y: 0.031, z: 0.04 }, mass: 0.12, bounce: 0.2, friction: 0.6, tumble: 0.5 }, 'click'),
   ];
