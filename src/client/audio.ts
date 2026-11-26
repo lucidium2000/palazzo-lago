@@ -55,6 +55,8 @@ type SoundName =
   | 'thunk'
   | 'swim'
   | 'land'
+  | 'crunch'
+  | 'munch'
   | SampleName;
 
 /** Recorded effects (public/audio/<name>.mp3) and the synthesized sound that stands in for each until it's loaded. */
@@ -372,6 +374,25 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
       return l(rand()) * 1.6 * gl * env(t, 0.1, 0.9) * (t < 1.3 ? 1 : (1.6 - t) / 0.3);
     });
   })();
+  // A bite of something crisp (pizza crust, a burger's bun): a few quick crackles, then a chew.
+  const crunch = (() => {
+    const h = hp(0.55),
+      l = lp(0.5);
+    const cracks = [0, 0.045, 0.1, 0.16, 0.3, 0.42];
+    return synth(ctx, 0.6, (t) => {
+      let k = 0;
+      for (const c of cracks) if (t >= c) k += env(t - c, 0.002, c < 0.2 ? 0.025 : 0.04) * (c < 0.2 ? 1 : 0.45);
+      return h(l(rand())) * 1.5 * k;
+    });
+  })();
+  // A soft mouthful (gelato, noodles): muffled, wet chews.
+  const munch = (() => {
+    const l = lp(0.08);
+    return synth(ctx, 0.55, (t) => {
+      const chew = Math.max(0, Math.sin(2 * Math.PI * 4.2 * t)) ** 2;
+      return l(rand()) * 3.2 * chew * env(t, 0.02, 0.3);
+    });
+  })();
   const sip = (() => {
     const l = lp(0.2);
     return synth(ctx, 0.5, (t) => l(rand()) * 0.8 * env(t, 0.05, 0.12) + Math.sin(2 * Math.PI * (300 - t * 200) * t) * 0.05 * env(t, 0.1, 0.08));
@@ -406,7 +427,7 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, denied,
     stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, punch, block, slap, whoosh, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
-    ding, liftHum, splash, swim, land,
+    ding, liftHum, splash, swim, land, crunch, munch,
     variants: stepVariants,
   };
 }

@@ -284,6 +284,20 @@ export class Hands {
     return g;
   }
 
+  /** Forgets a grabbable (a loose thing whose slot was reused). */
+  unregister(g: Grabbable) {
+    const i = this.items.indexOf(g);
+    if (i >= 0) this.items.splice(i, 1);
+  }
+
+  /** Empties a hand without letting go (what it held is gone: eaten, or put on your head). */
+  empty(hand: Hand) {
+    hand.carried?.removeFromParent();
+    hand.held = null;
+    hand.carried = null;
+    hand.ctrl.userData.grabbing = false;
+  }
+
   private handPos(hand: Hand) {
     // Grip space is the palm; tracked hands report it too.
     hand.grip.updateMatrixWorld(true);

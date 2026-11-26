@@ -13,6 +13,8 @@ import type { ChipDenom } from './textures';
 import { LooseSim, Surfaces, extents, type LooseBody, type LooseEnv, type LooseEvent, type LooseSpec } from './loosephys';
 import { BAR as POOL_BAR } from './areas/pool';
 import { palmGrab, palms, type PalmReading } from './palm';
+import { biteScale, promenadeKinds } from './promenadeprops';
+import { MERCH, PROMENADE_SURFACES, storeStock, type MerchKey } from './areas/promenadeplan';
 
 type SoundName = Parameters<import('./audio').Sound['play']>[0];
 interface SoundLike {
@@ -59,9 +61,15 @@ export type LooseNet =
   | { k: 'throw'; id: string; p: number[]; q: number[]; v: number[]; w: number[] }
   | { k: 'break'; id: string }
   /** A chip went into a bet on a table: it's gone from the loose ones. */
-  | { k: 'gone'; id: string };
+  | { k: 'gone'; id: string }
+  /** Something new appeared (food served at a counter, a hat taken off): kind key, where, how it's turned, colour, paid for. */
+  | { k: 'spawn'; id: string; key: string; p: number[]; yaw: number; c: number; paid: number }
+  /** A bite out of a piece of food: `n` bites left (0: finished, it's gone). */
+  | { k: 'bite'; id: string; n: number }
+  /** Shop stock paid for at the counter. */
+  | { k: 'paid'; id: string };
 
-interface KindDef {
+export interface KindDef {
   key: string;
   label: string;
   spec: LooseSpec;
@@ -77,6 +85,12 @@ interface KindDef {
   hold: { p: [number, number, number]; r: [number, number, number] };
   /** Bottles: holds this many glasses. */
   capacity?: number;
+  /** Food: bites to finish it. */
+  food?: { bites: number };
+  /** Shop stock (price, wearable). */
+  merch?: MerchKey;
+  /** Frustum-culled by the copies' bounding sphere (kinds that only live in one place). */
+  cull?: boolean;
 }
 
 interface Kind extends KindDef {
@@ -100,11 +114,16 @@ export interface Item {
   holder: 'vr' | 'desk' | 'remote' | null;
   hand: Hand | null;
   gone: boolean;
+  /** Food: bites left. */
+  bites: number;
+  /** Shop stock: bought (wearable, and yours to take). */
+  paid: boolean;
 }
 
 const tmpM = new THREE.Matrix4();
 const ONE = new THREE.Vector3(1, 1, 1);
 const ZERO = new THREE.Vector3(0, 0, 0);
+const tmpS = new THREE.Vector3();
 const round = (a: number[], d: number) => a.map((v) => Math.round(v * 10 ** d) / 10 ** d);
 
 /** Chip geometry with its base at y = 0 and both faces in one group (two draws per denomination). */
@@ -306,6 +325,8 @@ function kinds(): KindDef[] {
       vol: 0.6,
       hold: { p: [0.18, -0.25, -0.45], r: [0.2, 0, 0] },
     },
+    // The Promenade: food from the food court, the boutique's stock.
+    ...promenadeKinds(),
   ];
 }
 
@@ -335,7 +356,7 @@ export class LooseObjects {
   private swigCool = 0;
   private soundCool = new Map<string, number>();
   /** Counters for tests and tuning. */
-  readonly stats = { thrown: 0, landed: 0, broken: 0, knocked: 0, swept: 0, palmed: 0, offPalm: 0 };
+  readonly stats = { thrown: 0, landed: 0, broken: 0, knocked: 0, swept: 0, palmed: 0, offPalm: 0, bites: 0 };
   /** Your open palms (see palm.ts). */
   readonly palms = palms;
   /**
@@ -372,7 +393,7 @@ export class LooseObjects {
       if (!this.desk || d.player.inXR) return;
       if (e.code === 'KeyQ') this.putDownDesk();
       if (e.code === 'KeyX') this.throwDesk();
-      if (e.code === 'KeyF') this.swig(this.desk);
+      if (e.code === 'KeyF') this.useDesk();
     });
   }
 
@@ -384,7 +405,7 @@ export class LooseObjects {
     const cap = 40;
     const mesh = new THREE.InstancedMesh(def.geo, def.mat, cap);
     mesh.count = 0;
-    mesh.frustumCulled = false;
+    mesh.frustumCulled = !!def.cull;
     mesh.castShadow = false;
     mesh.userData.dynamic = true;
     mesh.userData.noLand = true;
@@ -401,7 +422,7 @@ export class LooseObjects {
       label: (e) => {
         const it = e.hit.instanceId !== undefined ? k.items[e.hit.instanceId] : undefined;
         if (!it || it.holder || it.gone) return null;
-        return `Pick up the ${this.labelOf(it)}`;
+        return this.pickLabel(it);
       },
       onSelect: (e) => {
         const it = e.hit.instanceId !== undefined ? k.items[e.hit.instanceId] : undefined;
@@ -416,7 +437,15 @@ export class LooseObjects {
       return hex === new THREE.Color(FRUIT.lemon).getHex() ? 'lemon' : hex === new THREE.Color(FRUIT.orange).getHex() ? 'orange' : 'lime';
     }
     if (it.kind.key === 'bottle') return (it.level > 0.02 ? '' : 'empty ') + ((it.body.data.name as string) ?? 'bottle');
+    if (it.kind.food && it.bites < it.kind.food.bites) return `half-eaten ${it.kind.label}`;
     return it.kind.label;
+  }
+
+  /** What a click on it says: shop stock shows its price until it's paid for. */
+  private pickLabel(it: Item) {
+    const m = it.kind.merch;
+    if (m && !it.paid) return `Pick up the ${this.labelOf(it)} · $${MERCH[m].price}`;
+    return `Pick up the ${this.labelOf(it)}`;
   }
 
   /** Adds an object at build time; `fromY` is just above where it sits (it stacks on what's there). */
@@ -428,7 +457,7 @@ export class LooseObjects {
     this.sim.place(body, x, z, fromY);
     if (o.name) body.data.name = o.name;
     const color = new THREE.Color(o.color ?? 0xffffff);
-    const it: Item = { id, kind: k, body, index, color, level: o.liquid !== undefined ? 1 : 0, liquid: o.liquid ?? null, proxy: null, holder: null, hand: null, gone: false };
+    const it: Item = { id, kind: k, body, index, color, level: o.liquid !== undefined ? 1 : 0, liquid: o.liquid ?? null, proxy: null, holder: null, hand: null, gone: false, bites: k.food?.bites ?? 0, paid: !k.merch };
     body.data.item = it;
     k.items.push(it);
     k.mesh.count = k.items.length;
@@ -487,6 +516,11 @@ export class LooseObjects {
     // The pool's DJ stage and the decks on it.
     S.box(50, -32.8, 6.0, 2.4, 0.6);
     S.box(50, -31.95, 2.3, 0.65, 1.45);
+    // The Promenade: food counters, food court tables, the boutique's tables, shelves and counter.
+    for (const f of PROMENADE_SURFACES()) {
+      if (f.kind === 'disc') S.disc(f.x, f.z, f.r, f.y);
+      else S.box(f.x, f.z, f.w, f.d, f.y, f.yaw);
+    }
 
     const up = (y: number) => y + 0.4;
     // --- On the bar counter ---
@@ -519,6 +553,8 @@ export class LooseObjects {
       this.fruitBowl(597.55, -5.1, up(0.985));
       this.spawn('bucket', 597.25, -5.18, up(0.985));
     }
+    // --- The boutique's stock (on the Promenade) ---
+    for (const s of storeStock()) this.spawn(s.key, s.x, s.z, up(s.y), { yaw: s.yaw, color: s.color });
     // --- Lounge tables ---
     {
       const [x, z] = lounge[0];
@@ -687,7 +723,7 @@ export class LooseObjects {
   private writeMatrix(it: Item) {
     const k = it.kind;
     const hide = it.gone || !!it.holder;
-    tmpM.compose(it.body.pos, it.body.q, hide ? ZERO : ONE);
+    tmpM.compose(it.body.pos, it.body.q, hide ? ZERO : it.kind.food ? tmpS.setScalar(this.scaleOf(it)) : ONE);
     k.mesh.setMatrixAt(it.index, tmpM);
     k.dirty = true;
   }
@@ -706,11 +742,11 @@ export class LooseObjects {
   }
 
   /** A carryable stand-in (one instance) for an item in someone's hand. */
-  makeProxy(kindIndex: number, color: THREE.Color | number): THREE.InstancedMesh | null {
+  makeProxy(kindIndex: number, color: THREE.Color | number, scale = 1): THREE.InstancedMesh | null {
     const k = this.kinds[kindIndex];
     if (!k) return null;
     const m = new THREE.InstancedMesh(k.geo, k.mat, 1);
-    m.setMatrixAt(0, new THREE.Matrix4());
+    m.setMatrixAt(0, new THREE.Matrix4().makeScale(scale, scale, scale));
     if (k.tinted) {
       m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(3), 3);
       m.setColorAt(0, new THREE.Color(color));
@@ -739,6 +775,22 @@ export class LooseObjects {
       drag: (hand, pos) => {
         // Bottles: bring it to your mouth for a swig.
         if (it.kind.key === 'bottle' && pos.distanceTo(this.d.hands.head) < 0.2 && this.swig(it)) this.d.hands.onHaptic?.(hand, 0.2, 30);
+        // Food: to your mouth for a bite (and another, every second or so you hold it there).
+        if (it.kind.food && this.atMouth(pos) && this.bite(it)) this.d.hands.onHaptic?.(hand, 0.3, 40);
+        // Sunglasses to your eyes, a hat on top of your head: hold it there a moment and it's on.
+        const wear = it.kind.merch ? MERCH[it.kind.merch].wear : null;
+        if (wear) {
+          const ok = wear === 'eyes' ? this.atEyes(pos) : this.onHead(pos);
+          if (!ok) this.wearDwell.delete(it);
+          else {
+            const t0 = this.wearDwell.get(it) ?? this.time;
+            this.wearDwell.set(it, t0);
+            if (this.time - t0 > 0.35) {
+              this.wearDwell.delete(it);
+              if (this.wear(it)) this.d.hands.onHaptic?.(hand, 0.4, 50);
+            }
+          }
+        }
       },
       release: (hand, _pos, carried) => {
         if (it.holder !== 'vr' || !carried) return;
@@ -754,7 +806,7 @@ export class LooseObjects {
   private take(it: Item, who: 'vr' | 'desk'): THREE.InstancedMesh {
     this.sim.hold(it.body);
     it.holder = who;
-    const p = this.makeProxy(it.kind.index, it.color)!;
+    const p = this.makeProxy(it.kind.index, it.color, this.scaleOf(it))!;
     p.position.copy(it.body.pos);
     p.quaternion.copy(it.body.q);
     this.d.scene.add(p);
@@ -792,8 +844,18 @@ export class LooseObjects {
     this.d.camera.add(p);
     p.position.set(...it.kind.hold.p);
     p.rotation.set(...it.kind.hold.r);
-    const extra = it.kind.key === 'bottle' ? ' · F to swig · hold P to pour' : '';
-    this.d.hud.toast(`Holding a ${this.labelOf(it)} · X to throw · Q to set it down${extra}`, 'info');
+    const m = it.kind.merch;
+    const extra =
+      it.kind.key === 'bottle'
+        ? ' · F to swig · hold P to pour'
+        : it.kind.food
+          ? ' · F to take a bite'
+          : m && !it.paid
+            ? ` · $${MERCH[m].price}, pay at the counter`
+            : m && MERCH[m].wear
+              ? ` · F to put ${m === 'hat' ? 'it' : 'them'} on`
+              : '';
+    this.d.hud.toast(`Holding the ${this.labelOf(it)} · X to throw · Q to set it down${extra}`, 'info');
   }
 
   /** Desktop/phone: throw what you're holding where you're looking. */
@@ -885,6 +947,7 @@ export class LooseObjects {
   update(dt: number) {
     this.time += dt;
     this.swigCool = Math.max(0, this.swigCool - dt);
+    this.biteCool = Math.max(0, this.biteCool - dt);
     for (const [k, t] of this.soundCool) if (t < this.time) this.soundCool.delete(k);
     // Desktop: P tips the bottle in your hand forward to pour.
     if (this.desk?.proxy && this.desk.kind.key === 'bottle') {
@@ -1097,23 +1160,225 @@ export class LooseObjects {
   }
 
   // ---------------------------------------------------------------------------
+  // Food and shop stock (the Promenade)
+  // ---------------------------------------------------------------------------
+
+  private biteCool = 0;
+  private wearDwell = new Map<Item, number>();
+  private liveN = 0;
+  /** Makes ids of things spawned here unique in the room (your friends spawn theirs too). */
+  private readonly tag = Math.random().toString(36).slice(2, 7);
+  /** You finished something (the last bite). */
+  onAte: ((it: Item) => void) | null = null;
+  /** Put on a hat or sunglasses: the wardrobe shows it on you (and your friends). False if it can't. */
+  onWear: ((key: MerchKey, color: number) => boolean) | null = null;
+
+  /** How big it's drawn: food shrinks with each bite. */
+  scaleOf(it: Item) {
+    return it.kind.food ? biteScale(it.bites, it.kind.food.bites) : 1;
+  }
+
+  /** The kind with this key (food and shop kinds, for the food court and the wardrobe). */
+  kindOf(key: string) {
+    return this.kinds.find((k) => k.key === key) ?? null;
+  }
+
+  /** In front of your mouth (a little below and ahead of your eyes)? */
+  private atMouth(p: THREE.Vector3) {
+    const h = this.d.hands.head;
+    return Math.hypot(p.x - h.x, p.z - h.z) < 0.2 && p.y < h.y + 0.02 && p.y > h.y - 0.25;
+  }
+
+  /** Up at your eyes (sunglasses)? */
+  private atEyes(p: THREE.Vector3) {
+    const h = this.d.hands.head;
+    return p.distanceTo(h) < 0.13;
+  }
+
+  /** On top of your head (a hat)? */
+  private onHead(p: THREE.Vector3) {
+    const h = this.d.hands.head;
+    return Math.hypot(p.x - h.x, p.z - h.z) < 0.16 && p.y > h.y + 0.02 && p.y < h.y + 0.35;
+  }
+
+  /**
+   * Puts something new into the world now: food served at a counter, a hat
+   * you took off. Reuses the slot of one that was eaten or worn. Your friends
+   * get it too (with the same id) unless it came from them (`remote`).
+   */
+  spawnLive(key: string, x: number, z: number, fromY: number, o: { id?: string; yaw?: number; color?: number; paid?: boolean; remote?: boolean } = {}): Item | null {
+    const k = this.kindOf(key);
+    if (!k) return null;
+    const id = o.id ?? `${key}-${this.tag}-${++this.liveN}`;
+    const known = this.items.get(id);
+    if (known) return known.gone ? null : known;
+    let index = k.items.findIndex((x) => x.gone && !x.holder);
+    if (index < 0) {
+      if (k.items.length >= k.mesh.instanceMatrix.count) return null;
+      index = k.items.length;
+    } else {
+      const old = k.items[index];
+      this.items.delete(old.id);
+      const g = this.grabs.get(old);
+      if (g) this.d.hands.unregister(g);
+      this.grabs.delete(old);
+      this.wearDwell.delete(old);
+    }
+    const yaw = o.yaw ?? 0;
+    const body = this.sim.add(k.spec, id, new THREE.Vector3(x, fromY, z), yaw);
+    this.sim.place(body, x, z, fromY);
+    const color = new THREE.Color(o.color ?? 0xffffff);
+    const it: Item = { id, kind: k, body, index, color, level: 0, liquid: null, proxy: null, holder: null, hand: null, gone: false, bites: k.food?.bites ?? 0, paid: o.paid ?? !k.merch };
+    body.data.item = it;
+    k.items[index] = it;
+    k.mesh.count = k.items.length;
+    if (k.mesh.instanceColor) k.mesh.setColorAt(index, color);
+    this.items.set(id, it);
+    this.writeMatrix(it);
+    this.registerGrab(it);
+    if (!o.remote) this.onNet?.({ k: 'spawn', id, key, p: round(body.pos.toArray(), 3), yaw: Math.round(yaw * 100) / 100, c: color.getHex(), paid: it.paid ? 1 : 0 });
+    return it;
+  }
+
+  /** A bite of the food in your hand (crunch, it gets smaller; the last bite finishes it). */
+  bite(it: Item): boolean {
+    if (!it.kind.food || it.bites <= 0 || this.biteCool > 0 || it.gone) return false;
+    this.biteCool = 0.9;
+    it.bites--;
+    const soft = it.kind.key === 'gelato' || it.kind.key === 'noodles';
+    this.d.sound.playLocal(soft ? 'munch' : 'crunch', soft ? 0.55 : 0.7, 0.9 + Math.random() * 0.2);
+    this.stats.bites++;
+    this.onNet?.({ k: 'bite', id: it.id, n: it.bites });
+    if (it.proxy) {
+      const s = this.scaleOf(it);
+      it.proxy.setMatrixAt(0, tmpM.makeScale(s, s, s));
+      it.proxy.instanceMatrix.needsUpdate = true;
+    }
+    if (it.proxy && it.holder === 'desk') {
+      // Up to your mouth and back.
+      const p = it.proxy;
+      p.position.set(0.02, -0.09, -0.2);
+      setTimeout(() => {
+        if (this.desk === it && it.proxy === p) p.position.set(...it.kind.hold.p);
+      }, 450);
+    }
+    if (it.bites <= 0) {
+      this.leaveHand(it);
+      this.collect(it);
+      this.d.hud.toast(`That's the ${it.kind.label} finished.`, 'info');
+      this.onAte?.(it);
+    }
+    return true;
+  }
+
+  /** It's out of your hand for good (eaten, or on your head now). */
+  private leaveHand(it: Item) {
+    if (this.desk === it) this.desk = null;
+    if (it.holder === 'vr' && it.hand) this.d.hands.empty(it.hand);
+    it.proxy?.removeFromParent();
+    it.proxy = null;
+    it.holder = null;
+    it.hand = null;
+  }
+
+  /** Put on the hat or sunglasses you're holding (paid for). */
+  wear(it: Item): boolean {
+    const m = it.kind.merch;
+    if (!m || !MERCH[m].wear || it.gone) return false;
+    if (!it.paid) {
+      this.d.hud.toast(`Pay for the ${this.labelOf(it)} at the counter first ($${MERCH[m].price})`, 'warn');
+      return false;
+    }
+    if (!this.onWear?.(m, it.color.getHex())) return false;
+    this.leaveHand(it);
+    this.collect(it);
+    this.onNet?.({ k: 'gone', id: it.id });
+    return true;
+  }
+
+  /** Took a hat or sunglasses off: it's in your hand (VR: the hand that reached for it). */
+  takeOff(key: MerchKey, color: number, hand: Hand | null): Item | null {
+    const at = this.d.hands.head;
+    const it = this.spawnLive(key, at.x, at.z, at.y, { color, paid: true });
+    if (!it) return null;
+    if (hand) {
+      const g = this.grabs.get(it);
+      if (g && this.d.hands.grabWith(hand, g) && it.proxy) {
+        it.proxy.position.set(0, 0.02, -0.06);
+        it.proxy.quaternion.identity();
+      }
+    } else this.pickUpDesk(it);
+    return it;
+  }
+
+  /** The boutique took your money for it. */
+  markPaid(it: Item) {
+    if (it.paid) return;
+    it.paid = true;
+    this.onNet?.({ k: 'paid', id: it.id });
+  }
+
+  /** Every unpaid piece of stock in your hands. */
+  unpaidHeld(): Item[] {
+    return [...this.items.values()].filter((x) => x.kind.merch && !x.paid && (x.holder === 'desk' || x.holder === 'vr'));
+  }
+
+  /** Desktop F: swig a bottle, bite food, put on a hat or sunglasses. */
+  useDesk() {
+    const it = this.desk;
+    if (!it) return;
+    if (it.kind.key === 'bottle') this.swig(it);
+    else if (it.kind.food) this.bite(it);
+    else if (it.kind.merch && MERCH[it.kind.merch].wear) this.wear(it);
+  }
+
+  /** What F (or the phone's action button) does with what you're holding, if anything. */
+  deskUse(): string | null {
+    const it = this.desk;
+    if (!it) return null;
+    if (it.kind.key === 'bottle') return 'Swig';
+    if (it.kind.food) return 'Bite';
+    if (it.kind.merch && MERCH[it.kind.merch].wear) return 'Wear';
+    return null;
+  }
+
+  // ---------------------------------------------------------------------------
   // Two-player
   // ---------------------------------------------------------------------------
 
-  /** What you're holding, for your friend's view: [kind, colour, hand (0 left, 1 right)]. */
+  /** What you're holding, for your friend's view: [kind, colour, hand (0 left, 1 right), size (%)]. */
   heldState(): number[] | null {
     const it = this.desk ?? [...this.items.values()].find((x) => x.holder === 'vr');
     if (!it) return null;
     const side = it.hand?.ctrl.userData.handedness === 'left' ? 0 : 1;
-    return [it.kind.index, it.color.getHex(), side];
+    return [it.kind.index, it.color.getHex(), side, Math.round(this.scaleOf(it) * 100)];
   }
 
   /** Your friend did something to a loose object. */
   remote(e: LooseNet) {
     if (!e || typeof e !== 'object' || typeof e.id !== 'string') return;
+    const finite = (a: unknown, n: number) => Array.isArray(a) && a.length === n && a.every((x) => Number.isFinite(x));
+    if (e.k === 'spawn') {
+      if (typeof e.key !== 'string' || !finite(e.p, 3) || e.id.length > 40) return;
+      this.spawnLive(e.key, e.p[0], e.p[2], e.p[1] + 0.03, { id: e.id, yaw: Number(e.yaw) || 0, color: Math.floor(Number(e.c)) & 0xffffff, paid: !!e.paid, remote: true });
+      return;
+    }
     const it = this.items.get(e.id);
     if (!it || it.gone) return;
-    const finite = (a: unknown, n: number) => Array.isArray(a) && a.length === n && a.every((x) => Number.isFinite(x));
+    if (e.k === 'paid') {
+      it.paid = true;
+      return;
+    }
+    if (e.k === 'bite') {
+      // Their bite (it's in their hand); the last one finishes it.
+      if (!it.kind.food || !Number.isInteger(e.n)) return;
+      it.bites = Math.max(0, Math.min(it.bites, e.n));
+      if (it.bites <= 0) {
+        it.holder = null;
+        this.collect(it);
+      } else this.writeMatrix(it);
+      return;
+    }
     // If it's in your hand, you have it: their copy catches up when you let go.
     if (it.holder === 'vr' || it.holder === 'desk') return;
     if (e.k === 'take') {
