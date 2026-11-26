@@ -14,7 +14,7 @@
  * scene unless it's a known kind, a sane position and a short line.
  */
 
-export const NPC_LINE_KINDS = ['pushed', 'punched', 'doused', 'hit', 'gasp', 'line', 'reply'] as const;
+export const NPC_LINE_KINDS = ['pushed', 'punched', 'doused', 'hit', 'gasp', 'line', 'reply', 'security'] as const;
 export type NpcLineKind = (typeof NPC_LINE_KINDS)[number];
 
 export const NPC_ROLES = ['wander', 'slots', 'watch', 'croupier', 'bartender', 'patron', 'pianist', 'waiter', 'buddy', 'chat', 'pair'] as const;

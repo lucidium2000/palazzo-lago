@@ -16,6 +16,7 @@ export const STAFF = {
   bartender: 'af_bella',
   waiter: 'bm_fable',
   waitress: 'af_river',
+  security: 'am_adam',
 } as const;
 
 export const CREW_VOICES: VoiceId[] = ['am_michael', 'am_fenrir', 'am_eric'];

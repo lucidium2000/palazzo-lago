@@ -555,6 +555,8 @@ export class Fights {
     if (this.guards.some((g) => this.local.has(g) || this.remoteBy.has(g))) return;
     const name = this.nameOf(caller);
     this.d.hud.toast(`${name} called security!`, 'warn');
+    // They yell for it, in their own voice.
+    this.d.react(caller, 'security');
     // They walk over from a few steps away (not out of thin air in front of you).
     const me = this.d.player.feet();
     let spot: THREE.Vector3 | null = null;
@@ -753,7 +755,8 @@ export class Fights {
     }
     if (p.role === 'guard' && b.talker && b.phase === 'guard' && !f.warned && this.guards[0] === p) {
       f.warned = true;
-      this.d.hud.toast(`Security: “${DUTY_LINES[Math.floor(Math.random() * DUTY_LINES.length)]}”`, 'warn');
+      // The guard tells you to cool it, out loud (a caption if the line isn't recorded yet).
+      if (this.d.react(p, 'security') <= 0) this.d.hud.toast(`Security: “${DUTY_LINES[Math.floor(Math.random() * DUTY_LINES.length)]}”`, 'warn');
     }
     // Aim at you (late in the wind-up the aim locks: that's your chance to slip it).
     if (b.phase === 'windup' || b.phase === 'strike') {

@@ -74,6 +74,13 @@
   "speed": 1
  },
  {
+  "id": "5b614bda",
+  "voice": "af_bella",
+  "text": "[shouting] SECURITY! Trouble at the bar!",
+  "say": "SECURITY! Trouble at the bar!",
+  "speed": 1
+ },
+ {
   "id": "60b2cfe5",
   "voice": "af_bella",
   "text": "Right on. Right on.",
@@ -272,6 +279,13 @@
   "speed": 1
  },
  {
+  "id": "f86737e6",
+  "voice": "af_bella",
+  "text": "[yelling] Security! I need you at the bar, now!",
+  "say": "Security! I need you at the bar, now!",
+  "speed": 1
+ },
+ {
   "id": "fb5fcdb5",
   "voice": "af_bella",
   "text": "Classic. Coming up.",
@@ -350,6 +364,13 @@
   "speed": 1
  },
  {
+  "id": "25e90ada",
+  "voice": "af_heart",
+  "text": "[yelling] SECURITY! Are you serious?! SECURITY!",
+  "say": "SECURITY! Are you serious?! SECURITY!",
+  "speed": 1
+ },
+ {
   "id": "26d1bd74",
   "voice": "af_heart",
   "text": "Oh, good for you!",
@@ -396,6 +417,13 @@
   "id": "367ecfeb",
   "voice": "af_heart",
   "text": "Red or black, the classic.",
+  "speed": 1
+ },
+ {
+  "id": "37a0e857",
+  "voice": "af_heart",
+  "text": "[screaming] SECURITY! Get this creep away from me!",
+  "say": "SECURITY! Get this creep away from me!",
   "speed": 1
  },
  {
@@ -2021,6 +2049,13 @@
   "speed": 1
  },
  {
+  "id": "59ca89e3",
+  "voice": "af_kore",
+  "text": "[shouting] SECURITY! Ay, somebody call security!",
+  "say": "SECURITY! Ay, somebody call security!",
+  "speed": 1
+ },
+ {
   "id": "5b97cc0b",
   "voice": "af_kore",
   "text": "Hey there! Having a good night?",
@@ -2103,6 +2138,13 @@
   "id": "77671afa",
   "voice": "af_kore",
   "text": "Interesting night.",
+  "speed": 1
+ },
+ {
+  "id": "7a47bbc0",
+  "voice": "af_kore",
+  "text": "[yelling] Security! Ahora! NOW!",
+  "say": "Security! Ahora! NOW!",
   "speed": 1
  },
  {
@@ -2709,6 +2751,13 @@
   "speed": 1
  },
  {
+  "id": "4088e464",
+  "voice": "af_nicole",
+  "text": "[yelling] Security, darling! NOW!",
+  "say": "Security, darling! NOW!",
+  "speed": 1
+ },
+ {
   "id": "40c6be23",
   "voice": "af_nicole",
   "text": "Dry heat, though.",
@@ -2914,6 +2963,13 @@
   "id": "78e810b5",
   "voice": "af_nicole",
   "text": "Alright, enjoy your night!",
+  "speed": 1
+ },
+ {
+  "id": "797156d0",
+  "voice": "af_nicole",
+  "text": "[shouting] SECURITY! Security to the blackjack table!",
+  "say": "SECURITY! Security to the blackjack table!",
   "speed": 1
  },
  {
@@ -3144,6 +3200,13 @@
   "speed": 1
  },
  {
+  "id": "d0ed92f3",
+  "voice": "af_nicole",
+  "text": "[firm, loud] Security, please! Right now!",
+  "say": "Security, please! Right now!",
+  "speed": 1
+ },
+ {
   "id": "d1ed72e3",
   "voice": "af_nicole",
   "text": "The bartender here is a legend. Ask for something off menu.",
@@ -3153,6 +3216,13 @@
   "id": "d36479d2",
   "voice": "af_nicole",
   "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "d3ae948d",
+  "voice": "af_nicole",
+  "text": "[shrieking] SECURITY! SECURITY! Somebody help me!",
+  "say": "SECURITY! SECURITY! Somebody help me!",
   "speed": 1
  },
  {
@@ -3418,6 +3488,13 @@
   "id": "4115101a",
   "voice": "af_nova",
   "text": "Woo! Bachelorette!",
+  "speed": 1
+ },
+ {
+  "id": "4290b5f3",
+  "voice": "af_nova",
+  "text": "[screaming] SECURITY! Oh my god, SECURITY!",
+  "say": "SECURITY! Oh my god, SECURITY!",
   "speed": 1
  },
  {
@@ -3898,6 +3975,13 @@
   "speed": 1
  },
  {
+  "id": "fd735e38",
+  "voice": "af_nova",
+  "text": "[yelling] Somebody call security! Like, NOW!",
+  "say": "Somebody call security! Like, NOW!",
+  "speed": 1
+ },
+ {
   "id": "0725c1f5",
   "voice": "af_river",
   "text": "Nothing wrong with that. Good luck!",
@@ -3925,6 +4009,13 @@
   "id": "0ff6816f",
   "voice": "af_river",
   "text": "Thanks!",
+  "speed": 1
+ },
+ {
+  "id": "114afb23",
+  "voice": "af_river",
+  "text": "[yelling] Security, please! Now!",
+  "say": "Security, please! Now!",
   "speed": 1
  },
  {
@@ -4084,6 +4175,13 @@
   "id": "43194387",
   "voice": "af_river",
   "text": "Thanks, it's rented.",
+  "speed": 1
+ },
+ {
+  "id": "4345afda",
+  "voice": "af_river",
+  "text": "[shouting] SECURITY! Help! Over here!",
+  "say": "SECURITY! Help! Over here!",
   "speed": 1
  },
  {
@@ -4599,6 +4697,13 @@
   "speed": 1
  },
  {
+  "id": "342ed76c",
+  "voice": "af_sarah",
+  "text": "[shouting] SECURITY! Can someone get security, please?!",
+  "say": "SECURITY! Can someone get security, please?!",
+  "speed": 1
+ },
+ {
   "id": "3545938f",
   "voice": "af_sarah",
   "text": "Ha! There's a shop in the lobby. Think about it.",
@@ -4825,6 +4930,13 @@
   "id": "97f4c399",
   "voice": "af_sarah",
   "text": "Very carefully.",
+  "speed": 1
+ },
+ {
+  "id": "987136de",
+  "voice": "af_sarah",
+  "text": "[yelling] Security! Over here!",
+  "say": "Security! Over here!",
   "speed": 1
  },
  {
@@ -5091,6 +5203,117 @@
   "speed": 1
  },
  {
+  "id": "012c9e9c",
+  "voice": "am_adam",
+  "text": "[groans] Oh, now you're done!",
+  "say": "Oh, now you're done!",
+  "speed": 1
+ },
+ {
+  "id": "10ea5fd9",
+  "voice": "am_adam",
+  "text": "[calm, firm] Alright, alright. Break it up.",
+  "say": "Alright, alright. Break it up.",
+  "speed": 1
+ },
+ {
+  "id": "20559f08",
+  "voice": "am_adam",
+  "text": "[grunts] Easy. Real easy.",
+  "say": "Easy. Real easy.",
+  "speed": 1
+ },
+ {
+  "id": "27b4cde9",
+  "voice": "am_adam",
+  "text": "[stern] That's enough. Walk it off or you're out.",
+  "say": "That's enough. Walk it off or you're out.",
+  "speed": 1
+ },
+ {
+  "id": "2b389edb",
+  "voice": "am_adam",
+  "text": "[firm] Hands off, pal.",
+  "say": "Hands off, pal.",
+  "speed": 1
+ },
+ {
+  "id": "3ef45315",
+  "voice": "am_adam",
+  "text": "[firm] Security. Let's keep it friendly, alright?",
+  "say": "Security. Let's keep it friendly, alright?",
+  "speed": 1
+ },
+ {
+  "id": "4a58b742",
+  "voice": "am_adam",
+  "text": "[firm] You're leaving. Now.",
+  "say": "You're leaving. Now.",
+  "speed": 1
+ },
+ {
+  "id": "59b62e14",
+  "voice": "am_adam",
+  "text": "[firm] Easy. Hands down, take a walk.",
+  "say": "Easy. Hands down, take a walk.",
+  "speed": 1
+ },
+ {
+  "id": "5d292901",
+  "voice": "am_adam",
+  "text": "[angry] Throw one more thing. I dare you.",
+  "say": "Throw one more thing. I dare you.",
+  "speed": 1
+ },
+ {
+  "id": "91201b4d",
+  "voice": "am_adam",
+  "text": "[warning] Don't push me.",
+  "say": "Don't push me.",
+  "speed": 1
+ },
+ {
+  "id": "9cd0f341",
+  "voice": "am_adam",
+  "text": "[annoyed] Really? On the suit?",
+  "say": "Really? On the suit?",
+  "speed": 1
+ },
+ {
+  "id": "b54ffd7e",
+  "voice": "am_adam",
+  "text": "[cold] That was a bad idea.",
+  "say": "That was a bad idea.",
+  "speed": 1
+ },
+ {
+  "id": "b687e3e5",
+  "voice": "am_adam",
+  "text": "Ow! Knock it off!",
+  "speed": 1
+ },
+ {
+  "id": "c70cbf0d",
+  "voice": "am_adam",
+  "text": "[firm] Strike two, buddy.",
+  "say": "Strike two, buddy.",
+  "speed": 1
+ },
+ {
+  "id": "d4501066",
+  "voice": "am_adam",
+  "text": "[shouting] OUCH! You just made a big mistake!",
+  "say": "OUCH! You just made a big mistake!",
+  "speed": 1
+ },
+ {
+  "id": "fb8da5fa",
+  "voice": "am_adam",
+  "text": "[roaring] OW! Alright, that's it!",
+  "say": "OW! Alright, that's it!",
+  "speed": 1
+ },
+ {
   "id": "0016f199",
   "voice": "am_echo",
   "text": "Tell her you want something smoky. Trust me.",
@@ -5289,6 +5512,13 @@
   "id": "475dfbed",
   "voice": "am_echo",
   "text": "Evenin'.",
+  "speed": 1
+ },
+ {
+  "id": "48f48037",
+  "voice": "am_echo",
+  "text": "[shouting] Somebody fetch security, now!",
+  "say": "Somebody fetch security, now!",
   "speed": 1
  },
  {
@@ -5799,6 +6029,13 @@
   "id": "f4a271bb",
   "voice": "am_echo",
   "text": "I'm cutting myself off after this one.",
+  "speed": 1
+ },
+ {
+  "id": "f9e3ef75",
+  "voice": "am_echo",
+  "text": "[hollering] SECURITY! We got us a troublemaker!",
+  "say": "SECURITY! We got us a troublemaker!",
   "speed": 1
  },
  {
@@ -7686,6 +7923,13 @@
   "speed": 1
  },
  {
+  "id": "7b027880",
+  "voice": "am_liam",
+  "text": "[yelling] Yo, SECURITY! Security, help!",
+  "say": "Yo, SECURITY! Security, help!",
+  "speed": 1
+ },
+ {
   "id": "7bb508c8",
   "voice": "am_liam",
   "text": "Cheers! Oh, careful, my glass is full.",
@@ -7853,6 +8097,13 @@
   "speed": 1
  },
  {
+  "id": "a7b1a6c1",
+  "voice": "am_liam",
+  "text": "[shouting] SECURITY! I need security over here, now!",
+  "say": "SECURITY! I need security over here, now!",
+  "speed": 1
+ },
+ {
   "id": "a7b4253c",
   "voice": "am_liam",
   "text": "Do you mind?",
@@ -7892,6 +8143,13 @@
   "id": "b6fd6abf",
   "voice": "am_liam",
   "text": "Ow! What is wrong with you?",
+  "speed": 1
+ },
+ {
+  "id": "ba66dffc",
+  "voice": "am_liam",
+  "text": "[yelling] Security! This guy's assaulting people!",
+  "say": "Security! This guy's assaulting people!",
   "speed": 1
  },
  {
@@ -8095,6 +8353,13 @@
   "id": "e5d44390",
   "voice": "am_liam",
   "text": "A free drink.",
+  "speed": 1
+ },
+ {
+  "id": "e6acb9eb",
+  "voice": "am_liam",
+  "text": "[shouting] SECURITY! This dude's crazy!",
+  "say": "SECURITY! This dude's crazy!",
   "speed": 1
  },
  {
@@ -9179,6 +9444,13 @@
   "speed": 1
  },
  {
+  "id": "9008abab",
+  "voice": "am_onyx",
+  "text": "[shouting] Security! Now!",
+  "say": "Security! Now!",
+  "speed": 1
+ },
+ {
   "id": "90bfd575",
   "voice": "am_onyx",
   "text": "[grumbles] Hey. Easy.",
@@ -9243,6 +9515,20 @@
   "id": "a16069ed",
   "voice": "am_onyx",
   "text": "Rough night at the tables? Happens to all of us.",
+  "speed": 1
+ },
+ {
+  "id": "a1718a1d",
+  "voice": "am_onyx",
+  "text": "[roaring] SECURITY! Get over here before I handle it myself!",
+  "say": "SECURITY! Get over here before I handle it myself!",
+  "speed": 1
+ },
+ {
+  "id": "a85e957d",
+  "voice": "am_onyx",
+  "text": "[shouting] SECURITY! Somebody get this guy outta here!",
+  "say": "SECURITY! Somebody get this guy outta here!",
   "speed": 1
  },
  {
@@ -9376,6 +9662,13 @@
   "voice": "am_onyx",
   "text": "[angry] Hey! Who threw that?!",
   "say": "Hey! Who threw that?!",
+  "speed": 1
+ },
+ {
+  "id": "c4408d3b",
+  "voice": "am_onyx",
+  "text": "[yelling] Hey! SECURITY! Over here!",
+  "say": "Hey! SECURITY! Over here!",
   "speed": 1
  },
  {
@@ -9616,6 +9909,13 @@
   "id": "25a75648",
   "voice": "am_puck",
   "text": "I have no idea what you just said, but I like your energy.",
+  "speed": 1.08
+ },
+ {
+  "id": "25b0eedc",
+  "voice": "am_puck",
+  "text": "[yelling] SECURITY! Pit boss! We got a problem!",
+  "say": "SECURITY! Pit boss! We got a problem!",
   "speed": 1.08
  },
  {
@@ -10026,6 +10326,13 @@
   "speed": 1.08
  },
  {
+  "id": "cd5c610e",
+  "voice": "am_puck",
+  "text": "[shouting] Security to craps! Now!",
+  "say": "Security to craps! Now!",
+  "speed": 1.08
+ },
+ {
   "id": "ced5d824",
   "voice": "am_puck",
   "text": "Nine, center field nine. Point is 8.",
@@ -10231,6 +10538,13 @@
   "speed": 1
  },
  {
+  "id": "16c1a38f",
+  "voice": "bf_emma",
+  "text": "[crying out] Security! Oh, somebody, SECURITY!",
+  "say": "Security! Oh, somebody, SECURITY!",
+  "speed": 1
+ },
+ {
   "id": "1ae3e555",
   "voice": "bf_emma",
   "text": "Sorry, it's so loud in here! Anyway.",
@@ -10306,6 +10620,13 @@
   "id": "312eddc3",
   "voice": "bf_emma",
   "text": "Whoa! Did you see that?",
+  "speed": 1
+ },
+ {
+  "id": "35cb5c9e",
+  "voice": "bf_emma",
+  "text": "[shouting] Help! Security, please!",
+  "say": "Help! Security, please!",
   "speed": 1
  },
  {
@@ -11007,6 +11328,13 @@
   "speed": 1
  },
  {
+  "id": "2f761257",
+  "voice": "bm_daniel",
+  "text": "[shouting] SECURITY! Security, I say! Remove this hooligan!",
+  "say": "SECURITY! Security, I say! Remove this hooligan!",
+  "speed": 1
+ },
+ {
   "id": "2fd1eb13",
   "voice": "bm_daniel",
   "text": "Say that again? Actually, never mind. Good luck out there!",
@@ -11574,6 +11902,13 @@
   "speed": 1
  },
  {
+  "id": "f33855ad",
+  "voice": "bm_daniel",
+  "text": "[yelling] Guards! GUARDS! Somebody!",
+  "say": "Guards! GUARDS! Somebody!",
+  "speed": 1
+ },
+ {
   "id": "f618296d",
   "voice": "bm_daniel",
   "text": "Lucky!",
@@ -11679,6 +12014,13 @@
   "speed": 1
  },
  {
+  "id": "4b9fbdf5",
+  "voice": "bm_fable",
+  "text": "[calling out] Security! Over here, quickly!",
+  "say": "Security! Over here, quickly!",
+  "speed": 1
+ },
+ {
   "id": "53759daa",
   "voice": "bm_fable",
   "text": "[sighs] That will not be reflected well in your tip, I imagine.",
@@ -11728,6 +12070,13 @@
   "voice": "bm_fable",
   "text": "[composed, annoyed] I'll... just fetch a towel, then.",
   "say": "I'll... just fetch a towel, then.",
+  "speed": 1
+ },
+ {
+  "id": "ba425196",
+  "voice": "bm_fable",
+  "text": "[shouting] SECURITY! Assistance, please!",
+  "say": "SECURITY! Assistance, please!",
   "speed": 1
  },
  {
@@ -12130,6 +12479,13 @@
   "speed": 0.96
  },
  {
+  "id": "dbc7707f",
+  "voice": "bm_george",
+  "text": "[calling out] Security to the roulette table, please!",
+  "say": "Security to the roulette table, please!",
+  "speed": 0.96
+ },
+ {
   "id": "e23376b9",
   "voice": "bm_george",
   "text": "Red has been running hot. Seventeen came up twice.",
@@ -12145,6 +12501,13 @@
   "id": "e3bfe38f",
   "voice": "bm_george",
   "text": "Twenty-nine, black.",
+  "speed": 0.96
+ },
+ {
+  "id": "ecf01845",
+  "voice": "bm_george",
+  "text": "[shouting] SECURITY! Sécurité, immédiatement!",
+  "say": "SECURITY! Sécurité, immédiatement!",
   "speed": 0.96
  },
  {

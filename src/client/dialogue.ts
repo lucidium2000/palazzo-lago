@@ -463,7 +463,7 @@ export class Dialogue {
   react(p: Person, kind: ReactKind, crew?: { name: string; voice: VoiceId }, say?: string): number {
     const t = this.time;
     // One reaction at a time per person (a punch always gets its yell).
-    if ((this.reactCool.get(p) ?? -9) > t && kind !== 'punched') return 0;
+    if ((this.reactCool.get(p) ?? -9) > t && kind !== 'punched' && kind !== 'security') return 0;
     let id: string;
     let alt: VoiceId;
     if (crew) {
@@ -473,6 +473,9 @@ export class Dialogue {
       // The pianist has no lines of his own: the roulette croupier's voice (a man in black tie), minus his table talk.
       id = 'croupier';
       alt = STAFF.croupier;
+    } else if (p.role === 'guard') {
+      id = 'security';
+      alt = STAFF.security;
     } else if (p.role === 'bartender' || p.role === 'waiter' || p.role === 'croupier') {
       const v = this.voicesOf(p);
       id = v[0].replace(/^el_/, '');
@@ -502,7 +505,7 @@ export class Dialogue {
       this.d.listener?.stop();
       this.convo = null;
     }
-    const loud = kind === 'punched' ? 1.5 : kind === 'pushed' ? 0.85 : 1.35;
+    const loud = kind === 'punched' ? 1.5 : kind === 'security' ? 1.6 : kind === 'pushed' ? 0.85 : 1.35;
     this.onSpeak?.({ p, kind, text, voice: elVoice(id), alt, who: this.title(p), volume: loud });
     const dur = voices.talk({ who: this.title(p), text, voice: elVoice(id), alt, at: mouthOf(p), priority: kind !== 'pushed', group: 'react', volume: loud, fallback: { rate: kind === 'punched' ? 1.15 : 1.05, pitch: kind === 'punched' ? 1.15 : 1 } });
     this.reactCool.set(p, t + Math.max(1.2, dur));

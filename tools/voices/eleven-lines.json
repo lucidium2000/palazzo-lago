@@ -108,6 +108,12 @@
   "p": 1
  },
  {
+  "id": "669f269f",
+  "voice": "el_bartender",
+  "text": "[yelling] Security! I need you at the bar, now!",
+  "p": 1
+ },
+ {
   "id": "68d24392",
   "voice": "el_bartender",
   "text": "Champagne. Good choice.",
@@ -135,6 +141,12 @@
   "id": "76faea22",
   "voice": "el_bartender",
   "text": "One Espresso Martini, shaken. Coming up.",
+  "p": 1
+ },
+ {
+  "id": "7faa7909",
+  "voice": "el_bartender",
+  "text": "[shouting] SECURITY! Trouble at the bar!",
   "p": 1
  },
  {
@@ -1662,6 +1674,12 @@
   "p": 1
  },
  {
+  "id": "21f2ad11",
+  "voice": "el_croupier",
+  "text": "[shouting] SECURITY! Sécurité, immédiatement!",
+  "p": 1
+ },
+ {
   "id": "2548dd06",
   "voice": "el_croupier",
   "text": "[yelling] OUCH! This is a disgrace!",
@@ -1701,6 +1719,12 @@
   "id": "3e1b9ce5",
   "voice": "el_croupier",
   "text": "You know what? Same.",
+  "p": 1
+ },
+ {
+  "id": "3e609f23",
+  "voice": "el_croupier",
+  "text": "[calling out] Security to the roulette table, please!",
   "p": 1
  },
  {
@@ -2346,6 +2370,12 @@
   "p": 2
  },
  {
+  "id": "3cc40717",
+  "voice": "el_dale",
+  "text": "[shouting] Somebody fetch security, now!",
+  "p": 1
+ },
+ {
   "id": "3d8beeac",
   "voice": "el_dale",
   "text": "I hit a slot bonus on the piggy machine.",
@@ -2698,6 +2728,12 @@
   "voice": "el_dale",
   "text": "Past the slots, on the left.",
   "p": 2
+ },
+ {
+  "id": "7d3ab7d5",
+  "voice": "el_dale",
+  "text": "[hollering] SECURITY! We got us a troublemaker!",
+  "p": 1
  },
  {
   "id": "8001e2cd",
@@ -3360,6 +3396,12 @@
   "p": 1
  },
  {
+  "id": "4156e723",
+  "voice": "el_dealer",
+  "text": "[shouting] SECURITY! Security to the blackjack table!",
+  "p": 1
+ },
+ {
   "id": "4f9e80a8",
   "voice": "el_dealer",
   "text": "Alright, enjoy your night!",
@@ -3447,6 +3489,12 @@
   "id": "da21ef0c",
   "voice": "el_dealer",
   "text": "[sighs] Well. That happened.",
+  "p": 1
+ },
+ {
+  "id": "db1d5450",
+  "voice": "el_dealer",
+  "text": "[firm, loud] Security, please! Right now!",
   "p": 1
  },
  {
@@ -3706,6 +3754,12 @@
   "voice": "el_destiny",
   "text": "Small world. You winning?",
   "p": 2
+ },
+ {
+  "id": "377c9f3b",
+  "voice": "el_destiny",
+  "text": "[screaming] SECURITY! Oh my god, SECURITY!",
+  "p": 1
  },
  {
   "id": "37bd6625",
@@ -4674,6 +4728,12 @@
   "p": 2
  },
  {
+  "id": "e746f600",
+  "voice": "el_destiny",
+  "text": "[yelling] Somebody call security! Like, NOW!",
+  "p": 1
+ },
+ {
   "id": "e8f499c1",
   "voice": "el_destiny",
   "text": "Best weekend in years.",
@@ -5196,6 +5256,12 @@
   "p": 2
  },
  {
+  "id": "45301e5a",
+  "voice": "el_eleanor",
+  "text": "[crying out] Security! Oh, somebody, SECURITY!",
+  "p": 1
+ },
+ {
   "id": "45541429",
   "voice": "el_eleanor",
   "text": "The magician. My cousin saw it, said it's unreal.",
@@ -5632,6 +5698,12 @@
   "voice": "el_eleanor",
   "text": "That's the guy from before!",
   "p": 2
+ },
+ {
+  "id": "996a9853",
+  "voice": "el_eleanor",
+  "text": "[shouting] Help! Security, please!",
+  "p": 1
  },
  {
   "id": "9bfc06d4",
@@ -6774,6 +6846,12 @@
   "p": 2
  },
  {
+  "id": "856bd159",
+  "voice": "el_kayla",
+  "text": "[screaming] SECURITY! Get this creep away from me!",
+  "p": 1
+ },
+ {
   "id": "8669429d",
   "voice": "el_kayla",
   "text": "Oh, cheers! This is fun!",
@@ -7306,6 +7384,12 @@
   "voice": "el_kayla",
   "text": "I bought earplugs.",
   "p": 2
+ },
+ {
+  "id": "e9db2f1c",
+  "voice": "el_kayla",
+  "text": "[yelling] SECURITY! Are you serious?! SECURITY!",
+  "p": 1
  },
  {
   "id": "ea738c0e",
@@ -8094,6 +8178,12 @@
   "p": 2
  },
  {
+  "id": "7ba432b6",
+  "voice": "el_marcus",
+  "text": "[shouting] SECURITY! I need security over here, now!",
+  "p": 1
+ },
+ {
   "id": "7cd7f449",
   "voice": "el_marcus",
   "text": "Dallas. First time here?",
@@ -8506,6 +8596,12 @@
   "voice": "el_marcus",
   "text": "You just don't know when to stop.",
   "p": 2
+ },
+ {
+  "id": "cf1837a5",
+  "voice": "el_marcus",
+  "text": "[yelling] Security! This guy's assaulting people!",
+  "p": 1
  },
  {
   "id": "cfd30490",
@@ -9882,6 +9978,12 @@
   "p": 2
  },
  {
+  "id": "cfa3aeb3",
+  "voice": "el_margo",
+  "text": "[shrieking] SECURITY! SECURITY! Somebody help me!",
+  "p": 1
+ },
+ {
   "id": "d14e0d41",
   "voice": "el_margo",
   "text": "Thanks, it's rented.",
@@ -9916,6 +10018,12 @@
   "voice": "el_margo",
   "text": "A free drink.",
   "p": 2
+ },
+ {
+  "id": "dd6791fa",
+  "voice": "el_margo",
+  "text": "[yelling] Security, darling! NOW!",
+  "p": 1
  },
  {
   "id": "ddeba51e",
@@ -11286,6 +11394,12 @@
   "p": 2
  },
  {
+  "id": "f34276e4",
+  "voice": "el_priya",
+  "text": "[yelling] Security! Over here!",
+  "p": 1
+ },
+ {
   "id": "f3485780",
   "voice": "el_priya",
   "text": "This is my lucky shirt.",
@@ -11308,6 +11422,12 @@
   "voice": "el_priya",
   "text": "So is an oven.",
   "p": 2
+ },
+ {
+  "id": "f76dc3d6",
+  "voice": "el_priya",
+  "text": "[shouting] SECURITY! Can someone get security, please?!",
+  "p": 1
  },
  {
   "id": "f84e306d",
@@ -12126,6 +12246,12 @@
   "p": 2
  },
  {
+  "id": "86e5ceb1",
+  "voice": "el_reggie",
+  "text": "[shouting] SECURITY! Security, I say! Remove this hooligan!",
+  "p": 1
+ },
+ {
   "id": "872574a6",
   "voice": "el_reggie",
   "text": "Have you been up to the suites?",
@@ -12412,6 +12538,12 @@
   "voice": "el_reggie",
   "text": "Which one?",
   "p": 2
+ },
+ {
+  "id": "c5438243",
+  "voice": "el_reggie",
+  "text": "[yelling] Guards! GUARDS! Somebody!",
+  "p": 1
  },
  {
   "id": "c8f83a62",
@@ -12994,6 +13126,12 @@
   "voice": "el_rosa",
   "text": "Steakhouse. I'm not fighting a grandma for crab legs again.",
   "p": 2
+ },
+ {
+  "id": "3d7ca3f2",
+  "voice": "el_rosa",
+  "text": "[yelling] Security! Ahora! NOW!",
+  "p": 1
  },
  {
   "id": "3ec5745c",
@@ -13636,6 +13774,12 @@
   "voice": "el_rosa",
   "text": "Rough night at the tables? Happens to all of us.",
   "p": 2
+ },
+ {
+  "id": "bb2e1c95",
+  "voice": "el_rosa",
+  "text": "[shouting] SECURITY! Ay, somebody call security!",
+  "p": 1
  },
  {
   "id": "bd00437e",
@@ -14382,6 +14526,12 @@
   "p": 2
  },
  {
+  "id": "3fa930c0",
+  "voice": "el_sal",
+  "text": "[shouting] Security! Now!",
+  "p": 1
+ },
+ {
   "id": "3fada9d8",
   "voice": "el_sal",
   "text": "Even with my snoring?",
@@ -14922,6 +15072,12 @@
   "p": 2
  },
  {
+  "id": "b1e80624",
+  "voice": "el_sal",
+  "text": "[roaring] SECURITY! Get over here before I handle it myself!",
+  "p": 1
+ },
+ {
   "id": "b5e87a88",
   "voice": "el_sal",
   "text": "Very carefully.",
@@ -15348,6 +15504,102 @@
   "p": 1
  },
  {
+  "id": "0077f9a1",
+  "voice": "el_security",
+  "text": "[stern] That's enough. Walk it off or you're out.",
+  "p": 1
+ },
+ {
+  "id": "0be6eeb5",
+  "voice": "el_security",
+  "text": "[firm] Strike two, buddy.",
+  "p": 1
+ },
+ {
+  "id": "0c1b9bb4",
+  "voice": "el_security",
+  "text": "[groans] Oh, now you're done!",
+  "p": 1
+ },
+ {
+  "id": "0d0e659a",
+  "voice": "el_security",
+  "text": "[firm] You're leaving. Now.",
+  "p": 1
+ },
+ {
+  "id": "10fd18b6",
+  "voice": "el_security",
+  "text": "[cold] That was a bad idea.",
+  "p": 1
+ },
+ {
+  "id": "16041c8d",
+  "voice": "el_security",
+  "text": "[firm] Security. Let's keep it friendly, alright?",
+  "p": 1
+ },
+ {
+  "id": "1be1c229",
+  "voice": "el_security",
+  "text": "[annoyed] Really? On the suit?",
+  "p": 1
+ },
+ {
+  "id": "7ab47aa2",
+  "voice": "el_security",
+  "text": "[roaring] OW! Alright, that's it!",
+  "p": 1
+ },
+ {
+  "id": "8105ff61",
+  "voice": "el_security",
+  "text": "[calm, firm] Alright, alright. Break it up.",
+  "p": 1
+ },
+ {
+  "id": "9b1c5a45",
+  "voice": "el_security",
+  "text": "[warning] Don't push me.",
+  "p": 1
+ },
+ {
+  "id": "a89b65c9",
+  "voice": "el_security",
+  "text": "[angry] Throw one more thing. I dare you.",
+  "p": 1
+ },
+ {
+  "id": "adee0c53",
+  "voice": "el_security",
+  "text": "[firm] Hands off, pal.",
+  "p": 1
+ },
+ {
+  "id": "b5ece90c",
+  "voice": "el_security",
+  "text": "[firm] Easy. Hands down, take a walk.",
+  "p": 1
+ },
+ {
+  "id": "bebffadd",
+  "voice": "el_security",
+  "text": "Ow! Knock it off!",
+  "p": 1
+ },
+ {
+  "id": "d29dc06e",
+  "voice": "el_security",
+  "text": "[shouting] OUCH! You just made a big mistake!",
+  "p": 1
+ },
+ {
+  "id": "ec831170",
+  "voice": "el_security",
+  "text": "[grunts] Easy. Real easy.",
+  "p": 1
+ },
+ {
   "id": "036035a3",
   "voice": "el_stickman",
   "text": "Alright, enjoy your night!",
@@ -15579,6 +15831,12 @@
   "id": "74b814c2",
   "voice": "el_stickman",
   "text": "Six the hard way. Point is 8.",
+  "p": 1
+ },
+ {
+  "id": "74ca4882",
+  "voice": "el_stickman",
+  "text": "[shouting] Security to craps! Now!",
   "p": 1
  },
  {
@@ -15846,6 +16104,12 @@
   "p": 1
  },
  {
+  "id": "d23ba188",
+  "voice": "el_stickman",
+  "text": "[yelling] SECURITY! Pit boss! We got a problem!",
+  "p": 1
+ },
+ {
   "id": "d47df065",
   "voice": "el_stickman",
   "text": "Real smooth. Real smooth.",
@@ -16074,6 +16338,12 @@
   "p": 2
  },
  {
+  "id": "1b3794bf",
+  "voice": "el_tommy",
+  "text": "[shouting] SECURITY! This dude's crazy!",
+  "p": 1
+ },
+ {
   "id": "1bb5b434",
   "voice": "el_tommy",
   "text": "I swear I saw a famous chef at the steakhouse.",
@@ -16132,6 +16402,12 @@
   "voice": "el_tommy",
   "text": "Hand blown, every flower.",
   "p": 2
+ },
+ {
+  "id": "2c54ca54",
+  "voice": "el_tommy",
+  "text": "[yelling] Yo, SECURITY! Security, help!",
+  "p": 1
  },
  {
   "id": "2e030e45",
@@ -17604,6 +17880,12 @@
   "p": 2
  },
  {
+  "id": "49258f49",
+  "voice": "el_vinnie",
+  "text": "[yelling] Hey! SECURITY! Over here!",
+  "p": 1
+ },
+ {
   "id": "49aad1ce",
   "voice": "el_vinnie",
   "text": "I'm holding you to that!",
@@ -17800,6 +18082,12 @@
   "voice": "el_vinnie",
   "text": "We're on six. We see a parking lot.",
   "p": 2
+ },
+ {
+  "id": "6bf036fb",
+  "voice": "el_vinnie",
+  "text": "[shouting] SECURITY! Somebody get this guy outta here!",
+  "p": 1
  },
  {
   "id": "6c3e5cea",
@@ -18690,6 +18978,12 @@
   "p": 1
  },
  {
+  "id": "84f6259f",
+  "voice": "el_waiter",
+  "text": "[calling out] Security! Over here, quickly!",
+  "p": 1
+ },
+ {
   "id": "890deff7",
   "voice": "el_waiter",
   "text": "Right on. Right on.",
@@ -18711,6 +19005,12 @@
   "id": "b4346c61",
   "voice": "el_waiter",
   "text": "Alright, enjoy your night!",
+  "p": 1
+ },
+ {
+  "id": "b4d3eccc",
+  "voice": "el_waiter",
+  "text": "[shouting] SECURITY! Assistance, please!",
   "p": 1
  },
  {
@@ -18822,6 +19122,12 @@
   "p": 1
  },
  {
+  "id": "59486dbe",
+  "voice": "el_waitress",
+  "text": "[shouting] SECURITY! Help! Over here!",
+  "p": 1
+ },
+ {
   "id": "5c5419bd",
   "voice": "el_waitress",
   "text": "[groans] Ow! Oh, you are SO cut off.",
@@ -18843,6 +19149,12 @@
   "id": "6d16b3e0",
   "voice": "el_waitress",
   "text": "Say that again? Actually, never mind. Good luck out there!",
+  "p": 1
+ },
+ {
+  "id": "7c9a1c2f",
+  "voice": "el_waitress",
+  "text": "[yelling] Security, please! Now!",
   "p": 1
  },
  {
