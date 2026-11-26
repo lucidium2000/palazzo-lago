@@ -914,9 +914,28 @@ async function main() {
     voiceBtn.textContent = !v.enabled ? 'Voice off' : v.muted ? 'Muted (V)' : v.connectedCount ? 'Voice live (V)' : 'Voice on…';
     voiceBtn.classList.toggle('live', v.enabled && !v.muted);
   };
+  /** Voice chat is on by default; it stays off only if you turned it off yourself. */
+  const voicePref = (v?: 'on' | 'off'): 'on' | 'off' => {
+    try {
+      if (v) localStorage.setItem('palazzo-lago.voiceChat', v);
+      return localStorage.getItem('palazzo-lago.voiceChat') === 'off' ? 'off' : 'on';
+    } catch {
+      return v ?? 'on';
+    }
+  };
+  const autoVoice = async () => {
+    const s = session;
+    if (!s || s.voice.enabled || voicePref() === 'off') return;
+    const err = await s.enableVoice();
+    if (err) hud.toast(err, 'warn');
+    else hud.toast('Voice chat on · V to mute', 'win');
+    showVoice();
+  };
   const toggleVoice = async () => {
     const s = session;
     if (!s) return;
+    if (s.voice.enabled) voicePref(s.voice.muted ? 'on' : 'off');
+    else voicePref('on');
     if (!s.voice.enabled) {
       voiceBtn.textContent = 'Allow the mic…';
       const err = await s.enableVoice();
@@ -1204,6 +1223,8 @@ async function main() {
     (window as unknown as { casino: Record<string, unknown> }).casino.mirror = mirror;
     showRoom([]);
     hud.toast(net.host ? `Room LAGO-${session.code} is open · press T to chat` : `Joined room LAGO-${session.code}`, 'win');
+    // Voice chat starts on (the browser asks for the mic once).
+    void autoVoice();
     (window as unknown as { casino: Record<string, unknown> }).casino.session = session;
     (window as unknown as { casino: Record<string, unknown> }).casino.drinkSync = drinkSync;
     (window as unknown as { casino: Record<string, unknown> }).casino.looseSync = looseSync;
