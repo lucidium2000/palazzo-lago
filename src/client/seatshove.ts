@@ -47,6 +47,8 @@ export const UNSEAT = {
   near: 0.12,
   /** How far they go to cool off. */
   wander: [2.2, 4] as const,
+  /** Walking back takes no longer than this: if people or furniture keep them from it, they find their way round (snap back). */
+  giveUpWalk: 15,
 };
 
 /**
@@ -107,7 +109,7 @@ export function stepUnseat(u: Unseat, dt: number, w: UnseatWorld): UnseatPhase {
         // Someone's in their seat: they wait a little, then give up and go.
         u.waited += dt;
         if (u.waited > UNSEAT.wait) leave();
-      } else if (w.toGoal <= UNSEAT.near) go('sit');
+      } else if (w.toGoal <= UNSEAT.near || (u.t > UNSEAT.giveUpWalk && w.seatFree)) go('sit');
       break;
     case 'wander':
       if (w.toGoal <= UNSEAT.near || u.t > 20) go('loiter', range(UNSEAT.loiter, w.rnd));

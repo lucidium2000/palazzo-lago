@@ -61,6 +61,14 @@ describe('knocked off a seat', () => {
     expect(phases[phases.length - 1]).toBe('sit');
   });
 
+  it('never gets stuck on the way back for good', () => {
+    const u = unseat(0, 0, 0, 0.7);
+    let ph = '';
+    // Blocked 1 m short of the seat the whole time.
+    for (let t = 0; t < 40 && ph !== 'sit'; t += 0.1) ph = stepUnseat(u, 0.1, { toGoal: 1, seatFree: true, rnd: () => 0.1, wanderGoal: (d) => [d, 0] });
+    expect(ph).toBe('sit');
+  });
+
   it('the seat is free while they are away', () => {
     const u = unseat(0, 0, 0, 0.7);
     let x = 0.6;
