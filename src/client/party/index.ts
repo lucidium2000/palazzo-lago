@@ -1,13 +1,21 @@
 import * as THREE from 'three';
 import { GROOVE, type Sound } from '../audio';
+import type { Hands } from '../hands';
+import type { Interaction } from '../interaction';
+import type { Viewpoint } from '../player';
 import type { Session } from '../net/session';
 import type { PlayerState } from '../net/transport';
 import type { Crowd, Person } from '../people';
 import { BeatClock, beatAt, type Beat } from './beat';
 import { DESK_MOVES, Dancer, MOVE_NAMES, type Move } from './dance';
 import { PartyLights, type PoolLights } from './lights';
+import { DeckAudio } from './deckaudio';
+import { Decks } from './decks';
+import type { Performers } from './performers';
 import { BobDetector } from './rhythm';
-import { renderPartyTrack } from './track';
+import { renderHeadlinerTrack, renderScratchRecord } from './song';
+import { HEADLINER, Stage } from './stage';
+import { renderPartyRaw } from './track';
 
 /**
  * The pool party: the DJ's set playing from the booth's speaker stacks (it
@@ -19,7 +27,10 @@ import { renderPartyTrack } from './track';
  * dancing too (a tiny `dn` field in their state).
  *
  * Everyone in a room hears the same bar at the same time: the track's
- * position comes from the wall clock.
+ * position comes from the wall clock. The set list alternates the DJ's 64
+ * bars and the headliner's (stage.ts, song.ts) on that clock, through one
+ * engine: the decks (decks.ts, deckaudio.ts), which you can step up to and
+ * scratch.
  */
 
 export interface PartyDeps {
@@ -34,6 +45,13 @@ export interface PartyDeps {
   dancers: Person[];
   where: (p: THREE.Vector3) => string;
   toast: (text: string) => void;
+  /** VR hands (scratching the records) and the pointer/touch system (the decks' click target). */
+  hands?: Hands;
+  interaction?: Interaction;
+  /** The DJ and the headliner (added to the crowd early, with the pool's guests). */
+  performers?: Performers;
+  /** Screen: walk you up to the decks. */
+  travel?: (v: Viewpoint) => void;
 }
 
 /** The pool deck's doors from the hotel corridor (the music leaks through them). */
@@ -64,9 +82,24 @@ export class Party {
   private cheeredDrop = -1;
   private cheeredAt = -100;
   private time = 0;
+  /** The turntables (and the resident DJ), the headliner's stage, and the engine that plays the set. */
+  readonly decks: Decks;
+  readonly stage: Stage;
+  deck: DeckAudio | null = null;
+  /** The headliner's set is rendered and in the set list. */
+  liveReady = false;
+  private announced = -1;
 
   constructor(private d: PartyDeps) {
     this.lights = new PartyLights(d.scene, d.dj, d.lights, d.poles);
+    this.decks = new Decks({ scene: d.scene, camera: d.camera, renderer: d.renderer, crowd: d.crowd, dj: d.dj, person: d.performers?.dj, hands: d.hands, interaction: d.interaction, travel: d.travel });
+    this.decks.onTouch = (by) => {
+      for (const { handedness, gamepad } of d.interaction?.gamepads() ?? []) {
+        if (handedness !== by) continue;
+        (gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(0.45, 30);
+      }
+    };
+    this.stage = new Stage({ scene: d.scene, crowd: d.crowd, sound: d.sound, dancers: d.dancers, person: d.performers?.singer, djYaw: Math.PI });
     for (const [k, p] of d.dancers.entries()) {
       const dancer = new Dancer(p.seed + k * 7.1);
       this.guests.set(p, dancer);
@@ -119,6 +152,22 @@ export class Party {
       return (ctx.currentTime - this.playing.ctx + this.playing.offset - lat) % loop;
     }
     return (Date.now() / 1000) % loop;
+  }
+
+  /** Where the set list is (seconds into two loops: the DJ's, then the headliner's). */
+  setTime(): number {
+    const period = this.clock.loop * 2;
+    if (this.playing) {
+      const ctx = this.d.sound.listener.context;
+      const lat = ctx.outputLatency || ctx.baseLatency || 0;
+      return (((ctx.currentTime - this.playing.ctx + this.playing.offset - lat) % period) + period) % period;
+    }
+    return (Date.now() / 1000) % period;
+  }
+
+  /** Who's playing now. */
+  get onAir(): 'dj' | 'live' {
+    return this.liveReady && this.setTime() >= this.clock.loop ? 'live' : 'dj';
   }
 
   /** How much a spot is at the party (1 on the deck, a little by the doors in the corridor). */
@@ -174,26 +223,31 @@ export class Party {
     f.d.pose(p.rig, { beat: this.beatFor(p.pos), dt: this.dt, amount: f.amt, move, arms: !tracked, scale: p.rig.root.scale.x, still: m === 0 });
   }
 
+  /**
+   * Renders the DJ's set and starts it through the decks (in time with the wall
+   * clock), then the battle record and the headliner's set, which joins the set list.
+   */
   private startAudio() {
     if (this.rendering) return;
     this.rendering = true;
-    renderPartyTrack(32000).then(
-      ({ buffer, loop }) => {
-        const ctx = this.d.sound.listener.context;
-        const offset = (Date.now() / 1000) % loop;
-        for (const a of this.stacks) {
-          a.setBuffer(buffer);
-          a.setLoop(true);
-          a.setLoopStart(0);
-          a.setLoopEnd(loop);
-          a.offset = offset;
-          a.setVolume(0);
-        }
-        for (const a of this.stacks) a.play();
-        this.playing = { ctx: ctx.currentTime, offset, loop };
-      },
-      (e) => console.warn('Party track failed', e),
-    );
+    const ctx = this.d.sound.listener.context;
+    (async () => {
+      const [dj, deck] = await Promise.all([renderPartyRaw(32000), DeckAudio.create(ctx)]);
+      const period = dj.loop * 2;
+      this.stacks.forEach((a, i) => {
+        deck.output.connect(this.filters[i]);
+        this.filters[i].connect(a.getOutput());
+        a.setVolume(0);
+      });
+      const offset = (Date.now() / 1000) % period;
+      deck.setTrack(0, 2, dj);
+      deck.sync(ctx.currentTime, offset);
+      this.deck = deck;
+      this.playing = { ctx: ctx.currentTime, offset, loop: dj.loop };
+      deck.setRecord(await renderScratchRecord(32000));
+      deck.setTrack(1, 2, await renderHeadlinerTrack(32000));
+      this.liveReady = true;
+    })().catch((e) => console.warn('Party track failed', e));
   }
 
   /**
@@ -219,6 +273,17 @@ export class Party {
     const vol = STACK_VOL * (0.05 + 0.95 * Math.pow(open, 1.5)) * (this.d.sound.musicOn ? 1 : 0);
     for (const f of this.filters) f.frequency.setTargetAtTime(cutoff, ctx.currentTime, 0.08);
     if (this.playing) for (const a of this.stacks) a.setVolume(vol);
+
+    // The set list: the headliner on the stage, the decks (and you on them).
+    const P = this.setTime();
+    this.stage.update(dt, b, P, this.clock.loop, this.liveReady);
+    const params = this.decks.update(dt, b, { feet: you.feet, xr: you.xr });
+    this.deck?.set(params);
+    const set = Math.floor((Date.now() / 1000) / (this.clock.loop * 2));
+    if (this.stage.live && this.presence > 0.5 && this.announced !== set) {
+      this.announced = set;
+      this.d.toast(`Live on the pool stage: ${HEADLINER.name}`);
+    }
 
     // The drop lands.
     if (this.clock.onDrop) this.lights.drop(true);
