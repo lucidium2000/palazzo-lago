@@ -7,28 +7,22 @@
  * Pure logic (no three.js) so it can be unit tested.
  */
 
-export type Provocation =
-  | "pushed"
-  | "slapped"
-  | "punched"
-  | "doused"
-  | "hit"
-  | "seat";
+export type Provocation = 'pushed' | 'slapped' | 'punched' | 'doused' | 'hit' | 'seat';
 
 /** What someone does once they've had enough. */
 export type Response =
   /** Squares up and throws punches. */
-  | "brawl"
+  | 'brawl'
   /** Squares up, shouts, never actually swings; backs off once you hit back. */
-  | "talk"
+  | 'talk'
   /** Gets out of there. */
-  | "flee"
+  | 'flee'
   /** Doesn't fight back: just gets loud about it. */
-  | "loud"
+  | 'loud'
   /** Staff (and a few guests): calls security. */
-  | "security"
+  | 'security'
   /** Your crew: never fights you. */
-  | "never";
+  | 'never';
 
 export interface Temperament {
   /** How quickly it builds (1 = average, 1.6 = hot-headed). */
@@ -47,7 +41,7 @@ export interface Temperament {
 
 const BASE: Temperament = {
   fuse: 1,
-  response: "brawl",
+  response: 'brawl',
   power: 1,
   hp: 100,
   guard: 0.45,
@@ -65,18 +59,18 @@ export const TEMPERAMENTS: Record<string, Partial<Temperament>> = {
   priya: { fuse: 1, power: 0.85, hp: 90, guard: 0.55, tempo: 1.2 },
   rosa: { fuse: 0.8, power: 0.95, hp: 95, guard: 0.65, tempo: 1.0 },
   // All talk.
-  reggie: { fuse: 1.3, response: "talk", hp: 70, guard: 0.3 },
+  reggie: { fuse: 1.3, response: 'talk', hp: 70, guard: 0.3 },
   // Not fighters.
-  tommy: { fuse: 1.2, response: "flee", hp: 70 },
-  margo: { fuse: 1.3, response: "security" },
-  eleanor: { fuse: 1, response: "loud" },
-  kayla: { fuse: 0.9, response: "loud" },
-  destiny: { fuse: 1.1, response: "loud" },
+  tommy: { fuse: 1.2, response: 'flee', hp: 70 },
+  margo: { fuse: 1.3, response: 'security' },
+  eleanor: { fuse: 1, response: 'loud' },
+  kayla: { fuse: 0.9, response: 'loud' },
+  destiny: { fuse: 1.1, response: 'loud' },
   // Staff call security (they're working).
-  staff: { fuse: 1, response: "security" },
+  staff: { fuse: 1, response: 'security' },
   // Security: they came to fight.
   guard: { fuse: 2, power: 1.3, hp: 160, guard: 0.7, tempo: 1.0 },
-  crew: { fuse: 0, response: "never" },
+  crew: { fuse: 0, response: 'never' },
 };
 
 export function temperament(id: string): Temperament {
@@ -86,17 +80,17 @@ export function temperament(id: string): Temperament {
 /** How much one provocation adds (before temperament), `power` 0..1. */
 export function provocation(kind: Provocation, power = 0.5): number {
   switch (kind) {
-    case "pushed":
+    case 'pushed':
       return 0.1 + 0.08 * power;
-    case "slapped":
+    case 'slapped':
       return 0.3 + 0.2 * power;
-    case "punched":
+    case 'punched':
       return 0.45 + 0.25 * power;
-    case "doused":
+    case 'doused':
       return 0.38;
-    case "hit":
+    case 'hit':
       return 0.22 + 0.1 * power;
-    case "seat":
+    case 'seat':
       return 0.3;
   }
 }
@@ -118,12 +112,9 @@ export class Anger {
 
   /** Adds a provocation. Returns true when this one pushed them over the edge. */
   add(kind: Provocation, power = 0.5): boolean {
-    if (this.t.response === "never") return false;
+    if (this.t.response === 'never') return false;
     const before = this.level;
-    this.level = Math.min(
-      2,
-      this.level + provocation(kind, power) * this.t.fuse,
-    );
+    this.level = Math.min(2, this.level + provocation(kind, power) * this.t.fuse);
     this.since = 0;
     return before < FIGHT_AT && this.level >= FIGHT_AT;
   }

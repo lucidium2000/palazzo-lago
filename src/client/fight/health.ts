@@ -7,7 +7,7 @@
  * Pure logic (no three.js) so it can be unit tested.
  */
 
-export type Zone = "head" | "body";
+export type Zone = 'head' | 'body';
 
 export interface Blow {
   zone: Zone;
@@ -23,7 +23,7 @@ export interface Blow {
 /** Damage one blow does (health points out of 100). */
 export function damage(b: Blow): number {
   const p = Math.max(0.1, Math.min(1, b.power));
-  let d = b.slap ? 4 + 4 * p : b.zone === "head" ? 10 + 12 * p : 6 + 7 * p;
+  let d = b.slap ? 4 + 4 * p : b.zone === 'head' ? 10 + 12 * p : 6 + 7 * p;
   d *= b.strength ?? 1;
   if (b.blocked) d *= b.slap ? 0 : 0.15;
   return d;
@@ -79,8 +79,7 @@ export class Health {
       }
       return false;
     }
-    if (!inCombat && this.since > REGEN_AFTER && this.hp < this.max)
-      this.hp = Math.min(this.max, this.hp + REGEN_RATE * dt);
+    if (!inCombat && this.since > REGEN_AFTER && this.hp < this.max) this.hp = Math.min(this.max, this.hp + REGEN_RATE * dt);
     return false;
   }
 

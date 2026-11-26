@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from 'three';
 
 /**
  * Health bars, only while someone's fighting. On a screen: two slim bars at
@@ -24,7 +24,7 @@ class Overhead {
   private label: THREE.Mesh;
   private ctx: CanvasRenderingContext2D;
   private tex: THREE.CanvasTexture;
-  private name = "";
+  private name = '';
   shown = 0;
 
   constructor() {
@@ -49,10 +49,10 @@ class Overhead {
     this.fillMat = this.fill.material as THREE.MeshBasicMaterial;
     this.fill.geometry.translate(W / 2, 0, 0);
     this.fill.position.set(-W / 2, 0, 0.002);
-    const c = document.createElement("canvas");
+    const c = document.createElement('canvas');
     c.width = 256;
     c.height = 48;
-    this.ctx = c.getContext("2d")!;
+    this.ctx = c.getContext('2d')!;
     this.tex = new THREE.CanvasTexture(c);
     this.tex.colorSpace = THREE.SRGBColorSpace;
     this.label = new THREE.Mesh(
@@ -76,22 +76,20 @@ class Overhead {
       this.name = b.name;
       const g = this.ctx;
       g.clearRect(0, 0, 256, 48);
-      g.font = "600 30px system-ui, sans-serif";
-      g.textAlign = "center";
-      g.textBaseline = "middle";
+      g.font = '600 30px system-ui, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
       g.lineWidth = 6;
-      g.strokeStyle = "rgba(0,0,0,0.7)";
+      g.strokeStyle = 'rgba(0,0,0,0.7)';
       g.strokeText(b.name, 128, 26);
-      g.fillStyle = "#f3e6c4";
+      g.fillStyle = '#f3e6c4';
       g.fillText(b.name, 128, 26);
       this.tex.needsUpdate = true;
     }
     const f = Math.max(0.001, Math.min(1, b.frac));
     this.shown += (f - this.shown) * 0.25;
     this.fill.scale.x = Math.max(0.001, this.shown);
-    this.fillMat.color.setHex(
-      f > 0.5 ? 0xd8b46a : f > 0.25 ? 0xe07a2a : 0xd0202a,
-    );
+    this.fillMat.color.setHex(f > 0.5 ? 0xd8b46a : f > 0.25 ? 0xe07a2a : 0xd0202a);
     this.group.position.set(b.at.x, b.at.y + 0.28, b.at.z);
     this.group.lookAt(cam);
     // Same apparent size near or far (within reason).
@@ -150,28 +148,23 @@ export class Bars {
     this.mine.visible = false;
     camera.add(this.mine);
     // On a screen: HUD bars.
-    this.dom = document.createElement("div");
-    this.dom.id = "fightbars";
+    this.dom = document.createElement('div');
+    this.dom.id = 'fightbars';
     this.dom.innerHTML = `
       <div class="fb-row"><span class="fb-name">You</span><div class="fb-bar"><div class="fb-fill fb-you"></div></div></div>
       <div class="fb-row fb-them-row"><span class="fb-name fb-them-name"></span><div class="fb-bar"><div class="fb-fill fb-them"></div></div></div>`;
-    this.domYou = this.dom.querySelector(".fb-you")!;
-    this.domThem = this.dom.querySelector(".fb-them")!;
-    this.domThemName = this.dom.querySelector(".fb-them-name")!;
-    this.domThemRow = this.dom.querySelector(".fb-them-row")!;
-    (document.getElementById("hud") ?? document.body).appendChild(this.dom);
+    this.domYou = this.dom.querySelector('.fb-you')!;
+    this.domThem = this.dom.querySelector('.fb-them')!;
+    this.domThemName = this.dom.querySelector('.fb-them-name')!;
+    this.domThemRow = this.dom.querySelector('.fb-them-row')!;
+    (document.getElementById('hud') ?? document.body).appendChild(this.dom);
   }
 
   /**
    * Once a frame. `you`: your health fraction while you're fighting (null: no
    * bar). `opp`: who you're fighting (HUD). `heads`: bars over fighters' heads (VR).
    */
-  update(
-    inXR: boolean,
-    you: number | null,
-    opp: { name: string; frac: number } | null,
-    heads: readonly OverheadBar[],
-  ) {
+  update(inXR: boolean, you: number | null, opp: { name: string; frac: number } | null, heads: readonly OverheadBar[]) {
     this.camera.getWorldPosition(this.cam);
     for (let i = 0; i < heads.length; i++) {
       let o = this.over[i];
@@ -182,24 +175,20 @@ export class Bars {
       o.set(heads[i], this.cam);
       o.group.visible = inXR;
     }
-    for (let i = heads.length; i < this.over.length; i++)
-      this.over[i].group.visible = false;
+    for (let i = heads.length; i < this.over.length; i++) this.over[i].group.visible = false;
     this.mine.visible = inXR && you !== null;
     if (you !== null) {
       this.mineFill.scale.x = Math.max(0.001, you);
-      this.mineFillMat.color.setHex(
-        you > 0.5 ? 0x6fd06a : you > 0.25 ? 0xe0a02a : 0xd0202a,
-      );
+      this.mineFillMat.color.setHex(you > 0.5 ? 0x6fd06a : you > 0.25 ? 0xe0a02a : 0xd0202a);
     }
     const showDom = !inXR && (you !== null || opp !== null);
-    this.dom.classList.toggle("on", showDom);
+    this.dom.classList.toggle('on', showDom);
     if (showDom) {
       this.domYou.style.width = `${Math.round((you ?? 1) * 100)}%`;
-      this.domYou.classList.toggle("low", (you ?? 1) < 0.3);
-      this.domThemRow.style.display = opp ? "" : "none";
+      this.domYou.classList.toggle('low', (you ?? 1) < 0.3);
+      this.domThemRow.style.display = opp ? '' : 'none';
       if (opp) {
-        if (this.domThemName.textContent !== opp.name)
-          this.domThemName.textContent = opp.name;
+        if (this.domThemName.textContent !== opp.name) this.domThemName.textContent = opp.name;
         this.domThem.style.width = `${Math.round(Math.max(0, opp.frac) * 100)}%`;
       }
     }
