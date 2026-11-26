@@ -116,6 +116,26 @@ export class Drink {
     this.setLevel(was + add);
     return add;
   }
+  /** The mixed colour, if something else was poured in (null: still the drink's own). */
+  get mixedColor(): number | null {
+    return this.mixed;
+  }
+
+  /** Shows the drink as a given mix (a friend's glass after they poured into it). */
+  tint(color: number | null) {
+    if (color === this.mixed) return;
+    if (color === null) {
+      this.mixed = null;
+      if (this.ownLiquid) (this.liquid.material as THREE.MeshPhysicalMaterial).color.setHex(this.kind.liquid);
+      return;
+    }
+    this.mixed = color;
+    if (!this.ownLiquid) {
+      this.liquid.material = (this.liquid.material as THREE.Material).clone();
+      this.ownLiquid = true;
+    }
+    (this.liquid.material as THREE.MeshPhysicalMaterial).color.setHex(color);
+  }
   private ownLiquid = false;
   private liquid: THREE.Mesh;
   private liquidTop: number;
@@ -535,10 +555,14 @@ export class Lounge {
     this.menuCard.show();
   }
 
+  /** Someone at the bar said a line to you (your friends nearby hear it too: net/npcsync.ts). */
+  onLine: ((p: Person, l: { text: string; voice: string; alt?: string; who: string }) => void) | null = null;
+
   /** The bartender talks to you (her own voice, from behind the bar). */
   private greet(line: string, force = false) {
     if (!force && voiceArbiter.busy()) return;
     const b = this.bartender;
+    if (b) this.onLine?.(b, { text: line, voice: elVoice('bartender'), alt: STAFF.bartender, who: 'Bartender' });
     const dur = voices.talk({ who: 'Bartender', text: line, voice: elVoice('bartender'), alt: STAFF.bartender, at: b ? mouthOf(b) : null, priority: true, group: 'bartender', fallback: { pitch: 1.1, rate: 1.02, voice: 2 } });
     if (b) this.d.crowd.speak(b, dur);
     voiceArbiter.claim(dur);
@@ -752,8 +776,11 @@ export class Lounge {
       this.throwDrink(dr, new THREE.Vector3().fromArray(e.v), true);
     } else if (e.k === 'order') {
       const kind = DRINKS[e.kind];
-      if (kind && !this.pour && !this.slide) {
-        const z = THREE.MathUtils.clamp(Number(e.z) || 9, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
+      if (!kind) return;
+      const z = THREE.MathUtils.clamp(Number(e.z) || 9, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
+      // The bartender may be pouring yours: theirs is next (never skipped).
+      if (this.pour || this.slide) this.friendOrders.push({ kind, z });
+      else {
         this.friendServeZ = z;
         this.startPour(kind, z, true);
       }
@@ -761,6 +788,8 @@ export class Lounge {
   }
 
   private friendServeZ: number | null = null;
+  /** Friends' orders waiting while the bartender finishes another drink. */
+  private friendOrders: { kind: DrinkKind; z: number }[] = [];
 
   /** Your friend picked up the drink they ordered: it leaves the counter here. */
   friendPickedUp() {
@@ -772,12 +801,12 @@ export class Lounge {
   }
 
   /** The drink you're holding (for your friend's view): kind, level, which hand. */
-  heldDrink(): { kind: number; level: number; side: 'l' | 'r'; pouring: boolean } | null {
+  heldDrink(): { kind: number; level: number; side: 'l' | 'r'; pouring: boolean; mixed: number | null } | null {
     const tipped = (dr: Drink) => dr.level > 0.01 && new THREE.Vector3(0, 1, 0).applyQuaternion(dr.group.getWorldQuaternion(new THREE.Quaternion())).y < 0.17;
-    if (this.desktopDrink) return { kind: DRINKS.indexOf(this.desktopDrink.kind), level: this.desktopDrink.level, side: 'r', pouring: tipped(this.desktopDrink) };
+    if (this.desktopDrink) return { kind: DRINKS.indexOf(this.desktopDrink.kind), level: this.desktopDrink.level, side: 'r', pouring: tipped(this.desktopDrink), mixed: this.desktopDrink.mixedColor };
     if (this.vrHeld) {
       const h = this.d.hands.hands.find((x) => x.carried === this.vrHeld!.group);
-      return { kind: DRINKS.indexOf(this.vrHeld.kind), level: this.vrHeld.level, side: h?.ctrl.userData.handedness === 'left' ? 'l' : 'r', pouring: tipped(this.vrHeld) };
+      return { kind: DRINKS.indexOf(this.vrHeld.kind), level: this.vrHeld.level, side: h?.ctrl.userData.handedness === 'left' ? 'l' : 'r', pouring: tipped(this.vrHeld), mixed: this.vrHeld.mixedColor };
     }
     return null;
   }
@@ -1205,7 +1234,9 @@ export class Lounge {
       const ch = characterFor(with_.seed, female);
       const pool = Math.random() < 0.7 ? ch.cheers : CHEERS_LINES;
       const text = pool[Math.floor(Math.random() * pool.length)];
-      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt: voices.pick(text, ch.fallback, guestVoice(with_.seed, female)), at: mouthOf(with_), priority: true });
+      const alt = voices.pick(text, ch.fallback, guestVoice(with_.seed, female));
+      this.onLine?.(with_, { text, voice: elVoice(ch.id), alt, who: ch.name });
+      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt, at: mouthOf(with_), priority: true });
       this.d.crowd.speak(with_, dur);
     } else if (voices.captions) this.d.hud.say('You', 'Cheers!');
     if (with_) {
@@ -1238,6 +1269,11 @@ export class Lounge {
   }
 
   update(dt: number) {
+    if (this.friendOrders.length && !this.pour && !this.slide) {
+      const o = this.friendOrders.shift()!;
+      this.friendServeZ = o.z;
+      this.startPour(o.kind, o.z, true);
+    }
     this.time += dt;
     this.sipCooldown = Math.max(0, this.sipCooldown - dt);
     this.cheersCooldown = Math.max(0, this.cheersCooldown - dt);

@@ -71,6 +71,7 @@ import { Party } from './party';
 import { renderPartyTrack } from './party/track';
 import { DJ } from './areas/pool';
 import { Boxing } from './net/boxing';
+import { NpcSync } from './net/npcsync';
 import { Bodies, friendShove } from './bodies';
 import { avatarLook } from './net/avatars';
 
@@ -917,6 +918,7 @@ async function main() {
   let drinkSync: DrinkSync | null = null;
   let looseSync: LooseSync | null = null;
   let boxing: Boxing | null = null;
+  let npcSync: NpcSync | null = null;
   const buzz = (side: 'left' | 'right', strength: number, ms: number) => {
     for (const { handedness, gamepad } of interaction.gamepads()) {
       if (handedness !== side) continue;
@@ -984,7 +986,13 @@ async function main() {
       if (Array.isArray(p) && p.length === 3 && p.every(Number.isFinite)) photoCams.flash(new THREE.Vector3().fromArray(p));
     });
     looseSync?.dispose();
-    looseSync = new LooseSync(session, loose, scene);
+    looseSync = new LooseSync(session, loose, scene, (at, r, k) => void throwables.wipe(at, r, k));
+    // A glass off a waiter's tray: it's gone from her tray for everyone.
+    waiterTrays.onTaken = (p) => session?.emit('tray', { u: p.uid });
+    session.on('tray', (_f, d) => {
+      const w = crowd.people.find((p) => p.role === 'waiter' && p.uid === Number(d.u));
+      if (w) waiterTrays.takeRemote(w);
+    });
     party.connect(session);
     bjSync?.dispose();
     bjSync = new BlackjackSync(session, blackjacks);
@@ -1009,6 +1017,10 @@ async function main() {
       },
     });
     (window as unknown as { casino: Record<string, unknown> }).casino.boxing = boxing;
+    npcSync?.dispose();
+    npcSync = new NpcSync({ session, dialogue, crowd, bodies, sound, feet: () => player.feet() });
+    (window as unknown as { casino: Record<string, unknown> }).casino.npcSync = npcSync;
+    lounge.onLine = (p, l) => npcSync?.share(p, l);
     pushFriend = friendShove(session, player, buzz);
     session.onCheers = (at, name) => {
       lounge.cheers(at, undefined, true);
@@ -1204,6 +1216,8 @@ async function main() {
       drinkSync = null;
       boxing?.dispose();
       boxing = null;
+      npcSync?.dispose();
+      npcSync = null;
       roomPill.hidden = true;
       roomBoard.hidden = true;
       voiceBtn.hidden = true;

@@ -145,6 +145,9 @@ export class WaiterTrays {
     }
   }
 
+  /** A glass left a tray here (taken, knocked off, smashed): your friends' trays lose one too. */
+  onTaken: ((p: Person) => void) | null = null;
+
   /** Notices glasses that left the tray (taken, knocked off, smashed). */
   private check(s: Server) {
     for (const sl of s.slots)
@@ -152,7 +155,20 @@ export class WaiterTrays {
         sl.drink = null;
         sl.grab = null;
         sl.emptySince = this.time;
+        this.onTaken?.(s.p);
       }
+  }
+
+  /** A friend took a glass off this waiter's tray: one goes from it here too. True if there was one. */
+  takeRemote(p: Person): boolean {
+    const s = this.servers.find((x) => x.p === p);
+    const sl = s?.slots.find((x) => x.drink);
+    if (!s || !sl) return false;
+    sl.drink!.group.removeFromParent();
+    sl.drink = null;
+    sl.grab = null;
+    sl.emptySince = this.time;
+    return true;
   }
 
   private fill(s: Server, k: number) {

@@ -300,6 +300,12 @@ export class ChipRail {
     };
   }
 
+  /** The chips in your hand right now (for your friends' view): amount and which hand, or null. */
+  inHand(): { amount: number; side: 'l' | 'r' } | null {
+    for (const [h, c] of this.carries) if (c.amount > 0) return { amount: c.amount, side: h.ctrl.userData.handedness === 'left' ? 'l' : 'r' };
+    return null;
+  }
+
   private drag(hand: Hand, pos: THREE.Vector3) {
     const c = this.carries.get(hand);
     if (!c) return;

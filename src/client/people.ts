@@ -111,6 +111,12 @@ export class Person {
   swimBlend = 0;
   /** Per-person randomness for idle motion. */
   seed = Math.random() * 100;
+  /**
+   * Who this is across the room's machines: guests and staff are numbered in the order the game
+   * creates them (the same on every machine running the same build and quality); -1 for buddies
+   * (your crew, friends' avatars), who are different on each machine.
+   */
+  uid = -1;
   /** Invisible proxy used for clicks (waiters). */
   proxy?: THREE.Mesh;
   onUpdate?: (p: Person, dt: number) => void;
@@ -356,6 +362,7 @@ const down = (g: THREE.BufferGeometry, len: number) => g.translate(0, -len / 2, 
 
 export class Crowd {
   readonly people: Person[] = [];
+  private nextUid = 0;
   private parts: Record<string, Part> = {};
   private max: number;
   private m = new THREE.Matrix4();
@@ -567,6 +574,13 @@ export class Crowd {
     p.yaw = p.homeYaw = yaw;
     p.speed = 0.85 + rnd() * 0.4;
     p.seated = role === 'slots' || role === 'patron' || role === 'pianist';
+    if (role !== 'buddy') {
+      p.uid = this.nextUid++;
+      // Their personality (character, voice, idle rhythm) comes from who they are, so a guest is the
+      // same person with the same voice on every player's machine.
+      const h = Math.sin(p.uid * 12.9898 + 78.233) * 43758.5453;
+      p.seed = (h - Math.floor(h)) * 100;
+    }
     this.people.push(p);
     const i = this.people.length - 1;
     const set = (name: string, color: number) => {

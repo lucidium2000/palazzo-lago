@@ -24,7 +24,8 @@ export class DrinkSync {
     session.on('drink', (f, d) => this.receive(f, d as unknown as DrinkEvent));
     session.extraState = () => {
       const h = lounge.heldDrink();
-      return { dh: h ? [h.kind, Math.round(h.level * 10), h.side === 'l' ? 0 : 1, h.pouring ? 1 : 0] : null };
+      // The 5th number: the mix after pouring something else in (-1: as served).
+      return { dh: h ? [h.kind, Math.round(h.level * 10), h.side === 'l' ? 0 : 1, h.pouring ? 1 : 0, h.mixed ?? -1] : null };
     };
   }
 
@@ -71,6 +72,8 @@ export class DrinkSync {
       const g = s.drink.group;
       g.visible = true;
       s.drink.setLevel((Number(dh![1]) || 0) / 10);
+      const mix = Number(dh![4]);
+      s.drink.tint(Number.isInteger(mix) && mix >= 0 && mix <= 0xffffff ? mix : null);
       const side = dh![2] === 0 ? 'l' : 'r';
       const w = f.wrist(side);
       if (w && f.state.lw !== undefined) {

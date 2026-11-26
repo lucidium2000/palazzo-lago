@@ -64,6 +64,8 @@ export interface PlayerState {
   dh?: number[] | null;
   /** The loose object in their hand: [kind, colour, hand]. */
   lo?: number[] | null;
+  /** Chips carried off a table rail (VR): [amount, hand 0 left / 1 right]. */
+  hc?: number[];
   /** Per-finger curls per hand, 5 digits [thumb,index,middle,ring,pinky] 0-9. */
   lf?: string;
   rf?: string;
@@ -403,7 +405,8 @@ export async function localTransport(code: string, host: boolean, wait = 350): P
  */
 export async function connect(code: string, host: boolean): Promise<Transport> {
   const force = new URLSearchParams(location.search).get('net');
-  if (force === 'local') return localTransport(code, host);
+  // ?netwait=ms: how long a local tab listens for the room (slow test machines need longer).
+  if (force === 'local') return localTransport(code, host, Number(new URLSearchParams(location.search).get('netwait')) || 350);
   if (force !== 'webrtc') {
     const cap = await roomCapability();
     if (cap) return roomTransport(cap, code, host);

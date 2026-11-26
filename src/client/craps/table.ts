@@ -786,14 +786,16 @@ export class CrapsTable {
   }
 
   /** Guest: a roll decided by the host's machine arrives. */
-  applyRemoteRoll(dice: [number, number], seed: number, from: number[], v: number[] | null, point: number | null) {
-    if (this.phase !== 'betting') return;
+  applyRemoteRoll(dice: [number, number], seed: number, from: number[], v: number[] | null, point: number | null): boolean {
+    // Still paying the last roll here: the caller holds this one until the table is free.
+    if (this.phase !== 'betting') return false;
     // Follow the host's puck (we may have joined mid-hand).
     if (this.game.point !== point) {
       this.game.point = point;
       this.placePucks(true);
     }
     this.beginRoll(dice, seed, new THREE.Vector3().fromArray(from), v ? new THREE.Vector3().fromArray(v) : null);
+    return true;
   }
 
   /** The puck as the host has it (sent when a friend joins). */

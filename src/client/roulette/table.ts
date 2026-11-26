@@ -700,8 +700,9 @@ export class RouletteTable {
   }
 
   /** A spin decided by the host's machine arrives (guest side). */
-  applyRemoteSpin(pocket: Pocket, seed: number, rotor: number) {
-    if (this.game.phase !== 'betting') return;
+  applyRemoteSpin(pocket: Pocket, seed: number, rotor: number): boolean {
+    // Still finishing the last spin here: the caller holds this one until the wheel is free.
+    if (this.game.phase !== 'betting') return false;
     try {
       this.game.spinTo(pocket, { allowEmpty: true });
     } catch {
@@ -712,6 +713,7 @@ export class RouletteTable {
       this.game.spinTo(pocket, { allowEmpty: true });
     }
     this.beginSpin(pocket, seed, rotor);
+    return true;
   }
 
   private beginSpin(target: Pocket, seed: number, rotorSpeed: number) {

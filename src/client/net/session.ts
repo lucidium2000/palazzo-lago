@@ -557,6 +557,43 @@ export class Session {
     return { id: r.id, name: r.name, person: r.person, state: r.state, color: this.colorOf(r), hand: (side) => r.posed?.[side] ?? null, wrist: (side) => r.wrists[side] ?? (r.hands[side] ? { p: r.hands[side]!, q: new THREE.Quaternion() } : null) };
   }
 
+  /** Host: a friend asked for the wheel to spin / the dice to roll (done as soon as the table is free). */
+  private wantSpin: { name: string; t: number } | null = null;
+  private wantRoll: { name: string; t: number; from: THREE.Vector3 | null; v: THREE.Vector3 | null } | null = null;
+  /** Guest: the host's spins and rolls that arrived while our table was still busy with the last one. */
+  private spinQueue: (() => boolean)[] = [];
+  private rollQueue: (() => boolean)[] = [];
+
+  /**
+   * Keeps the shared tables in step: requests wait for the host's table to be free, and the
+   * host's results wait for ours (a slower machine plays the waiting ones a little faster).
+   */
+  private tables(dt: number) {
+    const { roulette, craps, hud } = this.d;
+    if (this.wantSpin && this.time - this.wantSpin.t > 12) this.wantSpin = null;
+    if (this.wantSpin && roulette.game.phase === 'betting') {
+      hud.toast(`${this.wantSpin.name} calls for the spin`, 'info');
+      this.wantSpin = null;
+      roulette.startSpin();
+    }
+    if (this.wantRoll && this.time - this.wantRoll.t > 12) this.wantRoll = null;
+    if (this.wantRoll && craps.phase === 'betting') {
+      const w = this.wantRoll;
+      this.wantRoll = null;
+      hud.toast(`${w.name} is shooting`, 'info');
+      craps.hostRoll(w.from, w.v);
+    }
+    if (this.spinQueue.length) {
+      // Catch up: the wheel runs double time while the host is ahead.
+      if (roulette.game.phase !== 'betting') roulette.update(dt);
+      else if (this.spinQueue[0]()) this.spinQueue.shift();
+    }
+    if (this.rollQueue.length) {
+      if (craps.phase !== 'betting') craps.update(dt);
+      else if (this.rollQueue[0]()) this.rollQueue.shift();
+    }
+  }
+
   private handle(r: Remote, e: NetEvent) {
     const d = (e.d ?? {}) as Record<string, unknown>;
     const extra = this.handlers.get(e.k);
@@ -581,27 +618,34 @@ export class Session {
         }
         break;
       case 'rspin?':
-        if (this.host && this.d.roulette.game.phase === 'betting') {
-          this.d.hud.toast(`${r.name} calls for the spin`, 'info');
-          this.d.roulette.startSpin();
-        }
+        // The wheel may still be finishing the last spin here: the call waits for it (a few seconds at most).
+        if (this.host) this.wantSpin = { name: r.name, t: this.time };
         break;
       case 'rspin':
-        if (!this.host && r.state.host) this.d.roulette.applyRemoteSpin(Number(d.pocket), Number(d.seed), Number(d.rotor));
-        break;
-      case 'croll?':
-        if (this.host && this.d.craps.phase === 'betting') {
-          const from = Array.isArray(d.from) ? new THREE.Vector3().fromArray(d.from as number[]) : null;
-          const v = Array.isArray(d.v) ? new THREE.Vector3().fromArray(d.v as number[]) : null;
-          this.d.hud.toast(`${r.name} is shooting`, 'info');
-          this.d.craps.hostRoll(from, v);
+        if (!this.host && r.state.host) {
+          const pocket = Number(d.pocket),
+            seed = Number(d.seed),
+            rotor = Number(d.rotor);
+          if (!Number.isInteger(pocket) || pocket < 0 || pocket > 37) return;
+          // Never drop the host's spin: if our wheel is still on the last one, it plays right after.
+          if (this.spinQueue.length || !this.d.roulette.applyRemoteSpin(pocket, seed, rotor)) this.spinQueue.push(() => this.d.roulette.applyRemoteSpin(pocket, seed, rotor));
+          if (this.spinQueue.length > 3) this.spinQueue.shift();
         }
         break;
+      case 'croll?': {
+        const from = Array.isArray(d.from) && d.from.length === 3 && (d.from as unknown[]).every(Number.isFinite) ? new THREE.Vector3().fromArray(d.from as number[]) : null;
+        const v = Array.isArray(d.v) && d.v.length === 3 && (d.v as unknown[]).every(Number.isFinite) ? new THREE.Vector3().fromArray(d.v as number[]) : null;
+        if (this.host) this.wantRoll = { name: r.name, t: this.time, from, v };
+        break;
+      }
       case 'croll':
         if (!this.host && r.state.host) {
           const dice = d.dice as [number, number];
           if (!Array.isArray(dice) || dice.some((x) => !(x >= 1 && x <= 6))) return;
-          this.d.craps.applyRemoteRoll([dice[0], dice[1]], Number(d.seed), d.from as number[], (d.v as number[] | null) ?? null, (d.point as number | null) ?? null);
+          const go = () => this.d.craps.applyRemoteRoll([dice[0], dice[1]], Number(d.seed), d.from as number[], (d.v as number[] | null) ?? null, (d.point as number | null) ?? null);
+          // Never drop the host's roll: if our dice are still out, it plays right after.
+          if (this.rollQueue.length || !go()) this.rollQueue.push(go);
+          if (this.rollQueue.length > 3) this.rollQueue.shift();
         }
         break;
       case 'gest':
@@ -815,6 +859,7 @@ export class Session {
     if (this.left) return;
     this.time += dt;
     this.fader.update(dt);
+    this.tables(dt);
     // Publish my state ~10 times a second when it changes (events go at once).
     this.sendT -= dt;
     if (this.sendT <= 0) {
