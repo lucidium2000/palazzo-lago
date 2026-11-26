@@ -17,6 +17,7 @@ import { BobDetector } from './rhythm';
 import { DJ_ONLY, FULL_SET, SET_BPM, slotLayout } from './setlist';
 import { renderScratchRecord, type RawTrack } from './song';
 import { HEADLINER, Stage } from './stage';
+import { StageMic } from './stagemic';
 import { renderPartyRaw } from './track';
 
 /**
@@ -72,8 +73,13 @@ export interface PartyDeps {
 
 /** The pool deck's doors from the hotel corridor (the music leaks through them). */
 const DOORS = new THREE.Vector3(36, 0, -0.5);
-/** Base level of each speaker stack (two of them). */
-const STACK_VOL = 0.55;
+/**
+ * Base level of each speaker stack (two of them). The stacks' panners used to
+ * sit at the world origin (a PositionalAudio fed from a node never updated its
+ * position), so the set reached the dance floor ~21 dB down from 50 m away;
+ * now they play from the stacks, and this keeps the dance floor as loud as it was.
+ */
+const STACK_VOL = 0.05;
 
 export class Party {
   /** The beat everything follows: the whole set list (the DJ's slot, then the headliner's). */
@@ -110,6 +116,8 @@ export class Party {
   private announced = -1;
   /** Drops that have landed (for the curious: window.casino.party). */
   drops = 0;
+  /** The stage's mic: step up and you're on the PA (stagemic.ts). */
+  readonly mic: StageMic;
 
   constructor(private d: PartyDeps) {
     this.lights = new PartyLights(d.scene, d.dj, d.lights, d.poles);
@@ -140,6 +148,8 @@ export class Party {
       a.setRolloffFactor(1.05);
       a.setDistanceModel('inverse');
       a.setMaxDistance(200);
+      // Fed from the decks' node (no playback control of its own): without this its panner never leaves the origin.
+      (a as { hasPlaybackControl: boolean }).hasPlaybackControl = false;
       const f = d.sound.listener.context.createBiquadFilter();
       f.type = 'lowpass';
       f.frequency.value = 20000;
@@ -148,6 +158,7 @@ export class Party {
       this.stacks.push(a);
       this.filters.push(f);
     }
+    this.mic = new StageMic({ listener: d.sound.listener, stacks: this.stacks.map((a) => a.parent!), stage: this.stage, hands: d.hands, toast: d.toast });
     addEventListener('keydown', (e) => {
       if (e.code !== 'KeyJ' || e.repeat) return;
       const t = e.target as HTMLElement | null;
@@ -210,12 +221,24 @@ export class Party {
   connect(session: Session) {
     this.session = session;
     const prev = session.extraState;
-    session.extraState = () => ({ ...(prev?.() ?? {}), dn: this.netState() });
+    session.extraState = () => ({
+      ...(prev?.() ?? {}),
+      dn: this.netState(),
+      // On the stage mic: friends route your voice through the PA (and see your mouth move even without voice chat).
+      ...(this.mic.onMic ? { onMic: true, ...(session.voice.enabled ? {} : { mo: Math.round(this.mic.level * 9) }) } : {}),
+    });
+    this.mic.connect(session);
     session.dancer = (p, s, tracked) => this.danceFriend(p, s, tracked);
     session.on('confetti', (f, dd) => {
       const at = f.person ? f.person.pos.clone().setY(f.person.pos.y + 1.7) : new THREE.Vector3(Number(dd.x) || 0, Number(dd.y) || 0, Number(dd.z) || 0);
       if (Number.isFinite(at.x)) this.lights.showerAt(at, f.person?.pos.y ?? 0);
     });
+  }
+
+  /** You left the room. */
+  disconnect() {
+    this.session = null;
+    this.mic.connect(null);
   }
 
   private netState(): number | undefined {
@@ -308,7 +331,9 @@ export class Party {
     const cutoff = 260 * Math.pow(75, open);
     const vol = STACK_VOL * (0.05 + 0.95 * Math.pow(open, 1.5)) * (this.d.sound.musicOn ? 1 : 0);
     for (const f of this.filters) f.frequency.setTargetAtTime(cutoff, ctx.currentTime, 0.08);
-    if (this.playing) for (const a of this.stacks) a.setVolume(vol);
+    // The stage mic (its PA plays from the same stacks); the music ducks while someone talks into it.
+    this.mic.update(dt, you.head, !you.xr, open, cutoff);
+    if (this.playing) for (const a of this.stacks) a.gain.gain.setTargetAtTime(vol * this.mic.duck, ctx.currentTime, 0.02);
 
     // The set list: the headliner on the stage, the decks (and you on them).
     const P = this.setTime();

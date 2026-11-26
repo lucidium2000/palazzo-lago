@@ -76,6 +76,8 @@ export interface PlayerState {
   rf?: string;
   /** Chips won (+) or lost (−) tonight. */
   nt?: number;
+  /** On the pool stage's mic: friends hear their voice through the PA (party/stagemic.ts), not from their avatar. */
+  onMic?: boolean;
   /** Dancing: move × 10 + how much (1-9); move 0 = legs only (a VR player's real hands do the arms). */
   dn?: number;
   /** Fights you're driving (fight/fights.ts): per guest, [index, x, z, yaw, phase, hp, max hp, fist, head] (×100 for x/z/yaw). */

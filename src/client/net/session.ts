@@ -213,6 +213,11 @@ export class Session {
     return err;
   }
 
+  /** Each friend's latest state, by their id. */
+  friendStates(): { id: string; state: PlayerState }[] {
+    return [...this.remotes.values()].map((r) => ({ id: r.id, state: r.state }));
+  }
+
   /** Is a friend standing within `r` metres of you? */
   friendNear(r: number): boolean {
     for (const x of this.remotes.values()) if (x.person && x.person.pos.distanceTo(this.d.player.feet()) < r) return true;
