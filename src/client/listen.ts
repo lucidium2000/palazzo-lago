@@ -33,6 +33,13 @@ export class Listener {
   /** Shown while listening (e.g. a "listening…" badge). */
   onState: ((s: 'idle' | 'loading' | 'listening') => void) | null = null;
   enabled = true;
+  /** What it's doing now (the VR reply strip lights its mic while listening). */
+  state: 'idle' | 'loading' | 'listening' = 'idle';
+
+  private setState(s: 'idle' | 'loading' | 'listening') {
+    this.state = s;
+    this.onState?.(s);
+  }
 
   constructor() {
     try {
@@ -61,7 +68,7 @@ export class Listener {
   stop() {
     this.active?.();
     this.active = null;
-    this.onState?.('idle');
+    this.setState('idle');
   }
 
   /**
@@ -95,7 +102,7 @@ export class Listener {
         done = true;
         clearTimeout(timer);
         this.active = null;
-        this.onState?.('idle');
+        this.setState('idle');
         try {
           rec.abort();
         } catch {
@@ -118,7 +125,7 @@ export class Listener {
       try {
         rec.start();
         this.engine = 'browser';
-        this.onState?.('listening');
+        this.setState('listening');
       } catch {
         finish(null);
       }
@@ -146,10 +153,10 @@ export class Listener {
   }
 
   private async listenVosk(vocab: string[], seconds: number): Promise<string | null> {
-    this.onState?.('loading');
+    this.setState('loading');
     const model = await this.loadVosk();
     if (!model) {
-      this.onState?.('idle');
+      this.setState('idle');
       this.engine = 'none';
       return null;
     }
@@ -157,7 +164,7 @@ export class Listener {
     try {
       stream = await this.micStream();
     } catch {
-      this.onState?.('idle');
+      this.setState('idle');
       return null;
     }
     this.engine = 'vosk';
@@ -186,7 +193,7 @@ export class Listener {
         } catch {
           /* gone */
         }
-        this.onState?.('idle');
+        this.setState('idle');
         resolve(text.replace(/\[unk\]/g, '').trim());
       };
       let quiet: ReturnType<typeof setTimeout> | undefined;
@@ -218,7 +225,7 @@ export class Listener {
         setTimeout(finish, 400);
       }, seconds * 1000);
       this.active = finish;
-      this.onState?.('listening');
+      this.setState('listening');
     });
   }
 

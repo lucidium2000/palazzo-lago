@@ -4,6 +4,7 @@ import { PALM } from './net/embody';
 import { GRIP_HOLD, PosedHand } from './posedhand';
 import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
+import { replyPrompt } from './replyhud';
 
 /**
  * VR hands: shows the real Quest controller (or tracked hand) models and lets
@@ -265,6 +266,8 @@ export class Hands {
       ctrl.addEventListener('squeezeend', () => this.release(hand));
       // Hand tracking has no grip button: a pinch near something grabs it.
       ctrl.addEventListener('selectstart', () => {
+        // While a reply prompt is up, pinches answer it (replyhud.ts) instead of grabbing.
+        if (ctrl.userData.isHand && replyPrompt.busy()) return;
         if (this.nearest(hand)) {
           ctrl.userData.suppressSelect = true;
           ctrl.userData.grabbedBySelect = this.tryGrab(hand);

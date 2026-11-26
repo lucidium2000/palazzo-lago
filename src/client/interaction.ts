@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { replyPrompt } from './replyhud';
 
 /**
  * One interaction path for every device. Games register Interactables; mouse
@@ -196,6 +197,12 @@ export class Interaction {
       ctrl.userData.connected = true;
       ctrl.userData.handedness = e.data?.handedness;
       ctrl.userData.gamepad = e.data?.gamepad;
+      ctrl.userData.isHand = !!e.data?.hand;
+    });
+    // A hand pinch while a reply prompt is up answers the reply (replyhud.ts): it doesn't also press
+    // whatever the laser points at, even when it's let go after the prompt has closed.
+    ctrl.addEventListener('selectstart', () => {
+      if (ctrl.userData.isHand && replyPrompt.busy()) ctrl.userData.suppressSelect = true;
     });
     ctrl.addEventListener('disconnected', () => {
       laser.visible = false;

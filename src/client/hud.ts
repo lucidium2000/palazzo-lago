@@ -4,6 +4,7 @@ import { money } from './game';
 import type { Interaction } from './interaction';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
 import type { Viewpoint } from './player';
+import { replyPrompt } from './replyhud';
 
 export type ToastKind = 'info' | 'win' | 'warn';
 
@@ -364,7 +365,8 @@ export class Hud {
     const gp = this.interaction.gamepads().find((g) => g.handedness === 'left')?.gamepad;
     const hasY = !!gp && gp.buttons.length > 5;
     const y = !!gp?.buttons[5]?.pressed;
-    if (y && !this.yWas) {
+    // (Not while Y answers a reply, see replyhud.ts.)
+    if (y && !this.yWas && !replyPrompt.busy()) {
       this.wristOpen = !this.wristOpen;
       if (this.wristOpen) this.wristBuilder?.();
       (gp as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(0.4, 40);
