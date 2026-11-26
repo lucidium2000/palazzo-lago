@@ -25,6 +25,7 @@ import { Hoops } from './hoops';
 import { Hockey } from './hockey';
 import { Claw } from './claw';
 import { LastMileCabinet } from './lastmile';
+import { OnTheRunCabinet } from './ontherun';
 import { bakeStatic } from '../merge';
 
 /**
@@ -190,12 +191,14 @@ export class Arcade {
 
     const cabSlots = slots.filter((s) => s.kind === 'cabinet');
     const floorSlots = slots.filter((s) => s.kind === 'floor');
-    const featureSlot = slots.find((s) => s.kind === 'feature');
+    const isRacer = (s: ArcadeSlot) => /rac(ing|er)/i.test(s.id) || /rac(ing|er)/i.test(s.hint ?? '');
+    const featureSlot = slots.find((s) => s.kind === 'feature' && !isRacer(s));
+    const racerSlot = slots.find((s) => s.kind === 'feature' && isRacer(s));
     const tierName = d.tier ?? d.quality?.name;
     // Fewer bays than games: keep the head-to-head game (friends want it).
     let games = GAMES.slice(0, cabSlots.length);
     if (cabSlots.length < GAMES.length && cabSlots.length > 0) games = [...GAMES.slice(0, cabSlots.length - 1), GAMES[GAMES.length - 1]];
-    this.inst = new ControlInstances(cabSlots.length * 2 + 4, cabSlots.length * 6 + 6);
+    this.inst = new ControlInstances(cabSlots.length * 2 + 4, cabSlots.length * 6 + 6 + (racerSlot ? 14 : 0));
     this.inst.addTo(this.live);
 
     games.forEach((gd, i) => {
@@ -293,6 +296,8 @@ export class Arcade {
     });
     // The featured bay: The Last Mile (a real web game on a wide cabinet; free to play).
     if (featureSlot) this.floors.push(new LastMileCabinet(env, featureSlot));
+    // The racing bay: ON THE RUN (the owner's WebGL racer on a sit-down twin cabinet; free to play).
+    if (racerSlot) this.floors.push(new OnTheRunCabinet(env, racerSlot, tierName));
 
     paintSwatches(ag);
     tex.needsUpdate = true;

@@ -1,0 +1,5 @@
+/* palazzo-lago: Chakra Petch and Russo One (SIL OFL 1.1, see OFL-*.txt), latin subsets from @fontsource, vendored by scripts/sync-ontherun.mjs */
+@font-face{font-family:'Chakra Petch';font-style:normal;font-weight:400;font-display:swap;src:url(chakra-petch-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Chakra Petch';font-style:normal;font-weight:600;font-display:swap;src:url(chakra-petch-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Chakra Petch';font-style:normal;font-weight:700;font-display:swap;src:url(chakra-petch-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Russo One';font-style:normal;font-weight:400;font-display:swap;src:url(russo-one-latin-400-normal.woff2) format('woff2')}
