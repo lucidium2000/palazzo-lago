@@ -1738,6 +1738,12 @@ async function main() {
     loadProgress(1, 'Ready');
     clearInterval(tipTimer);
   }
+  // Dev harness: `?arcade=1` mounts the arcade in a test room (the Promenade mounts the real one).
+  let arcade: { update(dt: number): void } | null = null;
+  if (new URLSearchParams(location.search).has('arcade')) {
+    const { mountArcadeHarness } = await import('./arcade/harness');
+    arcade = mountArcadeHarness({ scene, interaction, hands, player, sound, bankroll, session: () => session, camera, world, hud, name: () => me.name, tier: quality.name });
+  }
   renderer.setAnimationLoop(() => {
     timer.update();
     if (lightingBusy) {
@@ -1978,6 +1984,7 @@ async function main() {
     // Out at the pool party the DJ takes over: the casino's groove ducks out.
     // (And it steps aside for your room's speaker or the lift's music.)
     suitePerks.update(dt);
+    arcade?.update(dt);
     sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence) * (1 - 0.95 * suitePerks.duck));
     if (outside > 0.5) {
       if (!finaleSeen && casino.fountainLevel() > 0.8) {
@@ -1995,7 +2002,8 @@ async function main() {
     post.render(scene, camera);
     if (first) {
       first = false;
-      if (lightTheRest) setTimeout(() => void lightTheRest?.(), 0);
+      // (The arcade test room is nowhere near the other areas: it skips lighting them.)
+      if (lightTheRest && !arcade) setTimeout(() => void lightTheRest?.(), 0);
       document.getElementById('loading')!.classList.add('done');
       // The casino's music is fetched first, once the loading screen is done (the party's waits for you to head out).
       void sound.preloadMusic().catch(() => {});
@@ -2013,7 +2021,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, arcade };
 }
 
 main().catch((e) => {
