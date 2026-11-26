@@ -186,7 +186,8 @@ export class Cabinet {
     const meta = o.game.meta;
     this.id = `arc${index}`;
     this.width = meta.players === 2 ? 1.02 : 0.76;
-    this.group.position.copy(o.pos);
+    // The body runs from 0.39 m behind the origin to 0.46 m in front: centre it on the slot.
+    this.group.position.copy(o.pos).add(new THREE.Vector3(Math.sin(o.yaw), 0, Math.cos(o.yaw)).multiplyScalar(-(Z0 + Z1) / 2));
     this.group.rotation.y = o.yaw;
     this.group.name = `cabinet-${meta.id}`;
     o.bakeRoot.add(this.group);

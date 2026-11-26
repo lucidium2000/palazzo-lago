@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { replyPrompt } from './replyhud';
 
 /**
  * One interaction path for every device. Games register Interactables; mouse
@@ -20,11 +21,35 @@ export interface Interactable {
   kind?: 'button' | 'surface' | 'floor';
   /** A surface you can tap with a fingertip (e.g. a betting layout): pokes reach it whatever its size. */
   pokeable?: boolean;
+  /**
+   * A betting felt: only a deliberate point presses it (index finger out, the
+   * other fingers curled, pushed into the cloth). An open hand, a palm or a
+   * fist resting on it does nothing. A pointing finger over it hovers it.
+   */
+  felt?: boolean;
   onSelect?(e: SelectEvent): void;
   onHover?(e: SelectEvent | null): void;
   enabled?(): boolean;
   /** What a click/point would do, shown next to the crosshair (e.g. "Order a drink"). */
   label?: string | ((e: SelectEvent) => string | null);
+}
+
+/** An index fingertip this frame (VR). */
+export interface Poker {
+  id: 'left' | 'right';
+  tip: THREE.Vector3;
+  /** Index finger straight: presses buttons and menus. */
+  extended: boolean;
+  /** Pointing (index out, the other fingers curled): the only pose that presses a betting felt. */
+  pointing?: boolean;
+}
+
+/** A pointing fingertip over a felt: the item, the spot under the tip, what it would bet, how high above. */
+export interface FeltHover {
+  item: Interactable;
+  e: SelectEvent;
+  label: string | null;
+  height: number;
 }
 
 interface Pointer {
@@ -196,6 +221,12 @@ export class Interaction {
       ctrl.userData.connected = true;
       ctrl.userData.handedness = e.data?.handedness;
       ctrl.userData.gamepad = e.data?.gamepad;
+      ctrl.userData.isHand = !!e.data?.hand;
+    });
+    // A hand pinch while a reply prompt is up answers the reply (replyhud.ts): it doesn't also press
+    // whatever the laser points at, even when it's let go after the prompt has closed.
+    ctrl.addEventListener('selectstart', () => {
+      if (ctrl.userData.isHand && replyPrompt.busy()) ctrl.userData.suppressSelect = true;
     });
     ctrl.addEventListener('disconnected', () => {
       laser.visible = false;
@@ -245,37 +276,68 @@ export class Interaction {
     c.pointer.ray.direction.set(0, 0, -1).applyMatrix4(this.tmpMat);
   }
 
-  /**
-   * Fingertips that can press things by touch (VR): each frame the game says
-   * where your index fingertips are and whether the finger is pointing.
-   */
   /** Laser pointers on? (Off by default: real hands, touch and grab.) */
   lasersOn: () => boolean = () => true;
-  pokers: (() => { id: 'left' | 'right'; tip: THREE.Vector3; extended: boolean }[]) | null = null;
+  /**
+   * Fingertips that can press things by touch (VR): each frame the game says
+   * where your index fingertips are, whether the index finger is straight
+   * (`extended`: presses buttons and menus) and whether the hand is pointing
+   * (`pointing`: index out, the other fingers curled; the only thing that
+   * presses a betting felt).
+   */
+  pokers: (() => Poker[]) | null = null;
   /** A fingertip pressed something (buzz that hand). */
   onPoke: ((id: 'left' | 'right') => void) | null = null;
+  /** A pointing finger is about to press a felt: false stops it (no chip to put down; say why). */
+  feltGate: ((id: 'left' | 'right', item: Interactable, e: SelectEvent) => boolean) | null = null;
+  /** A pointing finger pressed a felt (after its onSelect ran). */
+  onFeltPoke: ((id: 'left' | 'right', item: Interactable, e: SelectEvent) => void) | null = null;
   private pokePrev = new Map<string, THREE.Vector3>();
   private pokeCool = new Map<string, number>();
   private pokeRay = new THREE.Raycaster();
   private tmpV = new THREE.Vector3();
+  private feltBox = new Map<Interactable, THREE.Box3>();
+  private hovering = new Map<'left' | 'right', FeltHover>();
+
+  /** What a pointing fingertip is over (a felt just under it), per hand. */
+  fingerHover(id: 'left' | 'right'): FeltHover | null {
+    return this.hovering.get(id) ?? null;
+  }
+
+  /** Is a fingertip within reach of a betting felt (over the table, a hand's length above it)? */
+  nearFelt(tip: THREE.Vector3, margin = 0.35): boolean {
+    for (const i of this.items) {
+      if (!i.felt || !i.object.visible || !(i.enabled?.() ?? true)) continue;
+      let b = this.feltBox.get(i);
+      if (!b) this.feltBox.set(i, (b = new THREE.Box3().setFromObject(i.object)));
+      if (tip.x > b.min.x - margin && tip.x < b.max.x + margin && tip.z > b.min.z - margin && tip.z < b.max.z + margin && tip.y > b.min.y - 0.1 && tip.y < b.max.y + margin) return true;
+    }
+    return false;
+  }
 
   /**
-   * Touch to press: a pointing fingertip that pushes into a button or a menu
-   * panel (face first) presses it, at the spot it touched.
+   * Touch to press: a fingertip that pushes into a button or a menu panel
+   * (face first) presses it, at the spot it touched. Betting felts only take a
+   * pointing finger pressed into the cloth; a pointing finger held over one
+   * hovers the spot under it (the table shows a ghost chip there).
    */
-  private updatePokes() {
+  updatePokes() {
     const now = performance.now() / 1000;
+    const seen = new Set<string>();
     for (const f of this.pokers?.() ?? []) {
+      seen.add(f.id);
       const prev = this.pokePrev.get(f.id);
       this.pokePrev.set(f.id, f.tip.clone());
+      this.updateFeltHover(f);
       if (!prev || !f.extended || now < (this.pokeCool.get(f.id) ?? 0)) continue;
       const move = f.tip.clone().sub(prev);
       const len = move.length();
       if (len < 0.002 || len > 0.25) continue;
       const dir = move.divideScalar(len);
-      // Buttons and panels near the fingertip only.
+      // Buttons and panels near the fingertip only; felts only for a pointing hand.
       const near = this.items.filter((i) => {
         if (!i.object.visible || !(i.enabled?.() ?? true)) return false;
+        if (i.felt) return !!f.pointing;
         if (i.pokeable) return true;
         if (i.kind === 'surface' || i.kind === 'floor') return false;
         // Big things (a whole counter, a table) aren't buttons to poke.
@@ -294,16 +356,57 @@ export class Interaction {
         let o: THREE.Object3D | null = hit.object;
         while (o && !o.userData.interactable) o = o.parent;
         if (!o) continue;
-        const n = hit.face?.normal.clone().transformDirection(hit.object.matrixWorld);
-        // Pressing into the face (not grazing along it, not from behind).
-        if (n && Math.abs(n.dot(dir)) < 0.3) continue;
         const item = o.userData.interactable as Interactable;
+        // A felt hit through a hand-sized table group may be another interactable's mesh: only the felt's own.
+        if (!near.includes(item)) continue;
+        const n = hit.face?.normal.clone().transformDirection(hit.object.matrixWorld);
+        // Pressing into the face (not grazing along it, not from behind). A felt wants a press, not a brush.
+        if (n && Math.abs(n.dot(dir)) < (item.felt ? 0.55 : 0.3)) continue;
         this.pokeCool.set(f.id, now + 0.4);
-        this.fire({ item, hit }, 'xr');
+        const e = this.event(item, hit, 'xr');
+        if (item.felt && this.feltGate && !this.feltGate(f.id, item, e)) break;
+        item.onSelect?.(e);
         this.onPoke?.(f.id);
+        if (item.felt) this.onFeltPoke?.(f.id, item, e);
         break;
       }
     }
+    for (const id of ['left', 'right'] as const) if (!seen.has(id)) this.setFingerHover(id, null);
+  }
+
+  /** The felt just under a pointing fingertip (straight down, a few cm), hovered. */
+  private updateFeltHover(f: Poker) {
+    let next: FeltHover | null = null;
+    if (f.pointing) {
+      const felts = this.items.filter((i) => i.felt && i.object.visible && (i.enabled?.() ?? true));
+      if (felts.length && this.nearFelt(f.tip, 0.05)) {
+        this.pokeRay.set(f.tip.clone().setY(f.tip.y + 0.01), new THREE.Vector3(0, -1, 0));
+        this.pokeRay.far = 0.13;
+        for (const hit of this.pokeRay.intersectObjects(
+          felts.map((i) => i.object),
+          true,
+        )) {
+          let o: THREE.Object3D | null = hit.object;
+          while (o && !o.userData.interactable) o = o.parent;
+          const item = o?.userData.interactable as Interactable | undefined;
+          if (!item || !felts.includes(item)) continue;
+          const e = this.event(item, hit, 'xr');
+          const label = typeof item.label === 'function' ? item.label(e) : (item.label ?? null);
+          next = { item, e, label, height: f.tip.y - hit.point.y };
+          break;
+        }
+      }
+    }
+    this.setFingerHover(f.id, next);
+  }
+
+  private setFingerHover(id: 'left' | 'right', next: FeltHover | null) {
+    const was = this.hovering.get(id) ?? null;
+    if (was && was.item !== next?.item) was.item.onHover?.(null);
+    if (next) {
+      this.hovering.set(id, next);
+      next.item.onHover?.(next.e);
+    } else this.hovering.delete(id);
   }
 
   /** Per-frame hover update for mouse and VR pointers. */

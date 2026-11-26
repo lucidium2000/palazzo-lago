@@ -282,7 +282,7 @@ export class Hockey implements FloorGame {
       });
     }
     this.sound = new CabinetSound(env.audio, this.puckMesh, { ref: 1.6, volume: 0.4 });
-    env.world.addLocalBox(this.group, 0, 0, W + 0.16, L + 0.16, 'arcade hockey');
+    if (env.colliders) env.world.addLocalBox(this.group, 0, 0, W + 0.16, L + 0.16, 'arcade hockey');
     this.resetPositions(0);
   }
 

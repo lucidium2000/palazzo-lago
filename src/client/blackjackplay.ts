@@ -401,6 +401,7 @@ export class BlackjackPlay {
       object: table.group,
       kind: 'surface',
       pokeable: true,
+      felt: true,
       enabled: () => this.mySeat !== null,
       label: (e) => (this.mySeat !== null && this.inCircle(e.local, this.mySeat) && this.canBet() ? `Bet ${money(this.chip)}` : null),
       onSelect: (e) => {
@@ -641,6 +642,19 @@ export class BlackjackPlay {
     if (this.dropChips(amount, world)) return true;
     bank.debit(amount, 'refund', 'blackjack');
     return false;
+  }
+
+  /** Chips set down at a point (paid from your balance): into your circle, or beside it on your turn. */
+  betAt(world: THREE.Vector3, amount: number): boolean {
+    return this.dropChips(amount, world);
+  }
+
+  /** Your chips in the circle waiting for the deal (already paid from your balance). */
+  get myStaked(): number {
+    if (this.mySeat === null) return 0;
+    const o = this.owners.get(this.mySeat);
+    // A guest's bet the host hasn't booked yet is still yours, on its way into the circle.
+    return o && o.token === this.me ? this.myPending : this.betTotal;
   }
 
   /** Chips beside your bet on your turn: once they match it, that's a double (or a split, on a pair). */

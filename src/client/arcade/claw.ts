@@ -440,7 +440,7 @@ export class Claw implements FloorGame {
         portrait: { back: 0.55, eye: 1.6, pitch: -0.32 },
       },
     ];
-    env.world.addLocalBox(this.group, 0, 0.04, W + 0.04, W + 0.12, 'arcade claw');
+    if (env.colliders) env.world.addLocalBox(this.group, 0, 0.04, W + 0.04, W + 0.12, 'arcade claw');
   }
 
   /** A fresh pile (the same for everyone: the seed is shared). */

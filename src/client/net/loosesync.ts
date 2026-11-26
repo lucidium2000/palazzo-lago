@@ -34,7 +34,8 @@ export class LooseSync {
       seen.add(f.id);
       const lh = f.state.lo;
       let s = this.shown.get(f.id);
-      const ok = Array.isArray(lh) && lh.length === 3 && lh.every((x) => Number.isFinite(x)) && f.person && !f.person.culled;
+      // [kind, colour, hand] and (newer) the size it's drawn at in % (food shrinks as it's eaten).
+      const ok = Array.isArray(lh) && (lh.length === 3 || lh.length === 4) && lh.every((x) => Number.isFinite(x)) && f.person && !f.person.culled;
       if (!ok) {
         if (s) {
           s.mesh.visible = false;
@@ -42,11 +43,12 @@ export class LooseSync {
         }
         continue;
       }
-      const [kind, color, side] = lh as number[];
-      const key = `${kind}:${color}`;
+      const [kind, color, side, size] = lh as number[];
+      const scale = size === undefined ? 1 : Math.max(0.2, Math.min(1, size / 100));
+      const key = `${kind}:${color}:${scale}`;
       if (!s || s.key !== key) {
         s?.mesh.removeFromParent();
-        const mesh = this.loose.makeProxy(kind, color);
+        const mesh = this.loose.makeProxy(kind, color, scale);
         if (!mesh) continue;
         this.scene.add(mesh);
         s = { mesh, key, last: null };

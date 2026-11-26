@@ -12,6 +12,7 @@ import {
   BLACK_H, BLACK_L, BLACK_W, DIP, HIGH, KEY_LAYOUT, KEYS, LOW, OCTAVE, WHITE_L, WHITE_W,
   keyAt, newFinger, noteName, stepFinger, TYPING, typingNote, type Finger, type FingerEvent,
 } from './pianokeys';
+import { replyPrompt } from './replyhud';
 
 /**
  * The grand piano in the lounge, playable. 88 real keys (two instanced
@@ -552,7 +553,8 @@ export class Piano {
     const poses = this.d.fingerPoses();
     // The sustain pedal: A or X held down.
     let pedal = false;
-    for (const g of this.d.gamepads()) if (g.gamepad.buttons[4]?.pressed) pedal = true;
+    // (A/X answer replies while a reply prompt is up: no pedal then.)
+    if (!replyPrompt.busy()) for (const g of this.d.gamepads()) if (g.gamepad.buttons[4]?.pressed) pedal = true;
     if (pedal !== this.sustainVR) this.setMyPedal(this.sustainKeys, pedal);
     for (let s = 0; s < 2; s++) {
       const side = SIDES[s];

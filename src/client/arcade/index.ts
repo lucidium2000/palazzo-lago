@@ -46,6 +46,8 @@ export interface ArcadeSlot {
   yaw: number;
   /** Width (across the front) and depth, metres. */
   footprint: [number, number];
+  /** What the bay was laid out for ('upright', 'basketball', 'air hockey', 'claw machine'). */
+  hint?: string;
 }
 
 interface SoundLike {
@@ -67,6 +69,13 @@ export interface ArcadeDeps {
   name?: () => string;
   /** Quality tier name ('quest2', 'mobile'…): the lightest tiers draw attract screens less. */
   tier?: string;
+  /** The quality tier (the room passes this rather than `tier`). */
+  quality?: { name: string };
+  /** The room's group: the games go under it so zone culling hides them with the room. When given, the room's
+   * world colliders already cover each slot and the arcade adds none of its own. */
+  root?: THREE.Object3D;
+  /** You're in the part of the resort the arcade is in (elsewhere it idles: no screens, no music). */
+  here?: () => boolean;
 }
 
 export interface ArcadeHandle {
@@ -138,6 +147,7 @@ export class Arcade {
   private feet = new THREE.Vector3();
   private tmp = new THREE.Vector3();
   private tmpQ = new THREE.Quaternion();
+  private awake = true;
   /** The floor games' per-frame info (reused). */
   private ff: FloorFrame = { dt: 0, t: 0, feet: new THREE.Vector3(), inXR: false, desk: null, dist: 0 };
   private ffDesk: { pad: RawPad; spot: number } = { pad: blankPad(), spot: 0 };
@@ -146,14 +156,15 @@ export class Arcade {
 
   constructor(
     readonly scene: THREE.Scene,
-    slots: ArcadeSlot[],
+    slots: readonly ArcadeSlot[],
     readonly d: ArcadeDeps,
   ) {
     this.root.name = 'arcade';
     this.bake.name = 'arcade-baked';
     this.live.name = 'arcade-live';
     this.root.add(this.bake, this.live);
-    scene.add(this.root);
+    (d.root ?? scene).add(this.root);
+    const colliders = !d.root;
     this.audio = new ArcadeAudio(d.sound.listener);
 
     // One atlas for every printed surface.
@@ -206,7 +217,7 @@ export class Arcade {
       this.p2Pad.push(blankPad());
       this.p2Heard.push(0);
       this.sendT.push(0);
-      d.world.addLocalBox(cab.group, 0, 0.02, cab.width + 0.02, 0.86, 'arcade cabinet');
+      if (colliders) d.world.addLocalBox(cab.group, 0, 0.02, cab.width + 0.02, 0.86, 'arcade cabinet');
       // Click the screen (screens only) to step up and play.
       d.interaction.register({
         object: cab.screen,
@@ -236,17 +247,29 @@ export class Arcade {
       player: d.player,
       world: d.world,
       camera: d.camera,
+      colliders,
       pay: (what) => this.pay(what),
       toast: (t, k) => d.hud.toast(t, k ?? 'info'),
       submit: (g, n, s) => this.submit(g, n, s, FLOOR_TOPS[g] ?? 100),
       haptic: (side, s, ms) => this.haptic(side, s, ms),
       name: () => this.name(),
     };
-    const order = [...floorSlots].sort((a, b) => b.footprint[0] * b.footprint[1] - a.footprint[0] * a.footprint[1]);
-    const wanted: ((s: ArcadeSlot, tile: number) => FloorGame)[] = [(s) => new Hoops(env, s, ag), (s) => new Hockey(env, s, ag), (s) => new Claw(env, s, ag)];
-    // Hoops wants the longest lane, hockey the next; the claw fits anywhere.
-    order.slice(0, wanted.length).forEach((s, k) => {
-      const g = wanted[k](s, 6 + k);
+    // Each floor game to the slot laid out for it (by id or hint), else by size: hoops wants the longest lane.
+    const makers: { id: string; match: RegExp; make: (s: ArcadeSlot) => FloorGame }[] = [
+      { id: 'hoops', match: /hoop|basket/i, make: (s) => new Hoops(env, s, ag) },
+      { id: 'hockey', match: /hockey/i, make: (s) => new Hockey(env, s, ag) },
+      { id: 'claw', match: /claw|crane/i, make: (s) => new Claw(env, s, ag) },
+    ];
+    const free = [...floorSlots].sort((a, b) => b.footprint[0] * b.footprint[1] - a.footprint[0] * a.footprint[1]);
+    const pick = (re: RegExp) => {
+      const i = free.findIndex((s) => re.test(s.id) || re.test(s.hint ?? ''));
+      return i >= 0 ? free.splice(i, 1)[0] : null;
+    };
+    const chosen = makers.map((m) => pick(m.match));
+    makers.forEach((m, k) => {
+      const s = chosen[k] ?? free.shift();
+      if (!s) return;
+      const g = m.make(s);
       this.floors.push(g);
       this.tops.set(g.id, FLOOR_TOPS[g.id] ?? 100);
     });
@@ -260,7 +283,10 @@ export class Arcade {
   }
 
   private name() {
-    return this.d.name?.() ?? 'Player';
+    if (this.d.name) return this.d.name();
+    // The name you typed on the start screen.
+    const el = typeof document !== 'undefined' ? (document.getElementById('player-name') as HTMLInputElement | null) : null;
+    return el?.value.trim() || 'Player';
   }
 
   private haptic(side: 'left' | 'right', s: number, ms: number) {
@@ -571,6 +597,20 @@ export class Arcade {
     const sess = typeof this.d.session === 'function' ? this.d.session() : (this.d.session ?? null);
     if (sess !== this.session) this.attach(sess);
     const p = this.d.player;
+    // Elsewhere in the resort: everything idles (games you left end, screens and music stop).
+    if (this.d.here && !this.d.here()) {
+      if (this.awake) {
+        this.awake = false;
+        if (this.desk.station) this.leaveDesk();
+        for (let c = 0; c < this.cabinets.length; c++) {
+          if (this.owner[c] === 'me') this.cabinets[c].machine.abandon();
+          this.cabinets[c].sound.music(null);
+        }
+      }
+      this.sendScreens(dt);
+      return;
+    }
+    this.awake = true;
     this.locate();
     const feet = this.feet;
     const inXR = p.inXR;
@@ -630,7 +670,8 @@ export class Arcade {
     if (this.remoteP2 >= 0 && wasRemote !== this.remoteP2) this.session?.emit('arcJ', { c: this.remoteP2, on: 1 });
 
     // Run, draw and sound the cabinets.
-    const light = this.d.tier === 'quest2' || this.d.tier === 'mobile';
+    const tier = this.d.tier ?? this.d.quality?.name;
+    const light = tier === 'quest2' || tier === 'mobile';
     for (let c = 0; c < this.cabinets.length; c++) {
       const cab = this.cabinets[c];
       const m = cab.machine;
@@ -667,7 +708,7 @@ export class Arcade {
   }
 }
 
-export function mountArcade(scene: THREE.Scene, slots: ArcadeSlot[], deps: ArcadeDeps): ArcadeHandle {
+export function mountArcade(scene: THREE.Scene, slots: readonly ArcadeSlot[], deps: ArcadeDeps): ArcadeHandle {
   const a = new Arcade(scene, slots, deps);
   return {
     update: (dt) => a.update(dt),

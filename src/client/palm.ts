@@ -211,7 +211,8 @@ export class PalmTracker {
   readonly platforms: Platform[];
   readonly grip: number[] = [0, 0];
   readonly open: number[] = [0, 0];
-  private seen: boolean[] = [false, false];
+  /** Hand i was measured this frame (its p and q are current). */
+  readonly seen: boolean[] = [false, false];
   private prevP = [new THREE.Vector3(), new THREE.Vector3()];
   private prevQ = [new THREE.Quaternion(), new THREE.Quaternion()];
   private prevV = [new THREE.Vector3(), new THREE.Vector3()];

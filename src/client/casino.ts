@@ -8,6 +8,7 @@ import { textSign } from './panel';
 import { bakeStatic } from './merge';
 import { assets } from './assets';
 import { buildCanopy, buildCeiling, buildPilasters } from './hall';
+import { inArcade, onPromenade } from './areas/promenadeplan';
 
 /**
  * The casino hall: an original resort interior in an Italian-lakeside style.
@@ -79,7 +80,7 @@ export interface Casino {
 }
 
 /** The areas that get their own captured reflections. */
-export type EnvZone = 'casino' | 'hotel' | 'terrace' | 'pool' | 'suite';
+export type EnvZone = 'casino' | 'hotel' | 'terrace' | 'pool' | 'suite' | 'promenade';
 /** Where each area's reflections are captured from (eye height). */
 const ENV_PROBES: Record<EnvZone, THREE.Vector3> = {
   casino: new THREE.Vector3(0, 1.8, 7.5),
@@ -87,8 +88,11 @@ const ENV_PROBES: Record<EnvZone, THREE.Vector3> = {
   terrace: new THREE.Vector3(0, 1.7, -16.4),
   pool: new THREE.Vector3(36, 1.6, -12),
   suite: new THREE.Vector3(594, 1.5, 0),
+  // The middle of the concourse: the food court, the shop fronts and the skylights all round.
+  promenade: new THREE.Vector3(-616, 1.7, -1.5),
 };
 export function envZoneAt(f: THREE.Vector3): EnvZone {
+  if (onPromenade(f.x)) return 'promenade';
   if (f.x > 500) return 'suite';
   if (f.x > 21 && f.z < -0.2) return 'pool';
   if (f.x > 17.5) return 'hotel';
@@ -677,12 +681,16 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     hotel: { exp: 0.8, hemi: 0.36, sky: new THREE.Color(0xffd8a8), ground: new THREE.Color(0x30160c), key: 0.35, keyC: new THREE.Color(0xffe0b8), env: 0.7 },
     outside: { exp: 0.95, hemi: 0.2, sky: new THREE.Color(0x5a74a8), ground: new THREE.Color(0x1c140e), key: 0.38, keyC: new THREE.Color(0xa8bcff), env: 0.28 },
     suite: { exp: 0.9, hemi: 0.2, sky: new THREE.Color(0xffd0a0), ground: new THREE.Color(0x1a100a), key: 0.12, keyC: new THREE.Color(0xffe0c0), env: 0.45 },
+    // The Promenade: warm and bright like a restaurant level at night, skylights overhead.
+    promenade: { exp: 0.78, hemi: 0.46, sky: new THREE.Color(0xffe2bc), ground: new THREE.Color(0x3a2214), key: 0.3, keyC: new THREE.Color(0xffe8cc), env: 0.8 },
+    // Its arcade: dim, the neon and the screens doing the lighting.
+    arcade: { exp: 0.95, hemi: 0.16, sky: new THREE.Color(0xb8a0ff), ground: new THREE.Color(0x200a2a), key: 0.05, keyC: new THREE.Color(0xc0a0ff), env: 0.4 },
   };
   let lastT = -1;
-  const MOOD_OF: Record<EnvZone, keyof typeof MOODS> = { casino: 'casino', hotel: 'hotel', terrace: 'outside', pool: 'outside', suite: 'suite' };
+  const MOOD_OF: Record<EnvZone, keyof typeof MOODS> = { casino: 'casino', hotel: 'hotel', terrace: 'outside', pool: 'outside', suite: 'suite', promenade: 'promenade' };
   const mood = (f: THREE.Vector3, t: number, now = false) => {
     const ez = envZoneAt(f);
-    const m = MOODS[MOOD_OF[ez]];
+    const m = MOODS[ez === 'promenade' && inArcade(f.x, f.z) ? 'arcade' : MOOD_OF[ez]];
     // Each area reflects itself (swapping between captures of one size doesn't recompile shaders).
     const env = envs[ez] ?? baseEnv;
     if (env && scene.environment !== env) scene.environment = env;

@@ -31,6 +31,8 @@ export interface FloorEnv {
   player: Player;
   world: World;
   camera: THREE.Camera;
+  /** Add world colliders for the game (false: the room already has them for the slot). */
+  colliders: boolean;
   /** Charge a play ($1): true if paid. */
   pay(what: string): boolean;
   toast(text: string, kind?: 'info' | 'win' | 'warn'): void;

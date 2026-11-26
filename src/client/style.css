@@ -940,10 +940,13 @@ body.touch #prompt {
 }
 
 /* ---------- Replies when someone talks to you ---------- */
+/* Reply chips: a static strip low on the screen (clear of the joystick and Jump on touch screens);
+   the subtitle steps up above it while it's showing. */
 #replies {
+  --replies-bottom: 168px;
   position: absolute;
   left: 50%;
-  bottom: 168px;
+  bottom: var(--replies-bottom);
   transform: translateX(-50%);
   display: none;
   flex-direction: column;
@@ -954,6 +957,22 @@ body.touch #prompt {
 }
 #replies.on {
   display: flex;
+}
+body.touch #replies {
+  --replies-bottom: calc(max(40px, env(safe-area-inset-bottom, 0px)) + 196px);
+}
+body.replying #subtitle {
+  bottom: calc(168px + var(--replies-h, 0px) + 10px);
+}
+body.touch.replying #subtitle {
+  bottom: calc(max(40px, env(safe-area-inset-bottom, 0px)) + 196px + var(--replies-h, 0px) + 10px);
+}
+/* (The strip's "listening…" badge comes and goes after it's measured.) */
+body.listening.replying #subtitle {
+  bottom: calc(168px + var(--replies-h, 0px) + 34px);
+}
+body.touch.listening.replying #subtitle {
+  bottom: calc(max(40px, env(safe-area-inset-bottom, 0px)) + 196px + var(--replies-h, 0px) + 34px);
 }
 #replies .reply {
   pointer-events: auto;

@@ -3,6 +3,7 @@ import type { Interaction } from './interaction';
 import type { Seat, Surface, World } from './world';
 import { Crouch } from './crouch';
 import { GRAVITY, MAX_SWIM_SPEED, StrokeHand, floatFeet, isDeep, newVState, strokeThrust, verticalStep, type VEvents } from './swimphys';
+import { replyPrompt } from './replyhud';
 
 /**
  * The player. Desktop: first-person walking (mouse-look with pointer lock, or
@@ -796,11 +797,11 @@ export class Player {
         turnX = ax;
       }
     }
-    // Jump: A on the right controller.
+    // Jump: A on the right controller (not while A answers a reply, see replyhud.ts).
     for (const { handedness, gamepad } of interaction.gamepads()) {
       if (handedness !== 'right') continue;
       const a = !!gamepad.buttons[4]?.pressed;
-      if (a && !this.aWas) this.jump();
+      if (a && !this.aWas && !replyPrompt.busy()) this.jump();
       this.aWas = a;
     }
     // Turning on the right stick: snap (default) or smooth, as chosen in comfort settings.

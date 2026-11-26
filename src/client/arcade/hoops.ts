@@ -360,7 +360,7 @@ export class Hoops implements FloorGame {
       },
     ];
     void fwd;
-    env.world.addLocalBox(this.group, 0, midZ, HOOP.wallX * 2 + 0.16, len + 0.04, 'arcade hoops');
+    if (env.colliders) env.world.addLocalBox(this.group, 0, midZ, HOOP.wallX * 2 + 0.16, len + 0.04, 'arcade hoops');
   }
 
   toWorld(x: number, y: number, z: number, out: THREE.Vector3) {
