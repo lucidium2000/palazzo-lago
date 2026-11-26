@@ -338,6 +338,7 @@ export class Fights {
           volume: 0.4,
           rate: 1.3,
         });
+      else if (p.role === 'guard') this.d.sound.play('gasp', this.headOf(p, this.v1), { volume: 0.7, rate: 0.8 });
       else this.d.react(p, slap && power < 0.6 ? 'hit' : 'punched');
     } else if (!blocked)
       this.d.sound.play('gasp', this.headOf(p, this.v1), {
