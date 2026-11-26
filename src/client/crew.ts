@@ -144,9 +144,9 @@ export class Crew {
     if (free) c.set(free[0], 0, free[1]);
     this.spot.copy(c);
     along.forEach((b, i) => {
-      // An arc facing the doors, leaving the doorway itself clear.
-      const a = ((i - (along.length - 1) / 2) * Math.PI) / 3.2;
-      const at = new THREE.Vector3(c.x - Math.cos(a) * 0.3, 0, c.z + Math.sin(a) * 1.1);
+      // Either side of the doors (alternating, the next pair a step further out), leaving the doorway clear.
+      const side = i % 2 ? 1 : -1;
+      const at = new THREE.Vector3(c.x + 0.4 - Math.floor(i / 2) * 0.5, 0, c.z + side * (1.15 + Math.floor(i / 2) * 0.55));
       const f = this.world.settle(at.x, at.z, 0.3, true);
       if (f) at.set(f[0], 0, f[1]);
       b.person.pos.copy(at);
