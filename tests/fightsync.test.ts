@@ -145,6 +145,10 @@ describe('fights over the network', () => {
     expect(A.fights.debug().fights[0].phase).toBe('ko');
     step(1);
     expect(B.fights.debug().remote[0].phase).toBe('ko');
+    // The same knockdown (clip and clock) on both machines.
+    expect(pb.fight!.act).toBe('ko');
+    expect(Math.abs(pb.fight!.actT - pa.fight!.actT)).toBeLessThan(0.3);
+    step(1.2);
     expect(pb.fight!.down).toBeGreaterThan(0.8);
     // They get up and leave; the fight ends on both machines.
     step(20);
@@ -155,7 +159,8 @@ describe('fights over the network', () => {
     // A gets knocked out (another guest): B sees A's avatar go down, then get up.
     for (let i = 0; i < 30 && !A.fights.you.out; i++) A.fights.you.hurt({ zone: 'head', power: 1 });
     expect(A.fights.you.out).toBe(true);
-    step(1);
+    step(2.2);
+    expect(B.avatar.fight?.act).toBe('ko');
     expect(B.avatar.fight?.down ?? 0).toBeGreaterThan(0.8);
     step(6);
     expect(A.fights.you.out).toBe(false);
