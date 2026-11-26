@@ -100,26 +100,31 @@ describe('slot spin wire format', () => {
   it('round-trips Porkbelly spins, paid and free', () => {
     const rng = new SeededRng(7);
     const g = new PiggyGame(null);
-    let seenCoins = false;
-    for (let n = 0; n < 400; n++) {
-      const removed = g.bonus ? [...g.bonus.removed] : [];
+    let seenCoins = false,
+      seenFree = false;
+    for (let n = 0; n < 1500; n++) {
+      const bonus = g.bonus ? { ...g.bonus } : null;
       const out = g.spin(rng);
-      const msg = JSON.parse(JSON.stringify(encodePiggySpin(out, removed)));
-      expect(JSON.stringify(msg).length).toBeLessThan(700);
+      const msg = JSON.parse(JSON.stringify(encodePiggySpin(out, g.bonus ?? bonus)));
+      expect(JSON.stringify(msg).length).toBeLessThan(500);
       const back = decodePiggySpin(msg)!;
       expect(back).not.toBeNull();
       expect(back.free).toBe(out.free);
       expect(back.stops).toEqual(out.stops);
-      expect(back.strips.map((s, i) => s[back.stops[i]])).toEqual(out.raw.map((col) => col[1]));
-      expect(back.mystery).toBe(out.mystery);
-      expect(back.coins).toEqual(out.coins.map(({ boost: _b, ...c }) => c));
+      expect(back.strips.map((s, i) => s[back.stops[i]])).toEqual(out.grid.map((col) => col[1]));
+      expect(back.coins).toEqual(out.coins);
+      expect(back.jackpotCoins).toEqual(out.jackpotCoins);
       expect(back.jackpotWins).toEqual(out.jackpotWins);
-      expect(!!back.triggered).toBe(!!out.triggered);
+      expect(back.pots).toEqual(out.bank.pots);
+      if (!out.free) expect(back.mods).toEqual(out.triggered);
+      else (seenFree = true), expect(back.games![1]).toBe(g.bonus!.totalSpins);
       if (out.coins.length) seenCoins = true;
       if (g.bonus?.done) g.closeBonus();
     }
     expect(seenCoins).toBe(true);
+    expect(seenFree).toBe(true);
     expect(decodePiggySpin({ s: [0, 0, 0, 0], f: 0, b: 1 })).toBeNull();
     expect(decodePiggySpin({ s: PIGGY.reels.map((r) => r.length), f: 0, b: 1 })).toBeNull();
+    expect(decodePiggySpin({ s: [0, 0, 0, 0, 0], f: 1, b: 1, m: [0] })).toBeNull();
   });
 });

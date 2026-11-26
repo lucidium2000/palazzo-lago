@@ -114,7 +114,7 @@ export class Mirror {
     d.machines.forEach((m, i) => {
       m.onSpin = (x) => s.emit('ms', { i, s: x.stops, b: x.bet, x: x.mult });
     });
-    d.piggy.onSpin = (out, removed) => s.emit('mp', encodePiggySpin(out, removed));
+    d.piggy.onSpin = (out, bonus) => s.emit('mp', encodePiggySpin(out, bonus));
     this.restore.push(() => {
       for (const m of d.machines) m.onSpin = null;
       d.piggy.onSpin = null;

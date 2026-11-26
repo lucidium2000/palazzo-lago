@@ -7,7 +7,7 @@
 import { Bankroll } from '../../rules/bankroll';
 import { betInfo, CrapsGame, type CrapsBetResult } from '../../rules/craps';
 import { BET_SPOTS, SPOTS_BY_ID, type Pocket } from '../../rules/roulette';
-import { PIGGY, COLORS, type CoinColor, type CoinEvent, type Feature } from '../../rules/piggy';
+import { COLORS, freeReels, JACKPOT_NAMES, PIGGY, POT_MAX, type CoinColor, type CoinEvent, type Feature, type Modifiers } from '../../rules/piggy';
 import type { Machine } from '../../rules/slots';
 
 /** Most spots sent per layout (biggest bets first) so an event stays well under 1 KB. */
@@ -124,68 +124,85 @@ export function decodeSlotSpin(data: unknown, machines: readonly Machine[]): Slo
 
 /** What a friend's Porkbelly spin looked like, compactly. */
 export interface PiggySpinMsg {
-  /** Reel stops (on the bonus strips when free). */
+  /** Reel stops (on the free-games strips when free). */
   s: number[];
-  /** Free spin (1) or paid (0). */
+  /** Free game (1) or paid (0). */
   f: 0 | 1;
   b: number;
-  /** The symbol the "?" turned into, if any. */
-  y: string | null;
-  /** Low symbols crossed out (Red bonus) — defines the free-spin strips. */
-  r: string[];
-  /** Coins: [reel, row, colour index, result index (0 none, 1 feed, 2 trigger)]. */
+  /**
+   * Modifiers [bits, blue, yellow, red] (bit 1 blue, 2 yellow, 4 red): the
+   * free games' (they define the free strips), or what a paid spin triggered.
+   */
+  m: number[];
+  /** Coins: [reel, row, colour index, result index (0 none, 1 fill, 2 trigger)]. */
   c: number[][];
   /** Jackpot coins: [reel, row, jackpot]. */
   j: number[][];
   /** Jackpots won: [jackpot, amount]. */
   w: number[][];
-  /** Bonus features triggered: bit 1 blue, 2 yellow, 4 red. */
-  t: number;
+  /** Their pot levels after the spin [blue, yellow, red]. */
+  p: number[];
+  /** Free games: [games left, total]. */
+  k?: number[];
 }
 
 const RESULTS: CoinEvent['result'][] = ['none', 'feed', 'trigger'];
 
-export function encodePiggySpin(out: { free: boolean; bet: number; stops: number[]; mystery: string | null; coins: CoinEvent[]; jackpotCoins: { reel: number; row: number; jackpot: number }[]; jackpotWins: { jackpot: number; amount: number }[]; triggered: Record<Feature, boolean> | null }, removed: string[]): PiggySpinMsg {
-  return {
+const packMods = (m: Modifiers | null): number[] => (m ? [COLORS.reduce((a, c, k) => a | (m.features[c] ? 1 << k : 0), 0), ...COLORS.map((c) => m.levels[c])] : [0, 0, 0, 0]);
+
+export function encodePiggySpin(
+  out: { free: boolean; bet: number; stops: number[]; coins: CoinEvent[]; jackpotCoins: { reel: number; row: number; jackpot: number }[]; jackpotWins: { jackpot: number; amount: number }[]; triggered: Modifiers | null; bank: { pots: Record<CoinColor, number> } },
+  bonus: (Modifiers & { spinsLeft: number; totalSpins: number }) | null,
+): PiggySpinMsg {
+  const msg: PiggySpinMsg = {
     s: out.stops,
     f: out.free ? 1 : 0,
     b: out.bet,
-    y: out.mystery,
-    r: removed,
+    m: packMods(out.free ? bonus : out.triggered),
     c: out.coins.slice(0, 15).map((c) => [c.reel, c.row, COLORS.indexOf(c.color), RESULTS.indexOf(c.result)]),
     j: out.jackpotCoins.slice(0, 15).map((c) => [c.reel, c.row, c.jackpot]),
-    w: out.jackpotWins.slice(0, 6).map((w) => [w.jackpot, round2(w.amount)]),
-    t: out.triggered ? COLORS.reduce((a, c, k) => a | (out.triggered![c] ? 1 << k : 0), 0) : 0,
+    w: out.jackpotWins.slice(0, 5).map((w) => [w.jackpot, round2(w.amount)]),
+    p: COLORS.map((c) => out.bank.pots[c]),
   };
+  if (out.free && bonus) msg.k = [bonus.spinsLeft, bonus.totalSpins];
+  return msg;
 }
 
 const cell = (a: unknown): a is number[] => Array.isArray(a) && a.length >= 2 && Number.isInteger(a[0]) && a[0] >= 0 && a[0] < 5 && Number.isInteger(a[1]) && a[1] >= 0 && a[1] < 3;
+const level = (v: unknown) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= POT_MAX ? (v as number) : 0);
 
 export interface PiggyRemoteSpin {
   free: boolean;
   bet: number;
   stops: number[];
   strips: string[][];
-  mystery: string | null;
   coins: CoinEvent[];
   jackpotCoins: { reel: number; row: number; jackpot: number }[];
   jackpotWins: { jackpot: number; amount: number }[];
-  triggered: Record<Feature, boolean> | null;
+  /** Paid spin: what it triggered. Free game: the free games' modifiers. */
+  mods: Modifiers | null;
+  pots: Record<CoinColor, number>;
+  /** Free games: [left, total]. */
+  games: [number, number] | null;
 }
 
 export function decodePiggySpin(data: unknown): PiggyRemoteSpin | null {
   const d = data as Partial<PiggySpinMsg> | null;
   if (!d || !Array.isArray(d.s) || d.s.length !== PIGGY.reels.length || !okAmount(d.b)) return null;
-  const lows = new Set(PIGGY.symbols.map((s) => s.id));
-  const removed = Array.isArray(d.r) ? d.r.filter((x): x is string => typeof x === 'string' && lows.has(x)).slice(0, 6) : [];
   const free = d.f === 1;
-  const strips = PIGGY.reels.map((s) => (free ? s.filter((x) => !removed.includes(x)) : [...s]));
+  const m = Array.isArray(d.m) ? d.m : [];
+  const bits = Number.isInteger(m[0]) ? (m[0] as number) & 7 : 0;
+  const mods: Modifiers | null = bits
+    ? { features: Object.fromEntries(COLORS.map((c, k) => [c, !!(bits & (1 << k))])) as Record<Feature, boolean>, levels: Object.fromEntries(COLORS.map((c, k) => [c, bits & (1 << k) ? level(m[k + 1]) : 0])) as Record<Feature, number> }
+    : null;
+  if (free && !mods) return null;
+  const strips = free ? freeReels(mods!) : PIGGY.reels.map((s) => [...s]);
   if (!d.s.every((v, k) => Number.isInteger(v) && v >= 0 && v < strips[k].length)) return null;
-  const mystery = typeof d.y === 'string' && lows.has(d.y) ? d.y : null;
-  const coins: CoinEvent[] = (Array.isArray(d.c) ? d.c : []).filter(cell).filter((c) => COLORS[c[2]] && RESULTS[c[3]]).slice(0, 15).map((c) => ({ reel: c[0], row: c[1], color: COLORS[c[2]] as CoinColor, result: RESULTS[c[3]] }));
-  const jackpotCoins = (Array.isArray(d.j) ? d.j : []).filter(cell).filter((c) => Number.isInteger(c[2]) && c[2] >= 0 && c[2] < 6).slice(0, 15).map((c) => ({ reel: c[0], row: c[1], jackpot: c[2] }));
-  const jackpotWins = (Array.isArray(d.w) ? d.w : []).filter((w) => Array.isArray(w) && Number.isInteger(w[0]) && w[0] >= 0 && w[0] < 6 && okAmount(w[1])).slice(0, 6).map((w) => ({ jackpot: w[0], amount: w[1] }));
-  const t = Number.isInteger(d.t) ? d.t! : 0;
-  const triggered = !free && t > 0 ? (Object.fromEntries(COLORS.map((c, k) => [c, !!(t & (1 << k))])) as Record<Feature, boolean>) : null;
-  return { free, bet: d.b!, stops: d.s, strips, mystery, coins, jackpotCoins, jackpotWins, triggered };
+  const coins: CoinEvent[] = free ? [] : (Array.isArray(d.c) ? d.c : []).filter(cell).filter((c) => COLORS[c[2]] && RESULTS[c[3]]).slice(0, 15).map((c) => ({ reel: c[0], row: c[1], color: COLORS[c[2]] as CoinColor, result: RESULTS[c[3]] }));
+  const jackpotCoins = (Array.isArray(d.j) ? d.j : []).filter(cell).filter((c) => Number.isInteger(c[2]) && c[2] >= 0 && c[2] < JACKPOT_NAMES.length).slice(0, 15).map((c) => ({ reel: c[0], row: c[1], jackpot: c[2] }));
+  const jackpotWins = (Array.isArray(d.w) ? d.w : []).filter((w) => Array.isArray(w) && Number.isInteger(w[0]) && w[0] >= 0 && w[0] < JACKPOT_NAMES.length && okAmount(w[1])).slice(0, 5).map((w) => ({ jackpot: w[0], amount: w[1] }));
+  const p = Array.isArray(d.p) ? d.p : [];
+  const pots = Object.fromEntries(COLORS.map((c, k) => [c, level(p[k])])) as Record<CoinColor, number>;
+  const k = Array.isArray(d.k) && Number.isInteger(d.k[0]) && Number.isInteger(d.k[1]) && d.k[0] >= 0 && d.k[1] > 0 && d.k[1] <= 99 && d.k[0] <= d.k[1] ? ([d.k[0], d.k[1]] as [number, number]) : null;
+  return { free, bet: d.b!, stops: d.s, strips, coins, jackpotCoins, jackpotWins, mods, pots, games: free ? k : null };
 }
