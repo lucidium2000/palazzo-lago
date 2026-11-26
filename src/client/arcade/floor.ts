@@ -41,6 +41,10 @@ export interface FloorEnv {
   haptic(side: 'left' | 'right', strength: number, ms: number): void;
   /** Your name (shown to friends). */
   name(): string;
+  /** Screens: step up to a floor game's spot (as walking up to it does). */
+  sit?(game: string, spot: number): void;
+  /** A light quality tier (Quest 2, phones): games run their screens at lower rates. */
+  light?: boolean;
 }
 
 export interface FloorFrame {
@@ -49,7 +53,7 @@ export interface FloorFrame {
   feet: THREE.Vector3;
   inXR: boolean;
   /** This game's desk station is yours right now: the pad and which spot (viewpoint index). */
-  desk: { pad: RawPad; spot: number } | null;
+  desk: { pad: RawPad; spot: number; touch?: RawPad } | null;
   /** Metres from you to the game. */
   dist: number;
 }
@@ -68,6 +72,8 @@ export interface FloorGame {
   receive(from: ArcadeFriend, d: Record<string, unknown>): void;
   /** You stepped away from its desk spot. */
   leaveDesk?(): void;
+  /** You left the arcade's floor (stop everything until update is called again). */
+  sleep?(): void;
 }
 
 /** Sends a floor-game message (all floor games share the `arcF` kind, tagged with their id). */

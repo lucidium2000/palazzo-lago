@@ -60,7 +60,7 @@ export * from './promenadeplan';
 /** A place in the arcade for a game: an upright cabinet's bay, or a floor spot for a bigger game. */
 export interface ArcadeSlot {
   id: string;
-  kind: 'cabinet' | 'floor';
+  kind: 'cabinet' | 'floor' | 'feature';
   /** Centre of the footprint, on the floor (y = 0). */
   pos: THREE.Vector3;
   /** The way the game's front faces, as Object3D.rotation.y (local +z turns to (sin yaw, 0, cos yaw)). */
@@ -1117,7 +1117,7 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
         const p = put(lx, y, lz);
         pb.box(mat, p.x, p.y, p.z, sx, sy, sz, s.yaw);
       };
-      if (s.kind === 'cabinet') {
+      if (s.kind === 'cabinet' || s.kind === 'feature') {
         box(shell, 0, 0.95, -0.05, w - 0.04, 1.9, d - 0.15);
         box(shell, 0, 0.95, d / 2 - 0.12, w - 0.04, 0.12, 0.2);
         box(screen, 0, 1.45, d / 2 - 0.12, w - 0.2, 0.5, 0.02);

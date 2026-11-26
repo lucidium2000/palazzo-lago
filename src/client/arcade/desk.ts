@@ -31,6 +31,8 @@ export interface DeskStation {
   /** What the three buttons do (empty: unused). */
   buttons: [string, string, string];
   help: string;
+  /** Sees every key while you're here first; true takes it (it goes no further, not even to the pad). Leave keys should return false. */
+  onKey?(e: KeyboardEvent, down: boolean): boolean;
 }
 
 export class DeskControls {
@@ -42,7 +44,8 @@ export class DeskControls {
   private has(c: string) {
     return this.keys.has(c) || this.latched.has(c);
   }
-  private touchPad = blankPad();
+  /** The on-screen thumb stick and buttons alone (phones). */
+  readonly touchPad = blankPad();
   private root: HTMLElement | null = null;
   private helpEl: HTMLElement | null = null;
   private btnEls: HTMLButtonElement[] = [];
@@ -63,10 +66,12 @@ export class DeskControls {
     if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
     const c = e.code;
     const game = /^(Arrow(Up|Down|Left|Right)|Key[WASDZXCJKLE]|Space|Enter|NumpadEnter|Shift(Left|Right)|Escape|Backspace)$/.test(c);
-    if (!game) return;
+    const took = this.station.onKey?.(e, down) ?? false;
+    if (!game && !took) return;
     e.preventDefault();
     // Key-ups still reach the rest of the game (so walking keys never stick).
     if (down) e.stopImmediatePropagation();
+    if (!game) return;
     if (down && (c === 'Escape' || c === 'Backspace' || c === 'KeyE') && !e.repeat) {
       this.onLeave?.();
       return;

@@ -68,7 +68,7 @@ export function plane(w: number, h: number, rect: [number, number, number, numbe
 }
 
 /** A slanted plane between two (z, y) points across width w, facing out (+z-ish), lifted `out` along its normal. */
-function slopePlane(w: number, a: [number, number], b: [number, number], rect: [number, number, number, number], out = 0.003, mat?: THREE.Material) {
+export function slopePlane(w: number, a: [number, number], b: [number, number], rect: [number, number, number, number], out = 0.003, mat?: THREE.Material) {
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
   const m = new THREE.Mesh(plane(w, len, rect), mat);
   // Bottom at a, top at b.

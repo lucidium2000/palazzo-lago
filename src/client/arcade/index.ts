@@ -24,11 +24,13 @@ import { Splash } from './games/splash';
 import { Hoops } from './hoops';
 import { Hockey } from './hockey';
 import { Claw } from './claw';
+import { LastMileCabinet } from './lastmile';
 import { bakeStatic } from '../merge';
 
 /**
- * The Palazzo Lago arcade: six upright cabinets with original games and the
- * physical floor games, mounted into whatever room provides the slots.
+ * The Palazzo Lago arcade: six upright cabinets with original games, the
+ * physical floor games and a featured wide cabinet running The Last Mile (a
+ * real web game, see lastmile/), mounted into whatever room provides the slots.
  *
  *   mountArcade(scene, ARCADE_SLOTS, deps) => { update(dt) }
  *
@@ -41,7 +43,8 @@ import { bakeStatic } from '../merge';
 
 export interface ArcadeSlot {
   id: string;
-  kind: 'cabinet' | 'floor';
+  /** 'feature': a wider bay for the featured game (The Last Mile). */
+  kind: 'cabinet' | 'floor' | 'feature';
   pos: THREE.Vector3;
   yaw: number;
   /** Width (across the front) and depth, metres. */
@@ -150,7 +153,7 @@ export class Arcade {
   private awake = true;
   /** The floor games' per-frame info (reused). */
   private ff: FloorFrame = { dt: 0, t: 0, feet: new THREE.Vector3(), inXR: false, desk: null, dist: 0 };
-  private ffDesk: { pad: RawPad; spot: number } = { pad: blankPad(), spot: 0 };
+  private ffDesk: { pad: RawPad; spot: number; touch: RawPad } = { pad: blankPad(), spot: 0, touch: blankPad() };
   /** Every game's id and its fresh table's top score. */
   private tops = new Map<string, number>();
 
@@ -181,6 +184,8 @@ export class Arcade {
 
     const cabSlots = slots.filter((s) => s.kind === 'cabinet');
     const floorSlots = slots.filter((s) => s.kind === 'floor');
+    const featureSlot = slots.find((s) => s.kind === 'feature');
+    const tierName = d.tier ?? d.quality?.name;
     // Fewer bays than games: keep the head-to-head game (friends want it).
     let games = GAMES.slice(0, cabSlots.length);
     if (cabSlots.length < GAMES.length && cabSlots.length > 0) games = [...GAMES.slice(0, cabSlots.length - 1), GAMES[GAMES.length - 1]];
@@ -253,6 +258,11 @@ export class Arcade {
       submit: (g, n, s) => this.submit(g, n, s, FLOOR_TOPS[g] ?? 100),
       haptic: (side, s, ms) => this.haptic(side, s, ms),
       name: () => this.name(),
+      sit: (id, spot) => {
+        const g = this.floors.findIndex((f) => f.id === id);
+        if (g >= 0) this.sitAtFloor(g, spot);
+      },
+      light: tierName === 'quest2' || tierName === 'mobile',
     };
     // Each floor game to the slot laid out for it (by id or hint), else by size: hoops wants the longest lane.
     const makers: { id: string; match: RegExp; make: (s: ArcadeSlot) => FloorGame }[] = [
@@ -273,6 +283,8 @@ export class Arcade {
       this.floors.push(g);
       this.tops.set(g.id, FLOOR_TOPS[g.id] ?? 100);
     });
+    // The featured bay: The Last Mile (a real web game on a wide cabinet; free to play).
+    if (featureSlot) this.floors.push(new LastMileCabinet(env, featureSlot));
 
     paintSwatches(ag);
     tex.needsUpdate = true;
@@ -606,6 +618,7 @@ export class Arcade {
           if (this.owner[c] === 'me') this.cabinets[c].machine.abandon();
           this.cabinets[c].sound.music(null);
         }
+        for (const f of this.floors) f.sleep?.();
       }
       this.sendScreens(dt);
       return;
@@ -699,6 +712,7 @@ export class Arcade {
       if (this.floorAt?.game === g) {
         this.ffDesk.pad = this.desk.poll();
         this.ffDesk.spot = this.floorAt.spot;
+        this.ffDesk.touch = this.desk.touchPad;
         ff.desk = this.ffDesk;
       } else ff.desk = null;
       fg.update(ff);
