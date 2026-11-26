@@ -602,6 +602,7 @@ async function main() {
       [58, -34],
     ],
     dancers: areas.dancers,
+    performers: areas.performers,
     where: (p) => areas.where(p),
     toast: (t) => hud.toast(t, 'info'),
     hands,

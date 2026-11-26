@@ -11,6 +11,7 @@ import { DESK_MOVES, Dancer, MOVE_NAMES, type Move } from './dance';
 import { PartyLights, type PoolLights } from './lights';
 import { DeckAudio } from './deckaudio';
 import { Decks } from './decks';
+import type { Performers } from './performers';
 import { BobDetector } from './rhythm';
 import { renderHeadlinerTrack, renderScratchRecord } from './song';
 import { HEADLINER, Stage } from './stage';
@@ -47,6 +48,8 @@ export interface PartyDeps {
   /** VR hands (scratching the records) and the pointer/touch system (the decks' click target). */
   hands?: Hands;
   interaction?: Interaction;
+  /** The DJ and the headliner (added to the crowd early, with the pool's guests). */
+  performers?: Performers;
   /** Screen: walk you up to the decks. */
   travel?: (v: Viewpoint) => void;
 }
@@ -89,14 +92,14 @@ export class Party {
 
   constructor(private d: PartyDeps) {
     this.lights = new PartyLights(d.scene, d.dj, d.lights, d.poles);
-    this.decks = new Decks({ scene: d.scene, camera: d.camera, renderer: d.renderer, crowd: d.crowd, dj: d.dj, hands: d.hands, interaction: d.interaction, travel: d.travel });
+    this.decks = new Decks({ scene: d.scene, camera: d.camera, renderer: d.renderer, crowd: d.crowd, dj: d.dj, person: d.performers?.dj, hands: d.hands, interaction: d.interaction, travel: d.travel });
     this.decks.onTouch = (by) => {
       for (const { handedness, gamepad } of d.interaction?.gamepads() ?? []) {
         if (handedness !== by) continue;
         (gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(0.45, 30);
       }
     };
-    this.stage = new Stage({ scene: d.scene, crowd: d.crowd, sound: d.sound, dancers: d.dancers, djYaw: Math.PI });
+    this.stage = new Stage({ scene: d.scene, crowd: d.crowd, sound: d.sound, dancers: d.dancers, person: d.performers?.singer, djYaw: Math.PI });
     for (const [k, p] of d.dancers.entries()) {
       const dancer = new Dancer(p.seed + k * 7.1);
       this.guests.set(p, dancer);

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Sound } from '../audio';
 import type { Interaction } from '../interaction';
 import type { Crowd, Person } from '../people';
+import type { Performers } from '../party/performers';
 import type { Player, Viewpoint } from '../player';
 import type { Quality } from '../quality';
 import type { World } from '../world';
@@ -90,6 +91,8 @@ export interface Areas {
   pool: PoolArea;
   /** The guests on the dance floor (filled by populate). */
   dancers: Person[];
+  /** The DJ and the headliner (filled by populate, first after the bartender). */
+  performers: Performers;
 }
 
 export function buildAreas(deps: {
@@ -106,6 +109,7 @@ export function buildAreas(deps: {
   buildHotel(scene, q, m);
   const pool = buildPool(scene, q, m);
   const dancers: Person[] = [];
+  const performers: Performers = { dj: null, singer: null };
   buildSuite(scene, q, m);
   // Night mood: the areas' materials carried a lot of self-lighting ("emissive fill") so
   // they read without lamps; the hemisphere fill now does that per zone, so keep only
@@ -161,6 +165,7 @@ export function buildAreas(deps: {
     },
     pool,
     dancers,
+    performers,
     musicLevel(f) {
       if (where(f) !== 'pool') return 0;
       const d = Math.hypot(f.x - 50, f.z + 31);
@@ -170,7 +175,7 @@ export function buildAreas(deps: {
       return where(f) === 'pool' ? 1 : 0;
     },
     populate(crowd) {
-      return populatePool(crowd, pool, dancers);
+      return populatePool(crowd, pool, dancers, performers);
     },
   };
 }

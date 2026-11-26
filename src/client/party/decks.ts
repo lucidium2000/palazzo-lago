@@ -3,10 +3,11 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { Hands } from '../hands';
 import type { Interaction } from '../interaction';
 import { reach } from '../net/embody';
-import type { Crowd, Look, Person } from '../people';
+import type { Crowd, Person } from '../people';
 import type { Viewpoint } from '../player';
 import type { Beat } from './beat';
 import { Dancer } from './dance';
+import { DJ_SPOT, LOOK_DJ } from './performers';
 import { Platter, type DeckParams } from './scratch';
 
 /**
@@ -34,23 +35,6 @@ export const RECORD_R = 0.152;
 /** Where the DJ (and you) stand behind the decks, and where he steps aside to. */
 export const BOOTH_Y = 0.6;
 
-const LOOK_DJ: Look = {
-  kind: 'male_casual_2',
-  dress: false,
-  main: 0x15151a,
-  second: 0x15151a,
-  bottom: 0x23252c,
-  topSurf: 'cotton',
-  bottomSurf: 'denim',
-  shoes: 0xf0eee8,
-  shoeSurf: 'cotton',
-  skin: 0x8a5a3c,
-  hair: 0x141010,
-  hairStyle: 'short',
-  height: 1.8,
-  jewel: 0xc9c9cf,
-  glint: true,
-};
 
 export interface DecksDeps {
   scene: THREE.Scene;
@@ -58,6 +42,8 @@ export interface DecksDeps {
   renderer: THREE.WebGLRenderer;
   crowd: Crowd;
   dj: { x: number; z: number };
+  /** The resident DJ, if the pool's crowd already has him (else he's added here). */
+  person?: Person | null;
   hands?: Hands;
   interaction?: Interaction;
   /** Screen: take you to the decks (clicked from across the deck). */
@@ -112,7 +98,7 @@ export class Decks {
   constructor(private d: DecksDeps) {
     const cx = d.dj.x,
       cz = d.dj.z + 0.5;
-    this.spot = new THREE.Vector3(cx, BOOTH_Y, d.dj.z - 0.13);
+    this.spot = DJ_SPOT.clone();
     this.aside = new THREE.Vector3(cx - 1.65, BOOTH_Y, d.dj.z - 1.05);
     // Facing the crowd (+z), your left hand is +x: the set's deck there, the battle record on the right.
     this.a = { platter: new Platter(), spindle: new THREE.Vector3(cx + 0.65, RECORD_Y, cz), by: null };
@@ -139,7 +125,7 @@ export class Decks {
     this.placeRecords();
 
     // The resident DJ.
-    this.dj = d.crowd.add('watch', LOOK_DJ, this.spot, 0);
+    this.dj = d.person ?? d.crowd.add('watch', LOOK_DJ, this.spot, 0);
     if (this.dj) {
       const p = this.dj;
       p.curious = false;

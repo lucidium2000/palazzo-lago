@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import type { Sound } from '../audio';
-import type { Crowd, Look, Person } from '../people';
+import type { Crowd, Person } from '../people';
 import { STAGE } from '../areas/pool';
 import { PARTY, type Beat } from './beat';
 import { Dancer, type Move } from './dance';
 import { armTo } from './decks';
+import { HEADLINER, LOOK_HEADLINER, SINGER_BACK } from './performers';
 import { singingAt } from './song';
+
+export { HEADLINER };
 
 /**
  * The headliner on the pool stage (the riser west of the DJ booth): ORLO
@@ -26,32 +29,6 @@ import { singingAt } from './song';
  * Four draws (marquee, beams, mic, and him); the stage itself is static (pool.ts).
  */
 
-export const HEADLINER = {
-  name: 'ORLO VANTE',
-  tagline: 'LIVE ON THE POOL STAGE · TONIGHT',
-};
-
-/** An original look: a teal sequin jacket over a black silk shirt, cream trousers, white patent shoes, a gold chain. */
-export const LOOK_HEADLINER: Look = {
-  kind: 'male_suit',
-  dress: false,
-  main: 0x1c8c92,
-  topSurf: 'sequin',
-  second: 0x0e0e12,
-  shirtSurf: 'silk',
-  accent: 0x0e0e12,
-  accentSurf: 'silk',
-  bottom: 0xe8dfca,
-  bottomSurf: 'wool',
-  shoes: 0xf4f2ee,
-  shoeSurf: 'patent',
-  skin: 0xb07850,
-  hair: 0x16100c,
-  hairStyle: 'short',
-  height: 1.84,
-  jewel: 0xd8b24a,
-  glint: true,
-};
 
 export interface StageDeps {
   scene: THREE.Scene;
@@ -59,12 +36,14 @@ export interface StageDeps {
   sound: Sound;
   /** The guests dancing in front of the booth and the stage (they turn to face him). */
   dancers: Person[];
+  /** Him, if the pool's crowd already has him (else he's added here). */
+  person?: Person | null;
   /** Which way the dancers face when he's off (toward the DJ). */
   djYaw: number;
 }
 
 const SING = new THREE.Vector3(STAGE.spot.x, STAGE.y, STAGE.spot.z);
-const BACK = new THREE.Vector3(STAGE.x0 + 0.9, STAGE.y, STAGE.z0 + 0.65);
+const BACK = SINGER_BACK;
 /** The mic on its stand (pointing up at his mouth). */
 const MIC_ON_STAND = new THREE.Vector3(STAGE.mic.x, STAGE.y + 1.52, STAGE.mic.z - 0.07);
 const MIC_AIM = new THREE.Vector3(STAGE.spot.x, STAGE.y + 1.68, STAGE.spot.z + 0.12);
@@ -132,7 +111,7 @@ export class Stage {
     this.root.add(this.mic);
 
     // Him: waiting at the back of the stage until his set.
-    this.singer = d.crowd.add('watch', LOOK_HEADLINER, BACK, Math.PI / 2);
+    this.singer = d.person ?? d.crowd.add('watch', LOOK_HEADLINER, BACK, Math.PI / 2);
     if (this.singer) {
       const p = this.singer;
       p.curious = false;

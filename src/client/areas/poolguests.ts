@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Crowd, Person } from '../people';
 import { poolLook, randomLook, staffLook } from '../people';
 import { DECK, poolFloor, WATER_Y, type PoolArea } from './pool';
+import { addPerformers, type Performers } from '../party/performers';
 
 const onDeck = (x: number, z: number) => x > DECK.x0 && x < DECK.x1 && z > DECK.z0 && z < DECK.z1;
 
@@ -13,13 +14,19 @@ const onDeck = (x: number, z: number) => x > DECK.x0 && x < DECK.x1 && z > DECK.
  * beachwear. Added before the floor's wanderers, most visible first, so a
  * smaller crowd (Quest, phones) keeps the best of it.
  */
-export function populatePool(crowd: Crowd, pool: PoolArea, dancers: Person[] = []): Person[] {
+export function populatePool(crowd: Crowd, pool: PoolArea, dancers: Person[] = [], performers?: Performers): Person[] {
   const people: Person[] = [];
   const keep = (p: Person | null) => {
     if (p) people.push(p);
     return p;
   };
   keep(crowd.add('bartender', staffLook('bar'), pool.bartender.pos, pool.bartender.yaw));
+  // The DJ and the headliner (party/), before the guests fill the crowd.
+  if (performers) {
+    addPerformers(crowd, performers);
+    keep(performers.dj);
+    keep(performers.singer);
+  }
 
   // Waist-deep in the shallow end, chatting.
   const waders: Person[] = [];
