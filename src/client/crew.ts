@@ -130,6 +130,30 @@ export class Crew {
   /** (The crew used to follow you everywhere; now they stay where they hang out.) */
   regroup() {}
 
+  /**
+   * You rode an elevator from the car at `from` to the one at `to` (door
+   * lines; cabs extend +x, landings lie -x). Your crew rode with you:
+   * they've stepped out ahead and wait in a loose group in front of the
+   * doors, facing them, and hang out there from now on.
+   */
+  rideAlong(_from: THREE.Vector3, to: THREE.Vector3) {
+    const along = this.buddies;
+    if (!along.length) return;
+    const c = new THREE.Vector3(to.x - 1.7, 0, to.z);
+    const free = this.world.settle(c.x, c.z, 0.6, true);
+    if (free) c.set(free[0], 0, free[1]);
+    this.spot.copy(c);
+    along.forEach((b, i) => {
+      // An arc facing the doors, leaving the doorway itself clear.
+      const a = ((i - (along.length - 1) / 2) * Math.PI) / 3.2;
+      const at = new THREE.Vector3(c.x - Math.cos(a) * 0.3, 0, c.z + Math.sin(a) * 1.1);
+      const f = this.world.settle(at.x, at.z, 0.3, true);
+      if (f) at.set(f[0], 0, f[1]);
+      b.person.pos.copy(at);
+      b.person.yaw = Math.atan2(to.x - at.x, to.z - at.z);
+    });
+  }
+
   /** Something happened: maybe one of the boys says something. */
   react(moment: CrewMoment, opts: { chance?: number; force?: boolean; cheer?: boolean } = {}) {
     if (opts.cheer || moment === 'bigwin' || moment === 'streak' || moment === 'round' || moment === 'legend' || moment === 'finale') {
