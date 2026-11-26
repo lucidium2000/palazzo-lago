@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Anger, FIGHT_AT, temperament } from '../src/client/fight/anger';
 import { Health, REGEN_AFTER, damage } from '../src/client/fight/health';
-import { Brawl, T, WALKED_AWAY, type BrawlEvent, type BrawlInput } from '../src/client/fight/brawl';
+import { Brawl, STAGGER_BACK, T, WALKED_AWAY, type BrawlEvent, type BrawlInput, type PoseOut } from '../src/client/fight/brawl';
 
 const seq = (...v: number[]) => {
   let i = 0;
@@ -181,20 +181,82 @@ describe('brawl', () => {
     for (let i = 0; i < 40 && !ko; i++) ko = b.hit({ zone: 'head', power: 1 }, seq(0.99)).ko;
     expect(ko).toBe(true);
     expect(b.phase).toBe('ko');
-    const pose = {
-      guard: 0,
-      block: 0,
-      windup: 0,
-      punch: 0,
-      down: 0,
-      wobble: 0,
-    };
+    const pose: PoseOut = { guard: 0, block: 0, act: 'none', actT: 0, body: false, down: 0, wobble: 0 };
+    expect(b.pose(pose).act).toBe('ko');
     run(b, T.fall + 0.1);
     expect(b.pose(pose).down).toBeGreaterThan(0.9);
-    const ev = run(b, T.lie + T.getup + 0.2);
+    // Lying there, then the get-up clip runs on the fight's clock.
+    const ev = run(b, T.lie);
+    expect(b.pose(pose).act).toBe('getup');
+    expect(pose.actT).toBeLessThan(0.3);
+    ev.push(...run(b, T.getup + 0.2));
     expect(ev).toContain('getup');
     expect(b.phase).toBe('leave');
     expect(b.pose(pose).wobble).toBeGreaterThan(0);
+    expect(pose.act).toBe('none');
+  });
+
+  it('throws jabs, crosses and hooks on one clock: wind-up, strike, recovery', () => {
+    const b = new Brawl(temperament('vinnie'));
+    run(b, T.square + 0.05);
+    const seen = new Set<string>();
+    const pose: PoseOut = { guard: 0, block: 0, act: 'none', actT: 0, body: false, down: 0, wobble: 0 };
+    let r = 0;
+    const rnd = () => ((r = (r * 9301 + 49297) % 233280), r / 233280);
+    for (let i = 0; i < 60 * 40; i++) {
+      const e = b.update({ dt: 1 / 60, dist: 0.9, passive: false, rnd });
+      b.pose(pose);
+      if (e === 'impact') {
+        seen.add(b.move);
+        // The punch lands at the end of the strike (the clip's impact frame).
+        expect(pose.actT).toBeCloseTo(T.windup + T.strike, 1);
+        expect(b.move === 'cross' ? b.side : 0).toBe(b.move === 'cross' ? 1 : 0);
+      }
+      if (b.phase === 'windup') expect(pose.act).toBe(b.move);
+    }
+    expect([...seen].sort()).toEqual(['cross', 'hook', 'jab']);
+  });
+
+  it('circles and keeps its distance between punches', () => {
+    const b = new Brawl(temperament('sal'));
+    run(b, T.square + 0.05, { dist: 0.9 });
+    let strafe = 0;
+    for (let i = 0; i < 300; i++) {
+      b.update({ dt: 1 / 60, dist: 0.9, passive: false, rnd: () => 0.9 });
+      if (b.phase === 'guard') strafe = Math.max(strafe, Math.abs(b.strafe));
+    }
+    expect(strafe).toBeGreaterThan(0.2);
+    // Crowded: they step back out.
+    b.show('guard');
+    b.update({ dt: 1 / 60, dist: 0.6, passive: false, rnd: () => 0.9 });
+    expect(b.advance).toBeLessThan(0);
+  });
+
+  it('gets its gloves up when it sees your punch coming (and that block holds)', () => {
+    const b = new Brawl(temperament('rosa'));
+    run(b, 1.5);
+    const pose: PoseOut = { guard: 0, block: 0, act: 'none', actT: 0, body: false, down: 0, wobble: 0 };
+    expect(b.threat(() => 0.01)).toBe(true);
+    expect(b.pose(pose).block).toBeGreaterThan(0.9);
+    expect(b.hit({ zone: 'head', power: 0.6 }, () => 0.99).blocked).toBe(true);
+    const c = new Brawl(temperament('rosa'));
+    run(c, 1.5);
+    expect(c.threat(() => 0.99)).toBe(false);
+    expect(c.hit({ zone: 'head', power: 0.6 }, () => 0.01).blocked).toBe(false);
+  });
+
+  it('a stagger stumbles back as far as the clip steps', () => {
+    const b = new Brawl(temperament('marcus'));
+    run(b, 1.5);
+    b.hit({ zone: 'head', power: 0.9 }, () => 0.99);
+    expect(b.phase).toBe('stagger');
+    let back = 0;
+    const dt = 1 / 240;
+    for (let t = 0; t < T.stagger - 0.01; t += dt) {
+      b.update({ dt, dist: 1, passive: false, rnd: () => 0.5 });
+      back -= b.advance * dt;
+    }
+    expect(back).toBeCloseTo(STAGGER_BACK.d, 2);
   });
 
   it('a talker never throws and runs once you hit back', () => {

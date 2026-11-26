@@ -166,12 +166,17 @@ class Assets {
     const loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
     const kinds = ['male_suit', 'male_casual_2', 'male_beach', 'female_formal', 'female_suit', 'female_casual'];
-    const [animGltf, ...gltfs] = await Promise.all([
+    const [animGltf, fightGltf, ...gltfs] = await Promise.all([
       binaryUrl('people/anims.glb').then((u) => loader.loadAsync(u)),
+      // Boxing (scripts/build-fight-anims.mjs): only made into actions on someone who fights.
+      binaryUrl('people/fight.glb')
+        .then((u) => loader.loadAsync(u))
+        .catch(() => null),
       ...kinds.map((k) => binaryUrl(`people/${k}.glb`).then((u) => loader.loadAsync(u))),
     ]);
     const clips = new Map<string, THREE.AnimationClip>();
     for (const c of animGltf.animations) clips.set(c.name, c);
+    for (const c of fightGltf?.animations ?? []) clips.set(c.name, c);
     const mat = peopleMaterial();
     const models = new Map<string, THREE.Object3D>();
     kinds.forEach((k, i) => models.set(k, mergeCharacter(gltfs[i].scene, mat)));
@@ -247,7 +252,8 @@ export function spawnCharacter(lib: PeopleLib, kind: string, paint?: Paint) {
   if (paint && body) paintCharacter(body, paint);
   const mixer = new THREE.AnimationMixer(root);
   const actions: Record<string, THREE.AnimationAction> = {};
-  for (const [name, clip] of lib.clips) actions[name] = mixer.clipAction(clip);
+  // (The fight clips are added when someone squares up: see fightanim.ts.)
+  for (const [name, clip] of lib.clips) if (!name.startsWith('Box_')) actions[name] = mixer.clipAction(clip);
   return { root, mesh: body, bones, mixer, actions };
 }
 
