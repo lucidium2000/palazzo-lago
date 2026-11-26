@@ -1812,7 +1812,6 @@ async function main() {
   // shown), so the game holds: behind the menu the last frame stays up; in the game a quiet dark
   // room with a line of text (head-tracked, so VR stays comfortable).
   let lightingBusy = false;
-  let lightTheRest: (() => Promise<void>) | null = null;
   const holdScene = new THREE.Scene();
   holdScene.background = new THREE.Color(0x0b0806);
   const holdCanvas = document.createElement('canvas');
@@ -1842,40 +1841,27 @@ async function main() {
     holdPanel.lookAt(p.x, holdPanel.position.y, p.z);
     renderer.render(holdScene, camera);
   };
+  holdText('Lighting the rooms…');
   // Each area's own reflections, captured once behind the loading screen (people and your body hidden).
   {
     const AREA_NAMES: Record<string, string> = { casino: 'the casino floor', hotel: 'the hotel lobby', terrace: 'the terrace and fountains', pool: 'the pool deck', suite: 'the suite', promenade: 'the Promenade' };
-    // Only where you start, here; the other areas are lit in the background right after (lightTheRest).
+    // Every area is lit here, behind the loading screen (where you start first), with the bar
+    // showing each one: nothing is left to do after you go in.
     const startZone = envZoneAt(player.feet());
-    loadProgress(0.55, `Step 3 of 3 · Lighting ${AREA_NAMES[startZone] ?? startZone}`);
-    try {
-      const ms = await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root], startZone);
-      console.info(`reflections (${startZone}) captured in ${Math.round(ms)} ms`);
-    } catch (e) {
-      // Keep the generic HDRI reflections rather than fail to open.
-      console.warn('reflection capture failed', e);
-    }
-    const restZones = (['casino', 'hotel', 'terrace', 'pool', 'suite', 'promenade'] as EnvZone[]).filter((z) => z !== startZone);
-    lightTheRest = async () => {
-      const t0 = performance.now();
-      for (const [i, zone] of restZones.entries()) {
-        holdText(`Lighting ${AREA_NAMES[zone] ?? zone}… (${i + 1} of ${restZones.length})`);
-        lightingBusy = true;
-        try {
-          await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root], zone);
-        } catch (e) {
-          console.warn('reflection capture failed', zone, e);
-        } finally {
-          lightingBusy = false;
-          zoneCulling(player.feet());
-        }
-        // Give the game a few frames between areas.
-        await new Promise((r) => setTimeout(r, 120));
+    const zones = [startZone, ...(['casino', 'hotel', 'terrace', 'pool', 'suite', 'promenade'] as EnvZone[]).filter((z) => z !== startZone)];
+    const t0 = performance.now();
+    for (const [i, zone] of zones.entries()) {
+      loadProgress(0.55 + (0.45 * i) / zones.length, `Step 3 of 3 · Lighting ${AREA_NAMES[zone] ?? zone} (${i + 1} of ${zones.length})`);
+      try {
+        await casino.captureReflections(zoneCulling, [crowd.group, player.rig, selfBody.root], zone);
+      } catch (e) {
+        // Keep the generic HDRI reflections rather than fail to open.
+        console.warn('reflection capture failed', zone, e);
       }
-      const ms = performance.now() - t0;
-      (window as unknown as { __envCaptureMs: number }).__envCaptureMs = Math.round(ms);
-      console.info(`other areas lit in the background in ${Math.round(ms)} ms`);
-    };
+    }
+    const ms = performance.now() - t0;
+    (window as unknown as { __envCaptureMs: number }).__envCaptureMs = Math.round(ms);
+    console.info(`reflections captured in ${Math.round(ms)} ms`);
     zoneCulling(player.feet());
     loadProgress(1, 'Ready');
     clearInterval(tipTimer);
@@ -2155,7 +2141,6 @@ async function main() {
     post.render(scene, camera);
     if (first) {
       first = false;
-      if (lightTheRest) setTimeout(() => void lightTheRest?.(), 0);
       document.getElementById('loading')!.classList.add('done');
       // The casino's music is fetched first, once the loading screen is done (the party's waits for you to head out).
       void sound.preloadMusic().catch(() => {});
