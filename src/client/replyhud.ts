@@ -123,7 +123,7 @@ const ROW_H = 92;
 const GAP = 10;
 const H = 3 * ROW_H + 2 * GAP + 8;
 /** Strip width in metres, distance from the eyes, and how far below centre. */
-const WIDTH_M = 0.6;
+const WIDTH_M = 0.78; // text about 1.4° tall: easy to read in a headset
 const DIST = 1.1;
 const BELOW = THREE.MathUtils.degToRad(27);
 
