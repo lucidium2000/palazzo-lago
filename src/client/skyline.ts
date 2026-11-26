@@ -22,8 +22,12 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 export interface CityOptions {
   /** World height of the city's ground. */
   ground: number;
-  /** 'lake': the Strip across the lake north of the casino; 'ring': all round a high-rise suite. */
-  layout: 'lake' | 'ring';
+  /**
+   * 'lake': the Strip across the lake north of the casino; 'ring': all round a high-rise suite;
+   * 'strip': at street level on the Strip (the front entrance): the hotel's tower rising behind,
+   * resorts and their neon across the boulevard, the city further out all round.
+   */
+  layout: 'lake' | 'ring' | 'strip';
   center: THREE.Vector2;
   seed: number;
   /** Haze distances (m) from the viewer. */
@@ -393,6 +397,58 @@ export function buildCity(o: CityOptions): City {
       const x = 84 + rnd() * 60,
         z = -6 + rnd() * 70;
       tower(x, z, 14 + rnd() * 20, 14 + rnd() * 20, 8 + rnd() * 18, 0, tileFor(Math.floor(rnd() * 4)), false);
+    }
+  } else if (o.layout === 'strip') {
+    // Street level. North (−z): the hotel's own tower over its podium; south (+z), across the
+    // boulevard (which the entrance builds itself, up to z + 56), the resorts lining it.
+    const R = 360;
+    flat(cx - R, cx + R, cz + 56, cz + R);
+    flat(cx - R, cx + R, cz - R, cz - 34);
+    flat(cx - R, cx - 150, cz - 34, cz + 56);
+    flat(cx + 150, cx + R, cz - 34, cz + 56);
+    // The cross streets running away from the boulevard, and a parallel avenue far behind.
+    boulevard(false, cx - 230, cz + 70, cz + R);
+    boulevard(false, cx + 210, cz + 70, cz + R);
+    boulevard(true, cz + 260, cx - R, cx + R);
+    // The hotel: a broad curving slab in three stepped wings behind the entrance, warm room lights.
+    tower(cx, cz - 52, 92, 26, 118, 0, 0 * 4 + 1, true);
+    tower(cx - 58, cz - 44, 40, 24, 96, -0.35, 0 * 4 + 2, false);
+    tower(cx + 58, cz - 44, 40, 24, 96, 0.35, 0 * 4 + 0, false);
+    const lm = placeLandmarks(G, rnd, landmarks, [
+      ['needle', cx - 170, cz + 300],
+      ['crescents', cx + 40, cz + 190],
+      ['sail', cx + 200, cz + 150],
+      ['wheel', cx - 120, cz + 150],
+      ['dome', cx - 260, cz - 120],
+      ['deco', cx + 250, cz - 150],
+    ], 0.8);
+    const keep: [number, number, number][] = [...lm, [cx, cz - 48, 80]];
+    // Resorts across the boulevard: big neon-crowned towers set back behind their own forecourts.
+    for (let x = cx - 220; x < cx + 220; x += 34 + rnd() * 26) {
+      const z = cz + 78 + rnd() * 26;
+      if (!free(x, z, keep) || Math.abs(x - (cx - 230)) < 22 || Math.abs(x - (cx + 210)) < 22) continue;
+      const h = 34 + rnd() * 90;
+      if (rnd() < 0.25) yTower(x, z + 12, h, rnd() * Math.PI, tileFor(2));
+      else tower(x, z, 22 + rnd() * 26, 18 + rnd() * 20, h, 0, tileFor(rnd() < 0.5 ? 2 : 0), rnd() < 0.8);
+      // Low casino podiums along the street, lit (neon trim).
+      tower(x + 8, cz + 64, 28 + rnd() * 12, 10, 8 + rnd() * 6, 0, tileFor(3), true);
+    }
+    // Neighbouring towers along this side of the boulevard, beyond the hotel's grounds.
+    for (const side of [-1, 1])
+      for (let x = cx + side * 165; Math.abs(x - cx) < R - 20; x += side * (30 + rnd() * 30)) {
+        const z = cz - 10 - rnd() * 30;
+        if (!free(x, z, keep)) continue;
+        tower(x, z, 20 + rnd() * 26, 18 + rnd() * 22, 30 + rnd() * 90, 0, tileFor(Math.floor(rnd() * 4)), rnd() < 0.5);
+      }
+    // The city further out, all round.
+    for (let k = 0; k < 340; k++) {
+      const a = rnd() * Math.PI * 2,
+        r = 150 + Math.sqrt(rnd()) * (R - 170);
+      const x = cx + Math.cos(a) * r,
+        z = cz + Math.sin(a) * r;
+      if (!free(x, z, keep) || (z > cz - 34 && z < cz + 70) || Math.abs(x - (cx - 230)) < 20 || Math.abs(x - (cx + 210)) < 20 || Math.abs(z - (cz + 260)) < 20) continue;
+      const tall = rnd() < 0.2;
+      tower(x, z, 14 + rnd() * 26, 14 + rnd() * 26, tall ? 80 + rnd() * 120 : 12 + rnd() * rnd() * 70, 0, tileFor(Math.floor(rnd() * 4)), tall ? rnd() < 0.5 : rnd() < 0.1);
     }
   } else {
     // From the 32nd floor: the city all round, down below and rising past the windows.

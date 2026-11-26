@@ -139,7 +139,7 @@ describe('late joiners', () => {
 
 describe('the floor panel in the cab', () => {
   it('has fingertip-sized buttons (4 cm+) with at least 1 cm between them', () => {
-    expect(PANEL_ROWS).toEqual(['suite', 'promenade', 'pool', 'casino', 'open']);
+    expect(PANEL_ROWS).toEqual(['suite', 'promenade', 'pool', 'casino', 'entrance', 'open']);
     expect(PANEL.button).toBeGreaterThanOrEqual(0.04);
     expect(panelRowH() - PANEL.button).toBeGreaterThanOrEqual(0.01);
     // The whole row is pressable bar the dead strip: the pressable band is at least the button.

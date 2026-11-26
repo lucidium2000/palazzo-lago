@@ -658,7 +658,7 @@ function loungerGeometry(): THREE.BufferGeometry {
   return mergeGeos(parts);
 }
 
-function palmGeometry() {
+export function palmGeometry() {
   const pts: THREE.Vector3[] = [];
   for (let i = 0; i <= 8; i++) {
     const t = i / 8;

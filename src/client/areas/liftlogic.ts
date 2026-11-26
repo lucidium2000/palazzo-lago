@@ -6,7 +6,7 @@
  * friend who walks in late gets.
  */
 
-export type LandingId = 'casino' | 'pool' | 'promenade' | 'suite';
+export type LandingId = 'casino' | 'pool' | 'promenade' | 'suite' | 'entrance';
 
 export const LANDINGS: Record<LandingId, { label: string; short: string; floor: number }> = {
   pool: { label: 'Pool Deck', short: 'P', floor: 2 },
@@ -14,9 +14,11 @@ export const LANDINGS: Record<LandingId, { label: string; short: string; floor: 
   /** The mezzanine promenade: food court, the boutique and the arcade. */
   promenade: { label: 'Promenade', short: 'M', floor: 3 },
   suite: { label: 'Suite 3201', short: '32', floor: 32 },
+  /** The ground floor: the main lobby and the front entrance (taxis, rideshare, valet). */
+  entrance: { label: 'Main Entrance', short: 'G', floor: 0 },
 };
 
-export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v === 'pool' || v === 'promenade' || v === 'suite';
+export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v === 'pool' || v === 'promenade' || v === 'suite' || v === 'entrance';
 
 /** Cab interior, from the door line (x) eastwards; half its width (z). */
 export const DEPTH = 2.2;
@@ -24,16 +26,18 @@ export const HALF = 0.95;
 
 /**
  * The floor panel inside the cab (metres): a brass plate on the side wall,
- * centred at shoulder height. Five rows (the four floors, then the doors),
- * each a round button with its name beside it. Sized for a fingertip: 6 cm
- * buttons, 3 cm apart, and a 1 cm strip between rows that presses nothing
- * (a poke that lands between two rows picks neither, never the wrong one).
+ * centred at shoulder height. Six rows (the five floors, top to bottom, then
+ * the doors), each a round button with its name beside it. Sized for a
+ * fingertip: 6 cm buttons, 3 cm apart, and a 1 cm strip between rows that
+ * presses nothing (a poke that lands between two rows picks neither, never
+ * the wrong one).
  */
-export const PANEL_ROWS = ['suite', 'promenade', 'pool', 'casino', 'open'] as const;
+export const PANEL_ROWS = ['suite', 'promenade', 'pool', 'casino', 'entrance', 'open'] as const;
 export type PanelRow = (typeof PANEL_ROWS)[number];
 export const PANEL = {
   w: 0.26,
-  h: 0.58,
+  /** (Taller since the ground floor joined: rows stay 9 cm.) */
+  h: 0.64,
   /** Centre height above the cab floor. */
   y: 1.3,
   /** The name plate at the top, and the margin at the bottom. */
