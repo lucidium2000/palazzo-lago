@@ -224,6 +224,11 @@ export class Drink {
 export class Lounge {
   readonly bar = new THREE.Group();
   readonly piano = new THREE.Group();
+  /** The grand piano's keyboard frame (see piano.ts), its soundboard, the pianist and his music. */
+  readonly keyFrame = new THREE.Object3D();
+  readonly soundboard = new THREE.Object3D();
+  pianist: Person | null = null;
+  pianoLoop: THREE.PositionalAudio | null = null;
   private bartender: Person | null = null;
   private bartenderZ = 9;
   private waiting: Drink | null = null;
@@ -1084,42 +1089,46 @@ export class Lounge {
     hinge.rotation.z = 0.62;
     g.add(hinge);
     (lid.material as THREE.Material).side = THREE.DoubleSide;
-    // Keyboard.
-    const kc = document.createElement('canvas');
-    kc.width = 1024;
-    kc.height = 64;
-    const kx = kc.getContext('2d')!;
-    kx.fillStyle = '#f6f2e6';
-    kx.fillRect(0, 0, 1024, 64);
-    const whites = 52;
-    for (let i = 0; i < whites; i++) {
-      kx.fillStyle = '#9a9488';
-      kx.fillRect((i * 1024) / whites, 0, 1.5, 64);
-      const n = i % 7;
-      if (n !== 2 && n !== 6) {
-        kx.fillStyle = '#0c0c0c';
-        kx.fillRect(((i + 0.68) * 1024) / whites, 0, (1024 / whites) * 0.62, 38);
-      }
+    // Key bed: the keys themselves (88, instanced, playable) are piano.ts's; this is what they sit in.
+    // White key tops at y 0.78, their front edge at z 0.2; cheek blocks either side, a key slip in front.
+    const keyBed = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.04, 0.2), lacquer);
+    keyBed.position.set(0, 0.735, 0.105);
+    g.add(keyBed);
+    for (const side of [-1, 1]) {
+      const cheek = new THREE.Mesh(new RoundedBoxGeometry(0.1, 0.075, 0.24, 2, 0.012), lacquer);
+      cheek.position.set(side * 0.665, 0.765, 0.1);
+      g.add(cheek);
     }
-    const keysTex = new THREE.CanvasTexture(kc);
-    keysTex.colorSpace = THREE.SRGBColorSpace;
-    const keys = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.03, 0.16), lacquer);
-    keys.position.set(0, 0.765, 0.1);
-    g.add(keys);
-    const keyTop = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 0.16).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: keysTex, roughness: 0.3 }));
-    keyTop.position.set(0, 0.781, 0.1);
-    g.add(keyTop);
-    const cheek = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.14, 0.2), lacquer);
-    cheek.position.set(0, 0.72, 0.1);
-    g.add(cheek);
-    const fall = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.14, 0.03), lacquer);
-    fall.position.set(0, 0.9, -0.0);
-    fall.rotation.x = -0.3;
+    const slip = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.03, 0.012), lacquer);
+    slip.position.set(0, 0.752, 0.208);
+    g.add(slip);
+    // Red felt along the back of the keys, and the name board behind it.
+    const velvet = new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.8 });
+    const felt = new THREE.Mesh(new THREE.BoxGeometry(1.23, 0.012, 0.012), velvet);
+    felt.position.set(0, 0.79, 0.046);
+    g.add(felt);
+    const nameBoard = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.07, 0.03), lacquer);
+    nameBoard.position.set(0, 0.8, 0.025);
+    g.add(nameBoard);
+    /** Where the keys go (origin: middle of the white keys' front edge, at their top). */
+    this.keyFrame.position.set(0, 0.78, 0.2);
+    g.add(dynamic(this.keyFrame));
+    // The fallboard, folded back, and the music stand with a page of music on it.
+    const fall = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.12, 0.025), lacquer);
+    fall.position.set(0, 0.86, -0.02);
+    fall.rotation.x = -0.35;
     g.add(fall);
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 0.02), lacquer);
-    stand.position.set(0, 1.08, -0.06);
-    stand.rotation.x = -0.25;
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.3, 0.015), lacquer);
+    stand.position.set(0, 1.07, -0.1);
+    stand.rotation.x = -0.26;
     g.add(stand);
+    const ledge = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.012, 0.035), lacquer);
+    ledge.position.set(0, 0.93, -0.055);
+    g.add(ledge);
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.28), new THREE.MeshStandardMaterial({ map: sheetMusic(), roughness: 0.9 }));
+    sheet.position.set(0, 1.075, -0.088);
+    sheet.rotation.x = -0.26;
+    g.add(sheet);
     for (const [lx, lz] of [[-0.62, -0.1], [0.62, -0.1], [-0.4, -1.7]]) {
       const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.64, 12), lacquer);
       leg.position.set(lx, 0.32, lz);
@@ -1132,7 +1141,7 @@ export class Lounge {
     g.add(lyre);
     const bench = new THREE.Mesh(new RoundedBoxGeometry(0.8, 0.08, 0.36, 2, 0.02), lacquer);
     bench.position.set(0, 0.5, 0.62);
-    const cushion = new THREE.Mesh(new RoundedBoxGeometry(0.78, 0.05, 0.34, 2, 0.02), new THREE.MeshStandardMaterial({ color: 0x3a1015, roughness: 0.8 }));
+    const cushion = new THREE.Mesh(new RoundedBoxGeometry(0.78, 0.05, 0.34, 2, 0.02), velvet);
     cushion.position.set(0, 0.56, 0.62);
     g.add(bench, cushion);
     for (const bx of [-0.35, 0.35]) for (const bz of [0.48, 0.76]) {
@@ -1142,10 +1151,10 @@ export class Lounge {
     }
     // Tip jar on the piano.
     const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.16, 16, 1, true), glassMat);
-    jar.position.set(0.55, 1.06, 0.15);
+    jar.position.set(0.5, 1.03, -0.3);
     g.add(jar);
     const bills = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 12), new THREE.MeshStandardMaterial({ color: 0x5a8a4a }));
-    bills.position.set(0.55, 1.01, 0.15);
+    bills.position.set(0.5, 0.98, -0.3);
     g.add(bills);
     const shadow = new THREE.Mesh(
       new THREE.PlaneGeometry(2.2, 3).rotateX(-Math.PI / 2),
@@ -1160,23 +1169,26 @@ export class Lounge {
     bakeStatic(g);
 
     g.updateMatrixWorld(true);
-    // Collider: the piano body and bench.
+    // Collider: the piano body (its keyboard end stops short of the bench). The bench is a seat:
+    // walk onto it and you sit at the keys (walking guests go round it).
     this.d.world.addLocalBox(g, 0, -0.75, 1.7, 2.3, 'piano');
-    this.d.world.addLocalBox(g, 0, 0.62, 0.9, 0.45, 'piano');
+    this.d.world.addLocalSeat(g, 0, 0.64, 0.3, 0.585, Math.PI, 'piano bench');
 
     // The pianist, and the music: a positional loop you hear across the room.
     const seat = new THREE.Vector3(0, 0, 0.64).applyMatrix4(g.matrixWorld);
     this.d.crowd.add('pianist', staffLook('pianist'), seat, g.rotation.y + Math.PI);
     const pianist = this.d.crowd.people.at(-1);
     if (pianist) pianist.seatY = 0.6;
-    const speaker = new THREE.Object3D();
+    this.pianist = pianist ?? null;
+    const speaker = this.soundboard;
     speaker.position.set(0, 1.0, -0.6);
     g.add(speaker);
-    this.d.sound.ambientAt(() => this.d.sound.pianoLoop(), speaker, { volume: 0.9, ref: 2.2, rolloff: 1.1 });
+    this.pianoLoop = this.d.sound.ambientAt(() => this.d.sound.pianoLoop(), speaker, { volume: 0.9, ref: 2.2, rolloff: 1.1 });
 
     this.d.interaction.register({
       object: tipZone,
       label: 'Tip the pianist $5',
+      enabled: () => !!pianist?.seated,
       onSelect: () => {
         if (!this.d.bankroll.canAfford(5)) return;
         this.d.bankroll.debit(5, 'bet', 'tip');
@@ -1421,4 +1433,42 @@ function isInside(o: THREE.Object3D, root: THREE.Object3D) {
 function round(a: number[], digits: number) {
   const k = 10 ** digits;
   return a.map((v) => Math.round(v * k) / k);
+}
+
+/** A page of piano music for the stand: staves, bar lines and a scatter of notes. */
+function sheetMusic(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 170;
+  const x = c.getContext('2d')!;
+  x.fillStyle = '#f2ead6';
+  x.fillRect(0, 0, 256, 170);
+  x.strokeStyle = '#2a2620';
+  x.fillStyle = '#2a2620';
+  x.lineWidth = 1;
+  let seed = 5;
+  const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let sys = 0; sys < 3; sys++) {
+    for (const st of [0, 1]) {
+      const y0 = 18 + sys * 52 + st * 22;
+      for (let l = 0; l < 5; l++) {
+        x.beginPath();
+        x.moveTo(12, y0 + l * 3.4);
+        x.lineTo(244, y0 + l * 3.4);
+        x.stroke();
+      }
+      for (const bx of [12, 70, 128, 186, 244]) x.fillRect(bx, y0, 1, 13.6);
+      for (let n = 0; n < 14; n++) {
+        const nx = 20 + n * 16 + r() * 4,
+          ny = y0 + Math.floor(r() * 9) * 1.7;
+        x.beginPath();
+        x.ellipse(nx, ny, 2.4, 1.7, -0.4, 0, Math.PI * 2);
+        x.fill();
+        x.fillRect(nx + 1.8, ny - 10, 0.8, 10);
+      }
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }

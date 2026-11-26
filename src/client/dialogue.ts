@@ -469,6 +469,10 @@ export class Dialogue {
     if (crew) {
       id = 'crew_' + crew.name.toLowerCase();
       alt = crew.voice;
+    } else if (p.role === 'pianist') {
+      // The pianist has no lines of his own: the roulette croupier's voice (a man in black tie), minus his table talk.
+      id = 'croupier';
+      alt = STAFF.croupier;
     } else if (p.role === 'bartender' || p.role === 'waiter' || p.role === 'croupier') {
       const v = this.voicesOf(p);
       id = v[0].replace(/^el_/, '');
@@ -478,7 +482,7 @@ export class Dialogue {
       id = ch.id;
       alt = ch.fallback;
     }
-    const set = REACTIONS[id]?.[kind];
+    const set = REACTIONS[id]?.[kind]?.filter((l) => p.role !== 'pianist' || !/wheel|table|play elsewhere/i.test(l));
     if (!set?.length) return 0;
     // Recorded lines only (never the robot voice): until they're in, a gasp or a yelp.
     const said = set.filter((l) => voices.has(elVoice(id), l) || voices.has(alt, l));
@@ -594,6 +598,7 @@ export class Dialogue {
     if (p.role === 'croupier') return 'Dealer';
     if (p.role === 'bartender') return 'Bartender';
     if (p.role === 'waiter') return 'Waiter';
+    if (p.role === 'pianist') return 'Pianist';
     return this.character(p).name;
   }
 

@@ -494,13 +494,20 @@ export class Player {
   }
 
   private applyY(bob = 0) {
-    // VR: the button crouch lowers the whole rig (your real head still moves the view).
-    this.rig.position.y = this.feetY + bob - (this.inXR ? this.crouch.drop : 0);
+    // VR: the button crouch lowers the whole rig (your real head still moves the view), and so
+    // does sitting at the piano (the keys come up to where your hands are, standing or sitting).
+    this.rig.position.y = this.feetY + bob - (this.inXR ? this.crouch.drop + this.seatDrop : 0);
   }
+
+  /**
+   * VR: how far the world comes up to meet you while seated somewhere that needs your hands
+   * at a set height (the piano bench). Set by whoever seats you; 0 otherwise.
+   */
+  seatDrop = 0;
 
   /** The floor under you as the rig sees it (the rig is lowered while you crouch in VR). */
   get floorY() {
-    return this.rig.position.y + (this.inXR ? this.crouch.drop : 0);
+    return this.rig.position.y + (this.inXR ? this.crouch.drop + this.seatDrop : 0);
   }
 
   private updateCrouch(dt: number, allowed: boolean) {

@@ -19,8 +19,8 @@ import { knocksOffSeat, stepUnseat, unseat, UNSEAT, walking, type Unseat } from 
 
 /** People who stay put however you push: seated, behind a counter or a table, at the piano. */
 const ROOTED = new Set(['croupier', 'bartender', 'pianist', 'slots', 'patron']);
-/** Seated guests a hard enough shove knocks off their seat (staff behind counters aren't seated; the pianist plays on). */
-const UNSEATABLE = new Set(['slots', 'patron']);
+/** Seated guests a hard enough shove knocks off their seat (staff behind counters aren't seated), and the pianist off his bench. */
+const UNSEATABLE = new Set(['slots', 'patron', 'pianist']);
 export const movable = (p: Person) => !p.seated && !p.driven && (!ROOTED.has(p.role) || p.offSeat);
 /** Could a hard shove or a punch knock this person off their seat? */
 export const unseatable = (p: Person) => p.seated && !p.driven && !p.keepSeat && !p.offSeat && UNSEATABLE.has(p.role);
@@ -60,6 +60,12 @@ export interface BodiesDeps {
   isFist?(h: Hand): boolean;
   /** You pushed your friend: send it to their game (dx, dz metres). */
   onPushFriend?(p: Person, dx: number, dz: number): void;
+  /** Someone was knocked off their seat here (not from a friend's game): pushed along (ux, uz). */
+  onUnseat?(p: Person, ux: number, uz: number, power: number, punch: boolean): void;
+  /** Someone knocked off their seat sat back down. */
+  onReseat?(p: Person): void;
+  /** Is their seat taken by someone the crowd doesn't know about (you, sitting at a game there)? */
+  seatTaken?(x: number, z: number): boolean;
 }
 
 const SHOVE_T = 0.38;
@@ -314,7 +320,7 @@ export class Bodies {
    * look at you, and later come back to sit down or wander off for a while
    * (see seatshove.ts). `at` is where the hand landed.
    */
-  knockOffSeat(p: Person, ux: number, uz: number, power: number, punch: boolean, at: THREE.Vector3) {
+  knockOffSeat(p: Person, ux: number, uz: number, power: number, punch: boolean, at: THREE.Vector3, opts: { quiet?: boolean } = {}) {
     if (!unseatable(p)) return false;
     const u = unseat(p.pos.x, p.pos.z, p.homeYaw, p.seatY, p.lie);
     this.unseated.set(p, { ...u, onPose: p.onPose, onUpdate: p.onUpdate, dx: ux, dz: uz });
@@ -327,11 +333,13 @@ export class Bodies {
     p.action = 0;
     this.seatStats.unseated++;
     // Clear of the stool, then the shove carries them on.
-    this.shove(p, ux, uz, 0.45 + power * 0.35, punch ? 0.7 : 0.8, this.d.player.feet(), punch);
+    // Quiet: it happened in a friend's game (their machine already said so, and sends the line).
+    this.shove(p, ux, uz, 0.45 + power * 0.35, punch ? 0.7 : 0.8, this.d.player.feet(), punch || !!opts.quiet);
     const s = this.st(p);
     s.cool = Math.max(s.cool, 1);
     p.gaspT = Math.max(p.gaspT, 0.9);
-    if (punch) this.d.onPunch?.(p, power, at.clone());
+    if (punch && !opts.quiet) this.d.onPunch?.(p, power, at.clone());
+    if (!opts.quiet) this.d.onUnseat?.(p, ux, uz, power, punch);
     return true;
   }
 
@@ -346,6 +354,7 @@ export class Bodies {
       }
       const seatFree =
         Math.hypot(feet.x - u.homeX, feet.z - u.homeZ) > 0.55 &&
+        !this.d.seatTaken?.(u.homeX, u.homeZ) &&
         !this.d.crowd.people.some((o) => o !== p && Math.hypot(o.pos.x - u.homeX, o.pos.z - u.homeZ) < 0.3);
       const toGoal = Math.hypot(u.goalX - p.pos.x, u.goalZ - p.pos.z);
       const phase = stepUnseat(u, dt, {
@@ -396,6 +405,7 @@ export class Bodies {
         this.unseated.delete(p);
         this.state.delete(p);
         this.seatStats.reseated++;
+        this.d.onReseat?.(p);
       }
     }
   }

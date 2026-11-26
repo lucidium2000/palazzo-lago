@@ -1034,7 +1034,7 @@ export class Crowd {
     const cheer = p.cheer > 0 ? Math.min(1, p.cheer * 3) : 0;
     const gasp = p.gaspT > 0 ? Math.min(1, p.gaspT * 3) : 0;
     const busy =
-      p.role === 'pianist' || (p.role !== 'slots' && p.action > 0 && p.actionKind !== 'none' && p.actionKind !== 'offer') ? 1 : 0;
+      (p.role === 'pianist' && p.seated) || (p.role !== 'slots' && p.action > 0 && p.actionKind !== 'none' && p.actionKind !== 'offer') ? 1 : 0;
     const over = Math.max(cheer, gasp, busy * 0.9);
     const baseW = 1 - over;
     const w = (name: string, v: number) => a[name]?.setEffectiveWeight(v);
@@ -1418,6 +1418,7 @@ export class Crowd {
           roll = 0.12 * side;
           break;
         case 'pianist':
+          if (!p.seated) break;
           ua = -0.55;
           fa = -0.95;
           roll = 0.18 * side + Math.sin(time * (right ? 9 : 7) + p.seed) * 0.06;

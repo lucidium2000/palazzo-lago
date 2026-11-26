@@ -95,6 +95,7 @@ to force a quality tier.
 | Roulette | Pick a chip (or keys 1–7), click the layout; Space spin, Z undo, C clear, R rebet | Grab chips from your rack (grip) and drop them on the felt, or point and trigger |
 | Slots | − / + bet, SPIN (or click the screen), Info for paytable | Same with the laser; grab and pull the lever on Diamond Sevens |
 | Bar & piano | Click the bar to order (free), click the glass to pick it up, F sip, Q set down; click the tip jar | Point at the bar, grab the glass, raise it to your mouth to sip |
+| Grand piano | Click the pianist to push him off the bench, then sit (E, or walk onto the bench): A S D F G H J K L white keys, W E T Y U O P black, Z / X octave, Space sustain, Shift louder, Esc stand; or click / tap the keys | Shove (or punch) him off, sit on the bench: every fingertip that presses a key plays it, as hard as it came down (hand tracking: all ten; controllers: index and thumb, the whole hand when open); A / X is the sustain pedal |
 
 ## Layout
 
@@ -116,6 +117,9 @@ src/client/     Three.js app
   people.ts     guests and staff: instanced bodies, walk/sit/cheer/deal/pour poses, wandering
   hands.ts      VR controller/hand models and grabbing
   lounge.ts     Bar Lago, drinks, lounge seating, grand piano
+  piano.ts      the playable piano: 88 keys, fingertips / typing / taps, the pianist's bench
+  pianokeys.ts  keyboard layout, hit detection, fingertip strikes, voice allocation (pure)
+  pianotone.ts  synthesized piano notes (pianoworker.ts renders them), pianosynth.ts plays them
   decor.ts      the slot rows played by guests
   crew.ts       your three buddies: following, banter, reactions
   night.ts      tonight's goals, hot streaks, big-win celebrations and confetti

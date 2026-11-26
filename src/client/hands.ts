@@ -33,6 +33,9 @@ export interface Grabbable {
   release?(hand: Hand, pos: THREE.Vector3, carried: THREE.Object3D | null): void;
 }
 
+/** WebXR joint names of the five fingertips, thumb first (the order of a FingerPose). */
+export const TIPS = ['thumb-tip', 'index-finger-tip', 'middle-finger-tip', 'ring-finger-tip', 'pinky-finger-tip'] as const;
+
 export class Hands {
   readonly hands: Hand[] = [];
   private models: THREE.Object3D[] = [];
@@ -73,6 +76,31 @@ export class Hands {
     const ph = this.posed[side];
     if (!ph.visible || !ph.ready) return null;
     return ph.jointWorld('index-finger-tip');
+  }
+
+  /**
+   * All five fingertips (world, thumb first) into `out`, and which are known into `has`.
+   * Returns where they came from: 'hand' (hand tracking: the real joints), 'ctrl' (the hand
+   * posed on a controller from its touch sensors), or null (no hand). No allocation.
+   */
+  fingertips(side: 'left' | 'right', out: THREE.Vector3[], has: boolean[]): 'hand' | 'ctrl' | null {
+    const hs = this.handSpace(side) as (THREE.Object3D & { joints?: Record<string, THREE.Object3D> }) | undefined;
+    const joints = hs?.joints;
+    if (joints?.['wrist']?.visible) {
+      for (let i = 0; i < 5; i++) {
+        const j = joints[TIPS[i]];
+        has[i] = !!j?.visible;
+        if (has[i]) j!.getWorldPosition(out[i]);
+      }
+      return 'hand';
+    }
+    const ph = this.posed[side];
+    if (!ph.visible || !ph.ready) {
+      for (let i = 0; i < 5; i++) has[i] = false;
+      return null;
+    }
+    for (let i = 0; i < 5; i++) has[i] = !!ph.jointWorld(TIPS[i], out[i]);
+    return 'ctrl';
   }
 
   /** The wrist's world pose (for the avatar's forearm, and for your friend's view of you). */
