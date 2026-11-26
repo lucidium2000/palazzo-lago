@@ -7,9 +7,34 @@ import { floorEmit, type FloorEnv, type FloorFrame, type FloorGame } from '../fl
 import { friendNear, type ArcadeFriend, type ArcadeSession } from '../net';
 import type { ArcadeSlot } from '../index';
 import { blankPad, type RawPad } from '../types';
-import { ART, lmSwatch, lmUV, LM_REGION, paintLastMile, paintNowPlaying, paintScreenCard } from './art';
+import { ART, lmSwatch, lmUV, LM_REGION, paintLastMile, paintNowPlaying, paintScreenCard, paintVolumeBadge, paintVolumeOverlay } from './art';
 import { LastMileHost, type HostAudio } from './host';
-import { ACTIVE_FOR, forwardsKey, FrameAssembler, gestureKey, nextQuality, NET_EVERY, NET_H, NET_RANGE, NET_W, PadKeys, parseFrame, plan, splitFrame, Ticker, type KeyStroke, type Plan } from './logic';
+import {
+  ACTIVE_FOR,
+  forwardsKey,
+  FrameAssembler,
+  gestureKey,
+  isSoundKey,
+  loadVolume,
+  nextQuality,
+  nextVolume,
+  NET_EVERY,
+  NET_H,
+  NET_RANGE,
+  NET_W,
+  PadKeys,
+  parseFrame,
+  plan,
+  saveVolume,
+  splitFrame,
+  Ticker,
+  volumeBars,
+  volumeLevel,
+  volumePercent,
+  VOLUME_SHOW,
+  type KeyStroke,
+  type Plan,
+} from './logic';
 
 /**
  * THE LAST MILE: a featured, wide cabinet for Christopher G. Hunt's own
@@ -27,6 +52,12 @@ import { ACTIVE_FOR, forwardsKey, FrameAssembler, gestureKey, nextQuality, NET_E
  * screen walk up (or click the screen) and your keys go straight to the game
  * (arrows / WASD / Space, M for sound), a click or tap is CROSS and a swipe
  * moves; on a phone the arcade's thumb stick and buttons work too.
+ *
+ * Sound: the game plays through the room's AudioContext into a gain (`bus`)
+ * on a positional speaker at the screen. SOUND (or M) steps that gain
+ * 100% / 66% / 33% / mute and round again, remembered per device; the level
+ * shows on a badge by the button and briefly on the screen. The game itself
+ * stays at its own full volume and never sees M.
  *
  * Friends within 14 m see your game: a 160x90 JPEG of the screen up to four
  * times a second (~3.4 K base64, sent as two half-packet pieces and paced by
@@ -100,6 +131,13 @@ export class LastMileCabinet implements FloorGame {
   private sg: CanvasRenderingContext2D;
   private anchor = new THREE.Object3D();
   private bus: GainNode | null = null;
+  /** The cabinet's speaker (tests and the dev harness read it). */
+  speaker: THREE.PositionalAudio | null = null;
+  private levelTarget = -1;
+  /** The SOUND button's step (an index into VOLUME_STEPS: 0 is full). */
+  volumeStep = loadVolume();
+  private volShownAt = -1e9;
+  private badge: { g: CanvasRenderingContext2D; tex: THREE.CanvasTexture; w: number; h: number } | null = null;
   private session: ArcadeSession | null = null;
   private time = 0;
   private lastInput = -1e9;
@@ -207,6 +245,7 @@ export class LastMileCabinet implements FloorGame {
       BTN.map((b) => !!b.label),
     );
     env.hands.register(this.set.grab);
+    this.buildBadge(pf, at(0.905, 0.45));
     this.set.onPress = (_b, side) => {
       if (side) env.haptic(side, 0.6, 30);
     };
@@ -331,7 +370,12 @@ export class LastMileCabinet implements FloorGame {
       this.anchor.add(pa);
       this.bus = ctx.createGain();
       this.bus.gain.value = 0;
-      this.bus.connect(pa.getOutput());
+      // As the speaker's node source, not a bare connect: three only moves a PositionalAudio's panner
+      // to where it is once it's "playing" or has no playback control (a node source), so wired in
+      // directly the panner stayed at the world origin, hundreds of metres from the arcade, and the
+      // game came out ~56 dB down: silent.
+      pa.setNodeSource(this.bus as unknown as AudioBufferSourceNode);
+      this.speaker = pa;
     }
     return { ctx, out: this.bus };
   }
@@ -344,14 +388,73 @@ export class LastMileCabinet implements FloorGame {
   private setLevel(v: number) {
     const b = this.bus;
     if (!b) return;
-    if (Math.abs(b.gain.value - v) < 0.01) return;
-    b.gain.setTargetAtTime(v, b.context.currentTime, 0.15);
+    if (v === this.levelTarget) return;
+    this.levelTarget = v;
+    const g = b.gain,
+      now = b.context.currentTime;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.setTargetAtTime(v, now, 0.06);
+  }
+
+  /** The cabinet's own level (0..1) for the SOUND step. */
+  get volume() {
+    return volumeLevel(this.volumeStep);
+  }
+
+  /** SOUND (or M): one step down, from mute back to full; remembered on this device. */
+  stepVolume() {
+    this.volumeStep = nextVolume(this.volumeStep);
+    saveVolume(this.volumeStep);
+    this.volShownAt = this.time;
+    this.paintBadge();
+  }
+
+  private buildBadge(pf: THREE.Matrix4, at: THREE.Vector3) {
+    const c = document.createElement('canvas');
+    c.width = 96;
+    c.height = 48;
+    const g = c.getContext('2d');
+    if (!g) return;
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this.badge = { g, tex, w: c.width, h: c.height };
+    this.paintBadge();
+    // Flat on the panel, beside the SOUND button, reading the right way up from where you stand.
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.084, 0.042), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+    m.name = 'lastmile-volume';
+    m.userData.dynamic = true;
+    m.matrixAutoUpdate = false;
+    m.matrix.makeRotationX(-Math.PI / 2).setPosition(at.x, at.y + 0.003, at.z).premultiply(pf);
+    m.matrixWorldNeedsUpdate = true;
+    this.env.liveRoot.add(m);
+  }
+
+  private paintBadge() {
+    const b = this.badge;
+    if (!b) return;
+    paintVolumeBadge(b.g, b.w, b.h, volumeBars(this.volumeStep));
+    b.tex.needsUpdate = true;
+  }
+
+  /** The level over the game for a moment after a press (fading out). Returns whether it drew. */
+  private volumeOverlay(): boolean {
+    const t = this.time - this.volShownAt;
+    if (t > VOLUME_SHOW) return false;
+    const a = t < VOLUME_SHOW - 0.4 ? 1 : (VOLUME_SHOW - t) / 0.4;
+    paintVolumeOverlay(this.sg, GAME_W, GAME_H, volumeBars(this.volumeStep), volumePercent(this.volumeStep), a);
+    return true;
   }
 
   // --- Input ------------------------------------------------------------------------
 
   private send(k: KeyStroke) {
     this.lastInput = this.time;
+    // SOUND is the cabinet's: it steps our level, and the game (kept at full) never sees it.
+    if (isSoundKey(k)) {
+      if (k.type === 'keydown' && !k.repeat) this.stepVolume();
+      return;
+    }
     this.host.key(k);
   }
 
@@ -428,6 +531,7 @@ export class LastMileCabinet implements FloorGame {
 
     if (host.state === 'ready') {
       if (!friend && this.ticker.due(dt, p.rate) && host.tick() > 0 && host.copyTo(this.sg, GAME_W, GAME_H)) {
+        this.volumeOverlay();
         this.texture.needsUpdate = true;
         this.uploads++;
       }
@@ -444,7 +548,7 @@ export class LastMileCabinet implements FloorGame {
     if (wasFriend && !friend && host.state === 'off') this.showCard('FREE PLAY  ·  WALK UP TO PLAY');
 
     // Its sound: up while you're playing, lower while it's just the attract screen (the panner does the distance).
-    this.setLevel(env.audio.muted ? 0 : playing ? 1.6 : 0.7);
+    this.setLevel(env.audio.muted ? 0 : (playing ? 1.6 : 0.7) * this.volume);
     this.sendFrame(dt, playing);
   }
 

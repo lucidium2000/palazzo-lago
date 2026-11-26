@@ -24,6 +24,11 @@ import { FrameQueue, type KeyStroke } from './logic';
  *     the cabinet and unlock with the room's audio.
  * Keys go in as synthetic KeyboardEvents on the iframe's document (the game
  * listens for keydown on its window).
+ *
+ * The game is always kept at its own full volume: it remembers a volume
+ * (FULL / LOW / MUTED, cycled by M) in localStorage, and the cabinet's level
+ * is a gain of its own, so the host clears the game's setting before its
+ * script reads it (and the cabinet never sends it M).
  */
 
 type GameWindow = Window &
@@ -31,7 +36,12 @@ type GameWindow = Window &
     webkitAudioContext?: unknown;
     G?: { state?: number; row?: number; col?: number; saver?: boolean } | null;
     ST_PLAY?: number;
+    AUDIO?: { volIndex?: () => number; cycleVolume?: () => number } | null;
   };
+
+/** The game's own volume setting (an index: 0 is full), which it keeps in localStorage. */
+const GAME_VOL_KEY = 'lastmile.vol';
+const GAME_MUTE_KEY = 'lastmile.mute';
 
 export interface HostAudio {
   ctx: AudioContext;
@@ -133,6 +143,13 @@ export class LastMileHost {
     } catch {
       /* the game caps it at 1.5 anyway */
     }
+    // Before its script reads it: the game's own volume is full (the cabinet does the volume).
+    try {
+      w.localStorage.setItem(GAME_VOL_KEY, '0');
+      w.localStorage.removeItem(GAME_MUTE_KEY);
+    } catch {
+      /* no storage: the game starts at full anyway */
+    }
     const audio = this.o.audio?.();
     if (audio) {
       const host = this;
@@ -191,8 +208,30 @@ export class LastMileHost {
     }
     // A copy without the hook: take over now (the game asks for its next frame through the global each time).
     if (this.win !== w) this.attach(w);
+    this.unmuteGame(w);
     this.canvas = c;
     this.state = 'ready';
+  }
+
+  /** If the game came up below full volume anyway (an old setting it read before the hook), step it back to full. */
+  private unmuteGame(w: GameWindow) {
+    try {
+      const A = w.AUDIO;
+      if (!A?.volIndex || !A.cycleVolume) return;
+      for (let i = 0; i < 4 && A.volIndex() !== 0; i++) A.cycleVolume();
+    } catch {
+      /* its sound is its own business if it won't say */
+    }
+  }
+
+  /** The game's own volume step (0 is full), or null if it isn't running. */
+  gameVolume(): number | null {
+    try {
+      const v = this.win?.AUDIO?.volIndex?.();
+      return typeof v === 'number' ? v : null;
+    } catch {
+      return null;
+    }
   }
 
   /** Run one game frame (its queued rAF callbacks). */

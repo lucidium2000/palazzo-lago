@@ -394,3 +394,86 @@ export function paintNowPlaying(g: CanvasRenderingContext2D, w: number, h: numbe
   g.fillStyle = LM.pale;
   g.fillText(`NOW PLAYING: ${name.toUpperCase()}`, w / 2, h - bh / 2 + 1);
 }
+
+/** A speaker and three level bars (`bars` of them lit; none lit is a cross for mute), fitting `size` high from (x, y) top-left. Returns the width drawn. */
+function volumeGlyph(g: CanvasRenderingContext2D, x: number, y: number, size: number, bars: number, on: string, off: string): number {
+  const s = size;
+  // The speaker.
+  g.fillStyle = on;
+  g.beginPath();
+  g.moveTo(x, y + s * 0.34);
+  g.lineTo(x + s * 0.22, y + s * 0.34);
+  g.lineTo(x + s * 0.5, y + s * 0.08);
+  g.lineTo(x + s * 0.5, y + s * 0.92);
+  g.lineTo(x + s * 0.22, y + s * 0.66);
+  g.lineTo(x, y + s * 0.66);
+  g.closePath();
+  g.fill();
+  let bx = x + s * 0.68;
+  const bw = s * 0.2,
+    gap = s * 0.12;
+  for (let i = 0; i < 3; i++) {
+    const bh = s * (0.4 + 0.3 * i);
+    g.fillStyle = i < bars ? on : off;
+    g.fillRect(bx, y + s - bh, bw, bh);
+    bx += bw + gap;
+  }
+  if (!bars) {
+    // A cross over the empty bars.
+    g.strokeStyle = on;
+    g.lineWidth = Math.max(2, s * 0.1);
+    g.lineCap = 'round';
+    const x0 = x + s * 0.68,
+      x1 = bx - gap;
+    g.beginPath();
+    g.moveTo(x0, y + s * 0.2);
+    g.lineTo(x1, y + s * 0.9);
+    g.moveTo(x1, y + s * 0.2);
+    g.lineTo(x0, y + s * 0.9);
+    g.stroke();
+  }
+  return bx - gap - x;
+}
+
+/** The volume, briefly over the game after a SOUND press: "VOL", the bars and the percent, centred under the game's top bar. */
+export function paintVolumeOverlay(g: CanvasRenderingContext2D, w: number, h: number, bars: number, percent: number, alpha = 1) {
+  if (alpha <= 0) return;
+  const s = Math.round(h * 0.07);
+  const pad = s * 0.45;
+  g.save();
+  g.globalAlpha = Math.min(1, alpha);
+  g.textAlign = 'left';
+  g.textBaseline = 'middle';
+  g.font = font(Math.round(s * 0.62));
+  const tail = bars ? `${percent}%` : 'MUTE';
+  const lw = g.measureText('VOL').width,
+    tw = g.measureText('100%').width,
+    gw = s * 1.52;
+  const pw = pad + lw + pad + gw + pad + tw + pad,
+    ph = s * 1.7;
+  const x = Math.round((w - pw) / 2),
+    y = Math.round(h * 0.16);
+  g.fillStyle = 'rgba(8,5,3,0.86)';
+  g.fillRect(x, y, pw, ph);
+  g.fillStyle = LM.brand;
+  g.fillRect(x, y + ph - 3, pw, 3);
+  g.fillStyle = LM.text;
+  g.fillText('VOL', x + pad, y + ph / 2);
+  const gx = x + pad + lw + pad;
+  volumeGlyph(g, gx, y + (ph - s) / 2, s, bars, LM.brand, 'rgba(253,244,238,0.22)');
+  g.fillStyle = bars ? LM.text : LM.dim;
+  g.fillText(tail, gx + gw + pad, y + ph / 2);
+  g.restore();
+}
+
+/** The small level badge by the SOUND button (always shows the level). */
+export function paintVolumeBadge(g: CanvasRenderingContext2D, w: number, h: number, bars: number) {
+  g.fillStyle = '#0c0a0b';
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(58,216,255,0.55)';
+  g.lineWidth = 2;
+  g.strokeRect(1, 1, w - 2, h - 2);
+  const s = h * 0.62;
+  const gw = s * 1.52;
+  volumeGlyph(g, (w - gw) / 2, (h - s) / 2, s, bars, '#3ad8ff', 'rgba(58,216,255,0.18)');
+}

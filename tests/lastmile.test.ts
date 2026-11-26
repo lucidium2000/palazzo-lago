@@ -24,6 +24,16 @@ import {
   stickDir,
   Ticker,
   UNLOAD_FAR,
+  isSoundKey,
+  loadVolume,
+  nextVolume,
+  saveVolume,
+  volumeBars,
+  volumeLabel,
+  volumeLevel,
+  volumePercent,
+  VOLUME_KEY,
+  VOLUME_STEPS,
   type KeyStroke,
 } from '../src/client/arcade/lastmile/logic';
 import { ARCADE, ARCADE_SLOT_SPECS } from '../src/client/areas/promenadeplan';
@@ -134,6 +144,76 @@ describe('The Last Mile: the host takes over the game window', () => {
     expect(ac.state).toBe('running');
     void ac.suspend();
     expect(suspended).toBe(0);
+  });
+});
+
+describe('The Last Mile: the SOUND button steps the volume', () => {
+  const memory = () => {
+    const m = new Map<string, string>();
+    return { m, getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, String(v)) };
+  };
+
+  it('each press steps 100 -> 66 -> 33 -> mute -> 100', () => {
+    let step = 0;
+    const seen = [volumePercent(step)];
+    for (let i = 0; i < 4; i++) seen.push(volumePercent((step = nextVolume(step))));
+    expect(seen).toEqual([100, 66, 33, 0, 100]);
+    expect(VOLUME_STEPS.map((_, i) => volumeBars(i))).toEqual([3, 2, 1, 0]);
+    expect(VOLUME_STEPS.map((_, i) => volumeLabel(i))).toEqual(['VOL ▮▮▮', 'VOL ▮▮▯', 'VOL ▮▯▯', 'VOL MUTE']);
+    expect(volumeLevel(3)).toBe(0);
+    expect(volumeLevel(0)).toBe(1);
+  });
+
+  it('remembers the step per device, and falls back to full on nothing, junk or blocked storage', () => {
+    const s = memory();
+    expect(loadVolume(s)).toBe(0);
+    saveVolume(2, s);
+    expect(s.m.get(VOLUME_KEY)).toBe('2');
+    expect(loadVolume(s)).toBe(2);
+    saveVolume(3, s);
+    expect(loadVolume(s)).toBe(3);
+    for (const junk of ['9', '-1', 'loud', '']) {
+      s.m.set(VOLUME_KEY, junk);
+      expect(loadVolume(s)).toBe(0);
+    }
+    const blocked = {
+      getItem(): string | null {
+        throw new DOMException('denied', 'SecurityError');
+      },
+      setItem() {
+        throw new DOMException('quota', 'QuotaExceededError');
+      },
+    };
+    expect(loadVolume(blocked)).toBe(0);
+    expect(() => saveVolume(1, blocked)).not.toThrow();
+    expect(loadVolume(null)).toBe(0);
+  });
+
+  it('SOUND is the M key, which the cabinet keeps from the game', () => {
+    expect(isSoundKey(KEYS.sound)).toBe(true);
+    expect(isSoundKey({ key: 'M', code: 'KeyM' })).toBe(true);
+    expect(isSoundKey(KEYS.cross)).toBe(false);
+    expect(isSoundKey(KEYS.up)).toBe(false);
+  });
+
+  it("keeps the game's own volume at full: clears its saved setting before it loads, and steps it back if it's down anyway", () => {
+    const store = memory();
+    store.m.set('lastmile.vol', '2');
+    store.m.set('lastmile.mute', '1');
+    const ls = { ...store, removeItem: (k: string) => void store.m.delete(k) };
+    const win: Record<string, unknown> = { performance: { now: () => 0 }, localStorage: ls };
+    const host = new LastMileHost({ url: 'x', width: 960, height: 540 });
+    host.attach(win as never);
+    expect(store.m.get('lastmile.vol')).toBe('0');
+    expect(store.m.has('lastmile.mute')).toBe(false);
+    // A game that came up muted regardless: onLoad steps it round to full.
+    let vol = 2;
+    win.AUDIO = { volIndex: () => vol, cycleVolume: () => (vol = (vol + 1) % 3) };
+    (host as unknown as { unmuteGame(w: unknown): void }).unmuteGame(win);
+    expect(vol).toBe(0);
+    expect(host.gameVolume()).toBe(0);
+    // No storage at all is fine too.
+    expect(() => new LastMileHost({ url: 'x', width: 960, height: 540 }).attach({ performance: { now: () => 0 } } as never)).not.toThrow();
   });
 });
 
