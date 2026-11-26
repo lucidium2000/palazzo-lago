@@ -1012,7 +1012,7 @@ body.listening #replies::before {
 /* Fight: health bars (you, and who you're fighting), top centre. */
 #fightbars {
   position: fixed;
-  top: 14px;
+  top: 66px;
   left: 50%;
   transform: translateX(-50%);
   display: none;

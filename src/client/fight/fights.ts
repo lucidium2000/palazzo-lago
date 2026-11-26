@@ -409,6 +409,11 @@ export class Fights {
       this.d.hud.toast('Now you’ve done it: security’s fighting back', 'warn');
     }
     if (r.ko) this.npcKO(f);
+    // Walking off (or running) and you hit them again: it's back on.
+    else if (!r.flee && (f.brawl.phase === 'leave' || f.brawl.phase === 'flee') && !f.brawl.health.ko && !(f.brawl.talker && p.role !== 'guard')) {
+      f.brawl.show('close');
+      f.leaveT = 0;
+    }
     else if (r.flee) this.d.hud.toast(`${f.name} backs off`, 'info');
   }
 
@@ -451,6 +456,7 @@ export class Fights {
     };
     this.local.set(p, f);
     p.fight = fightPose();
+    this.dropProp(p);
     p.angry = 1;
     p.pause = 0;
     p.chatWith = null;
@@ -498,8 +504,23 @@ export class Fights {
     return home;
   }
 
+  /** Fists need both hands: the drink or the phone goes away for the fight (and comes back after). */
+  private props = new Map<Person, { prop: Person['prop']; photo: boolean }>();
+  private dropProp(p: Person) {
+    if (p.prop === 'none') return;
+    this.props.set(p, { prop: p.prop, photo: p.photo });
+    p.prop = 'none';
+    p.photo = false;
+  }
+
   private restore(p: Person, home: Local['home']) {
     p.fight = null;
+    const prop = this.props.get(p);
+    if (prop) {
+      p.prop = prop.prop;
+      p.photo = prop.photo;
+      this.props.delete(p);
+    }
     p.angry = 0;
     p.moving = 0;
     if (p.role === 'guard') {
@@ -1079,6 +1100,7 @@ export class Fights {
     p.pos.set(x, p.role === 'guard' ? this.d.world.groundAt(x, z) : p.pos.y, z);
     if (Number.isFinite(Number(d.y))) p.yaw = Number(d.y);
     p.fight = fightPose();
+    this.dropProp(p);
     p.angry = 1;
     const puppet = new Brawl(temperament('x'), !!d.t);
     const r: Remote = {
