@@ -114,10 +114,11 @@ export class Dancer {
     const st = this.style;
     if (b.section === 'break') return st.energy > 1 ? 'groove' : 'sway';
     if (b.section === 'build') {
-      if (b.cycleBar === 31 && st.eager > 0.35) return 'up';
-      return b.cycleBar >= 28 || st.eager > 0.6 ? 'clap' : 'groove';
+      const left = b.secLen - b.secBar;
+      if (left === 1 && st.eager > 0.35) return 'up';
+      return left <= 4 || st.eager > 0.6 ? 'clap' : 'groove';
     }
-    if (b.cycleBar < 2) return st.eager > 0.3 ? 'up' : 'pump';
+    if (b.secBar < 2 && b.sinceDrop < 8) return st.eager > 0.3 ? 'up' : 'pump';
     const k = Math.floor(b.bar / 4 + st.eager * 7) % st.moves.length;
     return st.moves[k];
   }
@@ -307,7 +308,7 @@ function armTarget(out: THREE.Vector3, move: Move, isLeft: boolean, beat: Beat, 
       // Clap on 2 and 4: the hands meet in front of the chest.
       const toClap = Math.abs(((((beat.beats + st.lag) % 2) + 2) % 2) - 1); // 0 on beats 2/4 (odd), 1 on 1/3
       const c = Math.pow(1 - toClap, 4);
-      const y = move === 'clap' && beat.section === 'build' && beat.cycleBar >= 30 ? 0.25 : -0.12;
+      const y = move === 'clap' && beat.section === 'build' && beat.secLen - beat.secBar <= 2 ? 0.25 : -0.12;
       return out.set(0.3 - 0.36 * c, y, 0.3 + 0.08 * c);
     }
     case 'up':

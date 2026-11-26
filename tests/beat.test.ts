@@ -1,21 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { BeatClock, PARTY, beatAt, beatLen, kickIn, loopLength, sectionOf } from '../src/client/party/beat';
+import { BeatClock, DETECT, PARTY, SYNTH_SET, arrangement, arrangementLength, beatAt, beatLen, detectSections, kickIn, loopLength, sectionOf, synthSections } from '../src/client/party/beat';
+import { DJ_BARS, DJ_ONLY, DJ_TRACK, FULL_SET, SET_BPM, SLOT_BARS } from '../src/client/party/setlist';
 import { BobDetector } from '../src/client/party/rhythm';
 
 const B = beatLen();
 const BAR = B * 4;
 
-describe('beat clock', () => {
+const SB = (bpm: number) => (60 / bpm) * 4;
+
+describe('beat clock (the synthesized fallback set)', () => {
   it('runs at the party tempo and loops seamlessly', () => {
     expect(PARTY.bpm).toBeGreaterThanOrEqual(120);
     expect(PARTY.bpm).toBeLessThanOrEqual(124);
     expect(loopLength()).toBeCloseTo(PARTY.bars * 4 * (60 / PARTY.bpm), 6);
     const a = beatAt(3.3),
-      b = beatAt(3.3 + loopLength());
+      b = beatAt(3.3 + loopLength(PARTY.bpm, SYNTH_SET.bars.length));
     expect(b.beat).toBe(a.beat);
     expect(b.phase).toBeCloseTo(a.phase, 6);
     // Negative time wraps too.
-    expect(beatAt(-B * 0.5).beat).toBe(PARTY.bars * 4 - 1);
+    expect(beatAt(-B * 0.5).beat).toBe(SYNTH_SET.bars.length * 4 - 1);
   });
 
   it('counts beats, bars and phase', () => {
@@ -24,7 +27,8 @@ describe('beat clock', () => {
     expect(s.beatInBar).toBe(2);
     expect(s.phase).toBeCloseTo(0.25, 6);
     expect(s.barPhase).toBeCloseTo((2 + 0.25) / 4, 6);
-    expect(beatAt(BAR * 40).cycleBar).toBe(8);
+    expect(beatAt(BAR * 40.5).secBar).toBe(8);
+    expect(beatAt(BAR * 40.5).secLen).toBe(16);
   });
 
   it('drops, breaks down and builds every 32 bars', () => {
@@ -62,7 +66,8 @@ describe('beat clock', () => {
   });
 
   it('reports beat, bar and drop edges, across the loop end', () => {
-    const c = new BeatClock();
+    const arr = arrangement(PARTY.bpm, synthSections());
+    const c = new BeatClock(arr);
     let beats = 0,
       bars = 0,
       drops = 0;
@@ -88,6 +93,59 @@ describe('beat clock', () => {
     c.update(30);
     expect(c.onBeat).toBe(false);
     expect(c.onDrop).toBe(false);
+  });
+});
+
+describe('the real set: sections read from the measured music', () => {
+  it("finds the DJ set's drops where its drums jump, its breakdown where they're low, and the builds into each drop", () => {
+    const drops = DJ_BARS.flatMap((b, i) => (b.drop ? [i] : []));
+    // Bar 0 (out of the dip at bar 63, round the loop) and bar 40 (out of the breakdown;
+    // the jump starts in bar 39, the build's fill, and lands on the phrase line).
+    expect(drops).toEqual([0, 40]);
+    for (let i = 30; i < 36; i++) expect(DJ_BARS[i].section).toBe('break');
+    for (let i = 36; i < 40; i++) expect(DJ_BARS[i].section).toBe('build');
+    expect(DJ_BARS[63].section).toBe('build');
+    for (const i of [1, 10, 20, 50, 62]) expect(DJ_BARS[i].section).toBe('drop');
+    // No kick in the breakdown; the drop hits hardest.
+    expect(DJ_BARS[33].kick).toBe(false);
+    expect(DJ_BARS[5].kick).toBe(true);
+    expect(DJ_BARS[5].intensity).toBeGreaterThan(0.95);
+    expect(DJ_BARS[33].intensity).toBeLessThan(0.45);
+    // A drop is a real jump in the measured drums.
+    for (const i of drops) {
+      const d = DJ_TRACK.perBar.map((p) => p.drums);
+      const before = Math.min(d[(i - 2 + 64) % 64], d[(i - 1 + 64) % 64]);
+      expect(d[i] - before).toBeGreaterThan(DETECT.jump);
+    }
+  });
+
+  it('reads a drop from any big jump in the drums, not a fixed pattern', () => {
+    const flat = (drums: number) => ({ drums, tonal: -20, level: drums < -30 ? -20 : -11 });
+    const per = [...Array(10).fill(-20), ...Array(6).fill(-40), ...Array(16).fill(-14)].map(flat);
+    const bars = detectSections(per, false);
+    expect(bars.flatMap((b, i) => (b.drop ? [i] : []))).toEqual([16]);
+    expect(bars[10].section).toBe('break');
+    expect(bars[15].section).toBe('build');
+    expect(bars[16].section).toBe('drop');
+  });
+
+  it('runs the whole set list on one clock: the DJ, then the headliner, at the measured tempo', () => {
+    expect(SET_BPM).toBeCloseTo(121.978, 3);
+    expect(FULL_SET.bars).toHaveLength(SLOT_BARS * 2);
+    expect(DJ_ONLY.bars).toHaveLength(SLOT_BARS * 2);
+    const loop = arrangementLength(FULL_SET);
+    expect(loop).toBeCloseTo(SLOT_BARS * 2 * SB(SET_BPM), 9);
+    const c = new BeatClock(FULL_SET);
+    const drops: number[] = [];
+    for (let t = -0.01; t < loop + 0.5; t += 1 / 60) {
+      c.update(t);
+      if (c.onDrop) drops.push(c.now.bar);
+    }
+    // The DJ's two drops, then the chorus of each song (and the DJ again, round the loop).
+    expect(drops).toEqual([0, 40, 80, 112, 0]);
+    // The clock's beat 0 is the track's first beat: one beat in is one measured beat later.
+    expect(beatAt(60 / SET_BPM + 1e-6, FULL_SET).beat).toBe(1);
+    expect(beatAt(60 / SET_BPM + 1e-6, FULL_SET).phase).toBeCloseTo(0, 4);
   });
 });
 

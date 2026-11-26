@@ -72,7 +72,6 @@ import { PhotoSync } from './net/photosync';
 import { LooseObjects } from './loose';
 import { LooseSync } from './net/loosesync';
 import { Party } from './party';
-import { renderPartyTrack } from './party/track';
 import { DJ } from './areas/pool';
 import { Boxing } from './net/boxing';
 import { NpcSync } from './net/npcsync';
@@ -1998,6 +1997,8 @@ async function main() {
       first = false;
       if (lightTheRest) setTimeout(() => void lightTheRest?.(), 0);
       document.getElementById('loading')!.classList.add('done');
+      // The casino's music is fetched first, once the loading screen is done (the party's waits for you to head out).
+      void sound.preloadMusic().catch(() => {});
     }
     if (stats) {
       frames++;
@@ -2012,7 +2013,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, renderPartyTrack, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
+  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats };
 }
 
 main().catch((e) => {

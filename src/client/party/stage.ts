@@ -2,26 +2,31 @@ import * as THREE from 'three';
 import type { Sound } from '../audio';
 import type { Crowd, Person } from '../people';
 import { STAGE } from '../areas/pool';
-import { PARTY, type Beat } from './beat';
+import type { Beat } from './beat';
 import { Dancer, type Move } from './dance';
 import { armTo } from './decks';
 import { HEADLINER, LOOK_HEADLINER, SINGER_BACK } from './performers';
-import { singingAt } from './song';
+import { SLOT_BARS, SONG_BARS } from './setlist';
 
 export { HEADLINER };
 
 /**
  * The headliner on the pool stage (the riser west of the DJ booth): ORLO
  * VANTE, an original R&B / synth-pop singer made for Palazzo Lago (name,
- * look and songs all invented here). The party alternates sets on the wall
- * clock: the DJ's 64 bars, then his 64 (two songs, song.ts), then the DJ again.
+ * look and songs all invented here; the songs are recordings with real sung
+ * vocals, orlo_*.mp3). The party alternates sets on the wall clock: the DJ's
+ * 64 bars, then his 64 (two 32-bar songs), then the DJ again.
  *
- * Two bars before his set he walks from the back of the stage to the mic.
- * Through the verses he sways at the stand, a hand on the mic when he sings
- * and the other reaching out on the long notes; on each chorus he takes the
- * mic off the stand and steps side to side with it; he points out at the
- * crowd as a song lands. The crowd turns to face him while he's on, and
- * cheers each song (and him off at the end, when he waves).
+ * He follows each song's sections (verse, pre-chorus, chorus: setlist.ts):
+ * two bars before his set he walks from the back of the stage to the mic and
+ * the crowd applauds him on. He sings all the way through, a hand on the mic
+ * on its stand through the verse (the other out at the end of each line),
+ * reaching out higher as the pre-chorus builds; on the chorus he takes the
+ * mic off the stand and steps side to side with it, pointing out at the crowd
+ * as it lands and with his free hand up through its last bars. As a song's
+ * music ends he lowers the mic and the pool cheers (cheer.mp3); at the end of
+ * his set he waves goodbye to applause (applause.mp3). The crowd turns to
+ * face him while he's on.
  *
  * The light show: a neon marquee with his name behind him (dim between sets,
  * chasing bulbs and the beat when he's on), two follow spots from the stage's
@@ -69,6 +74,7 @@ export class Stage {
   private sing = 0;
   private point = 0;
   private prevP = -1;
+  private prevPart = '';
   private hands = { l: new THREE.Vector3(), r: new THREE.Vector3(), init: false };
   private t = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   private m = new THREE.Matrix4();
@@ -128,7 +134,7 @@ export class Stage {
     this.dt = dt;
     this.time += dt;
     this.beat = b;
-    const bar = loop / PARTY.bars;
+    const bar = loop / SLOT_BARS;
     const his = ready && P >= loop;
     // Walk on two bars before his set; off when it's over.
     this.onStage = ready && P >= loop - 2 * bar;
@@ -137,14 +143,17 @@ export class Stage {
     const at = !!this.singer && this.singer.pos.distanceTo(SING) < 0.12;
     this.live = his && (at || !this.singer);
 
-    // Between songs: the crowd cheers (his set starting, the second song, him leaving).
+    // The crowd: applause as he comes on, a cheer as each song's music ends, applause as he goes.
     const prev = this.prevP;
     this.prevP = P;
+    const prevPart = this.prevPart;
+    this.prevPart = b.part;
     if (ready && prev >= 0) {
       const crossed = (x: number) => (prev < x && P >= x) || (x === 0 && P < prev - loop);
-      if (crossed(loop)) this.cheer(false);
-      else if (crossed(loop + PARTY.cycle * bar)) this.cheer(false);
-      else if (crossed(0)) this.cheer(true);
+      if (crossed(loop)) this.react('on');
+      else if (crossed(loop + SONG_BARS * bar)) this.point = 2.5;
+      else if (crossed(0)) this.react('off');
+      else if (his && b.part === 'outro' && prevPart !== 'outro') this.react('song');
     }
     this.point = Math.max(0, this.point - dt);
 
@@ -158,10 +167,11 @@ export class Stage {
       p.homeYaw = p.yaw;
     }
 
-    // The mic: in his hand through the choruses.
-    const chorus = this.live && b.section === 'drop';
+    // The mic: off the stand for the chorus (still in his hand as the song ends, back on the stand for the next verse).
+    const chorus = this.live && (b.part === 'chorus' || (b.part === 'outro' && this.held > 0.5));
     this.held += ((chorus ? 1 : 0) - this.held) * Math.min(1, dt * 5);
-    this.sing = this.live ? singingAt(b.beats) : 0;
+    // Singing (the recordings are sung all the way through: a breath at the end of each line).
+    this.sing += ((this.live ? b.voice : 0) - this.sing) * Math.min(1, dt * 12);
     if (!this.singer?.rig || this.held < 0.01) {
       this.mic.position.copy(MIC_ON_STAND);
       this.mic.lookAt(MIC_AIM);
@@ -176,13 +186,23 @@ export class Stage {
     this.updateBeams(b);
   }
 
-  private cheer(goodbye: boolean) {
+  /** The crowd: `on` he walks on, `song` a song's music just ended, `off` his set is over. */
+  private react(what: 'on' | 'song' | 'off') {
     this.d.crowd.react(this.crowdAt, 15, 'cheer');
-    this.d.sound.play('cheer', this.crowdAt.clone().setY(1.5), { volume: 1 });
+    const at = this.crowdAt.clone().setY(1.5);
+    // The crowd's out on the deck in front of the stage: it carries.
+    const far = { ref: 6, rolloff: 1 };
+    if (what === 'song') this.d.sound.play('crowdCheer', at, { volume: 1, ...far });
+    else this.d.sound.play('applause', at, { volume: what === 'off' ? 1 : 0.85, ...far });
+    if (what === 'off') this.d.sound.play('crowdCheer', at, { volume: 0.6, ...far });
+    this.reacted.push(what);
+    if (this.reacted.length > 16) this.reacted.shift();
     if (!this.singer) return;
-    if (goodbye) this.singer.cheer = 2.2;
-    else this.point = 2.5;
+    if (what === 'off') this.singer.cheer = 2.2;
+    else if (what === 'song') this.point = 2.5;
   }
+  /** What the crowd has done (for the curious: window.casino.party.stage). */
+  readonly reacted: string[] = [];
 
   private updateBeams(b: Beat) {
     const on = this.onStage || this.live;
@@ -201,7 +221,7 @@ export class Stage {
       this.beam(n++, src, this.t[2].copy(head).sub(src), 0.55, this.col.setRGB(1, 0.92, 0.8).multiplyScalar(lv * 1.2));
     }
     // Back fans: out over the crowd, sweeping with the beat (wide on the chorus).
-    const wide = b.section === 'drop' ? 1 : b.section === 'build' ? 0.4 + 0.6 * b.build : 0.3;
+    const wide = b.part === 'chorus' || b.section === 'drop' ? 1 : b.section === 'build' ? 0.4 + 0.6 * b.build : 0.3;
     for (let k = 0; k < 4; k++) {
       const x = STAGE.x0 + 1.1 + k * 1.75;
       const src = this.t[1].set(x, STAGE.y + 3.45, STAGE.z0 + 0.15);
@@ -260,9 +280,10 @@ export class Stage {
       this.hands.init = false;
       return;
     }
-    // His moves: swaying at the stand in the verse, a step with the mic on the chorus.
-    const move: Move = b.section === 'drop' ? 'step' : b.section === 'build' ? 'groove' : 'sway';
-    this.dancer.pose(rig, { beat: b, dt: this.dt, amount: 0.85, move, arms: false, scale: sc, still: b.section !== 'drop' });
+    // His moves: swaying at the stand in the verse, grooving into the pre-chorus, a step with the mic on the chorus.
+    const chorus = b.part === 'chorus';
+    const move: Move = chorus ? 'step' : b.part === 'pre-chorus' ? 'groove' : 'sway';
+    this.dancer.pose(rig, { beat: b, dt: this.dt, amount: b.part === 'outro' ? 0.4 : 0.85, move, arms: false, scale: sc, still: !chorus });
     if (p.cheer > 0.3) return; // waving goodbye (the clip's wave)
     rig.root.updateMatrixWorld(true);
     const bones = rig.bones;
@@ -289,15 +310,20 @@ export class Stage {
       const k = sing;
       R.set(MIC_ON_STAND.x - lx * 0.03, MIC_ON_STAND.y - 0.08 - 0.42 * (1 - k), MIC_ON_STAND.z - 0.02);
     }
-    // Left hand: points at the crowd as a song lands, reaches out on the long notes, else sways.
+    // Left hand: points at the crowd as the chorus lands (and as a song ends), up through the
+    // chorus's last bars, reaching out as the pre-chorus builds and at the end of each verse line, else sways.
     const L = this.t[2];
     const shoulder = this.t[3];
     (bones.UpperArmL ?? bones.Head)?.getWorldPosition(shoulder);
-    if (this.point > 0 || (b.section === 'drop' && b.cycleBar < 1)) {
+    const lineEnd = b.bar % 2 === 1 && b.beatInBar >= 2;
+    if (this.point > 0 || (chorus && b.secBar < 1)) {
       L.set(shoulder.x + fx * 0.48 + lx * 0.22, shoulder.y + 0.16, shoulder.z + fz * 0.48 + lz * 0.22);
-    } else if (sing > 0.6 && b.section !== 'drop') {
+    } else if (chorus && b.secLen - b.secBar <= 4 && sing > 0.3) {
+      // The big finish: his free hand up and out.
+      L.set(shoulder.x + fx * 0.25 + lx * 0.3, shoulder.y + 0.42 + 0.04 * Math.sin(ph * Math.PI), shoulder.z + fz * 0.25 + lz * 0.3);
+    } else if (sing > 0.6 && !chorus && (b.part === 'pre-chorus' || lineEnd)) {
       const lift = 0.05 * Math.sin(ph * Math.PI * 0.5);
-      L.set(shoulder.x + fx * 0.32 + lx * 0.3, shoulder.y - 0.05 + lift + 0.12 * (b.section === 'build' ? b.build : 0), shoulder.z + fz * 0.32 + lz * 0.3);
+      L.set(shoulder.x + fx * 0.32 + lx * 0.3, shoulder.y - 0.05 + lift + 0.14 * (b.section === 'build' ? b.build : 0), shoulder.z + fz * 0.32 + lz * 0.3);
     } else {
       const sw = Math.sin(ph * Math.PI);
       L.set(shoulder.x + fx * 0.22 + lx * (0.12 + 0.05 * sw), shoulder.y - 0.36 + 0.05 * Math.abs(sw), shoulder.z + fz * 0.22 + lz * (0.12 + 0.05 * sw));

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DeckDSP, OMEGA, Platter, crossfade, wrapAngle } from '../src/client/party/scratch';
-import { KEY_PCS, SONGS, singingAt, songPart } from '../src/client/party/song';
-import { PARTY, beatLen } from '../src/client/party/beat';
+import { FULL_SET, SET_BPM, SLOT_BARS, SONG_BARS, SONG_TRACKS, slotLayout } from '../src/client/party/setlist';
+import { beatAt } from '../src/client/party/beat';
 import { World } from '../src/client/world';
 import { registerHall } from '../src/client/casino';
 import { registerAreas } from '../src/client/areas';
@@ -179,42 +179,39 @@ describe('the decks (DSP)', () => {
 });
 
 describe("the headliner's songs", () => {
-  const inKey = (m: number) => KEY_PCS.includes(((m % 12) + 12) % 12);
+  const bar = (60 / SET_BPM) * 4;
 
-  it('stay in C minor: every chord, hook and sung note', () => {
-    for (const s of SONGS) {
-      for (const c of [...s.chorus, ...s.verse, ...s.pre]) {
-        expect(inKey(c.root)).toBe(true);
-        for (const n of c.notes) expect(inKey(n)).toBe(true);
-      }
-      for (const ph of [...s.hook, ...s.verseVox]) for (const [, n] of ph) expect(inKey(n)).toBe(true);
+  it('are two 32-bar recordings that fill his slot of the set, on the same bar grid', () => {
+    expect(SONG_TRACKS).toHaveLength(2);
+    for (const s of SONG_TRACKS) {
+      expect(s.track.bars).toBe(SONG_BARS);
+      // Within a few ms of the set's tempo over the whole song.
+      expect(Math.abs(SONG_BARS * 4 * (60 / s.track.bpm) - SONG_BARS * bar)).toBeLessThan(0.01);
+      expect(s.track.firstBeat).toBeGreaterThanOrEqual(0);
+      expect(s.track.firstBeat).toBeLessThan(0.5);
     }
+    const L = slotLayout();
+    expect(L.slot).toBeCloseTo(SLOT_BARS * bar, 9);
+    expect(L.songs.map((s) => s.at)).toEqual([0, SONG_BARS * bar]);
   });
 
-  it('phrase within each chord, sing in a man’s range, and breathe at the end of a song', () => {
-    for (let bar = 0; bar < PARTY.bars; bar++) {
-      const p = songPart(bar);
-      for (const [o, n, l] of p.vox) {
-        expect(o).toBeGreaterThanOrEqual(0);
-        expect(o + l).toBeLessThanOrEqual(8);
-        expect(n).toBeGreaterThanOrEqual(48);
-        expect(n).toBeLessThanOrEqual(80);
-      }
+  it('follow their sections: verse, pre-chorus, chorus (the drop), sung through, an outro as the music ends', () => {
+    for (const [k, first] of [SLOT_BARS, SLOT_BARS + SONG_BARS].entries()) {
+      const parts = FULL_SET.bars.slice(first, first + SONG_BARS);
+      expect(parts.every((b) => b.track === k + 1)).toBe(true);
+      expect(parts.slice(0, 8).every((b) => b.part === 'verse')).toBe(true);
+      expect(parts.slice(8, 16).every((b) => b.part === 'pre-chorus' && b.section === 'build')).toBe(true);
+      expect(parts[16].part).toBe('chorus');
+      expect(parts[16].drop).toBe(true);
+      // Sung all the way through the music, not in the silence after it.
+      expect(parts.slice(0, 28).every((b) => b.voice === 1)).toBe(true);
+      expect(parts[SONG_BARS - 1].part).toBe('outro');
+      expect(parts[SONG_BARS - 1].voice).toBe(0);
     }
-    // The last half beat of each song is silent.
-    for (const bar of [31, 63]) expect(singingAt(bar * 4 + 3.75)).toBe(0);
-  });
-
-  it('sings the hook on the chorus, a line in the verse; the two songs differ', () => {
-    expect(songPart(0).section).toBe('drop');
-    expect(songPart(0).hook).not.toBeNull();
-    expect(songPart(16).section).toBe('break');
-    expect(songPart(16).vowel).toBe('oo');
-    expect(songPart(0).song).not.toBe(songPart(32).song);
-    // He's singing on the first note of the chorus hook.
-    expect(singingAt(0.1)).toBe(1);
-    expect(SONGS.map((s) => s.title)).toEqual(['Glass Horizon', 'Low Tide Neon']);
-    expect(beatLen()).toBeGreaterThan(0);
+    // A breath at the end of each two-bar line.
+    const t = (b: number) => b * bar;
+    expect(beatAt(t(SLOT_BARS + 2) + bar * 0.5, FULL_SET).voice).toBe(1);
+    expect(beatAt(t(SLOT_BARS + 2) - bar * 0.03, FULL_SET).voice).toBeLessThan(0.5);
   });
 });
 

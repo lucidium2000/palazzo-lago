@@ -1,8 +1,9 @@
 import { PARTY, beatLen, kickIn, loopLength, sectionOf } from './beat';
 
 /**
- * The DJ's set: 64 bars of deep, warm house at 122 bpm in A minor, rendered
- * offline (mono, so it costs half the memory; it plays from the booth's
+ * The fallback DJ set, played only if the real one (public/audio/dj_set.mp3)
+ * can't be fetched or decoded, so the party is never silent: 64 bars of
+ * deep, warm house at 122 bpm in A minor, rendered offline (mono, so it costs half the memory; it plays from the booth's
  * speakers as positional sources anyway) and looping seamlessly. Two 32-bar
  * cycles, each a 16-bar drop, an 8-bar breakdown (pads and the hook, no
  * kick) and an 8-bar build (filter opening, a riser, a snare roll and a
@@ -10,12 +11,6 @@ import { PARTY, beatLen, kickIn, loopLength, sectionOf } from './beat';
  * bassline and hook. The arrangement is read from beat.ts so the lights and
  * dancers follow the same bars the music plays.
  */
-
-export interface PartyTrack {
-  buffer: AudioBuffer;
-  /** Loop length in seconds (the buffer runs on a little past it: loop it with loopEnd). */
-  loop: number;
-}
 
 type Chord = { root: number; notes: number[] };
 const PROG_A: Chord[] = [
@@ -58,14 +53,7 @@ const HOOK_B: [number, number, number][] = [
 
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
-export async function renderPartyTrack(sampleRate = 32000): Promise<PartyTrack> {
-  const { data, loop } = await renderPartyRaw(sampleRate);
-  const buffer = new AudioBuffer({ numberOfChannels: 1, length: data.length, sampleRate });
-  buffer.copyToChannel(data, 0);
-  return { buffer, loop };
-}
-
-/** The same set as raw mono samples (handed straight to the decks' audio thread, no AudioBuffer copy). */
+/** The set as raw mono samples (handed straight to the decks' audio thread, no AudioBuffer copy). */
 export async function renderPartyRaw(sampleRate = 32000): Promise<{ data: Float32Array<ArrayBuffer>; sampleRate: number; loop: number }> {
   const beat = beatLen();
   const bar = beat * 4;
@@ -418,7 +406,7 @@ export async function renderPartyRaw(sampleRate = 32000): Promise<{ data: Float3
 }
 
 /** Bus compression (−14 dB, 3.5:1, fast attack, ~180 ms release), done once over the whole loop, then a peak of 0.9. */
-export function compress(d: Float32Array, n: number, sampleRate: number) {
+function compress(d: Float32Array, n: number, sampleRate: number) {
   const th = Math.pow(10, -14 / 20),
     ratio = 3.5;
   const att = 1 - Math.exp(-1 / (0.006 * sampleRate)),
