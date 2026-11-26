@@ -11,7 +11,7 @@ import { ControlInstances, TouchPoints } from './controls';
 import { DeskControls, type DeskStation } from './desk';
 import type { ArcadeLoose, FloorEnv, FloorFrame, FloorGame } from './floor';
 import { MODES, type Mode } from './machine';
-import { cleanSnap, friendNear, packPad, unpackPad, type ArcadeFriend, type ArcadeSession } from './net';
+import { cleanSnap, friendNear, packPad, SharedControls, type ArcadeFriend, type ArcadeSession } from './net';
 import { cleanInitials, packTable, ScoreBook, unpackTable, type ScoreEntry } from './scores';
 import { ArcadeAudio } from './synth';
 import { blankPad, type Game, type RawPad } from './types';
@@ -123,14 +123,18 @@ export class Arcade {
   /** Who runs each cabinet's game: me, a friend (id), or nobody. */
   private owner: (string | null)[] = [];
   private ownerName: string[] = [];
-  /** A friend on my two-player cabinet's second controls (id), and their pad. */
-  private p2: (string | null)[] = [];
-  private p2Pad: RawPad[] = [];
-  private p2Heard: number[] = [];
-  /** The cabinet whose second controls I'm on (a friend's game), or -1. */
-  private remoteP2 = -1;
-  private remoteP2Sent = 0;
+  /** Each cabinet's controls, shared: friends' hands on it, and the owner's last whole state (net.ts). */
+  private share: SharedControls[] = [];
+  /** Whether a human is on each two-player cabinet's second set (for the join toast). */
+  private human2: boolean[] = [];
+  /** The friend's cabinet whose controls I'm on (my hands go to them), or null. */
+  private remoteAt: { c: number; set: number } | null = null;
+  private remoteSent = 0;
   private lastPadSent = -1;
+  /** Time to the next whole-state message per cabinet (while I own it and someone shares it). */
+  private stateT: number[] = [];
+  /** Just took a game over from this friend: their last few screens are stale, not a clash. */
+  private tookFrom: ({ id: string; until: number } | null)[] = [];
   /** Where I am: the cabinet and control set I'm working, or null. */
   at: { cab: number; set: number } | null = null;
   /** Which floor game's desk spot I'm at. */
@@ -215,9 +219,10 @@ export class Arcade {
       this.tops.set(game.meta.id, gd.top);
       this.owner.push(null);
       this.ownerName.push('');
-      this.p2.push(null);
-      this.p2Pad.push(blankPad());
-      this.p2Heard.push(0);
+      this.share.push(new SharedControls(cab.sets.length));
+      this.human2.push(false);
+      this.stateT.push(0);
+      this.tookFrom.push(null);
       this.sendT.push(0);
       if (colliders) d.world.addLocalBox(cab.group, 0, 0.02, cab.width + 0.02, 0.86, 'arcade cabinet');
       // Click the screen (screens only) to step up and play.
@@ -346,25 +351,44 @@ export class Arcade {
     this.knownFriends = '';
     for (let i = 0; i < this.cabinets.length; i++) {
       if (this.owner[i] !== 'me') this.owner[i] = null;
-      this.p2[i] = null;
-      this.cabinets[i].machine.setHuman2(false);
+      this.share[i].pressers.clear();
+      this.share[i].lastState = null;
     }
-    this.remoteP2 = -1;
+    this.remoteAt = null;
     for (const f of this.floors) f.connect(s);
     if (!s) return;
     s.on('arcS', (f, d) => this.onScreen(f, d));
+    // Hands on a cabinet: the owner merges them in; everyone notes who's at the controls (for takeovers).
     s.on('arcI', (f, d) => {
       const c = Number(d.c);
-      if (this.owner[c] !== 'me' || !this.cabinets[c]) return;
-      if (this.p2[c] !== f.id) this.joinP2(c, f);
-      unpackPad(Number(d.p), this.p2Pad[c]);
-      this.p2Heard[c] = this.time;
+      if (!this.cabinets[c]) return;
+      this.share[c].hear(f.id, Number(d.s) || 0, Number(d.p), this.time);
     });
     s.on('arcJ', (f, d) => {
       const c = Number(d.c);
-      if (this.owner[c] !== 'me' || !this.cabinets[c]) return;
-      if (d.on) this.joinP2(c, f);
-      else if (this.p2[c] === f.id) this.dropP2(c);
+      if (!this.cabinets[c]) return;
+      if (d.on) this.share[c].hear(f.id, Number(d.s) || 0, 0, this.time);
+      else this.share[c].leave(f.id);
+    });
+    // The running game, whole (to carry on from if its owner vanishes).
+    s.on('arcX', (f, d) => {
+      const c = Number(d.c);
+      if (!this.cabinets[c] || this.owner[c] !== f.id) return;
+      this.share[c].lastState = d.st;
+      this.share[c].ownerHeard = this.time;
+    });
+    // The owner walked away and handed their game to someone at the controls.
+    s.on('arcO', (f, d) => {
+      const c = Number(d.c);
+      const cab = this.cabinets[c];
+      if (!cab) return;
+      if (d.to === this.session?.selfId) {
+        if (this.owner[c] === 'me') return;
+        this.takeOver(c, d.st, f.id, `${f.name} stepped away: ${cab.machine.game.meta.title} is yours`);
+      } else if (typeof d.to === 'string') {
+        this.owner[c] = d.to;
+        this.share[c].ownerHeard = this.time;
+      }
     });
     s.on('arcH+', (_f, d) => {
       if (!this.session?.host) return;
@@ -385,17 +409,23 @@ export class Arcade {
     });
   }
 
-  private joinP2(c: number, f: ArcadeFriend) {
-    if (this.p2[c] === f.id) return;
-    this.p2[c] = f.id;
-    this.cabinets[c].machine.setHuman2(true);
-    this.d.hud.toast(`${f.name} joined ${this.cabinets[c].machine.game.meta.title} as player 2`, 'win');
+  /** I carry on a friend's running game from its whole state (they walked away, or vanished). */
+  private takeOver(c: number, st: unknown, from: string, msg: string): boolean {
+    const m = this.cabinets[c].machine;
+    if (!m.loadState(st)) return false;
+    this.owner[c] = 'me';
+    this.human2[c] = m.human2; // the routing re-tells the game if that changed (who is on the second set here)
+    this.tookFrom[c] = { id: from, until: this.time + 1.5 };
+    this.share[c].leave(from);
+    this.share[c].lastState = null;
+    this.sendT[c] = 0;
+    this.d.hud.toast(msg, 'win');
+    return true;
   }
 
-  private dropP2(c: number) {
-    this.p2[c] = null;
-    Object.assign(this.p2Pad[c], ZERO_PAD);
-    this.cabinets[c].machine.setHuman2(false);
+  /** A friend's name, by id. */
+  private friendName(id: string) {
+    return this.session?.friendList().find((f) => f.id === id)?.name ?? 'A friend';
   }
 
   /** A friend's cabinet screen. */
@@ -404,6 +434,10 @@ export class Arcade {
     const cab = this.cabinets[c];
     if (!cab) return;
     const mode = MODES[Number(d.m)] ?? 'attract';
+    // The friend I just took over from: their last screens were already on the way.
+    const took = this.tookFrom[c];
+    if (took && took.id === f.id && this.time < took.until) return;
+    this.share[c].ownerHeard = this.time;
     if (this.owner[c] === 'me') {
       // Both started at once: the lower id keeps it.
       if (mode === 'play' && f.id < (this.session?.selfId ?? '')) {
@@ -448,8 +482,13 @@ export class Arcade {
         // Finished: tell watchers once, and let it go.
         s.emit('arcS', { c, m: 0 });
         this.owner[c] = null;
-        if (this.p2[c]) this.dropP2(c);
         continue;
+      }
+      // Someone shares the controls: now and then the whole game, so they can carry on if I vanish.
+      this.stateT[c] -= dt;
+      if (this.share[c].any(this.time) && this.stateT[c] <= 0) {
+        this.stateT[c] = 1;
+        s.emit('arcX', { c, st: m.saveState() });
       }
       if (!anyone) {
         this.sendT[c] = 0.5;
@@ -462,14 +501,15 @@ export class Arcade {
       if (mode === 'initials') msg.i = m.initialsText;
       s.emit('arcS', msg);
     }
-    // My controls on a friend's two-player cabinet.
-    if (this.remoteP2 >= 0) {
+    // My hands on a friend's cabinet (any set: the controls belong to the machine).
+    const ra = this.remoteAt;
+    if (ra) {
       const p = packPad(this.pad);
-      this.remoteP2Sent -= dt;
-      if (p !== this.lastPadSent || this.remoteP2Sent <= 0) {
+      this.remoteSent -= dt;
+      if (p !== this.lastPadSent || this.remoteSent <= 0) {
         this.lastPadSent = p;
-        this.remoteP2Sent = 0.25;
-        s.emit('arcI', { c: this.remoteP2, p });
+        this.remoteSent = 0.25;
+        s.emit('arcI', { c: ra.c, s: ra.set, p });
       }
     }
   }
@@ -503,7 +543,11 @@ export class Arcade {
     this.at = { cab: c, set };
     this.floorAt = null;
     this.desk.enter(this.stationFor(c, set));
-    if (this.owner[c] && this.owner[c] !== 'me' && cab.sets.length === 1) this.d.hud.toast(`${this.ownerName[c] || 'A friend'} is playing this one: watch, or try another machine`, 'info');
+    if (this.owner[c] && this.owner[c] !== 'me')
+      this.d.hud.toast(
+        cab.sets.length > 1 && set === 1 ? `You're player 2 in ${this.ownerName[c] || 'a friend'}'s game` : `You're on the controls with ${this.ownerName[c] || 'a friend'}: your presses count in their game`,
+        'info',
+      );
   }
 
   private sitAtFloor(g: number, spot: number) {
@@ -513,7 +557,9 @@ export class Arcade {
     p.sit(fg.viewpoints[spot]);
     this.floorAt = { game: g, spot };
     this.at = null;
-    this.desk.enter(fg.desk);
+    // The station is the spot you sat at (air hockey has one per end): it must match your seat, or the
+    // next frame thinks something stood you up and leaves the game.
+    this.desk.enter({ ...fg.desk, id: fg.viewpoints[spot].id });
   }
 
   private leaveDesk() {
@@ -635,32 +681,59 @@ export class Arcade {
       }
     } else Object.assign(pad, ZERO_PAD);
 
-    // Route them: my own game, a friend's game's second controls, or nothing (watching).
-    const wasRemote = this.remoteP2;
-    this.remoteP2 = -1;
+    // Route them. The controls belong to the machine: whoever runs the game merges everyone's hands on
+    // each set (net.ts mergePads); at a friend's machine my hands go to them (arcI) and I watch their game.
+    const was = this.remoteAt;
+    this.remoteAt = null;
+    const now = this.time;
+    const selfId = this.session?.selfId ?? '';
     for (let c = 0; c < this.cabinets.length; c++) {
       const cab = this.cabinets[c];
       const m = cab.machine;
+      const sh = this.share[c];
+      sh.prune(now);
       const mine = at?.cab === c;
-      const friendOwns = !!this.owner[c] && this.owner[c] !== 'me';
+      let friendOwns = !!this.owner[c] && this.owner[c] !== 'me';
+      // The owner vanished (left, closed the tab) while I'm at the controls: carry on their game.
+      if (friendOwns && mine && this.session && sh.shouldTakeOver(selfId, this.owner[c]!, now)) {
+        const from = this.owner[c]!;
+        if (this.takeOver(c, sh.lastState, from, `${this.ownerName[c] || 'Your friend'} left: you carry on ${m.game.meta.title}`)) friendOwns = false;
+      }
       if (mine && friendOwns) {
         Object.assign(m.pad1, ZERO_PAD);
-        // A friend's two-player game: my set is player 2's.
-        if (cab.sets.length > 1 && at!.set === 1 && this.session) this.remoteP2 = c;
-      } else if (mine) {
-        Object.assign(m.pad1, pad);
-        if (m.mode === 'play' && this.owner[c] !== 'me') this.owner[c] = 'me';
-      } else Object.assign(m.pad1, ZERO_PAD);
-      // A friend on my second controls (dropped if they go quiet).
-      if (this.p2[c]) {
-        Object.assign(m.pad2, this.p2Pad[c]);
-        if (this.time - this.p2Heard[c] > 3) this.dropP2(c);
-      } else Object.assign(m.pad2, ZERO_PAD);
-      // Walked away from a game in progress: it waits a little, then ends.
-      if (this.owner[c] === 'me' && !mine && m.mode === 'play') {
+        Object.assign(m.pad2, ZERO_PAD);
+        if (this.session) this.remoteAt = { c, set: at!.set };
+        continue;
+      }
+      // My game (or nobody's): my hands on my set, plus friends' hands if I run it.
+      const shared = this.owner[c] === 'me';
+      sh.merged(m.pad1, 0, mine && at!.set === 0 ? pad : null, now, shared);
+      sh.merged(m.pad2, 1, mine && at!.set === 1 ? pad : null, now, shared);
+      if (cab.sets.length === 1 && mine && at!.set > 0) Object.assign(m.pad1, pad);
+      if (mine && m.mode === 'play' && this.owner[c] !== 'me') this.owner[c] = 'me';
+      // Two-player games: a friend on the second set is player 2.
+      if (cab.sets.length > 1) {
+        const h2 = shared && sh.at(1, now).length > 0;
+        if (h2 !== this.human2[c]) {
+          this.human2[c] = h2;
+          m.setHuman2(h2);
+          if (h2) this.d.hud.toast(`${this.friendName(sh.at(1, now)[0])} joined ${m.game.meta.title} as player 2`, 'win');
+        }
+      }
+      // Walked away from a game in progress: hand it to a friend still at the controls, else it waits a little, then ends.
+      if (this.owner[c] === 'me' && !mine && m.busy) {
         if (!this.walkAway || this.walkAway.cab !== c) this.walkAway = { cab: c, t: 0 };
         this.walkAway.t += dt;
-        if (this.walkAway.t > 20) {
+        const to = this.walkAway.t > 0.8 ? sh.handTo(now) : null;
+        if (to && this.session) {
+          this.session.emit('arcO', { c, to, st: m.saveState() });
+          this.owner[c] = to;
+          this.ownerName[c] = this.friendName(to);
+          sh.leave(to);
+          sh.ownerHeard = now;
+          m.handOff(this.ownerName[c]);
+          this.walkAway = null;
+        } else if (this.walkAway.t > 20 && m.mode === 'play') {
           m.abandon();
           this.walkAway = null;
         }
@@ -669,8 +742,12 @@ export class Arcade {
         if (!friendOwns && m.busy) this.owner[c] = 'me';
       }
     }
-    if (wasRemote >= 0 && this.remoteP2 !== wasRemote) this.session?.emit('arcJ', { c: wasRemote, on: 0 });
-    if (this.remoteP2 >= 0 && wasRemote !== this.remoteP2) this.session?.emit('arcJ', { c: this.remoteP2, on: 1 });
+    const ra = this.remoteAt as { c: number; set: number } | null;
+    if (was && (!ra || ra.c !== was.c || ra.set !== was.set)) this.session?.emit('arcJ', { c: was.c, s: was.set, on: 0 });
+    if (ra && (!was || ra.c !== was.c || ra.set !== was.set)) {
+      this.session?.emit('arcJ', { c: ra.c, s: ra.set, on: 1 });
+      this.remoteSent = 0;
+    }
 
     // Run, draw and sound the cabinets.
     const tier = this.d.tier ?? this.d.quality?.name;

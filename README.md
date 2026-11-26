@@ -66,7 +66,10 @@ and press the buttons with your fingers; on a screen walk up and the keys (or to
 On the floor: **Skyline Hoops** (45 seconds, real throws), **Puck Palazzo** air hockey (the house
 or a friend) and the **Lucky Claw** (win a plush pal to carry and toss: it's a real loose thing, so friends see it in your
 hand and wherever you throw it). Friends nearby watch your screen live, see the same puck and score,
-and the same claw run.
+and the same claw run. The sticks and buttons belong to the machines, not to a player: a friend who
+steps up while you play presses into your game (or takes player 2 on Splash Rally, the far end of the
+hockey table), and if you walk off, or drop out of the room, whoever is at the controls carries on the
+same game from where it was.
 
 **Hands and talk:** in VR your avatar's fingers follow your real ones: the Quest controllers'
 touch sensors (trigger touch and pull for the index finger, grip for the rest, thumb on the stick /

@@ -18,6 +18,11 @@ import type { ArcadeSlot } from './index';
  * on a screen the stick drives it. The player who started runs the puck and
  * sends it to everyone watching (20 times a second); the friend sends their
  * mallet back.
+ *
+ * The table belongs to nobody: a friend at the owner's end pushes the same
+ * mallet (their stick is added in), the owner walking away hands the running
+ * game (puck, score, serve) to the friend at the other end, who carries on
+ * against the house, and if the owner vanishes that friend takes over too.
  */
 
 const H = 0.8;
@@ -151,6 +156,11 @@ export class Hockey implements FloorGame {
   private remoteMallet: { x: number; z: number; t: number } | null = null;
   /** As a friend in someone else's game: my side. */
   private guestSide: 0 | 1 | null = null;
+  /** Friends' sticks at my end (co-pressing my mallet), by id. */
+  private coPads = new Map<string, { x: number; y: number; at: number }>();
+  private coSent = 0;
+  /** Seconds I've been away from my running game (to hand it over). */
+  private awayT = 0;
 
   constructor(
     private env: FloorEnv,
@@ -342,6 +352,18 @@ export class Hockey implements FloorGame {
         floorEmit(this.session, this.id, { k: 'a', side, id: f.id });
         break;
       }
+      case 'p':
+        // A friend's stick at my end: it pushes my mallet too.
+        if (this.owner === 'me') this.coPads.set(f.id, { x: Number(d.x) || 0, y: Number(d.y) || 0, at: this.time });
+        break;
+      case 'o':
+        // The owner stepped away and handed me the running game.
+        if (d.to === this.session?.selfId && this.owner !== 'me') this.carryOn(d, `${f.name} stepped away: the table is yours`);
+        else if (typeof d.to === 'string' && d.to !== this.session?.selfId) {
+          this.owner = d.to;
+          this.heard = this.time;
+        }
+        break;
       case 'a':
         if (d.id === this.session?.selfId) {
           this.guestSide = Number(d.side) === 1 ? 1 : 0;
@@ -397,23 +419,85 @@ export class Hockey implements FloorGame {
     }
   }
 
+  /** The whole running game (to hand it to someone). */
+  private stateMsg(): Record<string, unknown> {
+    const p = this.puck,
+      [a, b] = this.mallets;
+    return { p: [r3(p.x), r3(p.z), r3(p.vx), r3(p.vz)], m0: [r3(a.x), r3(a.z)], m1: [r3(b.x), r3(b.z)], sc: [...this.score], ph: this.phase, sv: r3(this.serveT), ov: r3(this.overT) };
+  }
+
+  /** I carry on a game someone else was running, from my end, against the house. */
+  private carryOn(d: Record<string, unknown>, msg: string) {
+    const side: 0 | 1 = this.guestSide ?? (Number(d.side) === 1 ? 1 : 0);
+    const p = d.p as number[] | undefined;
+    if (Array.isArray(p)) {
+      this.puck.x = Number(p[0]) || 0;
+      this.puck.z = Number(p[1]) || 0;
+      this.puck.vx = Number(p[2]) || 0;
+      this.puck.vz = Number(p[3]) || 0;
+    }
+    const sc = d.sc as number[] | undefined;
+    if (Array.isArray(sc)) {
+      this.score[0] = Number(sc[0]) || 0;
+      this.score[1] = Number(sc[1]) || 0;
+    }
+    if (d.sv !== undefined) this.serveT = Number(d.sv) || 0;
+    if (d.ov !== undefined) this.overT = Number(d.ov) || 0;
+    this.phase = d.ph === 'over' ? 'over' : 'play';
+    this.owner = 'me';
+    this.mySide = side;
+    this.guestSide = null;
+    this.opp = 'ai';
+    this.oppName = 'HOUSE';
+    this.ownerName = this.env.name();
+    this.remoteMallet = null;
+    this.awayT = 0;
+    this.env.toast(msg, 'win');
+  }
+
   update(f: FloorFrame) {
     const dt = f.dt;
     this.time += dt;
+    // My running game, and I've walked off: hand it to the friend at the other end (or at my end), else it plays on.
+    if (this.owner === 'me' && this.phase === 'play' && !f.desk && (!f.inXR || f.dist > 2.5)) {
+      this.awayT += dt;
+      const co = [...this.coPads].filter(([, v]) => this.time - v.at < 1).map(([id]) => id).sort()[0];
+      const to = this.opp !== 'ai' ? this.opp : co;
+      if (this.awayT > 1 && to && this.session) {
+        floorEmit(this.session, this.id, { k: 'o', to, side: this.opp === to ? 1 - this.mySide : this.mySide, ...this.stateMsg() });
+        this.owner = to;
+        this.ownerName = to === this.opp ? this.oppName : 'FRIEND';
+        this.opp = 'ai';
+        this.guestSide = null;
+        this.heard = this.time;
+        this.awayT = 0;
+      }
+    } else this.awayT = 0;
     const near = f.dist < 14;
     // START buttons (hands, or A on the desk pad at that end).
     const touch = f.inXR && f.dist < 3.5 ? this.env.touch : null;
     if (touch) touch.gather(this.env.hands);
     for (const side of [0, 1] as const) if (this.starts[side].update(touch, !!f.desk && f.desk.spot === side && f.desk.pad.a)) this.start(side);
-    // Desk driving: the stick moves your mallet (forward = toward the far end).
-    if (f.desk) {
-      const side = f.desk.spot as 0 | 1;
+    // Desk driving: the stick moves your mallet (forward = toward the far end), plus any friend's stick at my end.
+    let co = 0,
+      cx = 0,
+      cy = 0;
+    if (this.owner === 'me') {
+      for (const [id, v] of this.coPads) {
+        if (this.time - v.at > 0.6) this.coPads.delete(id);
+        else ((cx += v.x), (cy += v.y), co++);
+      }
+    } else this.coPads.clear();
+    if (f.desk || co) {
+      const side = (f.desk ? f.desk.spot : this.mySide) as 0 | 1;
       if (this.canDrive(side)) {
         const s = side === 0 ? 1 : -1;
         const m = this.mallets[side];
         const tgt = (this.target[side] ??= { x: m.x, z: m.z });
-        tgt.x += f.desk.pad.x * s * 1.9 * dt;
-        tgt.z += -f.desk.pad.y * s * 1.9 * dt;
+        const px = Math.max(-1, Math.min(1, (f.desk && f.desk.spot === side ? f.desk.pad.x : 0) + (side === this.mySide ? cx : 0)));
+        const py = Math.max(-1, Math.min(1, (f.desk && f.desk.spot === side ? f.desk.pad.y : 0) + (side === this.mySide ? cy : 0)));
+        tgt.x += px * s * 1.9 * dt;
+        tgt.z += -py * s * 1.9 * dt;
         const r = RINK.malletR;
         tgt.x = Math.max(-RINK.halfW + r, Math.min(RINK.halfW - r, tgt.x));
         tgt.z = side === 0 ? Math.max(r, Math.min(RINK.halfL - r, tgt.z)) : Math.min(-r, Math.max(-RINK.halfL + r, tgt.z));
@@ -433,10 +517,22 @@ export class Hockey implements FloorGame {
       // Watching / guest: glide the puck between the owner's updates.
       this.puck.x += this.puck.vx * dt;
       this.puck.z += this.puck.vz * dt;
-      if (this.time - this.heard > 3) {
+      const atTable = this.guestSide !== null || (!!f.desk && f.desk.spot === this.mySide);
+      if (this.time - this.heard > 2 && atTable && this.phase !== 'idle') {
+        // The owner vanished mid-game (left the room): I'm at the table, so I carry on from what I last saw.
+        this.carryOn({ side: this.guestSide ?? this.mySide }, `${this.ownerName || 'Your friend'} left: you carry on against the house`);
+      } else if (this.time - this.heard > 3) {
         this.owner = null;
         this.guestSide = null;
         this.phase = 'idle';
+      }
+      // At the owner's end (not their opponent): my stick pushes their mallet too.
+      if (this.owner && this.owner !== 'me' && f.desk && this.guestSide === null && f.desk.spot === this.mySide && this.session) {
+        this.coSent -= dt;
+        if (this.coSent <= 0) {
+          this.coSent = 0.05;
+          floorEmit(this.session, this.id, { k: 'p', x: r3(f.desk.pad.x), y: r3(f.desk.pad.y) });
+        }
       }
       if (this.guestSide !== null && this.session) {
         this.sendT -= dt;

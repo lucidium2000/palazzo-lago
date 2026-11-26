@@ -8,7 +8,7 @@ import type { DeskStation } from './desk';
 import { floorEmit, type FloorEnv, type FloorFrame, type FloorGame } from './floor';
 import { text } from './font';
 import { CLAW, dropDepth, grabChance, makePile, overChute, prizeUnder, stepBody } from './clawlogic';
-import type { ArcadeFriend, ArcadeSession } from './net';
+import { mergePads, packPad, unpackPad, type ArcadeFriend, type ArcadeSession } from './net';
 import { CabinetSound } from './synth';
 import { Rng } from './types';
 import type { ArcadeSlot } from './index';
@@ -27,7 +27,10 @@ import type { ArcadeSlot } from './index';
  *
  * Two players: whoever pays runs the claw and sends it (10 Hz), with the pile
  * as it stands when they put their dollar in, so a friend who came later
- * sees the same pile and the same prize come up.
+ * sees the same pile and the same prize come up. The stick and button belong
+ * to the machine: a friend at it while you play steers and drops the same
+ * claw (their hands are merged with yours), and if you walk off (or vanish)
+ * mid-run, the friend at the stick carries on the run, and the prize is theirs.
  *
  * The plush are the house's own: Chipper (a casino chip with feet), Dicey
  * (a dice bear), the Cherry Twins, Lucky Star and Olive the martini octopus.
@@ -68,6 +71,7 @@ interface Prize {
 }
 
 type Phase = 'idle' | 'aim' | 'drop' | 'close' | 'lift' | 'carry' | 'release';
+const PHASES: Phase[] = ['idle', 'aim', 'drop', 'close', 'lift', 'carry', 'release'];
 
 // --- The plush, as vertex-coloured merged geometries ---------------------------
 
@@ -291,6 +295,15 @@ export class Claw implements FloorGame {
   /** Desktop: the prize you're carrying (index), or -1. */
   private carrying = -1;
   private mine = false;
+  /** Friends' hands on the stick while I run it, by id. */
+  private coPads = new Map<string, { pad: { x: number; y: number; a: boolean; b: boolean; c: boolean }; at: number }>();
+  private coList: { x: number; y: number; a: boolean; b: boolean; c: boolean }[] = [];
+  private merged = { x: 0, y: 0, a: false, b: false, c: false };
+  private coSent = 0;
+  private lastPadSent = -1;
+  private awayT = 0;
+  /** The last run a friend sent (to carry on from if they vanish). */
+  private lastRun: Record<string, unknown> | null = null;
   private loose: FloorEnv['loose'] = null;
   /** Won prizes handed to the room's loose objects (tests). */
   won = 0;
@@ -723,10 +736,53 @@ export class Claw implements FloorGame {
     this.remote = null;
   }
 
+  /** The run as it stands (to hand to someone, or for watchers to carry on from). */
+  private runMsg(): Record<string, unknown> {
+    return { x: r3(this.cx), z: r3(this.cz), d: r3(this.drop), o: r3(this.open), h: this.held, q: PHASES.indexOf(this.phase), t: r3(this.timer), sl: r3(this.slipAt) };
+  }
+
+  /** I carry on a run someone else started: the stick is mine now, and so is what it wins. */
+  private carryOn(d: Record<string, unknown>, msg: string) {
+    const ph = PHASES[Number(d.q)] ?? 'idle';
+    if (ph === 'idle') return;
+    this.cx = Number(d.x) || 0;
+    this.cz = Number(d.z) || 0;
+    this.drop = Number(d.d) || 0;
+    this.open = Number(d.o) || 0;
+    this.timer = Number(d.t) || 0;
+    this.slipAt = Number.isFinite(Number(d.sl)) ? Number(d.sl) : -1;
+    const h = Number(d.h);
+    this.held = h >= 0 && this.prizes[h] ? h : -1;
+    if (this.held >= 0) {
+      this.prizes[this.held].state = 'claw';
+      this.prizes[this.held].mine = true;
+    }
+    this.phase = ph;
+    this.mine = true;
+    this.remote = null;
+    this.lastRun = null;
+    this.awayT = 0;
+    this.env.toast(msg, 'win');
+  }
+
   receive(f: ArcadeFriend, d: Record<string, unknown>) {
     switch (d.k) {
+      case 'p':
+        // A friend's hands on the stick while I run it.
+        if (this.mine) {
+          const e = this.coPads.get(f.id) ?? { pad: { x: 0, y: 0, a: false, b: false, c: false }, at: 0 };
+          unpackPad(Number(d.p), e.pad);
+          e.at = this.time;
+          this.coPads.set(f.id, e);
+        }
+        break;
+      case 'o':
+        if (d.to === this.session?.selfId) this.carryOn(d, `${f.name} stepped away: the Lucky Claw is yours`);
+        else if (typeof d.to === 'string') this.remote = { id: d.to, name: 'A friend', until: this.time + 2 };
+        break;
       case 'c':
         if (this.mine) return;
+        this.lastRun = d;
         this.remote = { id: f.id, name: f.name, until: this.time + (Number(d.ph) ? 2 : 0) };
         this.cx = Number(d.x) || 0;
         this.cz = Number(d.z) || 0;
@@ -809,13 +865,52 @@ export class Claw implements FloorGame {
       pad = f.desk.pad;
     }
     this.set.redraw();
-    if (!busyRemote) this.runClaw(dt, pad);
+    if (busyRemote && pad && this.session) {
+      // Someone else's run: my hands go to them (the stick is the machine's, not theirs).
+      const p = packPad({ x: pad.x, y: pad.y, a: pad.a, b: false, c: false });
+      this.coSent -= dt;
+      if (p !== this.lastPadSent || this.coSent <= 0) {
+        this.lastPadSent = p;
+        this.coSent = 0.1;
+        floorEmit(this.session, this.id, { k: 'p', p });
+      }
+    }
+    // Their run went quiet (they left the room) while I'm at the stick: I carry it on.
+    if (!this.mine && pad && this.remote && this.lastRun && this.time > this.remote.until + 1 && Number(this.lastRun.q) > 0) {
+      this.carryOn(this.lastRun, `${this.remote.name} left: you carry on the Lucky Claw`);
+    }
+    if (this.mine && this.coPads.size) {
+      // Everyone's hands on the one stick: buttons if anyone presses, the stick added up.
+      this.coList.length = 0;
+      if (pad) this.coList.push({ x: pad.x, y: pad.y, a: pad.a, b: false, c: false });
+      for (const [id, e] of this.coPads) {
+        if (this.time - e.at > 1) this.coPads.delete(id);
+        else this.coList.push(e.pad);
+      }
+      pad = mergePads(this.merged, this.coList);
+    }
+    // My run, and I walked off mid-way: hand it to the friend at the stick.
+    if (this.mine && this.phase !== 'idle' && !f.desk && (!f.inXR || f.dist > 1.6)) {
+      this.awayT += dt;
+      const to = [...this.coPads.keys()].sort()[0];
+      if (this.awayT > 0.8 && to && this.session) {
+        floorEmit(this.session, this.id, { k: 'o', to, ...this.runMsg() });
+        if (this.held >= 0) this.prizes[this.held].mine = false;
+        this.mine = false;
+        // Their run now: this machine just shows it (as any watcher's does).
+        this.phase = 'idle';
+        this.remote = { id: to, name: 'A friend', until: this.time + 2 };
+        this.coPads.clear();
+        this.awayT = 0;
+      }
+    } else this.awayT = 0;
+    if (!busyRemote || this.mine) this.runClaw(dt, pad);
     // Tell friends where the claw is (10 Hz while it's working).
     if (this.mine && this.session && this.phase !== 'idle') {
       this.sendT -= dt;
       if (this.sendT <= 0) {
         this.sendT = 0.1;
-        floorEmit(this.session, this.id, { k: 'c', x: r3(this.cx), z: r3(this.cz), d: r3(this.drop), o: r3(this.open), h: this.held, ph: 1 });
+        floorEmit(this.session, this.id, { k: 'c', ...this.runMsg(), ph: 1 });
       }
     }
     // Prizes moving.
