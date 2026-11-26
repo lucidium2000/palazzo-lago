@@ -283,6 +283,9 @@ async function main() {
     [0, -15.6], [-5.5, -16], [5.5, -16], [-8.5, -15.2], [8.5, -15.2],
   ]);
 
+  // Guests chatting round the rotunda fountain, first, so the middle of the floor is never empty.
+  crowd.addGroup(2.7, -0.2, 3, { drinks: 0.7 });
+  crowd.addGroup(-2.5, 4.3, 2, { drinks: 0.5 });
   // Croupier and the regulars around the roulette table.
   const spots = roulette.spots();
   const croupier = crowd.add('croupier', staffLook('dealer'), spots.croupier.pos, spots.croupier.yaw);

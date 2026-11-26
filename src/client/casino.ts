@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import type { Quality } from './quality';
-import { carpet, damask, floorTile, lakeReflection, marble, radial, toTexture, wood } from './textures';
+import { canvas, carpet, damask, floorTile, lakeReflection, marble, radial, toTexture, wood } from './textures';
 import { buildCity } from './skyline';
 import { textSign } from './panel';
 import { bakeStatic } from './merge';
@@ -109,6 +109,8 @@ export function registerHall(world: import('./world').World, c: Casino) {
   // Columns stand on square marble plinths (0.95 m); planters are gilded urns.
   for (const [x, z] of c.columns) world.addBox(x, z, 0.95, 0.95, 0, 'column');
   for (const [x, z] of c.planters) world.addCircle(x, z, 0.45, 'planter');
+  // The rotunda fountain (its basin's lip).
+  world.addCircle(ROTUNDA.x, ROTUNDA.z, 1.55, 'fountain');
   // Window sills on the north wall (all but the middle bay, which is the doors).
   for (const wx of [-12, -6, 6, 12]) world.addBox(wx, -HALL.d / 2 + 0.38, 3.7, 0.2, 0, 'wall');
   // Lanterns either side of the terrace doors.
@@ -457,6 +459,10 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
   drum.position.set(ROTUNDA.x, H - 0.05, ROTUNDA.z);
   root.add(drum);
   root.add(glassFlowers(q));
+  // The rotunda's centrepiece under the glass flowers: a tiered marble fountain crowned with flowers.
+  const centre = rotundaFountain(columnMat, darkMarble, gold);
+  centre.position.set(ROTUNDA.x, 0, ROTUNDA.z);
+  root.add(centre);
 
   // --- Columns ------------------------------------------------------------------
   const columnSpots: [number, number][] = [];
@@ -764,6 +770,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     },
     update(t: number, player?: THREE.Vector3) {
       (fountains.userData.update as (t: number) => void)(t);
+      (centre.userData.update as (t: number) => void)(t);
       city.update(t);
       sparkle.value = t;
       if (player) {
@@ -1062,6 +1069,87 @@ function chandeliers(spots: [number, number][], q: Quality, gold: THREE.Material
   crystals.count = ci;
   parts.build(g, false);
   g.add(crystals, bulbs);
+  return g;
+}
+
+/**
+ * The rotunda fountain: a marble basin with a gilt lip, two bowls on pedestals
+ * spilling sheets of water (a streak texture scrolling down translucent
+ * curtains), still glossy pools, and a crown of flowers on top. A handful of
+ * draws; the static parts merge with the hall.
+ */
+function rotundaFountain(marble: THREE.Material, dark: THREE.Material, gold: THREE.Material): THREE.Group {
+  const g = new THREE.Group();
+  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, y: number) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.y = y;
+    g.add(m);
+    return m;
+  };
+  const pool = new THREE.MeshStandardMaterial({ color: 0x0d3a4c, roughness: 0.04, metalness: 0.3, emissive: 0x0a3a4a, emissiveIntensity: 0.7, envMapIntensity: 1.6 });
+  const ring = (r: number, y: number, t = 0.05) => {
+    const m = add(new THREE.TorusGeometry(r, t, 8, 56), gold, y);
+    m.rotation.x = Math.PI / 2;
+  };
+  // Step, basin, its lip and the water in it.
+  add(new THREE.CylinderGeometry(1.62, 1.66, 0.08, 48), dark, 0.04);
+  add(new THREE.CylinderGeometry(1.45, 1.5, 0.48, 48), marble, 0.32);
+  ring(1.45, 0.56, 0.07);
+  add(new THREE.CircleGeometry(1.36, 48).rotateX(-Math.PI / 2), pool, 0.53);
+  // Pedestal, the wide lower bowl and its pool.
+  add(new THREE.CylinderGeometry(0.2, 0.3, 1.0, 20), marble, 1.03);
+  add(new THREE.CylinderGeometry(0.86, 0.32, 0.24, 40), marble, 1.6);
+  ring(0.86, 1.72, 0.035);
+  add(new THREE.CircleGeometry(0.8, 40).rotateX(-Math.PI / 2), pool, 1.7);
+  // Upper pedestal, the small bowl and its pool.
+  add(new THREE.CylinderGeometry(0.11, 0.16, 0.55, 16), marble, 1.98);
+  add(new THREE.CylinderGeometry(0.46, 0.18, 0.16, 32), marble, 2.33);
+  ring(0.46, 2.41, 0.025);
+  add(new THREE.CircleGeometry(0.42, 32).rotateX(-Math.PI / 2), pool, 2.4);
+  // A crown of flowers: a leafy dome with blooms over it (one instanced draw for the blooms).
+  add(new THREE.SphereGeometry(0.3, 14, 10), new THREE.MeshStandardMaterial({ color: 0x2f5a2c, roughness: 0.8 }), 2.62).scale.y = 0.8;
+  const pal = [0xf4a3b5, 0xffd27a, 0xfff6ee, 0xd96a8a, 0xf2865a, 0xc8a0e8];
+  const n = 46;
+  const blooms = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.055, 0), new THREE.MeshStandardMaterial({ roughness: 0.6 }), n);
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const m4 = new THREE.Matrix4();
+  for (let i = 0; i < n; i++) {
+    const a = rnd() * Math.PI * 2,
+      e = Math.acos(rnd() * 0.9);
+    m4.makeTranslation(Math.cos(a) * Math.sin(e) * 0.31, 2.62 + Math.cos(e) * 0.25, Math.sin(a) * Math.sin(e) * 0.31);
+    blooms.setMatrixAt(i, m4);
+    blooms.setColorAt(i, new THREE.Color(pal[i % pal.length]));
+  }
+  g.add(blooms);
+  // Falling water: curtains from each bowl's lip, a streak texture scrolling down them.
+  const [c, x] = canvas(64, 256);
+  x.fillStyle = '#000';
+  x.fillRect(0, 0, 64, 256);
+  for (let i = 0; i < 90; i++) {
+    const sx = rnd() * 64,
+      len = 30 + rnd() * 90,
+      y0 = rnd() * 256;
+    const grd = x.createLinearGradient(0, y0, 0, y0 + len);
+    grd.addColorStop(0, 'rgba(255,255,255,0)');
+    grd.addColorStop(0.5, `rgba(220,240,255,${0.35 + rnd() * 0.5})`);
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = grd;
+    x.fillRect(sx, y0, 1 + rnd() * 2, len);
+    x.fillRect(sx, y0 - 256, 1 + rnd() * 2, len);
+  }
+  const streaks = toTexture(c);
+  streaks.wrapS = streaks.wrapT = THREE.RepeatWrapping;
+  streaks.repeat.set(6, 1);
+  const waterMat = new THREE.MeshBasicMaterial({ map: streaks, color: 0xbfe6ff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+  const sheets = [
+    add(new THREE.CylinderGeometry(0.87, 1.12, 1.06, 40, 1, true), waterMat, 1.07),
+    add(new THREE.CylinderGeometry(0.47, 0.66, 0.66, 32, 1, true), waterMat, 2.06),
+  ];
+  for (const sh of sheets) sh.userData.dynamic = true;
+  g.userData.update = (t: number) => {
+    streaks.offset.y = -((t * 0.9) % 1);
+  };
   return g;
 }
 
