@@ -6,7 +6,9 @@ import type { Interaction } from './interaction';
 import { PinchHold, pinchFinger, ReplyHud, replyButtons, replyPrompt, type ReplyInput } from './replyhud';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Audience, type Ctx, type Exchange, type Node, type Reply } from './dialogueLines';
 import { CONVO_BYE, HUH_LINES, STAFF, sceneVoice, type VoiceId } from './speech';
-import { interpret, vocabulary } from './understand';
+import { stance as stanceOf, understand, vocabulary, type Intent } from './understand';
+import { GUEST_TALK, HOW_RECORDED, RUDE_COMEBACKS, STAFF_TALK, STAFF_WHERE, WHERE_RECORDED, type StaffId } from './smalltalk';
+import { temperament } from './fight/anger';
 import { characterFor, elVoice, SPEAKERS, spoken, type Character } from './cast';
 import type { Listener } from './listen';
 import { mouthOf, voices } from './voices';
@@ -61,6 +63,8 @@ interface Convo {
   readyAt: number;
   waitingSince: number;
   ending: boolean;
+  /** Times you've talked about something else (asked their name, said hi...) while the replies were up. */
+  side: number;
 }
 
 export interface DialogueDeps {
@@ -79,6 +83,8 @@ export interface DialogueDeps {
   listener?: Listener;
   /** Is your character a woman (for your voice)? */
   playerFemale?(): boolean;
+  /** You asked the bartender for a drink by name (true: it's being made). */
+  orderDrink?(heard: string): boolean;
   /** Your VR hands (hand tracking answers replies with a pinch). */
   hands?: {
     tracked(side: 'left' | 'right'): boolean;
@@ -115,6 +121,10 @@ export class Dialogue {
   private time = 0;
   /** Called with every line you'd want your friends to hear (reactions, conversation lines, your replies). */
   onSpeak: ((l: SpokenLine) => void) | null = null;
+  /** You insulted a hot-head: it adds to their anger (fights.provoke). */
+  onProvoke: ((p: Person) => void) | null = null;
+  /** The last thing understood from your voice (tests and debugging). */
+  lastHeard: { heard: string; reply?: string; intent?: Intent } | null = null;
 
   constructor(private d: DialogueDeps) {
     this.chips = document.createElement('div');
@@ -351,7 +361,7 @@ export class Dialogue {
     this.prefetchTree(node, this.voiceOf(p));
     // Their circle pauses while they talk to you.
     if (p.talk) this.scenes.delete(p.talk);
-    this.convo = { npc: p, replies: null, readyAt: 0, waitingSince: 0, ending: false };
+    this.convo = { npc: p, replies: null, readyAt: 0, waitingSince: 0, ending: false, side: 0 };
     this.say(node);
   }
 
@@ -368,8 +378,13 @@ export class Dialogue {
 
   /**
    * Voice replies: while the replies are up, listen for your answer. A clear
-   * answer picks that reply; something they didn't catch gets a laugh-it-off
-   * line and they carry on as if you'd said one of the replies.
+   * answer picks that reply (by its words, a paraphrase, its position, yes or
+   * no: understand.ts). Anything else you might say gets a sensible reaction:
+   * hello, thanks, a compliment or a laugh carry on as a friendly answer; a
+   * goodbye ends it; an insult offends them; asking their name, the way
+   * somewhere or how they're doing gets an answer, and the replies come back.
+   * Something they didn't catch gets a laugh-it-off line and they carry on as
+   * if you'd said one of the replies.
    */
   private listenFor(c: Convo, tries: number) {
     const l = this.d.listener;
@@ -382,29 +397,161 @@ export class Dialogue {
         if (tries > 1) this.listenFor(c, tries - 1);
         return;
       }
-      const i = interpret(heard, replies);
-      if (i !== null) return this.pick(replies[i], true);
-      // Didn't catch it: roll with it.
-      const pool = this.isGuest(c.npc) && Math.random() < 0.7 ? this.character(c.npc).huh : HUH_LINES;
-      const huh = pool[Math.floor(Math.random() * pool.length)];
+      this.heard(heard);
+    });
+  }
+
+  /**
+   * You said something to the person you're talking to (from the listener, or
+   * `casino.dialogue.heard(...)` to try it without a mic).
+   */
+  heard(heard: string) {
+    const c = this.convo;
+    const replies = c?.replies;
+    if (!c || !replies) return;
+    // The bartender: a drink by name is an order.
+    if (this.isBartender(c.npc) && this.d.orderDrink?.(heard)) {
+      this.lastHeard = { heard, intent: undefined, reply: 'order' };
+      this.d.listener?.stop();
       this.hideReplies();
       c.replies = null;
-      const dur = this.line(c.npc, huh, { voice: true, priority: true });
-      const r = replies[Math.floor(Math.random() * replies.length)];
-      setTimeout(() => {
-        if (this.convo !== c) return;
-        // Carry on down a random branch (its follow-up line), or wrap up.
-        if (r.next) this.say(r.next);
-        else this.endConvo(null);
-      }, (dur + 0.3) * 1000);
-      c.readyAt = this.time + dur + 9;
-    });
+      this.endConvo(null);
+      return;
+    }
+    const u = understand(heard, replies);
+    if (u && 'reply' in u) {
+      this.lastHeard = { heard, reply: replies[u.reply].label };
+      return this.pick(replies[u.reply], true);
+    }
+    if (u && c.side < 3) {
+      this.lastHeard = { heard, intent: u.intent };
+      return this.intent(c, replies, u.intent);
+    }
+    this.lastHeard = { heard };
+    // Didn't catch it: roll with it.
+    const pool = this.isGuest(c.npc) && Math.random() < 0.7 ? this.character(c.npc).huh : HUH_LINES;
+    const huh = pool[Math.floor(Math.random() * pool.length)];
+    this.hideReplies();
+    c.replies = null;
+    const dur = this.line(c.npc, huh, { voice: true, priority: true });
+    const r = replies[Math.floor(Math.random() * replies.length)];
+    setTimeout(() => {
+      if (this.convo !== c) return;
+      // Carry on down a random branch (its follow-up line), or wrap up.
+      if (r.next) this.say(r.next);
+      else this.endConvo(null);
+    }, (dur + 0.3) * 1000);
+    c.readyAt = this.time + dur + 9;
+  }
+
+  /** What they do when you said something other than a reply. */
+  private intent(c: Convo, replies: Reply[], it: Intent) {
+    const p = c.npc;
+    const guest = this.isGuest(p);
+    const ch = guest ? this.character(p) : null;
+    const staff = guest ? null : this.staffId(p);
+    switch (it.kind) {
+      case 'bye':
+        return this.endConvo(ch ? ch.bye.walkedOff : CONVO_BYE.walkedOff);
+      case 'insult':
+        return this.insulted(p);
+      case 'cheers':
+        if (ch) return this.aside(c, this.recordedFirst(p, ch.cheers, []));
+        return this.friendly(c, replies);
+      case 'name':
+        if (ch) return this.aside(c, GUEST_TALK[ch.id]?.name ?? ch.huh[0]);
+        return this.aside(c, staff ? STAFF_TALK[staff].name : HUH_LINES[0]);
+      case 'how':
+        if (ch) return this.aside(c, this.recordedFirst(p, [GUEST_TALK[ch.id]?.how ?? ch.quips[0]], HOW_RECORDED[ch.id] ?? []));
+        return this.aside(c, staff ? STAFF_TALK[staff].how : HUH_LINES[0]);
+      case 'where': {
+        if (ch) {
+          const known = it.place ? WHERE_RECORDED[it.place] : undefined;
+          return this.aside(c, this.recordedFirst(p, known ? [known] : [], [GUEST_TALK[ch.id]?.where ?? ch.huh[0]]));
+        }
+        return this.aside(c, STAFF_WHERE[it.place ?? 'unknown']);
+      }
+      case 'laugh':
+        p.laughT = 1.2 + Math.random() * 0.4;
+        return this.friendly(c, replies);
+      case 'compliment':
+        p.cheer = Math.max(p.cheer, 0.8);
+        return this.friendly(c, replies);
+      case 'greet':
+      case 'thanks':
+        return this.friendly(c, replies);
+    }
+  }
+
+  /** A friendly word (hello, thanks, a compliment, a laugh): they take it as the warm answer and carry on. */
+  private friendly(c: Convo, replies: Reply[]) {
+    const i = Math.max(0, replies.findIndex((r) => stanceOf(r.label) === 'yes'));
+    this.pick(replies[i], true);
+  }
+
+  /**
+   * They answer something you asked off-script (their name, the way
+   * somewhere, how they're doing), then the replies come back up. A line that
+   * isn't recorded yet is a caption, never the robot voice.
+   */
+  private aside(c: Convo, text: string) {
+    this.d.listener?.stop();
+    this.hideReplies();
+    c.side++;
+    const dur = this.line(c.npc, text, { voice: true, priority: true, subtitle: true, recordedOnly: true });
+    // The replies (and listening) return once they've said it (updateConvo).
+    c.readyAt = this.time + dur + 0.3;
+    c.waitingSince = 0;
+  }
+
+  /** Rude words: an annoyed comeback in their own recorded voice, the talk is over, and a hot-head gets angrier. */
+  private insulted(p: Person) {
+    const id = this.isGuest(p) ? this.character(p).id : this.staffId(p);
+    const list = (id && RUDE_COMEBACKS[id]) || [];
+    const [v0, v1] = this.voicesOf(p);
+    const rec = list.filter((l) => voices.has(v0, l.text) || voices.has(v1, l.text));
+    const pickFrom = rec.length ? rec : list;
+    const say = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+    this.d.listener?.stop();
+    this.hideReplies();
+    if (this.convo?.npc === p) this.convo = null;
+    this.globalCd = Math.max(this.globalCd, 20);
+    this.lookAt = null;
+    this.reactCool.delete(p);
+    if (say) this.react(p, say.kind, undefined, say.text);
+    p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + 3);
+    if (id && temperament(id).fuse >= 1.5) this.onProvoke?.(p);
+  }
+
+  /** The recorded line to use: the first of `prefer` that's recorded, else of `fallback`, else `prefer`'s first (a caption). */
+  private recordedFirst(p: Person, prefer: string[], fallback: string[]): string {
+    const [v0, v1] = this.voicesOf(p);
+    const rec = (t: string) => voices.has(v0, t) || voices.has(v1, t);
+    return prefer.find(rec) ?? fallback.find(rec) ?? prefer[0] ?? fallback[0];
+  }
+
+  /** A staff member's speaker id (their lines in smalltalk.ts / reactlines.ts). */
+  private staffId(p: Person): StaffId | null {
+    if (p.role !== 'bartender' && p.role !== 'waiter' && p.role !== 'croupier') return null;
+    return this.voicesOf(p)[0].replace(/^el_/, '') as StaffId;
+  }
+
+  private isBartender(p: Person) {
+    return p.role === 'bartender';
   }
 
   private pick(r: Reply, spokenAloud = false) {
     const c = this.convo;
     if (!c) return;
     this.d.listener?.stop();
+    // Naming a drink to the bartender (a reply or a click) orders it.
+    if (this.isBartender(c.npc) && this.d.orderDrink?.(r.label)) {
+      this.hideReplies(c.replies?.indexOf(r) ?? -1);
+      c.replies = null;
+      if (!spokenAloud) this.sayMine(r.label);
+      this.endConvo(null);
+      return;
+    }
     this.hideReplies(c.replies?.indexOf(r) ?? -1);
     if (voices.captions) this.d.hud.say('You', r.label);
     // You say it (unless you already did, into the mic); they answer once you're done.
@@ -439,7 +586,8 @@ export class Dialogue {
   }
 
   /** Someone says a line: their own recorded voice from where they stand (bubble and caption if wanted). */
-  private line(p: Person, text: string, o: { voice?: boolean; priority?: boolean; subtitle?: boolean } = {}) {
+  /** `recordedOnly`: a line nobody has recorded yet is a caption, never the browser's voice. */
+  private line(p: Person, text: string, o: { voice?: boolean; priority?: boolean; subtitle?: boolean; recordedOnly?: boolean } = {}) {
     const voice = voices.pick(text, ...this.voicesOf(p));
     const recorded = voices.has(voice, text);
     let dur = voices.duration(voice, text) ?? lineTime(text);
@@ -448,8 +596,8 @@ export class Dialogue {
       dur = voices.talk({ who: this.title(p), text, voice, at: mouthOf(p), priority: o.priority, group: o.priority ? 'convo' : undefined, captionFallback: false });
       if (o.priority) voiceArbiter.claim(dur);
     } else {
-      if (o.subtitle) this.d.hud.say(this.title(p), spoken(text));
-      if (o.voice && (o.priority || !voiceArbiter.busy())) this.voice(p, text, 1, !!o.priority);
+      if (o.subtitle || o.recordedOnly) this.d.hud.say(this.title(p), spoken(text));
+      if (o.voice && !o.recordedOnly && (o.priority || !voiceArbiter.busy())) this.voice(p, text, 1, !!o.priority);
     }
     this.d.crowd.speak(p, dur);
     if (voices.captions || !recorded) this.bubble(p, spoken(text), dur + 0.8);

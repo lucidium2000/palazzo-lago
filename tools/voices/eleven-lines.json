@@ -1,8 +1,20 @@
 [
  {
+  "id": "034adb59",
+  "voice": "el_bartender",
+  "text": "The arcade's on the Promenade. Take the elevators in the hotel lobby.",
+  "p": 1
+ },
+ {
   "id": "0600bc9b",
   "voice": "el_bartender",
   "text": "[yelling] OUCH! Security, now!",
+  "p": 1
+ },
+ {
+  "id": "0620d87e",
+  "voice": "el_bartender",
+  "text": "Busy, but I love it. Nights like this fly by.",
   "p": 1
  },
  {
@@ -24,6 +36,12 @@
   "p": 1
  },
  {
+  "id": "0d6332ea",
+  "voice": "el_bartender",
+  "text": "For food, take the elevators to the Promenade. Pizza, burgers, noodles and gelato.",
+  "p": 1
+ },
+ {
   "id": "1b6ed381",
   "voice": "el_bartender",
   "text": "You know what? Same.",
@@ -36,9 +54,21 @@
   "p": 1
  },
  {
+  "id": "2140ad69",
+  "voice": "el_bartender",
+  "text": "Lemonade. Good choice.",
+  "p": 1
+ },
+ {
   "id": "23a056fa",
   "voice": "el_bartender",
   "text": "Lager on tap, fresh off the tap.",
+  "p": 1
+ },
+ {
+  "id": "258a9672",
+  "voice": "el_bartender",
+  "text": "The cashier is over by the entrance.",
   "p": 1
  },
  {
@@ -84,6 +114,12 @@
   "p": 1
  },
  {
+  "id": "3a518121",
+  "voice": "el_bartender",
+  "text": "Roulette's in the pit, on the bar side. Listen for the wheel.",
+  "p": 1
+ },
+ {
   "id": "3b730e84",
   "voice": "el_bartender",
   "text": "Right on. Right on.",
@@ -99,6 +135,30 @@
   "id": "3de2a87d",
   "voice": "el_bartender",
   "text": "Tequila shot. Good choice.",
+  "p": 1
+ },
+ {
+  "id": "3ffc0f3d",
+  "voice": "el_bartender",
+  "text": "Sorry, where to? The bar, the tables, the pool, the Promenade? Just ask.",
+  "p": 1
+ },
+ {
+  "id": "508ba8e4",
+  "voice": "el_bartender",
+  "text": "Craps is at the back of the pit, past roulette. Just follow the shouting.",
+  "p": 1
+ },
+ {
+  "id": "533ad698",
+  "voice": "el_bartender",
+  "text": "The slots are on the east side of the floor. You'll hear them.",
+  "p": 1
+ },
+ {
+  "id": "582662e6",
+  "voice": "el_bartender",
+  "text": "The elevators are in the hotel lobby, just east of the casino floor.",
   "p": 1
  },
  {
@@ -138,6 +198,12 @@
   "p": 1
  },
  {
+  "id": "76081fbd",
+  "voice": "el_bartender",
+  "text": "Vanilla shake. Good choice.",
+  "p": 1
+ },
+ {
   "id": "76faea22",
   "voice": "el_bartender",
   "text": "One Espresso Martini, shaken. Coming up.",
@@ -147,6 +213,12 @@
   "id": "7faa7909",
   "voice": "el_bartender",
   "text": "[shouting] SECURITY! Trouble at the bar!",
+  "p": 1
+ },
+ {
+  "id": "81112ed1",
+  "voice": "el_bartender",
+  "text": "Restrooms are past the slots, on the left.",
   "p": 1
  },
  {
@@ -168,9 +240,21 @@
   "p": 1
  },
  {
+  "id": "8eaa2659",
+  "voice": "el_bartender",
+  "text": "The terrace is at the far end of the floor. Best view of the fountains.",
+  "p": 1
+ },
+ {
   "id": "90b3a3a0",
   "voice": "el_bartender",
   "text": "Hey, mind the bar, sweetie.",
+  "p": 1
+ },
+ {
+  "id": "90fbf1b8",
+  "voice": "el_bartender",
+  "text": "The poker room is through the west wall, past Bar Lago.",
   "p": 1
  },
  {
@@ -189,6 +273,12 @@
   "id": "94e16faa",
   "voice": "el_bartender",
   "text": "Scotch on the rocks. Good choice.",
+  "p": 1
+ },
+ {
+  "id": "9b17ef36",
+  "voice": "el_bartender",
+  "text": "Bar Lago is along the west wall, by the poker room. Follow the piano.",
   "p": 1
  },
  {
@@ -213,6 +303,12 @@
   "id": "b3f276b9",
   "voice": "el_bartender",
   "text": "Hazy IPA, fresh off the tap.",
+  "p": 1
+ },
+ {
+  "id": "b8129df0",
+  "voice": "el_bartender",
+  "text": "Lago Luxe is on the Promenade, by the food court. Take the elevators.",
   "p": 1
  },
  {
@@ -264,6 +360,24 @@
   "p": 1
  },
  {
+  "id": "d7edfc13",
+  "voice": "el_bartender",
+  "text": "I'm Gia. Remember it, and I'll remember your order.",
+  "p": 1
+ },
+ {
+  "id": "d802b85b",
+  "voice": "el_bartender",
+  "text": "Iced tea. Good choice.",
+  "p": 1
+ },
+ {
+  "id": "d8ca2472",
+  "voice": "el_bartender",
+  "text": "The pool's through the hotel lobby, past the elevators, then out the doors.",
+  "p": 1
+ },
+ {
   "id": "e5bf7566",
   "voice": "el_bartender",
   "text": "[sighs] Wow. Wasting my good work on me?",
@@ -273,6 +387,18 @@
   "id": "f0143345",
   "voice": "el_bartender",
   "text": "Whoa, careful, hon!",
+  "p": 1
+ },
+ {
+  "id": "f5ab75c9",
+  "voice": "el_bartender",
+  "text": "Cola. Good choice.",
+  "p": 1
+ },
+ {
+  "id": "f622b47e",
+  "voice": "el_bartender",
+  "text": "The blackjack tables are right in the middle of the pit.",
   "p": 1
  },
  {
@@ -2568,6 +2694,12 @@
   "p": 1
  },
  {
+  "id": "01dcfe6d",
+  "voice": "el_croupier",
+  "text": "Roulette's in the pit, on the bar side. Listen for the wheel.",
+  "p": 1
+ },
+ {
   "id": "03700d52",
   "voice": "el_croupier",
   "text": "Thirty-one, black.",
@@ -2577,6 +2709,12 @@
   "id": "06501e53",
   "voice": "el_croupier",
   "text": "Nineteen, red.",
+  "p": 1
+ },
+ {
+  "id": "0755788d",
+  "voice": "el_croupier",
+  "text": "The arcade's on the Promenade. Take the elevators in the hotel lobby.",
   "p": 1
  },
  {
@@ -2601,6 +2739,12 @@
   "id": "0e88667b",
   "voice": "el_croupier",
   "text": "Twenty-one, red.",
+  "p": 1
+ },
+ {
+  "id": "10811731",
+  "voice": "el_croupier",
+  "text": "Sorry, where to? The bar, the tables, the pool, the Promenade? Just ask.",
   "p": 1
  },
  {
@@ -2649,6 +2793,12 @@
   "id": "26d64205",
   "voice": "el_croupier",
   "text": "[icy] Charming. Truly charming.",
+  "p": 1
+ },
+ {
+  "id": "26f94934",
+  "voice": "el_croupier",
+  "text": "Very well, merci. The wheel is kind tonight. To some.",
   "p": 1
  },
  {
@@ -2706,6 +2856,12 @@
   "p": 1
  },
  {
+  "id": "49f51344",
+  "voice": "el_croupier",
+  "text": "The poker room is through the west wall, past Bar Lago.",
+  "p": 1
+ },
+ {
   "id": "4b0f9a6c",
   "voice": "el_croupier",
   "text": "Ten, black.",
@@ -2721,6 +2877,12 @@
   "id": "4ee52605",
   "voice": "el_croupier",
   "text": "I will pretend that did not happen. Once.",
+  "p": 1
+ },
+ {
+  "id": "4efdccd8",
+  "voice": "el_croupier",
+  "text": "Craps is at the back of the pit, past roulette. Just follow the shouting.",
   "p": 1
  },
  {
@@ -2757,6 +2919,12 @@
   "id": "59e20b94",
   "voice": "el_croupier",
   "text": "Thirty-two, red.",
+  "p": 1
+ },
+ {
+  "id": "6418adf5",
+  "voice": "el_croupier",
+  "text": "The terrace is at the far end of the floor. Best view of the fountains.",
   "p": 1
  },
  {
@@ -2832,9 +3000,21 @@
   "p": 1
  },
  {
+  "id": "925338ee",
+  "voice": "el_croupier",
+  "text": "The cashier is over by the entrance.",
+  "p": 1
+ },
+ {
   "id": "92b039a0",
   "voice": "el_croupier",
   "text": "Ha, totally. Vegas, am I right?",
+  "p": 1
+ },
+ {
+  "id": "93e8f162",
+  "voice": "el_croupier",
+  "text": "The elevators are in the hotel lobby, just east of the casino floor.",
   "p": 1
  },
  {
@@ -2859,6 +3039,12 @@
   "id": "a6334334",
   "voice": "el_croupier",
   "text": "Thirteen, black.",
+  "p": 1
+ },
+ {
+  "id": "aa0e4172",
+  "voice": "el_croupier",
+  "text": "Bar Lago is along the west wall, by the poker room. Follow the piano.",
   "p": 1
  },
  {
@@ -2904,6 +3090,12 @@
   "p": 1
  },
  {
+  "id": "bbeabb9e",
+  "voice": "el_croupier",
+  "text": "For food, take the elevators to the Promenade. Pizza, burgers, noodles and gelato.",
+  "p": 1
+ },
+ {
   "id": "bf360a06",
   "voice": "el_croupier",
   "text": "Careful, s'il vous plait.",
@@ -2913,6 +3105,18 @@
   "id": "c29900d6",
   "voice": "el_croupier",
   "text": "Fifteen, black.",
+  "p": 1
+ },
+ {
+  "id": "c5b3fc14",
+  "voice": "el_croupier",
+  "text": "Lago Luxe is on the Promenade, by the food court. Take the elevators.",
+  "p": 1
+ },
+ {
+  "id": "d1a054a2",
+  "voice": "el_croupier",
+  "text": "The blackjack tables are right in the middle of the pit.",
   "p": 1
  },
  {
@@ -2928,9 +3132,27 @@
   "p": 1
  },
  {
+  "id": "d53c9bde",
+  "voice": "el_croupier",
+  "text": "The pool's through the hotel lobby, past the elevators, then out the doors.",
+  "p": 1
+ },
+ {
   "id": "db51ad57",
   "voice": "el_croupier",
   "text": "Thirty, red.",
+  "p": 1
+ },
+ {
+  "id": "e1b681fd",
+  "voice": "el_croupier",
+  "text": "Restrooms are past the slots, on the left.",
+  "p": 1
+ },
+ {
+  "id": "e43ab86e",
+  "voice": "el_croupier",
+  "text": "Laurent, monsieur. At your service.",
   "p": 1
  },
  {
@@ -2943,6 +3165,12 @@
   "id": "e90b3b1f",
   "voice": "el_croupier",
   "text": "I have no idea what you just said, but I like your energy.",
+  "p": 1
+ },
+ {
+  "id": "e96f8e5c",
+  "voice": "el_croupier",
+  "text": "The slots are on the east side of the floor. You'll hear them.",
   "p": 1
  },
  {
@@ -3076,6 +3304,12 @@
   "voice": "el_dale",
   "text": "Bachelor party's at the pool later.",
   "p": 2
+ },
+ {
+  "id": "1712a18d",
+  "voice": "el_dale",
+  "text": "Name's Dale. Pleasure's all mine.",
+  "p": 1
  },
  {
   "id": "17b13dee",
@@ -3462,6 +3696,12 @@
   "p": 2
  },
  {
+  "id": "507609b9",
+  "voice": "el_dale",
+  "text": "Can't complain. Up a little, and the whiskey's cold.",
+  "p": 1
+ },
+ {
   "id": "51ecbaf5",
   "voice": "el_dale",
   "text": "How do they even clean that?",
@@ -3598,6 +3838,12 @@
   "voice": "el_dale",
   "text": "These drinks are strong.",
   "p": 2
+ },
+ {
+  "id": "6ef69961",
+  "voice": "el_dale",
+  "text": "Couldn't tell ya, partner. I just follow my boots. Ask the staff.",
+  "p": 1
  },
  {
   "id": "6f9443d1",
@@ -4326,15 +4572,33 @@
   "p": 1
  },
  {
+  "id": "1b58ab32",
+  "voice": "el_dealer",
+  "text": "For food, take the elevators to the Promenade. Pizza, burgers, noodles and gelato.",
+  "p": 1
+ },
+ {
   "id": "2504ef4d",
   "voice": "el_dealer",
   "text": "Please mind the table.",
   "p": 1
  },
  {
+  "id": "2d063261",
+  "voice": "el_dealer",
+  "text": "The terrace is at the far end of the floor. Best view of the fountains.",
+  "p": 1
+ },
+ {
   "id": "2d74acac",
   "voice": "el_dealer",
   "text": "Ha! I'll take that as a yes.",
+  "p": 1
+ },
+ {
+  "id": "3030b36e",
+  "voice": "el_dealer",
+  "text": "Bar Lago is along the west wall, by the poker room. Follow the piano.",
   "p": 1
  },
  {
@@ -4353,6 +4617,12 @@
   "id": "4156e723",
   "voice": "el_dealer",
   "text": "[shouting] SECURITY! Security to the blackjack table!",
+  "p": 1
+ },
+ {
+  "id": "458c25fa",
+  "voice": "el_dealer",
+  "text": "The pool's through the hotel lobby, past the elevators, then out the doors.",
   "p": 1
  },
  {
@@ -4410,9 +4680,33 @@
   "p": 1
  },
  {
+  "id": "734a6715",
+  "voice": "el_dealer",
+  "text": "Sorry, where to? The bar, the tables, the pool, the Promenade? Just ask.",
+  "p": 1
+ },
+ {
+  "id": "734b5770",
+  "voice": "el_dealer",
+  "text": "The poker room is through the west wall, past Bar Lago.",
+  "p": 1
+ },
+ {
+  "id": "79900104",
+  "voice": "el_dealer",
+  "text": "I'm Grace. Welcome to my table.",
+  "p": 1
+ },
+ {
   "id": "7f8b6933",
   "voice": "el_dealer",
   "text": "Good evening. Welcome to the table. Can I get you some chips?",
+  "p": 1
+ },
+ {
+  "id": "7fb959b6",
+  "voice": "el_dealer",
+  "text": "The blackjack tables are right in the middle of the pit.",
   "p": 1
  },
  {
@@ -4422,15 +4716,39 @@
   "p": 1
  },
  {
+  "id": "830f39fc",
+  "voice": "el_dealer",
+  "text": "Craps is at the back of the pit, past roulette. Just follow the shouting.",
+  "p": 1
+ },
+ {
   "id": "8d83f845",
   "voice": "el_dealer",
   "text": "Between us, the house always has an edge. But tonight feels lucky.",
   "p": 1
  },
  {
+  "id": "96c480a1",
+  "voice": "el_dealer",
+  "text": "The arcade's on the Promenade. Take the elevators in the hotel lobby.",
+  "p": 1
+ },
+ {
+  "id": "a8307c8e",
+  "voice": "el_dealer",
+  "text": "The elevators are in the hotel lobby, just east of the casino floor.",
+  "p": 1
+ },
+ {
   "id": "ada87ce2",
   "voice": "el_dealer",
   "text": "Not cool. Not cool at all.",
+  "p": 1
+ },
+ {
+  "id": "ba82e30a",
+  "voice": "el_dealer",
+  "text": "The cashier is over by the entrance.",
   "p": 1
  },
  {
@@ -4452,6 +4770,30 @@
   "p": 1
  },
  {
+  "id": "e0507d69",
+  "voice": "el_dealer",
+  "text": "Roulette's in the pit, on the bar side. Listen for the wheel.",
+  "p": 1
+ },
+ {
+  "id": "e2bb98d9",
+  "voice": "el_dealer",
+  "text": "Doing great, thanks. The cards are behaving. Mostly.",
+  "p": 1
+ },
+ {
+  "id": "e2d9bba0",
+  "voice": "el_dealer",
+  "text": "The slots are on the east side of the floor. You'll hear them.",
+  "p": 1
+ },
+ {
+  "id": "e2f62109",
+  "voice": "el_dealer",
+  "text": "Restrooms are past the slots, on the left.",
+  "p": 1
+ },
+ {
   "id": "ef6901c5",
   "voice": "el_dealer",
   "text": "[groans] Ow! You are done at this table.",
@@ -4461,6 +4803,12 @@
   "id": "f061383b",
   "voice": "el_dealer",
   "text": "Ten dollars, sir. Five hundred straight up.",
+  "p": 1
+ },
+ {
+  "id": "f19b4d68",
+  "voice": "el_dealer",
+  "text": "Lago Luxe is on the Promenade, by the food court. Take the elevators.",
   "p": 1
  },
  {
@@ -4558,6 +4906,12 @@
   "voice": "el_destiny",
   "text": "Have you been up to the suites?",
   "p": 2
+ },
+ {
+  "id": "15065aad",
+  "voice": "el_destiny",
+  "text": "I'm Destiny! The bride! [giggles] Did I mention I'm getting married?",
+  "p": 1
  },
  {
   "id": "1699b182",
@@ -4972,6 +5326,12 @@
   "voice": "el_destiny",
   "text": "This pool party is insane, right?",
   "p": 2
+ },
+ {
+  "id": "61aa7528",
+  "voice": "el_destiny",
+  "text": "Oh my gosh, I have no idea where anything is! [giggles] Ask somebody sober.",
+  "p": 1
  },
  {
   "id": "620dbf91",
@@ -5446,6 +5806,12 @@
   "voice": "el_destiny",
   "text": "The magician. My cousin saw it, said it's unreal.",
   "p": 2
+ },
+ {
+  "id": "afc906ad",
+  "voice": "el_destiny",
+  "text": "The best! Oh my gosh, I'm so happy. And a little tipsy.",
+  "p": 1
  },
  {
   "id": "b0138b83",
@@ -5946,6 +6312,12 @@
   "p": 2
  },
  {
+  "id": "14e1bf72",
+  "voice": "el_eleanor",
+  "text": "Very well, thank you, dear. Winning, as it happens. I usually am.",
+  "p": 1
+ },
+ {
   "id": "16a01e12",
   "voice": "el_eleanor",
   "text": "That's the point, honey.",
@@ -6034,6 +6406,12 @@
   "voice": "el_eleanor",
   "text": "Which one?",
   "p": 2
+ },
+ {
+  "id": "28d14285",
+  "voice": "el_eleanor",
+  "text": "I never notice where things are, dear. The staff will help you.",
+  "p": 1
  },
  {
   "id": "2aecb4c4",
@@ -6501,6 +6879,12 @@
   "id": "8002ecf4",
   "voice": "el_eleanor",
   "text": "Good evening.",
+  "p": 1
+ },
+ {
+  "id": "8160329b",
+  "voice": "el_eleanor",
+  "text": "Eleanor. Delighted, I'm sure.",
   "p": 1
  },
  {
@@ -7698,6 +8082,12 @@
   "p": 2
  },
  {
+  "id": "7489471e",
+  "voice": "el_kayla",
+  "text": "Oh, I'm Kayla! From Duluth. Nice to meet ya!",
+  "p": 1
+ },
+ {
   "id": "74f8ef25",
   "voice": "el_kayla",
   "text": "Red or black, the classic.",
@@ -8046,6 +8436,12 @@
   "p": 2
  },
  {
+  "id": "aa156812",
+  "voice": "el_kayla",
+  "text": "Oh, gosh, I'm lost too, hon! Maybe ask one of the staff?",
+  "p": 1
+ },
+ {
   "id": "aa7c1005",
   "voice": "el_kayla",
   "text": "Never split tens. Never.",
@@ -8152,6 +8548,12 @@
   "voice": "el_kayla",
   "text": "Have you seen the bathrooms?",
   "p": 2
+ },
+ {
+  "id": "bfd142ce",
+  "voice": "el_kayla",
+  "text": "Oh, I'm having the best time, hon. Down a little, but who cares!",
+  "p": 1
  },
  {
   "id": "c2fd6cbd",
@@ -9006,6 +9408,12 @@
   "p": 1
  },
  {
+  "id": "5e54f33a",
+  "voice": "el_marcus",
+  "text": "No clue, bro. I can't even find my groom. Ask the staff, they know everything.",
+  "p": 1
+ },
+ {
   "id": "5e67ac65",
   "voice": "el_marcus",
   "text": "So, down a hundred.",
@@ -9498,6 +9906,12 @@
   "p": 2
  },
  {
+  "id": "c4bcc5cc",
+  "voice": "el_marcus",
+  "text": "Man, I'm great. Lost the groom, found the buffet. That's a win.",
+  "p": 1
+ },
+ {
   "id": "c4c0fcdf",
   "voice": "el_marcus",
   "text": "Salute!",
@@ -9792,10 +10206,22 @@
   "p": 2
  },
  {
+  "id": "feceaa68",
+  "voice": "el_marcus",
+  "text": "Marcus! Best man, professional hype guy. [laughs]",
+  "p": 1
+ },
+ {
   "id": "fffb23c3",
   "voice": "el_marcus",
   "text": "Which bar? There are five.",
   "p": 2
+ },
+ {
+  "id": "002c2ed8",
+  "voice": "el_margo",
+  "text": "Margo, honey. They used to put it in lights.",
+  "p": 1
  },
  {
   "id": "00e04bf3",
@@ -9808,6 +10234,12 @@
   "voice": "el_margo",
   "text": "I'm cutting myself off after this one.",
   "p": 2
+ },
+ {
+  "id": "06169cd5",
+  "voice": "el_margo",
+  "text": "Darling, I'm fabulous. I'm always fabulous.",
+  "p": 1
  },
  {
   "id": "0ad9d56b",
@@ -10720,6 +11152,12 @@
   "voice": "el_margo",
   "text": "Ha! Famous last words. Good luck!",
   "p": 2
+ },
+ {
+  "id": "a73cff02",
+  "voice": "el_margo",
+  "text": "Sugar, I don't give directions. Ask someone in a uniform.",
+  "p": 1
  },
  {
   "id": "a74060a4",
@@ -11712,6 +12150,18 @@
   "p": 2
  },
  {
+  "id": "82a91cef",
+  "voice": "el_priya",
+  "text": "Priya. Nice to meet you. Quickly, though, I've got a hot table.",
+  "p": 1
+ },
+ {
+  "id": "83b0b783",
+  "voice": "el_priya",
+  "text": "Up, ahead of my friends, and I have the data to prove it.",
+  "p": 1
+ },
+ {
   "id": "843ebee6",
   "voice": "el_priya",
   "text": "It's worked for thirty years.",
@@ -11968,6 +12418,12 @@
   "voice": "el_priya",
   "text": "The bartender made me something with gold flakes in it.",
   "p": 2
+ },
+ {
+  "id": "b2de8457",
+  "voice": "el_priya",
+  "text": "No idea, honestly. Ask the staff, or just follow the noise.",
+  "p": 1
  },
  {
   "id": "b3c49f81",
@@ -12876,6 +13332,12 @@
   "p": 2
  },
  {
+  "id": "4f00045c",
+  "voice": "el_reggie",
+  "text": "Reginald. Reggie, once I've had a drink or two.",
+  "p": 1
+ },
+ {
   "id": "504e4f47",
   "voice": "el_reggie",
   "text": "Let's finish these first.",
@@ -13056,6 +13518,12 @@
   "p": 2
  },
  {
+  "id": "6ece6a28",
+  "voice": "el_reggie",
+  "text": "I haven't the foggiest, I'm afraid. One of the staff will know.",
+  "p": 1
+ },
+ {
   "id": "6f4921c1",
   "voice": "el_reggie",
   "text": "Small world. You winning?",
@@ -13210,6 +13678,12 @@
   "voice": "el_reggie",
   "text": "Have you been up to the suites?",
   "p": 2
+ },
+ {
+  "id": "88253670",
+  "voice": "el_reggie",
+  "text": "Rather well, thank you. Up forty dollars, which I'm told is pathetic here.",
+  "p": 1
  },
  {
   "id": "897e3a1b",
@@ -13878,6 +14352,12 @@
   "p": 2
  },
  {
+  "id": "0ede7233",
+  "voice": "el_rosa",
+  "text": "Winning. Quietly.",
+  "p": 1
+ },
+ {
   "id": "1094c5cc",
   "voice": "el_rosa",
   "text": "You look like you need a drink. The bar's amazing.",
@@ -14007,6 +14487,12 @@
   "id": "24b4062c",
   "voice": "el_rosa",
   "text": "You've been watching the tables. Counting?",
+  "p": 1
+ },
+ {
+  "id": "28beedf1",
+  "voice": "el_rosa",
+  "text": "Rosa.",
   "p": 1
  },
  {
@@ -14206,6 +14692,12 @@
   "voice": "el_rosa",
   "text": "Hang in there. The night is young!",
   "p": 2
+ },
+ {
+  "id": "51f27b47",
+  "voice": "el_rosa",
+  "text": "Ask the staff. I only know where the cards are.",
+  "p": 1
  },
  {
   "id": "550361fd",
@@ -15594,6 +16086,12 @@
   "p": 2
  },
  {
+  "id": "6376995a",
+  "voice": "el_sal",
+  "text": "Sal. I sang in every lounge on this Strip, kid.",
+  "p": 1
+ },
+ {
   "id": "643c2fcd",
   "voice": "el_sal",
   "text": "[hums] Ah, you should've seen this town in seventy-six, kid. You want to hear a story?",
@@ -15772,6 +16270,12 @@
   "voice": "el_sal",
   "text": "I'm cutting myself off after this one.",
   "p": 2
+ },
+ {
+  "id": "8608e149",
+  "voice": "el_sal",
+  "text": "Still kickin', kid. Every night in this town is a good night.",
+  "p": 1
  },
  {
   "id": "863a41d0",
@@ -16266,6 +16770,12 @@
   "p": 2
  },
  {
+  "id": "de34bb46",
+  "voice": "el_sal",
+  "text": "They moved everything since my day. Ask the young lady at the bar.",
+  "p": 1
+ },
+ {
   "id": "deb26832",
   "voice": "el_sal",
   "text": "Ring-a-ding-ding!",
@@ -16632,6 +17142,12 @@
   "p": 1
  },
  {
+  "id": "17c2c55b",
+  "voice": "el_stickman",
+  "text": "Bar Lago is along the west wall, by the poker room. Follow the piano.",
+  "p": 1
+ },
+ {
   "id": "18390314",
   "voice": "el_stickman",
   "text": "Ten, easy. Point is 6.",
@@ -16698,6 +17214,12 @@
   "p": 1
  },
  {
+  "id": "27ea8759",
+  "voice": "el_stickman",
+  "text": "The poker room is through the west wall, past Bar Lago.",
+  "p": 1
+ },
+ {
   "id": "2b5524dd",
   "voice": "el_stickman",
   "text": "Five, no field five. Point is 10.",
@@ -16716,15 +17238,39 @@
   "p": 1
  },
  {
+  "id": "300a3bd6",
+  "voice": "el_stickman",
+  "text": "Restrooms are past the slots, on the left.",
+  "p": 1
+ },
+ {
   "id": "336ec515",
   "voice": "el_stickman",
   "text": "[angry] You're payin' for this shirt, buddy!",
   "p": 1
  },
  {
+  "id": "34a99eb5",
+  "voice": "el_stickman",
+  "text": "The cashier is over by the entrance.",
+  "p": 1
+ },
+ {
+  "id": "3a089e9b",
+  "voice": "el_stickman",
+  "text": "The pool's through the hotel lobby, past the elevators, then out the doors.",
+  "p": 1
+ },
+ {
   "id": "3a3f9e7a",
   "voice": "el_stickman",
   "text": "Say that again? Actually, never mind. Good luck out there!",
+  "p": 1
+ },
+ {
+  "id": "3f8460df",
+  "voice": "el_stickman",
+  "text": "The slots are on the east side of the floor. You'll hear them.",
   "p": 1
  },
  {
@@ -16752,6 +17298,12 @@
   "p": 1
  },
  {
+  "id": "565b4d8e",
+  "voice": "el_stickman",
+  "text": "Sorry, where to? The bar, the tables, the pool, the Promenade? Just ask.",
+  "p": 1
+ },
+ {
   "id": "56aa8a2e",
   "voice": "el_stickman",
   "text": "8 the hard way! Winner, pay the line!",
@@ -16773,6 +17325,18 @@
   "id": "657a41ce",
   "voice": "el_stickman",
   "text": "Careful, careful!",
+  "p": 1
+ },
+ {
+  "id": "6c19d324",
+  "voice": "el_stickman",
+  "text": "The terrace is at the far end of the floor. Best view of the fountains.",
+  "p": 1
+ },
+ {
+  "id": "6f4c1bc1",
+  "voice": "el_stickman",
+  "text": "Benny! Benny on the stick! Hot hands, hot dice!",
   "p": 1
  },
  {
@@ -16860,6 +17424,12 @@
   "p": 1
  },
  {
+  "id": "845f1879",
+  "voice": "el_stickman",
+  "text": "The blackjack tables are right in the middle of the pit.",
+  "p": 1
+ },
+ {
   "id": "85df550c",
   "voice": "el_stickman",
   "text": "Eight the hard way. Point is 9.",
@@ -16890,6 +17460,12 @@
   "p": 1
  },
  {
+  "id": "90dab558",
+  "voice": "el_stickman",
+  "text": "Roulette's in the pit, on the bar side. Listen for the wheel.",
+  "p": 1
+ },
+ {
   "id": "95d22775",
   "voice": "el_stickman",
   "text": "Seven, front line winner!",
@@ -16899,6 +17475,12 @@
   "id": "983e49c2",
   "voice": "el_stickman",
   "text": "Ten, easy. Point is 8.",
+  "p": 1
+ },
+ {
+  "id": "999e7175",
+  "voice": "el_stickman",
+  "text": "Craps is at the back of the pit, past roulette. Just follow the shouting.",
   "p": 1
  },
  {
@@ -16923,6 +17505,12 @@
   "id": "9befc467",
   "voice": "el_stickman",
   "text": "Five, no field five. Point is 9.",
+  "p": 1
+ },
+ {
+  "id": "9d384999",
+  "voice": "el_stickman",
+  "text": "For food, take the elevators to the Promenade. Pizza, burgers, noodles and gelato.",
   "p": 1
  },
  {
@@ -16974,6 +17562,12 @@
   "p": 1
  },
  {
+  "id": "aa3b4ba0",
+  "voice": "el_stickman",
+  "text": "The arcade's on the Promenade. Take the elevators in the hotel lobby.",
+  "p": 1
+ },
+ {
   "id": "aa5cfa6d",
   "voice": "el_stickman",
   "text": "10 the hard way! Winner, pay the line!",
@@ -16989,6 +17583,12 @@
   "id": "b184f8ad",
   "voice": "el_stickman",
   "text": "Whoa! Easy, champ!",
+  "p": 1
+ },
+ {
+  "id": "b8e0d51d",
+  "voice": "el_stickman",
+  "text": "Lago Luxe is on the Promenade, by the food court. Take the elevators.",
   "p": 1
  },
  {
@@ -17025,6 +17625,12 @@
   "id": "c5f7cf05",
   "voice": "el_stickman",
   "text": "No problem. It's a hot table, though.",
+  "p": 1
+ },
+ {
+  "id": "c68b1af1",
+  "voice": "el_stickman",
+  "text": "The elevators are in the hotel lobby, just east of the casino floor.",
   "p": 1
  },
  {
@@ -17103,6 +17709,12 @@
   "id": "e6e51f64",
   "voice": "el_stickman",
   "text": "Four, easy. Point is 10.",
+  "p": 1
+ },
+ {
+  "id": "e75be2f8",
+  "voice": "el_stickman",
+  "text": "Hot table, hot night, baby! Couldn't be better!",
   "p": 1
  },
  {
@@ -17482,6 +18094,12 @@
   "voice": "el_tommy",
   "text": "The bartender made me something with gold flakes in it.",
   "p": 2
+ },
+ {
+  "id": "3d723a9a",
+  "voice": "el_tommy",
+  "text": "Good! Nervous. I'm down twelve dollars, but I'm learning so much!",
+  "p": 1
  },
  {
   "id": "3de4879e",
@@ -18312,6 +18930,12 @@
   "p": 1
  },
  {
+  "id": "d72154d3",
+  "voice": "el_tommy",
+  "text": "Tommy! Uh, Thomas. Tommy. From Ohio. Hi.",
+  "p": 1
+ },
+ {
   "id": "d82f4737",
   "voice": "el_tommy",
   "text": "[shouting] OW! Bro! What the heck?!",
@@ -18454,6 +19078,12 @@
   "voice": "el_tommy",
   "text": "Sure thing, my friend.",
   "p": 2
+ },
+ {
+  "id": "f1214b34",
+  "voice": "el_tommy",
+  "text": "Oh, gosh, I don't know. I've been lost for an hour. Maybe ask a dealer?",
+  "p": 1
  },
  {
   "id": "f22f386d",
@@ -19464,6 +20094,12 @@
   "p": 2
  },
  {
+  "id": "b6b8c7b8",
+  "voice": "el_vinnie",
+  "text": "Ah, I'm turned around myself, my friend. Ask somebody in a uniform.",
+  "p": 1
+ },
+ {
   "id": "b739bca4",
   "voice": "el_vinnie",
   "text": "Text the group, we're at the bar.",
@@ -19542,6 +20178,12 @@
   "p": 1
  },
  {
+  "id": "bfae800c",
+  "voice": "el_vinnie",
+  "text": "Me? I'm up, I'm down, I'm havin' the time of my life! [laughs]",
+  "p": 1
+ },
+ {
   "id": "c378aa0a",
   "voice": "el_vinnie",
   "text": "Where is that machine?",
@@ -19587,6 +20229,12 @@
   "id": "c9d7821c",
   "voice": "el_vinnie",
   "text": "Ha! A skeptic. I like you. Come watch next time.",
+  "p": 1
+ },
+ {
+  "id": "cb3126ec",
+  "voice": "el_vinnie",
+  "text": "Vinnie! Everybody knows Vinnie. From Jersey, my friend.",
   "p": 1
  },
  {
@@ -19854,9 +20502,21 @@
   "p": 1
  },
  {
+  "id": "06345032",
+  "voice": "el_waiter",
+  "text": "The terrace is at the far end of the floor. Best view of the fountains.",
+  "p": 1
+ },
+ {
   "id": "0d705cd8",
   "voice": "el_waiter",
   "text": "[composed, annoyed] I'll... just fetch a towel, then.",
+  "p": 1
+ },
+ {
+  "id": "1ab2d539",
+  "voice": "el_waiter",
+  "text": "Bar Lago is along the west wall, by the poker room. Follow the piano.",
   "p": 1
  },
  {
@@ -19884,6 +20544,12 @@
   "p": 1
  },
  {
+  "id": "3d855862",
+  "voice": "el_waiter",
+  "text": "The arcade's on the Promenade. Take the elevators in the hotel lobby.",
+  "p": 1
+ },
+ {
   "id": "40602253",
   "voice": "el_waiter",
   "text": "Champagne, sir? Compliments of the house.",
@@ -19893,6 +20559,12 @@
   "id": "40a0e153",
   "voice": "el_waiter",
   "text": "Ha, totally. Vegas, am I right?",
+  "p": 1
+ },
+ {
+  "id": "453282ed",
+  "voice": "el_waiter",
+  "text": "The pool's through the hotel lobby, past the elevators, then out the doors.",
   "p": 1
  },
  {
@@ -19926,6 +20598,12 @@
   "p": 1
  },
  {
+  "id": "7e3f60f7",
+  "voice": "el_waiter",
+  "text": "For food, take the elevators to the Promenade. Pizza, burgers, noodles and gelato.",
+  "p": 1
+ },
+ {
   "id": "81c6159e",
   "voice": "el_waiter",
   "text": "Charming. Truly.",
@@ -19944,9 +20622,39 @@
   "p": 1
  },
  {
+  "id": "8e797e93",
+  "voice": "el_waiter",
+  "text": "The elevators are in the hotel lobby, just east of the casino floor.",
+  "p": 1
+ },
+ {
+  "id": "8fedad2a",
+  "voice": "el_waiter",
+  "text": "Theo, at your service.",
+  "p": 1
+ },
+ {
+  "id": "94f5b004",
+  "voice": "el_waiter",
+  "text": "Restrooms are past the slots, on the left.",
+  "p": 1
+ },
+ {
+  "id": "98d48b8b",
+  "voice": "el_waiter",
+  "text": "The cashier is over by the entrance.",
+  "p": 1
+ },
+ {
   "id": "a224fa48",
   "voice": "el_waiter",
   "text": "You know what? Same.",
+  "p": 1
+ },
+ {
+  "id": "a9142577",
+  "voice": "el_waiter",
+  "text": "The blackjack tables are right in the middle of the pit.",
   "p": 1
  },
  {
@@ -19968,9 +20676,21 @@
   "p": 1
  },
  {
+  "id": "bbac9503",
+  "voice": "el_waiter",
+  "text": "Lago Luxe is on the Promenade, by the food court. Take the elevators.",
+  "p": 1
+ },
+ {
   "id": "bfa678dc",
   "voice": "el_waiter",
   "text": "[cries out] OW! Sir! That is entirely uncalled for!",
+  "p": 1
+ },
+ {
+  "id": "c181bbee",
+  "voice": "el_waiter",
+  "text": "Roulette's in the pit, on the bar side. Listen for the wheel.",
   "p": 1
  },
  {
@@ -19983,6 +20703,18 @@
   "id": "c5da13d0",
   "voice": "el_waiter",
   "text": "Say that again? Actually, never mind. Good luck out there!",
+  "p": 1
+ },
+ {
+  "id": "ce75b424",
+  "voice": "el_waiter",
+  "text": "Sorry, where to? The bar, the tables, the pool, the Promenade? Just ask.",
+  "p": 1
+ },
+ {
+  "id": "d27ced85",
+  "voice": "el_waiter",
+  "text": "The slots are on the east side of the floor. You'll hear them.",
   "p": 1
  },
  {
@@ -20004,9 +20736,27 @@
   "p": 1
  },
  {
+  "id": "ee10e183",
+  "voice": "el_waiter",
+  "text": "Craps is at the back of the pit, past roulette. Just follow the shouting.",
+  "p": 1
+ },
+ {
   "id": "f092c394",
   "voice": "el_waiter",
   "text": "No worries. Have a good one!",
+  "p": 1
+ },
+ {
+  "id": "f2c0f9bb",
+  "voice": "el_waiter",
+  "text": "The poker room is through the west wall, past Bar Lago.",
+  "p": 1
+ },
+ {
+  "id": "f64ccfd8",
+  "voice": "el_waiter",
+  "text": "Very well, thank you. A lively night.",
   "p": 1
  },
  {
@@ -20016,15 +20766,39 @@
   "p": 1
  },
  {
+  "id": "00942ea7",
+  "voice": "el_waitress",
+  "text": "The blackjack tables are right in the middle of the pit.",
+  "p": 1
+ },
+ {
   "id": "077c1d8c",
   "voice": "el_waitress",
   "text": "Real classy. Real classy, hon.",
   "p": 1
  },
  {
+  "id": "1031012d",
+  "voice": "el_waitress",
+  "text": "Running around like crazy, but good! Thanks for asking.",
+  "p": 1
+ },
+ {
+  "id": "1f7c3e27",
+  "voice": "el_waitress",
+  "text": "For food, take the elevators to the Promenade. Pizza, burgers, noodles and gelato.",
+  "p": 1
+ },
+ {
   "id": "2191a1ad",
   "voice": "el_waitress",
   "text": "Ow! Watch it!",
+  "p": 1
+ },
+ {
+  "id": "28ba837b",
+  "voice": "el_waitress",
+  "text": "The cashier is over by the entrance.",
   "p": 1
  },
  {
@@ -20055,6 +20829,18 @@
   "id": "33c54007",
   "voice": "el_waitress",
   "text": "[startled] Hey! Who threw that?",
+  "p": 1
+ },
+ {
+  "id": "3f73f669",
+  "voice": "el_waitress",
+  "text": "Bar Lago is along the west wall, by the poker room. Follow the piano.",
+  "p": 1
+ },
+ {
+  "id": "429c5014",
+  "voice": "el_waitress",
+  "text": "Restrooms are past the slots, on the left.",
   "p": 1
  },
  {
@@ -20112,6 +20898,18 @@
   "p": 1
  },
  {
+  "id": "89b3256b",
+  "voice": "el_waitress",
+  "text": "The poker room is through the west wall, past Bar Lago.",
+  "p": 1
+ },
+ {
+  "id": "8a399592",
+  "voice": "el_waitress",
+  "text": "The arcade's on the Promenade. Take the elevators in the hotel lobby.",
+  "p": 1
+ },
+ {
   "id": "8b27d04d",
   "voice": "el_waitress",
   "text": "Ha! I'll take that as a yes.",
@@ -20121,6 +20919,18 @@
   "id": "8bf3b2f2",
   "voice": "el_waitress",
   "text": "Of course. Let me know if you change your mind.",
+  "p": 1
+ },
+ {
+  "id": "90a6f8c2",
+  "voice": "el_waitress",
+  "text": "I'm Mia! Holler if you need anything.",
+  "p": 1
+ },
+ {
+  "id": "91a617dd",
+  "voice": "el_waitress",
+  "text": "The pool's through the hotel lobby, past the elevators, then out the doors.",
   "p": 1
  },
  {
@@ -20136,6 +20946,30 @@
   "p": 1
  },
  {
+  "id": "9d3e6795",
+  "voice": "el_waitress",
+  "text": "The slots are on the east side of the floor. You'll hear them.",
+  "p": 1
+ },
+ {
+  "id": "a3dad2be",
+  "voice": "el_waitress",
+  "text": "Roulette's in the pit, on the bar side. Listen for the wheel.",
+  "p": 1
+ },
+ {
+  "id": "b80a1dd3",
+  "voice": "el_waitress",
+  "text": "Craps is at the back of the pit, past roulette. Just follow the shouting.",
+  "p": 1
+ },
+ {
+  "id": "c905e2b4",
+  "voice": "el_waitress",
+  "text": "Sorry, where to? The bar, the tables, the pool, the Promenade? Just ask.",
+  "p": 1
+ },
+ {
   "id": "d47b7f51",
   "voice": "el_waitress",
   "text": "[cries out] OW! Are you kidding me?!",
@@ -20148,6 +20982,12 @@
   "p": 1
  },
  {
+  "id": "e3fe66c2",
+  "voice": "el_waitress",
+  "text": "The terrace is at the far end of the floor. Best view of the fountains.",
+  "p": 1
+ },
+ {
   "id": "e5e7d9b2",
   "voice": "el_waitress",
   "text": "Enjoy your evening!",
@@ -20157,6 +20997,12 @@
   "id": "e6e80699",
   "voice": "el_waitress",
   "text": "[annoyed] Wow. That's coming out of your tip.",
+  "p": 1
+ },
+ {
+  "id": "ebc82ea3",
+  "voice": "el_waitress",
+  "text": "The elevators are in the hotel lobby, just east of the casino floor.",
   "p": 1
  },
  {
@@ -20175,6 +21021,12 @@
   "id": "feda79e7",
   "voice": "el_waitress",
   "text": "[annoyed] Not at the staff, please!",
+  "p": 1
+ },
+ {
+  "id": "fff9bdb3",
+  "voice": "el_waitress",
+  "text": "Lago Luxe is on the Promenade, by the food court. Take the elevators.",
   "p": 1
  },
  {

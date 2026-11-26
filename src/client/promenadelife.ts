@@ -14,6 +14,9 @@ import { elVoice } from './cast';
 import { CLERK_LINES, COOK_LINES, cookSpeaker, type CookId, type PromSpeaker } from './promenadelines';
 import { STAFF } from './speech';
 import { mouthOf, voices } from './voices';
+import type { Listener } from './listen';
+import { matchMenu, menuVocabulary } from './understand';
+import { FOOD_ALIASES } from './replylex';
 
 /**
  * Life on the Promenade: ordering at the food court's counters (like ordering
@@ -75,7 +78,12 @@ export interface FoodCourtDeps {
   player: Player;
   area: PromenadeArea;
   cast: () => PromenadeCast | null;
+  /** Listens for a dish ordered out loud after the cook says hello. */
+  listener?: Listener;
 }
+
+/** You're standing at a counter (close enough to order). */
+const atCounter = (f: THREE.Vector3, c: CounterSpec) => onPromenade(f.x) && Math.abs(f.x - c.x) <= 2.2 && f.z <= -9.4;
 
 export class FoodCourt {
   private orders = new Map<string, Order>();
@@ -152,8 +160,35 @@ export class FoodCourt {
     return COOK_LINES[c.id as CookId];
   }
 
+  /**
+   * After the cook's hello, they listen for your order: say a dish ("a slice of
+   * pepperoni", "the spicy noodles", "pistachio") and it's made, as if you'd
+   * pointed at it on the menu.
+   */
+  private listenForDish(c: CounterSpec, after: number, tries = 2) {
+    const l = this.d.listener;
+    if (!l?.enabled) return;
+    const names = c.items.map((i) => i.name);
+    setTimeout(() => {
+      if (l.state !== 'idle' || this.orders.has(c.id) || !atCounter(this.d.player.feet(), c)) return;
+      void l.listen(menuVocabulary(names, FOOD_ALIASES, []), 8).then((heard) => {
+        if (!heard || this.orders.has(c.id) || !atCounter(this.d.player.feet(), c)) return;
+        if (this.heardAt(c, heard)) return;
+        if (tries > 1) this.listenForDish(c, 0, tries - 1);
+      });
+    }, Math.max(0.4, after) * 1000);
+  }
+
+  /** You said something at a counter: a dish on its menu is ordered (true). */
+  heardAt(c: CounterSpec, heard: string): boolean {
+    const m = matchMenu(heard, c.items.map((i) => i.name), FOOD_ALIASES, []);
+    if (typeof m !== 'number') return false;
+    this.order(c, c.items[m]);
+    return true;
+  }
+
   private say(c: CounterSpec, text: string) {
-    staffSay(this.d.crowd, this.cook(c), cookSpeaker(c.id), c.brand, text, new THREE.Vector3(c.x, 1.6, COUNTER.z - 0.85), this.onLine);
+    return staffSay(this.d.crowd, this.cook(c), cookSpeaker(c.id), c.brand, text, new THREE.Vector3(c.x, 1.6, COUNTER.z - 0.85), this.onLine);
   }
 
   /** Order a dish at a counter: pay, the cook makes it, it lands on the counter for you. */
@@ -214,7 +249,8 @@ export class FoodCourt {
       const last = this.greeted.get(c.id) ?? -Infinity;
       if (this.time - last > 60 && !this.orders.has(c.id)) {
         this.greeted.set(c.id, this.time);
-        this.say(c, pick(this.lines(c).hello));
+        const dur = this.say(c, pick(this.lines(c).hello));
+        this.listenForDish(c, dur);
       }
     }
   }
