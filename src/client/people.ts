@@ -568,7 +568,13 @@ export class Crowd {
     p.yaw = p.homeYaw = yaw;
     p.speed = 0.85 + rnd() * 0.4;
     p.seated = role === 'slots' || role === 'patron' || role === 'pianist';
-    if (role !== 'buddy') p.uid = this.nextUid++;
+    if (role !== 'buddy') {
+      p.uid = this.nextUid++;
+      // Their personality (character, voice, idle rhythm) comes from who they are, so a guest is the
+      // same person with the same voice on every player's machine.
+      const h = Math.sin(p.uid * 12.9898 + 78.233) * 43758.5453;
+      p.seed = (h - Math.floor(h)) * 100;
+    }
     this.people.push(p);
     const i = this.people.length - 1;
     const set = (name: string, color: number) => {
