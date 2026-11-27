@@ -98,6 +98,8 @@ import {
  * actually comes out.
  */
 
+/** The game itself has been removed (it was too heavy for the headset): the cabinet stays, with an OUT OF ORDER card. */
+const OUT_OF_ORDER = true;
 const ID = 'ontherun';
 const TITLE = 'ON THE RUN';
 const URL_PATH = 'arcade/ontherun/index.html';
@@ -296,7 +298,7 @@ export class OnTheRunCabinet implements FloorGame {
     this.desk = {
       id: ID,
       buttons: ['JUMP / OK', 'BOOST', 'FIRE'],
-      help: `${TITLE} · free · Arrows/WASD drive · Space guns · Shift boost · C drift · J jump · R missile · F oil · V view · Enter OK · P pause · F2 2nd player · M sound · Esc/E get out`,
+      help: OUT_OF_ORDER ? `${TITLE} · out of order (sorry, a technician has been called)` : `${TITLE} · free · Arrows/WASD drive · Space guns · Shift boost · C drift · J jump · R missile · F oil · V view · Enter OK · P pause · F2 2nd player · M sound · Esc/E get out`,
       onKey: (e, down) => this.deskKey(e, down),
     };
     if (env.colliders) env.world.addLocalBox(this.group, 0, (Z0 + Z1) / 2, WIDTH + 0.02, Z1 - Z0 + 0.02, 'arcade cabinet');
@@ -740,6 +742,10 @@ export class OnTheRunCabinet implements FloorGame {
   // --- The screens ------------------------------------------------------------------
 
   private showCard(s: Seat, line: string, sub = '') {
+    if (OUT_OF_ORDER) {
+      line = 'OUT OF ORDER';
+      sub = 'SORRY · TECHNICIAN HAS BEEN CALLED';
+    }
     if (s.card.line !== line + sub) {
       s.card.line = line + sub;
       paintCard(s.card.g, CARD_W, CARD_H, line, sub);
@@ -886,7 +892,8 @@ export class OnTheRunCabinet implements FloorGame {
     const fresh = (s: Seat) => !!s.remote && this.time - s.remote.at < 2.5;
     const friend = !playing && this.seats.every(fresh);
     const host = this.host;
-    const p = plan({ here: true, dist: f.dist, playing, loaded: host.loaded, friend, light: !!env.light || this.gfx.scale < 1 });
+    // The game has been taken out (too heavy to run alongside the resort): the cabinet stands broken.
+    const p = OUT_OF_ORDER ? { load: false, rate: 0, hud: 0 } : plan({ here: true, dist: f.dist, playing, loaded: host.loaded, friend, light: !!env.light || this.gfx.scale < 1 });
     this.last = { ...p, playing, friend };
     if (p.load && host.state === 'off') host.load();
     else if (!p.load && host.state !== 'off') {

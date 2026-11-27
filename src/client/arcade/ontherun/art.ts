@@ -223,7 +223,7 @@ function marquee(g: CanvasRenderingContext2D) {
   titleLogo(g, r.x + r.w / 2, r.y + 118, 92, r.w * 0.8);
   g.fillStyle = OTR.cream;
   g.font = `700 17px ${UI}`;
-  spaced(g, 'FREE PLAY  ·  1 OR 2 DRIVERS  ·  SIT DOWN TO PLAY', r.x + r.w / 2, r.y + 158, 0.3);
+  spaced(g, 'OUT OF ORDER  ·  SORRY FOR THE INCONVENIENCE', r.x + r.w / 2, r.y + 158, 0.3);
   // Neon lines top and bottom: cyan and magenta.
   g.fillStyle = OTR.cyan;
   g.fillRect(r.x, r.y + 2, r.w, 4);
@@ -392,6 +392,7 @@ export function paintOnTheRun(g: CanvasRenderingContext2D, buttons: readonly [nu
 
 /** The screen's card when the game isn't on it (loading, a seat's free, out of order). */
 export function paintCard(g: CanvasRenderingContext2D, w: number, h: number, line: string, sub = '') {
+  if (line === 'OUT OF ORDER') return paintOutOfOrder(g, w, h, sub);
   const gr = g.createLinearGradient(0, 0, 0, h);
   gr.addColorStop(0, OTR.sky0);
   gr.addColorStop(1, OTR.ink);
@@ -409,6 +410,61 @@ export function paintCard(g: CanvasRenderingContext2D, w: number, h: number, lin
     g.font = `600 ${Math.round(h * 0.034)}px ${UI}`;
     spaced(g, sub, w / 2, h * 0.7, 0.2);
   }
+}
+
+/** A dead screen with a taped-on paper sign: the machine is broken. */
+function paintOutOfOrder(g: CanvasRenderingContext2D, w: number, h: number, sub: string) {
+  // The screen is off: near-black glass with a faint reflection.
+  const gr = g.createLinearGradient(0, 0, w, h);
+  gr.addColorStop(0, '#0d0c12');
+  gr.addColorStop(0.5, '#15131c');
+  gr.addColorStop(1, '#08070b');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(255,255,255,0.05)';
+  g.beginPath();
+  g.moveTo(w * 0.05, 0);
+  g.lineTo(w * 0.28, 0);
+  g.lineTo(w * 0.1, h);
+  g.lineTo(0, h);
+  g.closePath();
+  g.fill();
+  // The paper sign, a little crooked, with tape at the corners.
+  g.save();
+  g.translate(w / 2, h / 2);
+  g.rotate(-0.06);
+  const sw = w * 0.62,
+    sh = h * 0.5;
+  g.fillStyle = '#f3efe2';
+  g.shadowColor = 'rgba(0,0,0,0.5)';
+  g.shadowBlur = 12;
+  g.fillRect(-sw / 2, -sh / 2, sw, sh);
+  g.shadowBlur = 0;
+  g.fillStyle = 'rgba(230,220,170,0.75)';
+  for (const [x, y, r] of [
+    [-sw / 2, -sh / 2, -0.6],
+    [sw / 2, -sh / 2, 0.6],
+    [-sw / 2, sh / 2, 0.6],
+    [sw / 2, sh / 2, -0.6],
+  ] as const) {
+    g.save();
+    g.translate(x, y);
+    g.rotate(r);
+    g.fillRect(-sw * 0.07, -sh * 0.05, sw * 0.14, sh * 0.1);
+    g.restore();
+  }
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillStyle = '#c4161c';
+  g.font = `900 ${Math.round(sh * 0.3)}px Impact, 'Arial Black', sans-serif`;
+  g.fillText('OUT OF', 0, -sh * 0.16);
+  g.fillText('ORDER', 0, sh * 0.15);
+  if (sub) {
+    g.fillStyle = '#3a342c';
+    g.font = `italic 600 ${Math.round(sh * 0.08)}px Georgia, serif`;
+    g.fillText(sub.replace(/·/g, '—').toLowerCase().replace(/^./, (c) => c.toUpperCase()), 0, sh * 0.38);
+  }
+  g.restore();
 }
 
 /** "NOW PLAYING: NAME" along the bottom of a friend's picture. */
