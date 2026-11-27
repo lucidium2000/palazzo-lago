@@ -15,6 +15,8 @@ import { buildSuite, registerSuite, SUITE, SUITE_CAR } from './suite';
 import { buildPromenade, mountArcade, populatePromenade, PROM_CARS, promenadeShare, registerPromenade, type PromenadeArea, type PromenadeCast } from './promenade';
 import { onPromenade } from './promenadeplan';
 import { buildEntrance, ENT_CARS, entranceShare, onEntrance, registerEntrance, type EntranceArea } from './entrance';
+import type { Hands } from '../hands';
+import { BOWL_CARS, bowlingShare, buildBowling, FOUL_X, onBowling, registerBowling, RIG_FACE_PINS, type BowlingArea } from '../bowling';
 
 export { PROMENADE_NODES } from './promenadeplan';
 
@@ -82,6 +84,7 @@ export function registerAreas(world: World) {
   registerSuite(world);
   registerPromenade(world);
   registerEntrance(world);
+  registerBowling(world);
 }
 
 export interface Areas {
@@ -93,7 +96,7 @@ export interface Areas {
   outdoors(feet: THREE.Vector3): number;
   /** Adds the pool crowd (call before the floor's wanderers fill the crowd). */
   populate(crowd: Crowd): Person[];
-  where(feet: THREE.Vector3): 'casino' | 'hotel' | 'pool' | 'suite' | 'promenade' | 'entrance';
+  where(feet: THREE.Vector3): 'casino' | 'hotel' | 'pool' | 'suite' | 'promenade' | 'entrance' | 'bowling';
   elevators: Elevators;
   /** The pool deck (the party's lights drive its water and LED wall). */
   pool: PoolArea;
@@ -107,6 +110,8 @@ export interface Areas {
   promenadeCast: PromenadeCast | null;
   /** The front entrance: the porte-cochère, the taxi line and the rideshare bays. */
   entrance: EntranceArea;
+  /** Palazzo Lanes, the bowling lounge on the lower level. */
+  bowling: BowlingArea;
 }
 
 export function buildAreas(deps: {
@@ -116,6 +121,8 @@ export function buildAreas(deps: {
   sound: Sound;
   player: Player;
   world: World;
+  hands: Hands;
+  dom: HTMLElement;
   toast: (text: string) => void;
 }): Areas {
   const { scene, quality: q } = deps;
@@ -147,6 +154,7 @@ export function buildAreas(deps: {
     // (Last, so the other cars keep their slots: every machine numbers them the same.)
     { id: 'promenade', doorX: PROM_CARS.doorX, zs: PROM_CARS.zs },
     { id: 'entrance', doorX: ENT_CARS.doorX, zs: ENT_CARS.zs },
+    { id: 'bowling', doorX: BOWL_CARS.doorX, zs: BOWL_CARS.zs },
   ]);
   lifts.registerWorld(deps.world);
   lifts.onRide = (dest: LandingId) => {
@@ -154,7 +162,10 @@ export function buildAreas(deps: {
     if (dest === 'pool') deps.toast('Pool Deck');
     if (dest === 'promenade') deps.toast('The Promenade · food court, Lago Luxe, the arcade');
     if (dest === 'entrance') deps.toast('Main Entrance · the doors out to the taxis and rideshare');
+    if (dest === 'bowling') deps.toast('Palazzo Lanes · eight lanes, the bar and the lounge');
   };
+  // The lower level: the bowling lounge.
+  const bowling = buildBowling({ scene, q, m, interaction: deps.interaction, sound: deps.sound, player: deps.player, hands: deps.hands, dom: deps.dom, toast: deps.toast });
   // The ground floor's lobby and the driveway out front (its cars run on everyone's shared clock).
   const entrance = buildEntrance({ scene, q, m, interaction: deps.interaction, sound: deps.sound, player: deps.player, world: deps.world, others: () => lifts.others() });
   // The pool's water and the party.
@@ -172,11 +183,13 @@ export function buildAreas(deps: {
     vp('promenade', 'Promenade', PROM_CARS.doorX - 2.6, 0, Math.PI / 2, -0.04),
     vp('arcade', 'Arcade', -622.75, 3.2, Math.PI, -0.05),
     vp('entrance', 'Main Entrance', 300.5, 3.6, Math.PI + 0.55, -0.04),
+    vp('bowling', 'Palazzo Lanes', FOUL_X + 6.4, 2.2, RIG_FACE_PINS + 0.1, -0.06),
   ];
 
   const where = (f: THREE.Vector3): ReturnType<Areas['where']> => {
     if (onPromenade(f.x)) return 'promenade';
     if (onEntrance(f.x)) return 'entrance';
+    if (onBowling(f.x)) return 'bowling';
     if (f.x > SUITE.x0 - 5) return 'suite';
     if (f.z < LOBBY.z0 - 0.2 && f.x > DECK.x0 - 1) return 'pool';
     if (f.x > CORR.x0 - 0.2) return 'hotel';
@@ -192,6 +205,7 @@ export function buildAreas(deps: {
       pool.update(t);
       promenade.update(t);
       entrance.update(dt, feet);
+      bowling.update(dt, feet);
     },
     pool,
     dancers,
@@ -199,6 +213,7 @@ export function buildAreas(deps: {
     promenade,
     promenadeCast: null,
     entrance,
+    bowling,
     musicLevel(f) {
       if (where(f) !== 'pool') return 0;
       const d = Math.hypot(f.x - 50, f.z + 31);
@@ -212,6 +227,7 @@ export function buildAreas(deps: {
       // The Promenade has its own share of the crowd (see Crowd's capacity): first, as the pool party takes all it can.
       areas.promenadeCast = populatePromenade(crowd, promenade, promenadeShare(q.people));
       entrance.populate(crowd, entranceShare(q.people));
+      bowling.populate(crowd, bowlingShare(q.people));
       return populatePool(crowd, pool, dancers, performers);
     },
   };

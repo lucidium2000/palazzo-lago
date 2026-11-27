@@ -9,6 +9,7 @@ import { fightAim, fightHandoff, fightMix, type FightPose } from './fightanim';
 import { dry, linkRoutes, pathTo } from './routes';
 import { promenadeShare } from './areas/promenadeplan';
 import { entranceShare } from './areas/entranceplan';
+import { bowlingShare } from './bowling/plan';
 
 /** Beyond this, people aren't drawn on any tier (the far parts of the resort: the Promenade, the suite). */
 const FAR_CULL = 120;
@@ -417,7 +418,8 @@ export class Crowd {
     // the deck) on headsets and phones, so it costs little to draw.
     // (And the Promenade's diners, cooks and shoppers: far from the floor, never drawn from it.)
     // (And the front entrance's doorman, valets and guests coming and going.)
-    this.max = q.people + Crowd.poolShare(q.people) + promenadeShare(q.people) + entranceShare(q.people) + 6; // 3 crew + 2 security guards + 1 remote player reserved
+    // (And Palazzo Lanes: the bowlers, the bar and the shoe counter.)
+    this.max = q.people + Crowd.poolShare(q.people) + promenadeShare(q.people) + entranceShare(q.people) + bowlingShare(q.people) + 6; // 3 crew + 2 security guards + 1 remote player reserved
     scene.add(this.group);
     const cloth = new THREE.MeshStandardMaterial({ roughness: 0.75, envMapIntensity: 0.6 });
     const satin = new THREE.MeshStandardMaterial({ roughness: 0.35, envMapIntensity: 1.0 });

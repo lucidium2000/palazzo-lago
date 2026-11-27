@@ -24,7 +24,7 @@ describe('ten-pin scoring', () => {
     expect(total(rep(20, 0))).toBe(0);
     expect(gameOver(rep(20, 0))).toBe(true);
     expect(frames(rep(20, 0))[0].marks).toEqual(['-', '-']);
-    expect(total([].concat(...rep(10, 0).map(() => [9, 0])))).toBe(90);
+    expect(total(rep(10, 0).flatMap(() => [9, 0]))).toBe(90);
     const spares = rep(21, 5);
     expect(total(spares)).toBe(150);
     expect(gameOver(spares)).toBe(true);
