@@ -395,11 +395,11 @@ export const RATE_PLAY = 60;
 export const RATE_PLAY_LIGHT = 30;
 export const RATE_ATTRACT = 10;
 /** HUD snapshots a second (the game's HUD and menus are HTML, drawn separately): playing, light tiers, attract. */
-export const HUD_PLAY = 12;
-export const HUD_PLAY_LIGHT = 8;
+export const HUD_PLAY = 10;
+export const HUD_PLAY_LIGHT = 6;
 export const HUD_ATTRACT = 3;
 /** Seconds after your last input that the game still counts as yours. */
-export const ACTIVE_FOR = 20;
+export const ACTIVE_FOR = 8;
 
 export interface PlanIn {
   here: boolean;
@@ -419,13 +419,14 @@ export interface Plan {
   hud: number;
 }
 
+/**
+ * The game (a whole second WebGL renderer) only runs while someone's driving: it loads when you sit
+ * down, and goes when you get out (after ACTIVE_FOR). Walking past, the screen shows the cabinet's
+ * own attract card, so nobody near the arcade pays for it.
+ */
 export function plan(i: PlanIn): Plan {
-  if (!i.here) return { load: false, rate: 0, hud: 0 };
-  const load = i.playing || i.dist < (i.loaded ? UNLOAD_FAR : LOAD_NEAR);
-  if (!load) return { load, rate: 0, hud: 0 };
-  if (i.playing) return { load, rate: i.light ? RATE_PLAY_LIGHT : RATE_PLAY, hud: i.light ? HUD_PLAY_LIGHT : HUD_PLAY };
-  if (i.friend) return { load, rate: 0, hud: 0 };
-  return { load, rate: RATE_ATTRACT, hud: HUD_ATTRACT };
+  if (!i.here || !i.playing) return { load: false, rate: 0, hud: 0 };
+  return { load: true, rate: i.light ? RATE_PLAY_LIGHT : RATE_PLAY, hud: i.light ? HUD_PLAY_LIGHT : HUD_PLAY };
 }
 
 /** The game's picture size and quality for a tier: its CSS layout stays 1280x720 (the HUD's size), the 3D renders at `scale` of it. */
@@ -441,7 +442,8 @@ export const LAYOUT_H = 720;
 
 export function gfxFor(tier: string | undefined): Gfx {
   if (tier === 'quest2' || tier === 'mobile') return { scale: 0.5, shadows: false, bloom: false, msaa: false };
-  if (tier === 'quest3') return { scale: 0.75, shadows: false, bloom: true, msaa: false };
+  // Quest 3: a second renderer inside the casino's own frame; keep it light (the cabinet screen is under a metre wide).
+  if (tier === 'quest3') return { scale: 0.55, shadows: false, bloom: false, msaa: false };
   return { scale: 1, shadows: true, bloom: true, msaa: true };
 }
 

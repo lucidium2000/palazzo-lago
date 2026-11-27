@@ -132,9 +132,10 @@ const COCKPIT_H = 1.0;
 /** Seated: the seat's top, and a seated driver's eye height. */
 const SEAT_Y = 0.46;
 const SEATED_EYE = 1.17;
-/** Cabinet width; seat centres at ±SEAT_X; each screen. */
-export const WIDTH = 2.1;
-const SEAT_X = 0.53;
+/** Cabinet width; the seat's centre; its screen. */
+export const WIDTH = 1.1;
+/** One seat, in the middle (it was a twin cockpit: two copies of the screen and the game's feed cost too much). */
+const SEAT_X = 0;
 const SCREEN_W = 0.9;
 const SCREEN_H = (SCREEN_W * 9) / 16;
 /** The wheel: centre (local), rim radius, tilt back from vertical. */
@@ -287,8 +288,8 @@ export class OnTheRunCabinet implements FloorGame {
     this.volTex = new THREE.CanvasTexture(this.volCanvas);
     this.volTex.colorSpace = THREE.SRGBColorSpace;
 
-    for (let i = 0; i < 2; i++) this.seats.push(this.buildSeat(i, slot));
-    const mid = new THREE.Vector3().addVectors(this.seats[0].screen.position, this.seats[1].screen.position).multiplyScalar(0.5);
+    this.seats.push(this.buildSeat(0, slot));
+    const mid = this.seats[0].screen.position.clone();
     this.anchor.position.copy(mid);
     env.liveRoot.add(this.anchor);
 
@@ -300,7 +301,7 @@ export class OnTheRunCabinet implements FloorGame {
     };
     if (env.colliders) env.world.addLocalBox(this.group, 0, (Z0 + Z1) / 2, WIDTH + 0.02, Z1 - Z0 + 0.02, 'arcade cabinet');
     // The cockpit walls are solid (the room's collider is only the front unit): you get in from behind the seats.
-    for (const wx of [-WIDTH / 2 + 0.02, 0, WIDTH / 2 - 0.02]) env.world.addLocalBox(this.group, wx, (Z1 + COCKPIT_Z1) / 2, 0.06, COCKPIT_Z1 - Z1, 'racing cockpit wall');
+    for (const wx of [-WIDTH / 2 + 0.02, WIDTH / 2 - 0.02]) env.world.addLocalBox(this.group, wx, (Z1 + COCKPIT_Z1) / 2, 0.06, COCKPIT_Z1 - Z1, 'racing cockpit wall');
 
     // Screens: a click on the screen while you're seated is Enter (OK / start).
     if (typeof window !== 'undefined') {
@@ -353,7 +354,7 @@ export class OnTheRunCabinet implements FloorGame {
     }
     g.add(slopePlane(inner, MARQ_BOT, MARQ_TOP, otrUV(OTR_REGION.marquee), 0.003, m.lit));
     g.add(slopePlane(inner, SCREEN_BOT, SCREEN_TOP, otrUV(OTR_REGION.bezel), 0.003, m.lit));
-    for (const sx of [-SEAT_X, SEAT_X]) {
+    for (const sx of [SEAT_X]) {
       const dash = slopePlane(0.98, PANEL_FRONT, PANEL_BACK, otrUV(OTR_REGION.dash), 0.002, m.art);
       dash.position.x = sx;
       g.add(dash);
@@ -372,7 +373,6 @@ export class OnTheRunCabinet implements FloorGame {
     };
     strip(OTR.cyan, WIDTH + 0.004, 0.016, 0.03, 0, 1.47, -0.02);
     strip(OTR.magenta, WIDTH + 0.004, 0.012, 0.012, 0, 0.665, Z1 + 0.006);
-    strip(OTR.amber, 0.014, 0.56, 0.014, 0, 1.15, -0.03);
     // The cockpits: each driver sits enclosed between side walls (outer ones with the side art, a shared one between
     // the seats), on a raised floor, in a bucket seat, with gas and brake pedals under the console.
     const wall = new THREE.Shape(
@@ -387,7 +387,7 @@ export class OnTheRunCabinet implements FloorGame {
       ).map(([z, y]) => new THREE.Vector2(z, y)),
     );
     const [s0, t0, s1, t1] = otrUV(OTR_REGION.side, 2);
-    for (const wx of [-WIDTH / 2, 0, WIDTH / 2]) {
+    for (const wx of [-WIDTH / 2, WIDTH / 2]) {
       const geo = new THREE.ExtrudeGeometry(wall, { depth: 0.04, bevelEnabled: false });
       geo.rotateY(-Math.PI / 2);
       geo.translate(wx + 0.02, 0, 0);
@@ -406,7 +406,7 @@ export class OnTheRunCabinet implements FloorGame {
       // Amber along the top edge.
       strip(OTR.amber, 0.05, 0.012, COCKPIT_Z1 - 0.3 - Z1, wx, COCKPIT_H - 0.05, (Z1 + COCKPIT_Z1 - 0.3) / 2);
     }
-    for (const sx of [-SEAT_X, SEAT_X]) {
+    for (const sx of [SEAT_X]) {
       for (const [px, col] of [
         [-0.1, '#2a2a30'],
         [0.1, '#3a3a42'],
@@ -828,6 +828,8 @@ export class OnTheRunCabinet implements FloorGame {
 
     if (f.inXR) {
       const seat = this.xrSeat(f.feet);
+      // Sitting in the cockpit counts as driving: the game loads as you get in, not as you walk past.
+      if (seat >= 0) this.lastInput = this.time;
       const near = seat >= 0 || f.dist < 2.5;
       if (near) env.touch.gather(env.hands);
       for (const s of this.seats) {
@@ -884,7 +886,7 @@ export class OnTheRunCabinet implements FloorGame {
     const fresh = (s: Seat) => !!s.remote && this.time - s.remote.at < 2.5;
     const friend = !playing && this.seats.every(fresh);
     const host = this.host;
-    const p = plan({ here: true, dist: f.dist, playing, loaded: host.loaded, friend, light: !!env.light });
+    const p = plan({ here: true, dist: f.dist, playing, loaded: host.loaded, friend, light: !!env.light || this.gfx.scale < 1 });
     this.last = { ...p, playing, friend };
     if (p.load && host.state === 'off') host.load();
     else if (!p.load && host.state !== 'off') {
@@ -1060,7 +1062,7 @@ export class OnTheRunCabinet implements FloorGame {
   }
 
   receive(from: ArcadeFriend, d: Record<string, unknown>) {
-    const seat = this.seats[Number(d.s) === 1 ? 1 : 0];
+    const seat = this.seats[0];
     if (d.k === 'x') {
       if (seat.remote?.id === from.id) seat.remote = null;
       return;

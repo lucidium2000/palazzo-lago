@@ -14,7 +14,6 @@ import {
   padActive,
   padList,
   plan,
-  RATE_ATTRACT,
   RATE_PLAY,
   RATE_PLAY_LIGHT,
   rimAngle,
@@ -200,21 +199,21 @@ describe('On the Run: sound', () => {
 });
 
 describe('On the Run: when it runs, and how well', () => {
-  it('loads near, runs at full rate playing (30 on light tiers), 10 fps attract, nothing far away or off the floor', () => {
+  it('runs only while someone is driving: nothing for passers-by, off the floor or far away', () => {
     expect(plan({ here: false, dist: 1, playing: true, loaded: true, friend: false, light: false })).toEqual({ load: false, rate: 0, hud: 0 });
-    expect(plan({ here: true, dist: 20, playing: false, loaded: false, friend: false, light: false }).load).toBe(false);
-    expect(plan({ here: true, dist: 5, playing: false, loaded: false, friend: false, light: false }).rate).toBe(RATE_ATTRACT);
-    expect(plan({ here: true, dist: 11, playing: false, loaded: true, friend: false, light: false }).load).toBe(true);
-    expect(plan({ here: true, dist: 11, playing: false, loaded: false, friend: false, light: false }).load).toBe(false);
+    // Walking past (near or far, loaded or not): not loaded, nothing runs.
+    for (const dist of [1, 5, 11, 20]) for (const loaded of [false, true]) expect(plan({ here: true, dist, playing: false, loaded, friend: false, light: false })).toEqual({ load: false, rate: 0, hud: 0 });
+    expect(plan({ here: true, dist: 3, playing: false, loaded: true, friend: true, light: false }).load).toBe(false);
+    // Driving: full rate (30 on the lighter tiers).
     expect(plan({ here: true, dist: 1, playing: true, loaded: true, friend: false, light: false }).rate).toBe(RATE_PLAY);
     expect(plan({ here: true, dist: 1, playing: true, loaded: true, friend: false, light: true }).rate).toBe(RATE_PLAY_LIGHT);
-    expect(plan({ here: true, dist: 3, playing: false, loaded: true, friend: true, light: false }).rate).toBe(0);
+    expect(plan({ here: true, dist: 1, playing: true, loaded: false, friend: false, light: false }).load).toBe(true);
   });
 
   it('renders smaller and plainer on the lighter headsets', () => {
     expect(gfxFor('quest2')).toEqual({ scale: 0.5, shadows: false, bloom: false, msaa: false });
     expect(gfxFor('mobile').scale).toBe(0.5);
-    expect(gfxFor('quest3').scale).toBe(0.75);
+    expect(gfxFor('quest3')).toEqual({ scale: 0.55, shadows: false, bloom: false, msaa: false });
     expect(gfxFor('desktop')).toEqual({ scale: 1, shadows: true, bloom: true, msaa: true });
   });
 
