@@ -1,12 +1,12 @@
 {
  "dj_set": {"kind": "music", "use": "Pool party DJ set (replaces the synthesized party/track.ts). Deep house, A minor, instrumental. Planned as 16-bar drop, 8 breakdown, 8 build, twice; loops.", "bpm": 122, "loop": true, "lufs": -14},
- "orlo_neon_on_the_water": {"kind": "music", "use": "Headliner Orlo Vante, song 1 (replaces party/song.ts song 1). Sung lyrics. Sections: verse bars 1-8, pre-chorus 9-16, chorus 17-32.", "bpm": 122, "loop": false, "lufs": -14,
-  "sections": [{"name": "verse", "bar": 0, "bars": 8, "sung": true}, {"name": "pre-chorus", "bar": 8, "bars": 8, "sung": true}, {"name": "chorus", "bar": 16, "bars": 16, "sung": true}]},
- "orlo_last_call_heart": {"kind": "music", "use": "Headliner Orlo Vante, song 2 (replaces party/song.ts song 2). Sung lyrics. Sections: verse bars 1-8, pre-chorus 9-16, chorus 17-32.", "bpm": 122, "loop": false, "lufs": -14,
-  "sections": [{"name": "verse", "bar": 0, "bars": 8, "sung": true}, {"name": "pre-chorus", "bar": 8, "bars": 8, "sung": true}, {"name": "chorus", "bar": 16, "bars": 16, "sung": true}]},
+ "concert_1": {"kind": "music", "title": "Chasing Dawn", "use": "The concert's song: Chasing Dawn, the owner's own track (artist lucidium2000, made with Suno), sung. Sections read from its measured energy.", "bpm": 128, "loop": false, "lufs": -14, "stereo": true,
+  "sections": [{"name": "intro", "bar": 0, "bars": 2, "sung": false}, {"name": "verse", "bar": 2, "bars": 8, "sung": true}, {"name": "verse", "bar": 10, "bars": 16, "sung": true}, {"name": "pre-chorus", "bar": 26, "bars": 8, "sung": true}, {"name": "chorus", "bar": 34, "bars": 16, "sung": true}, {"name": "verse", "bar": 50, "bars": 16, "sung": true}, {"name": "pre-chorus", "bar": 66, "bars": 15, "sung": true}, {"name": "chorus", "bar": 81, "bars": 24, "sung": true}, {"name": "bridge", "bar": 105, "bars": 7, "sung": true}, {"name": "chorus", "bar": 112, "bars": 16, "sung": true}, {"name": "outro", "bar": 128, "bars": 4, "sung": false}]},
  "casino_lounge": {"kind": "music", "use": "Casino floor music (replaces the 8-bar renderGroove loop in audio.ts). Lounge house / nu-jazz, A minor, 116 BPM, 64 bars, loops.", "bpm": 116, "loop": true, "stereo": true, "lufs": -18},
  "jackpot": {"kind": "sfx", "use": "Slot jackpot: bells and coins into a tray.", "lufs": -16},
  "cheer": {"kind": "sfx", "use": "Pool crowd cheering as Orlo finishes a song.", "lufs": -16},
  "applause": {"kind": "sfx", "use": "Crowd applause at the stage, with whistles.", "lufs": -16},
- "floor_loop": {"kind": "sfx", "use": "Optional casino floor room tone, seamless 30 s loop (the procedural floor in ambience.ts may already be better: compare before using).", "loop": true, "stereo": true, "lufs": -24}
+ "floor_loop": {"kind": "sfx", "use": "Optional casino floor room tone, seamless 30 s loop (the procedural floor in ambience.ts may already be better: compare before using).", "loop": true, "stereo": true, "lufs": -24},
+ "deck_a": {"kind": "music", "title": "No Tomorrow", "use": "DJ deck A (left record): No Tomorrow, the owner's own track (artist lucidium2000, made with Suno). Loops on the deck.", "loop": true, "stereo": true, "lufs": -14},
+ "deck_b": {"kind": "music", "title": "Woo and Oh Yeah", "use": "DJ deck B (right record): Woo and Oh Yeah, the owner's own track (artist lucidium2000, made with Suno). A short scratch-and-beats record; loops on its bar lines.", "loop": true, "stereo": true, "lufs": -14}
 }

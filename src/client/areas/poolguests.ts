@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import type { Crowd, Person } from '../people';
+import type { Person } from '../people';
 import { poolLook, randomLook, staffLook } from '../people';
 import { DECK, poolFloor, WATER_Y, type PoolArea } from './pool';
-import { addPerformers, type Performers } from '../party/performers';
+import { addConcertGoers, addPerformers, type Performers } from '../party/performers';
+import { Crowd } from '../people';
 
 const onDeck = (x: number, z: number) => x > DECK.x0 && x < DECK.x1 && z > DECK.z0 && z < DECK.z1;
 
@@ -26,6 +27,7 @@ export function populatePool(crowd: Crowd, pool: PoolArea, dancers: Person[] = [
     addPerformers(crowd, performers);
     keep(performers.dj);
     keep(performers.singer);
+    for (const b of performers.band) keep(b);
   }
 
   // Waist-deep in the shallow end, chatting.
@@ -47,6 +49,9 @@ export function populatePool(crowd: Crowd, pool: PoolArea, dancers: Person[] = [
     const p = keep(crowd.add('watch', k % 2 ? poolLook() : randomLook(), s.pos, s.yaw));
     if (p) dancers.push(p);
   });
+  // Her concert-goers, in the stage's own share of the crowd (away until she's on: party/audience.ts).
+  // (As many as the dancers they join, within the share: the audience doubles.)
+  if (performers) addConcertGoers(crowd, performers, Math.min(Crowd.concertExtras(crowd.tierPeople), Math.max(4, dancers.length)), poolLook);
 
   // Slow loops in the deep end.
   pool.laps.forEach((lap, k) => {

@@ -1,26 +1,48 @@
 import { describe, expect, it } from 'vitest';
-import { GLIDE, MOVES, SHOW_CLIPS, micFree, songRoutine, stepAt } from '../src/client/party/routine';
-import { SONG_BARS, SONG_SECTIONS } from '../src/client/party/setlist';
+import { GLIDE, MOVES, SHOW_CLIPS, canonicalParts, micFree, routineFor, songEndBar, songRoutine, stepAt, type Step } from '../src/client/party/routine';
+import { INDEX_SONGS } from '../src/client/party/setlist';
 
-const endOf = (bars: { part: string }[]) => {
-  for (let i = 20; i < bars.length; i++) if (bars[i].part === 'outro') return i;
-  return bars.length - 2;
-};
+const SONG_BARS = 32;
 
 describe("the headliner's routine", () => {
-  const routines = SONG_SECTIONS.map((s) => ({ end: endOf(s), r: songRoutine(endOf(s), SONG_BARS) }));
+  // The canonical 32-bar song (its music letting go at bar 30 or 31), and her real song from its section map.
+  const routines: { end: number; r: Step[]; bars: number }[] = [30, 31].map((end) => ({ end, r: songRoutine(end, SONG_BARS), bars: SONG_BARS }));
+  const song = INDEX_SONGS[0]!;
+  const parts = song.info.map((b) => b.part);
+  const real = { end: songEndBar(parts), r: routineFor(parts, songEndBar(parts)), bars: parts.length };
 
   it('covers each song beat by beat, back to back', () => {
-    for (const { r } of routines) {
+    for (const { r, bars } of [...routines, real]) {
       expect(r[0].at).toBe(0);
       for (let i = 1; i < r.length; i++) expect(r[i].at).toBe(r[i - 1].at + r[i - 1].beats);
       const last = r[r.length - 1];
-      expect(last.at + last.beats).toBe(SONG_BARS * 4);
+      expect(last.at + last.beats).toBe(bars * 4);
     }
   });
 
+  it('follows a real song section by section: the mic in her hand for every chorus, back on the stand for the verses', () => {
+    expect(canonicalParts(32)[8]).toBe('pre-chorus');
+    const r = real.r;
+    const at = (beat: number) => stepAt(r, beat).step;
+    // Each chorus (bars 34, 81, 112) drops with the big pose, mic in hand.
+    for (const bar of [34, 81, 112]) {
+      const s = at(bar * 4);
+      expect(s.move).toBe('Show_Pose');
+      expect(s.at).toBe(bar * 4);
+      expect(s.hand).toBe(true);
+    }
+    // The second verse (bars 50-65) is back at the stand, the mic on it.
+    for (let b = 50 * 4; b < 64 * 4; b += 4) {
+      expect(at(b).hand).toBe(false);
+      expect([at(b).x0, at(b).x1]).toEqual([0, 0]);
+    }
+    // The final pose where the music lets go (the outro, bar 128).
+    expect(real.end).toBe(128);
+    expect(r.find((s) => s.cue === 'final')!.at).toBe(128 * 4);
+  });
+
   it('only uses moves that exist, and loops only the looping ones', () => {
-    for (const { r } of routines)
+    for (const { r } of [...routines, real])
       for (const s of r) {
         expect(SHOW_CLIPS).toContain(s.move);
         if (!MOVES[s.move].loop) expect(s.beats).toBeLessThanOrEqual(MOVES[s.move].beats);
@@ -48,7 +70,7 @@ describe("the headliner's routine", () => {
   });
 
   it('glides at the clips own speed (the planted foot stays put) and stays on the stage', () => {
-    for (const { r } of routines)
+    for (const { r } of [...routines, real])
       for (const s of r) {
         const dx = s.x1 - s.x0;
         if (s.move === 'Show_GlideL' || s.move === 'Show_GlideR') {
@@ -64,7 +86,7 @@ describe("the headliner's routine", () => {
   it('says where it is at any beat', () => {
     const r = routines[0].r;
     const a = stepAt(r, 0);
-    expect(a.step.move).toBe('Show_Groove');
+    expect(a.step.move).toBe('Show_Sway');
     expect(a.f).toBe(0);
     const g = r.find((s) => s.move === 'Show_GlideL')!;
     const mid = stepAt(r, g.at + g.beats / 2);

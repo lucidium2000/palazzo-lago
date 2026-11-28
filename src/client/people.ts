@@ -107,6 +107,8 @@ export class Person {
   /** Where this guest likes to be (the pool deck…): most of their trips end there. */
   haunt: ((x: number, z: number) => boolean) | null = null;
   seated = false;
+  /** Not here right now (a concert-goer who hasn't arrived yet, or has gone home): not drawn, not animated. */
+  away = false;
   /** Knocked off their seat (see seatshove.ts): standing, walking about, coming back to it. */
   offSeat = false;
   /** Never knocked off their seat (a game seats them itself: the poker table). */
@@ -389,6 +391,10 @@ const down = (g: THREE.BufferGeometry, len: number) => g.translate(0, -len / 2, 
 
 export class Crowd {
   readonly people: Person[] = [];
+  /** The quality tier's crowd size (the floor's share). */
+  readonly tierPeople: number;
+  /** Slots still held back for the pool stage (her band, her concert-goers). */
+  private reserve = 0;
   private nextUid = 0;
   private parts: Record<string, Part> = {};
   private max: number;
@@ -425,7 +431,9 @@ export class Crowd {
     // (And the Promenade's diners, cooks and shoppers: far from the floor, never drawn from it.)
     // (And the front entrance's doorman, valets and guests coming and going.)
     // (And Palazzo Lanes: the bowlers, the bar and the shoe counter.)
-    this.max = q.people + Crowd.poolShare(q.people) + promenadeShare(q.people) + entranceShare(q.people) + bowlingShare(q.people) + 6; // 3 crew + 2 security guards + 1 remote player reserved
+    this.tierPeople = q.people;
+    this.reserve = Crowd.stageShare(q.people);
+    this.max = q.people + Crowd.poolShare(q.people) + Crowd.stageShare(q.people) + promenadeShare(q.people) + entranceShare(q.people) + bowlingShare(q.people) + 6; // 3 crew + 2 security guards + 1 remote player reserved
     scene.add(this.group);
     const cloth = new THREE.MeshStandardMaterial({ roughness: 0.75, envMapIntensity: 0.6 });
     const satin = new THREE.MeshStandardMaterial({ roughness: 0.35, envMapIntensity: 1.0 });
@@ -512,6 +520,20 @@ export class Crowd {
   }
 
   /** Extra guests for the pool deck, on top of the floor's `people`. */
+  /**
+   * The pool stage's people on top of the pool's share: her band (3), and the
+   * concert-goers who arrive while she's on (the audience doubles: as many as
+   * the dancers they join; fewer on headsets and phones). They're away (not
+   * drawn, not animated) until she comes on.
+   */
+  static stageShare(people: number) {
+    return 3 + Crowd.concertExtras(people);
+  }
+
+  static concertExtras(people: number) {
+    return people >= 60 ? 12 : people >= 40 ? 10 : 8;
+  }
+
   static poolShare(people: number) {
     // Headsets and phones (smaller crowds) get a lighter pool party: CPU, not draw calls, is their limit.
     return people >= 60 ? Math.min(32, Math.round(people * 0.5)) : Math.min(18, Math.round(people * 0.3));
@@ -602,9 +624,11 @@ export class Crowd {
     return this.max - 6;
   }
 
-  add(role: Role, look: Look, at: THREE.Vector3, yaw = 0): Person | null {
-    const limit = role === 'buddy' || role === 'guard' ? this.max : this.max - 6;
+  add(role: Role, look: Look, at: THREE.Vector3, yaw = 0, opts: { reserved?: boolean } = {}): Person | null {
+    // (The pool stage's share is held back from everyone else: her band and her concert-goers draw on it.)
+    const limit = role === 'buddy' || role === 'guard' ? this.max : opts.reserved ? this.max - 6 : this.max - 6 - this.reserve;
     if (this.people.length >= limit) return null;
+    if (opts.reserved) this.reserve = Math.max(0, this.reserve - 1);
     const p = new Person(role, look);
     p.pos.copy(at);
     p.yaw = p.homeYaw = yaw;
@@ -747,6 +771,16 @@ export class Crowd {
     let gi = 0,
       ph = 0;
     this.people.forEach((p, i) => {
+      if (p.away) {
+        // Somewhere else: nothing to draw or animate (whoever sent them away brings them back).
+        if (!p.culled) {
+          p.culled = true;
+          if (p.rig) p.rig.root.visible = false;
+        }
+        this.shadowMesh.setMatrixAt(i, this.m.makeScale(0, 0, 0));
+        p.onUpdate?.(p, dt);
+        return;
+      }
       const fighting = p.fight !== null && !p.driven;
       if (!fighting) {
         p.onUpdate?.(p, dt);

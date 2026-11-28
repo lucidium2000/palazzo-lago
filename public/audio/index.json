@@ -65,7 +65,7 @@
     "level": -11.8
    },
    {
-    "drums": -13.0,
+    "drums": -13,
     "tonal": -27.8,
     "level": -11.8
    },
@@ -97,7 +97,7 @@
    {
     "drums": -22.2,
     "tonal": -18.2,
-    "level": -11.0
+    "level": -11
    },
    {
     "drums": -20.3,
@@ -107,7 +107,7 @@
    {
     "drums": -20.8,
     "tonal": -15.7,
-    "level": -11.0
+    "level": -11
    },
    {
     "drums": -21.5,
@@ -135,8 +135,8 @@
     "level": -11.6
    },
    {
-    "drums": -23.0,
-    "tonal": -18.0,
+    "drums": -23,
+    "tonal": -18,
     "level": -11.6
    },
    {
@@ -150,7 +150,7 @@
     "level": -11.7
    },
    {
-    "drums": -22.0,
+    "drums": -22,
     "tonal": -15.9,
     "level": -11.6
    },
@@ -172,7 +172,7 @@
    {
     "drums": -38.8,
     "tonal": -28.4,
-    "level": -21.0
+    "level": -21
    },
    {
     "drums": -39.7,
@@ -211,7 +211,7 @@
    },
    {
     "drums": -22.5,
-    "tonal": -18.0,
+    "tonal": -18,
     "level": -11.2
    },
    {
@@ -226,12 +226,12 @@
    },
    {
     "drums": -20.8,
-    "tonal": -16.0,
+    "tonal": -16,
     "level": -11.2
    },
    {
-    "drums": -21.0,
-    "tonal": -16.0,
+    "drums": -21,
+    "tonal": -16,
     "level": -11.3
    },
    {
@@ -256,7 +256,7 @@
    },
    {
     "drums": -23.7,
-    "tonal": -19.0,
+    "tonal": -19,
     "level": -11.4
    },
    {
@@ -270,7 +270,7 @@
     "level": -11.2
    },
    {
-    "drums": -21.0,
+    "drums": -21,
     "tonal": -16.4,
     "level": -11.4
    },
@@ -302,16 +302,16 @@
    {
     "drums": -20.8,
     "tonal": -15.4,
-    "level": -11.0
+    "level": -11
    },
    {
     "drums": -20.6,
-    "tonal": -16.0,
+    "tonal": -16,
     "level": -11.3
    },
    {
     "drums": -21.1,
-    "tonal": -16.0,
+    "tonal": -16,
     "level": -11.4
    },
    {
@@ -331,387 +331,743 @@
    }
   ]
  },
- "orlo_neon_on_the_water": {
+ "concert_1": {
   "kind": "music",
-  "use": "Headliner Orlo Vante, song 1 (replaces party/song.ts song 1). Sung lyrics. Sections: verse bars 1-8, pre-chorus 9-16, chorus 17-32.",
-  "bpm": 121.972,
+  "title": "Chasing Dawn",
+  "use": "The concert's song: Chasing Dawn, the owner's own track (artist lucidium2000, made with Suno), sung. Tempo, grid and per-bar energy measured by scripts/measure-music.ts; sections read from that energy (intro, verse, pre-chorus, chorus, bridge, outro).",
   "loop": false,
   "sections": [
    {
-    "name": "verse",
+    "name": "intro",
     "bar": 0,
+    "bars": 2,
+    "sung": false
+   },
+   {
+    "name": "verse",
+    "bar": 2,
     "bars": 8,
     "sung": true
    },
    {
+    "name": "verse",
+    "bar": 10,
+    "bars": 16,
+    "sung": true
+   },
+   {
     "name": "pre-chorus",
-    "bar": 8,
+    "bar": 26,
     "bars": 8,
     "sung": true
    },
    {
     "name": "chorus",
-    "bar": 16,
+    "bar": 34,
     "bars": 16,
     "sung": true
+   },
+   {
+    "name": "verse",
+    "bar": 50,
+    "bars": 16,
+    "sung": true
+   },
+   {
+    "name": "pre-chorus",
+    "bar": 66,
+    "bars": 15,
+    "sung": true
+   },
+   {
+    "name": "chorus",
+    "bar": 81,
+    "bars": 24,
+    "sung": true
+   },
+   {
+    "name": "bridge",
+    "bar": 105,
+    "bars": 7,
+    "sung": true
+   },
+   {
+    "name": "chorus",
+    "bar": 112,
+    "bars": 16,
+    "sung": true
+   },
+   {
+    "name": "outro",
+    "bar": 128,
+    "bars": 4,
+    "sung": false
    }
   ],
-  "seconds": 63.007,
-  "firstBeat": 0.053,
-  "bars": 32,
-  "beatJitterMs": 8.2,
+  "seconds": 248.4,
+  "bpm": 128.381,
+  "firstBeat": 0.301,
+  "bars": 132,
   "perBar": [
    {
-    "drums": -23.0,
-    "tonal": -23.2,
-    "level": -18.4
+    "drums": -32.2,
+    "tonal": -16.7,
+    "level": -16.6
    },
    {
-    "drums": -18.1,
-    "tonal": -16.9,
-    "level": -13.0
+    "drums": -30.3,
+    "tonal": -13.9,
+    "level": -13.9
    },
    {
-    "drums": -18.3,
-    "tonal": -23.6,
-    "level": -15.5
-   },
-   {
-    "drums": -18.5,
-    "tonal": -18.9,
-    "level": -14.0
-   },
-   {
-    "drums": -18.5,
-    "tonal": -20.4,
-    "level": -14.9
-   },
-   {
-    "drums": -18.0,
-    "tonal": -17.3,
-    "level": -13.2
-   },
-   {
-    "drums": -18.0,
-    "tonal": -23.5,
-    "level": -15.4
-   },
-   {
-    "drums": -18.0,
-    "tonal": -18.8,
+    "drums": -23.9,
+    "tonal": -13.3,
     "level": -13.1
    },
    {
-    "drums": -17.9,
-    "tonal": -19.7,
-    "level": -14.4
-   },
-   {
-    "drums": -21.3,
-    "tonal": -18.3,
+    "drums": -27.2,
+    "tonal": -13.6,
     "level": -13.5
    },
    {
-    "drums": -23.1,
-    "tonal": -21.8,
-    "level": -14.6
-   },
-   {
-    "drums": -23.4,
-    "tonal": -18.0,
-    "level": -13.0
-   },
-   {
-    "drums": -22.0,
-    "tonal": -20.6,
-    "level": -14.8
-   },
-   {
-    "drums": -23.7,
-    "tonal": -15.1,
-    "level": -11.6
-   },
-   {
-    "drums": -23.0,
-    "tonal": -18.9,
+    "drums": -24.6,
+    "tonal": -13.9,
     "level": -13.7
    },
    {
-    "drums": -23.6,
-    "tonal": -18.1,
-    "level": -13.1
-   },
-   {
     "drums": -25.9,
-    "tonal": -17.5,
-    "level": -11.7
+    "tonal": -14.8,
+    "level": -14.6
    },
    {
-    "drums": -27.1,
-    "tonal": -18.3,
-    "level": -11.0
-   },
-   {
-    "drums": -26.6,
-    "tonal": -15.6,
-    "level": -10.5
-   },
-   {
-    "drums": -26.9,
-    "tonal": -19.7,
-    "level": -11.8
-   },
-   {
-    "drums": -27.4,
-    "tonal": -19.2,
-    "level": -11.5
-   },
-   {
-    "drums": -28.8,
-    "tonal": -21.1,
-    "level": -12.3
-   },
-   {
-    "drums": -28.3,
-    "tonal": -17.3,
-    "level": -11.6
-   },
-   {
-    "drums": -27.9,
-    "tonal": -19.7,
-    "level": -12.4
-   },
-   {
-    "drums": -28.7,
-    "tonal": -19.7,
-    "level": -11.8
-   },
-   {
-    "drums": -29.5,
-    "tonal": -21.4,
-    "level": -12.8
-   },
-   {
-    "drums": -28.9,
-    "tonal": -18.0,
-    "level": -12.2
-   },
-   {
-    "drums": -29.2,
-    "tonal": -18.8,
-    "level": -12.3
-   },
-   {
-    "drums": -32.3,
-    "tonal": -22.5,
-    "level": -13.1
-   },
-   {
-    "drums": -53.4,
-    "tonal": -32.8,
-    "level": -29.1
-   },
-   {
-    "drums": -79.3,
-    "tonal": -63.6,
-    "level": -58.8
-   },
-   {
-    "drums": -104.1,
-    "tonal": -90.9,
-    "level": -85.2
-   }
-  ]
- },
- "orlo_last_call_heart": {
-  "kind": "music",
-  "use": "Headliner Orlo Vante, song 2 (replaces party/song.ts song 2). Sung lyrics. Sections: verse bars 1-8, pre-chorus 9-16, chorus 17-32.",
-  "bpm": 121.978,
-  "loop": false,
-  "sections": [
-   {
-    "name": "verse",
-    "bar": 0,
-    "bars": 8,
-    "sung": true
-   },
-   {
-    "name": "pre-chorus",
-    "bar": 8,
-    "bars": 8,
-    "sung": true
-   },
-   {
-    "name": "chorus",
-    "bar": 16,
-    "bars": 16,
-    "sung": true
-   }
-  ],
-  "seconds": 63.007,
-  "firstBeat": 0.054,
-  "bars": 32,
-  "beatJitterMs": 13.9,
-  "perBar": [
-   {
-    "drums": -23.8,
-    "tonal": -22.0,
-    "level": -15.4
-   },
-   {
-    "drums": -31.4,
-    "tonal": -17.5,
-    "level": -15.3
-   },
-   {
-    "drums": -23.8,
-    "tonal": -18.8,
-    "level": -15.7
-   },
-   {
-    "drums": -31.6,
-    "tonal": -18.5,
-    "level": -15.1
-   },
-   {
-    "drums": -23.7,
-    "tonal": -17.9,
-    "level": -13.8
-   },
-   {
-    "drums": -27.3,
-    "tonal": -19.9,
-    "level": -15.3
-   },
-   {
-    "drums": -25.0,
-    "tonal": -19.8,
-    "level": -15.2
-   },
-   {
-    "drums": -26.6,
-    "tonal": -17.6,
-    "level": -12.6
-   },
-   {
-    "drums": -30.8,
-    "tonal": -23.6,
-    "level": -17.7
-   },
-   {
-    "drums": -25.6,
-    "tonal": -20.9,
-    "level": -14.7
-   },
-   {
-    "drums": -28.4,
-    "tonal": -21.0,
-    "level": -15.6
-   },
-   {
-    "drums": -27.6,
-    "tonal": -21.4,
-    "level": -15.5
-   },
-   {
-    "drums": -28.2,
-    "tonal": -18.4,
-    "level": -14.0
-   },
-   {
-    "drums": -26.3,
-    "tonal": -22.8,
-    "level": -14.2
-   },
-   {
-    "drums": -29.7,
-    "tonal": -17.8,
-    "level": -13.8
-   },
-   {
-    "drums": -25.3,
-    "tonal": -19.0,
-    "level": -12.8
-   },
-   {
-    "drums": -23.1,
-    "tonal": -23.2,
+    "drums": -21.3,
+    "tonal": -13.2,
     "level": -12.9
    },
    {
-    "drums": -23.8,
-    "tonal": -25.8,
-    "level": -13.4
+    "drums": -21.4,
+    "tonal": -13.3,
+    "level": -13
    },
    {
-    "drums": -25.3,
-    "tonal": -23.0,
-    "level": -13.4
+    "drums": -23.6,
+    "tonal": -15.7,
+    "level": -15.4
    },
    {
-    "drums": -27.3,
-    "tonal": -18.8,
-    "level": -12.6
+    "drums": -24.1,
+    "tonal": -14.2,
+    "level": -14
    },
    {
-    "drums": -22.6,
-    "tonal": -25.0,
+    "drums": -18.7,
+    "tonal": -11.6,
+    "level": -11.2
+   },
+   {
+    "drums": -19,
+    "tonal": -11.9,
+    "level": -11.5
+   },
+   {
+    "drums": -18.6,
+    "tonal": -12.1,
+    "level": -11.6
+   },
+   {
+    "drums": -19,
+    "tonal": -11.9,
+    "level": -11.5
+   },
+   {
+    "drums": -18.4,
+    "tonal": -12.2,
+    "level": -11.7
+   },
+   {
+    "drums": -18.8,
+    "tonal": -11.9,
+    "level": -11.4
+   },
+   {
+    "drums": -18.9,
+    "tonal": -12.4,
+    "level": -11.9
+   },
+   {
+    "drums": -18.6,
+    "tonal": -12,
+    "level": -11.6
+   },
+   {
+    "drums": -19.1,
+    "tonal": -12.1,
+    "level": -11.6
+   },
+   {
+    "drums": -19.4,
+    "tonal": -11.9,
+    "level": -11.5
+   },
+   {
+    "drums": -18.9,
+    "tonal": -12.1,
+    "level": -11.7
+   },
+   {
+    "drums": -19.4,
+    "tonal": -11.9,
+    "level": -11.6
+   },
+   {
+    "drums": -19.2,
+    "tonal": -12.3,
+    "level": -11.9
+   },
+   {
+    "drums": -19.9,
+    "tonal": -12.3,
+    "level": -11.9
+   },
+   {
+    "drums": -19.7,
+    "tonal": -12.6,
+    "level": -12.2
+   },
+   {
+    "drums": -19,
+    "tonal": -12.1,
+    "level": -11.7
+   },
+   {
+    "drums": -19.8,
+    "tonal": -12.4,
+    "level": -12
+   },
+   {
+    "drums": -20,
+    "tonal": -12.4,
+    "level": -12
+   },
+   {
+    "drums": -19.9,
+    "tonal": -12.6,
+    "level": -12.2
+   },
+   {
+    "drums": -20.8,
+    "tonal": -12.2,
+    "level": -11.9
+   },
+   {
+    "drums": -20.3,
+    "tonal": -12.8,
+    "level": -12.4
+   },
+   {
+    "drums": -20.1,
+    "tonal": -12.7,
+    "level": -12.3
+   },
+   {
+    "drums": -21.6,
+    "tonal": -13.3,
+    "level": -13
+   },
+   {
+    "drums": -24,
+    "tonal": -14.8,
+    "level": -14.5
+   },
+   {
+    "drums": -18.5,
+    "tonal": -12.2,
+    "level": -11.8
+   },
+   {
+    "drums": -18.9,
+    "tonal": -12.1,
+    "level": -11.7
+   },
+   {
+    "drums": -19.3,
+    "tonal": -12.5,
+    "level": -12
+   },
+   {
+    "drums": -18.7,
+    "tonal": -12.3,
+    "level": -11.8
+   },
+   {
+    "drums": -19.2,
+    "tonal": -12.4,
+    "level": -12
+   },
+   {
+    "drums": -18.9,
+    "tonal": -12.3,
+    "level": -11.9
+   },
+   {
+    "drums": -19.4,
+    "tonal": -12.4,
+    "level": -12
+   },
+   {
+    "drums": -19.2,
+    "tonal": -12.3,
+    "level": -11.9
+   },
+   {
+    "drums": -19,
+    "tonal": -12.4,
+    "level": -12
+   },
+   {
+    "drums": -19.5,
+    "tonal": -12.3,
+    "level": -11.9
+   },
+   {
+    "drums": -19.3,
+    "tonal": -12.6,
+    "level": -12.2
+   },
+   {
+    "drums": -19.8,
+    "tonal": -12.7,
+    "level": -12.3
+   },
+   {
+    "drums": -19.2,
+    "tonal": -12.9,
+    "level": -12.4
+   },
+   {
+    "drums": -18.4,
+    "tonal": -11.7,
+    "level": -11.2
+   },
+   {
+    "drums": -18.4,
+    "tonal": -11.7,
+    "level": -11.2
+   },
+   {
+    "drums": -19.1,
+    "tonal": -12.4,
+    "level": -12
+   },
+   {
+    "drums": -21.3,
+    "tonal": -13.8,
     "level": -13.5
    },
    {
-    "drums": -24.7,
-    "tonal": -22.3,
+    "drums": -20.3,
+    "tonal": -13.4,
+    "level": -13
+   },
+   {
+    "drums": -20.5,
+    "tonal": -14.1,
+    "level": -13.6
+   },
+   {
+    "drums": -20.2,
+    "tonal": -13.4,
+    "level": -13
+   },
+   {
+    "drums": -20.7,
+    "tonal": -13.9,
+    "level": -13.5
+   },
+   {
+    "drums": -20.8,
+    "tonal": -13.4,
+    "level": -13.1
+   },
+   {
+    "drums": -20.8,
+    "tonal": -13.6,
     "level": -13.2
    },
    {
-    "drums": -26.6,
-    "tonal": -19.1,
-    "level": -12.1
+    "drums": -21.4,
+    "tonal": -13.9,
+    "level": -13.5
    },
    {
-    "drums": -28.1,
-    "tonal": -21.3,
-    "level": -13.2
+    "drums": -21.3,
+    "tonal": -13.9,
+    "level": -13.5
    },
    {
-    "drums": -24.7,
-    "tonal": -16.9,
-    "level": -12.1
+    "drums": -20.9,
+    "tonal": -13.5,
+    "level": -13.1
    },
    {
-    "drums": -24.2,
-    "tonal": -17.9,
-    "level": -12.4
+    "drums": -21.4,
+    "tonal": -13.8,
+    "level": -13.5
    },
    {
-    "drums": -25.2,
-    "tonal": -17.2,
-    "level": -12.6
+    "drums": -21.7,
+    "tonal": -13.3,
+    "level": -13
    },
    {
-    "drums": -24.3,
-    "tonal": -18.0,
-    "level": -12.6
+    "drums": -19.8,
+    "tonal": -12.6,
+    "level": -12.2
    },
    {
-    "drums": -24.2,
-    "tonal": -19.4,
-    "level": -12.4
+    "drums": -20.7,
+    "tonal": -12.5,
+    "level": -12.2
    },
    {
-    "drums": -26.1,
-    "tonal": -20.4,
+    "drums": -20.1,
+    "tonal": -13.2,
     "level": -12.8
    },
    {
-    "drums": -43.3,
-    "tonal": -20.8,
-    "level": -19.6
+    "drums": -20.4,
+    "tonal": -13.1,
+    "level": -12.8
    },
    {
-    "drums": -95.7,
-    "tonal": -71.2,
-    "level": -70.5
+    "drums": -20.8,
+    "tonal": -14.4,
+    "level": -13.9
+   },
+   {
+    "drums": -20.4,
+    "tonal": -13.4,
+    "level": -13
+   },
+   {
+    "drums": -20.9,
+    "tonal": -13.5,
+    "level": -13.2
+   },
+   {
+    "drums": -20.7,
+    "tonal": -13,
+    "level": -12.7
+   },
+   {
+    "drums": -20.1,
+    "tonal": -13.6,
+    "level": -13.1
+   },
+   {
+    "drums": -21.4,
+    "tonal": -12.9,
+    "level": -12.6
+   },
+   {
+    "drums": -20.7,
+    "tonal": -12.6,
+    "level": -12.3
+   },
+   {
+    "drums": -19.4,
+    "tonal": -13,
+    "level": -12.5
+   },
+   {
+    "drums": -21.1,
+    "tonal": -13.8,
+    "level": -13.4
+   },
+   {
+    "drums": -19.7,
+    "tonal": -13.5,
+    "level": -13
+   },
+   {
+    "drums": -19.7,
+    "tonal": -13.2,
+    "level": -12.7
+   },
+   {
+    "drums": -20.6,
+    "tonal": -11.7,
+    "level": -11.4
+   },
+   {
+    "drums": -20.6,
+    "tonal": -12.3,
+    "level": -12
+   },
+   {
+    "drums": -20.8,
+    "tonal": -12.7,
+    "level": -12.4
+   },
+   {
+    "drums": -21.9,
+    "tonal": -13.6,
+    "level": -13.3
+   },
+   {
+    "drums": -18.7,
+    "tonal": -11.7,
+    "level": -11.3
+   },
+   {
+    "drums": -18.8,
+    "tonal": -11.5,
+    "level": -11.1
+   },
+   {
+    "drums": -18.6,
+    "tonal": -11.3,
+    "level": -10.9
+   },
+   {
+    "drums": -18.8,
+    "tonal": -11.4,
+    "level": -11
+   },
+   {
+    "drums": -19.1,
+    "tonal": -11.5,
+    "level": -11.1
+   },
+   {
+    "drums": -19,
+    "tonal": -11.8,
+    "level": -11.4
+   },
+   {
+    "drums": -19.5,
+    "tonal": -11.6,
+    "level": -11.3
+   },
+   {
+    "drums": -18.9,
+    "tonal": -12,
+    "level": -11.6
+   },
+   {
+    "drums": -19.1,
+    "tonal": -11.8,
+    "level": -11.4
+   },
+   {
+    "drums": -18.4,
+    "tonal": -11.3,
+    "level": -10.9
+   },
+   {
+    "drums": -17.6,
+    "tonal": -10.9,
+    "level": -10.4
+   },
+   {
+    "drums": -17,
+    "tonal": -10.7,
+    "level": -10.2
+   },
+   {
+    "drums": -17.1,
+    "tonal": -10.9,
+    "level": -10.4
+   },
+   {
+    "drums": -17.8,
+    "tonal": -11,
+    "level": -10.6
+   },
+   {
+    "drums": -17.4,
+    "tonal": -10.7,
+    "level": -10.3
+   },
+   {
+    "drums": -17.8,
+    "tonal": -10.7,
+    "level": -10.3
+   },
+   {
+    "drums": -17.8,
+    "tonal": -11,
+    "level": -10.6
+   },
+   {
+    "drums": -17.5,
+    "tonal": -10.7,
+    "level": -10.3
+   },
+   {
+    "drums": -17.3,
+    "tonal": -10.9,
+    "level": -10.4
+   },
+   {
+    "drums": -17.2,
+    "tonal": -10.9,
+    "level": -10.4
+   },
+   {
+    "drums": -17.8,
+    "tonal": -11.3,
+    "level": -10.8
+   },
+   {
+    "drums": -17.7,
+    "tonal": -11.1,
+    "level": -10.6
+   },
+   {
+    "drums": -18,
+    "tonal": -11.1,
+    "level": -10.7
+   },
+   {
+    "drums": -18.4,
+    "tonal": -11.6,
+    "level": -11.1
+   },
+   {
+    "drums": -36.1,
+    "tonal": -20.2,
+    "level": -20.2
+   },
+   {
+    "drums": -31.5,
+    "tonal": -15.9,
+    "level": -15.8
+   },
+   {
+    "drums": -34.8,
+    "tonal": -18.7,
+    "level": -18.7
+   },
+   {
+    "drums": -32.3,
+    "tonal": -14.4,
+    "level": -14.4
+   },
+   {
+    "drums": -32.6,
+    "tonal": -14.4,
+    "level": -14.4
+   },
+   {
+    "drums": -29.3,
+    "tonal": -13.5,
+    "level": -13.4
+   },
+   {
+    "drums": -23,
+    "tonal": -13,
+    "level": -12.8
+   },
+   {
+    "drums": -19.6,
+    "tonal": -12,
+    "level": -11.7
+   },
+   {
+    "drums": -17.3,
+    "tonal": -10.8,
+    "level": -10.4
+   },
+   {
+    "drums": -18,
+    "tonal": -11,
+    "level": -10.6
+   },
+   {
+    "drums": -17,
+    "tonal": -11,
+    "level": -10.5
+   },
+   {
+    "drums": -17.7,
+    "tonal": -11.1,
+    "level": -10.6
+   },
+   {
+    "drums": -16.9,
+    "tonal": -11.3,
+    "level": -10.8
+   },
+   {
+    "drums": -18.2,
+    "tonal": -11,
+    "level": -10.6
+   },
+   {
+    "drums": -17.7,
+    "tonal": -10.7,
+    "level": -10.3
+   },
+   {
+    "drums": -17.4,
+    "tonal": -11.1,
+    "level": -10.6
+   },
+   {
+    "drums": -17.3,
+    "tonal": -11,
+    "level": -10.5
+   },
+   {
+    "drums": -17.7,
+    "tonal": -10.6,
+    "level": -10.2
+   },
+   {
+    "drums": -17,
+    "tonal": -11,
+    "level": -10.5
+   },
+   {
+    "drums": -17.7,
+    "tonal": -10.8,
+    "level": -10.4
+   },
+   {
+    "drums": -17,
+    "tonal": -11.1,
+    "level": -10.6
+   },
+   {
+    "drums": -17.6,
+    "tonal": -10.8,
+    "level": -10.4
+   },
+   {
+    "drums": -16.5,
+    "tonal": -11,
+    "level": -10.4
+   },
+   {
+    "drums": -23.1,
+    "tonal": -15.1,
+    "level": -14.7
+   },
+   {
+    "drums": -35.7,
+    "tonal": -18.3,
+    "level": -18.2
+   },
+   {
+    "drums": -33.9,
+    "tonal": -17.5,
+    "level": -17.5
+   },
+   {
+    "drums": -30.1,
+    "tonal": -16.6,
+    "level": -16.5
    }
   ]
  },
@@ -727,7 +1083,7 @@
   "perBar": [
    {
     "drums": -45.8,
-    "tonal": -22.0,
+    "tonal": -22,
     "level": -20.2
    },
    {
@@ -752,7 +1108,7 @@
    },
    {
     "drums": -44.1,
-    "tonal": -27.0,
+    "tonal": -27,
     "level": -25.6
    },
    {
@@ -767,7 +1123,7 @@
    },
    {
     "drums": -21.2,
-    "tonal": -16.0,
+    "tonal": -16,
     "level": -12.2
    },
    {
@@ -778,7 +1134,7 @@
    {
     "drums": -23.1,
     "tonal": -17.8,
-    "level": -14.0
+    "level": -14
    },
    {
     "drums": -22.3,
@@ -788,12 +1144,12 @@
    {
     "drums": -23.6,
     "tonal": -18.7,
-    "level": -15.0
+    "level": -15
    },
    {
     "drums": -24.4,
     "tonal": -19.5,
-    "level": -16.0
+    "level": -16
    },
    {
     "drums": -25.3,
@@ -807,7 +1163,7 @@
    },
    {
     "drums": -24.9,
-    "tonal": -20.0,
+    "tonal": -20,
     "level": -16.1
    },
    {
@@ -821,7 +1177,7 @@
     "level": -16.6
    },
    {
-    "drums": -25.0,
+    "drums": -25,
     "tonal": -22.3,
     "level": -17.5
    },
@@ -831,7 +1187,7 @@
     "level": -16.7
    },
    {
-    "drums": -26.0,
+    "drums": -26,
     "tonal": -21.2,
     "level": -17.4
    },
@@ -841,14 +1197,14 @@
     "level": -17.4
    },
    {
-    "drums": -35.0,
+    "drums": -35,
     "tonal": -21.1,
-    "level": -20.0
+    "level": -20
    },
    {
-    "drums": -26.0,
+    "drums": -26,
     "tonal": -21.1,
-    "level": -17.0
+    "level": -17
    },
    {
     "drums": -26.3,
@@ -863,7 +1219,7 @@
    {
     "drums": -25.2,
     "tonal": -22.9,
-    "level": -18.0
+    "level": -18
    },
    {
     "drums": -25.8,
@@ -886,14 +1242,14 @@
     "level": -18.5
    },
    {
-    "drums": -26.0,
+    "drums": -26,
     "tonal": -22.1,
     "level": -17.6
    },
    {
     "drums": -26.2,
     "tonal": -22.1,
-    "level": -18.0
+    "level": -18
    },
    {
     "drums": -26.8,
@@ -916,7 +1272,7 @@
     "level": -18.2
    },
    {
-    "drums": -28.0,
+    "drums": -28,
     "tonal": -21.8,
     "level": -17.9
    },
@@ -967,7 +1323,7 @@
    },
    {
     "drums": -26.6,
-    "tonal": -22.0,
+    "tonal": -22,
     "level": -17.7
    },
    {
@@ -996,7 +1352,7 @@
     "level": -18.4
    },
    {
-    "drums": -28.0,
+    "drums": -28,
     "tonal": -22.3,
     "level": -18.2
    },
@@ -1067,5 +1423,719 @@
   "use": "Optional casino floor room tone, seamless 30 s loop (the procedural floor in ambience.ts may already be better: compare before using).",
   "loop": true,
   "seconds": 30.041
+ },
+ "deck_b": {
+  "kind": "music",
+  "title": "Woo and Oh Yeah",
+  "use": "DJ deck B (right record): Woo and Oh Yeah, the owner's own track (artist lucidium2000, made with Suno), a short scratch-and-beats record that loops on its bar lines. Measured by scripts/measure-music.ts.",
+  "loop": true,
+  "seconds": 65.92,
+  "bpm": 91.105,
+  "firstBeat": 0.079,
+  "bars": 24,
+  "perBar": [
+   {
+    "drums": -27.9,
+    "tonal": -15.2,
+    "level": -15.1
+   },
+   {
+    "drums": -30,
+    "tonal": -14.7,
+    "level": -14.6
+   },
+   {
+    "drums": -31.2,
+    "tonal": -16.4,
+    "level": -16.3
+   },
+   {
+    "drums": -23.3,
+    "tonal": -13.9,
+    "level": -13.7
+   },
+   {
+    "drums": -18.2,
+    "tonal": -10.6,
+    "level": -10.3
+   },
+   {
+    "drums": -20.9,
+    "tonal": -13.6,
+    "level": -13.2
+   },
+   {
+    "drums": -18.8,
+    "tonal": -11.8,
+    "level": -11.4
+   },
+   {
+    "drums": -21.9,
+    "tonal": -14.4,
+    "level": -14
+   },
+   {
+    "drums": -19.1,
+    "tonal": -12,
+    "level": -11.6
+   },
+   {
+    "drums": -22.6,
+    "tonal": -14.9,
+    "level": -14.5
+   },
+   {
+    "drums": -19.7,
+    "tonal": -12.3,
+    "level": -11.9
+   },
+   {
+    "drums": -23.3,
+    "tonal": -14.6,
+    "level": -14.3
+   },
+   {
+    "drums": -19.5,
+    "tonal": -12.9,
+    "level": -12.4
+   },
+   {
+    "drums": -18.4,
+    "tonal": -12.3,
+    "level": -11.8
+   },
+   {
+    "drums": -20.4,
+    "tonal": -13.2,
+    "level": -12.8
+   },
+   {
+    "drums": -18.5,
+    "tonal": -12.5,
+    "level": -12
+   },
+   {
+    "drums": -20.8,
+    "tonal": -13.3,
+    "level": -12.9
+   },
+   {
+    "drums": -19,
+    "tonal": -12.6,
+    "level": -12.1
+   },
+   {
+    "drums": -20.1,
+    "tonal": -13.5,
+    "level": -13.1
+   },
+   {
+    "drums": -18.7,
+    "tonal": -12.7,
+    "level": -12.2
+   },
+   {
+    "drums": -25.2,
+    "tonal": -17.7,
+    "level": -17.3
+   },
+   {
+    "drums": -29.8,
+    "tonal": -17.5,
+    "level": -17.4
+   },
+   {
+    "drums": -24.1,
+    "tonal": -15.5,
+    "level": -15.3
+   },
+   {
+    "drums": -20,
+    "tonal": -13,
+    "level": -12.6
+   }
+  ]
+ },
+ "deck_a": {
+  "kind": "music",
+  "title": "No Tomorrow",
+  "use": "DJ deck A (left record): No Tomorrow, the owner's own track (artist lucidium2000, made with Suno). Measured by scripts/measure-music.ts.",
+  "loop": true,
+  "seconds": 206.36,
+  "bpm": 132.823,
+  "firstBeat": 0.292,
+  "bars": 114,
+  "perBar": [
+   {
+    "drums": -32.2,
+    "tonal": -16.4,
+    "level": -16.3
+   },
+   {
+    "drums": -29.3,
+    "tonal": -14,
+    "level": -13.9
+   },
+   {
+    "drums": -27.6,
+    "tonal": -13.3,
+    "level": -13.2
+   },
+   {
+    "drums": -28,
+    "tonal": -13.1,
+    "level": -13
+   },
+   {
+    "drums": -30.6,
+    "tonal": -14.1,
+    "level": -14.1
+   },
+   {
+    "drums": -31.8,
+    "tonal": -14.9,
+    "level": -14.9
+   },
+   {
+    "drums": -31.8,
+    "tonal": -15.3,
+    "level": -15.3
+   },
+   {
+    "drums": -25.3,
+    "tonal": -14.3,
+    "level": -14.2
+   },
+   {
+    "drums": -24.5,
+    "tonal": -15.4,
+    "level": -15.2
+   },
+   {
+    "drums": -26.1,
+    "tonal": -14.8,
+    "level": -14.6
+   },
+   {
+    "drums": -26.4,
+    "tonal": -15.9,
+    "level": -15.7
+   },
+   {
+    "drums": -26,
+    "tonal": -14.3,
+    "level": -14.1
+   },
+   {
+    "drums": -27,
+    "tonal": -15.8,
+    "level": -15.6
+   },
+   {
+    "drums": -33.3,
+    "tonal": -15.2,
+    "level": -15.2
+   },
+   {
+    "drums": -32,
+    "tonal": -15.3,
+    "level": -15.2
+   },
+   {
+    "drums": -25.5,
+    "tonal": -13.9,
+    "level": -13.8
+   },
+   {
+    "drums": -28.4,
+    "tonal": -15.5,
+    "level": -15.4
+   },
+   {
+    "drums": -23.7,
+    "tonal": -15,
+    "level": -14.8
+   },
+   {
+    "drums": -29.8,
+    "tonal": -16.2,
+    "level": -16.1
+   },
+   {
+    "drums": -23.5,
+    "tonal": -15.1,
+    "level": -14.8
+   },
+   {
+    "drums": -28.6,
+    "tonal": -16.3,
+    "level": -16.2
+   },
+   {
+    "drums": -31.6,
+    "tonal": -16.9,
+    "level": -16.8
+   },
+   {
+    "drums": -30.4,
+    "tonal": -16.5,
+    "level": -16.4
+   },
+   {
+    "drums": -24.5,
+    "tonal": -15.3,
+    "level": -15
+   },
+   {
+    "drums": -22.2,
+    "tonal": -14.3,
+    "level": -14
+   },
+   {
+    "drums": -26.2,
+    "tonal": -14.2,
+    "level": -14.1
+   },
+   {
+    "drums": -30.7,
+    "tonal": -15.7,
+    "level": -15.6
+   },
+   {
+    "drums": -26.3,
+    "tonal": -14.9,
+    "level": -14.7
+   },
+   {
+    "drums": -26.7,
+    "tonal": -12.9,
+    "level": -12.8
+   },
+   {
+    "drums": -28.4,
+    "tonal": -14.1,
+    "level": -14
+   },
+   {
+    "drums": -31.3,
+    "tonal": -14.3,
+    "level": -14.2
+   },
+   {
+    "drums": -25.5,
+    "tonal": -13.9,
+    "level": -13.8
+   },
+   {
+    "drums": -16.3,
+    "tonal": -10.9,
+    "level": -10.3
+   },
+   {
+    "drums": -17.8,
+    "tonal": -11.5,
+    "level": -11
+   },
+   {
+    "drums": -16.4,
+    "tonal": -10.7,
+    "level": -10.1
+   },
+   {
+    "drums": -17,
+    "tonal": -10.8,
+    "level": -10.3
+   },
+   {
+    "drums": -16.7,
+    "tonal": -10.7,
+    "level": -10.2
+   },
+   {
+    "drums": -17.4,
+    "tonal": -10.8,
+    "level": -10.4
+   },
+   {
+    "drums": -17.8,
+    "tonal": -11,
+    "level": -10.5
+   },
+   {
+    "drums": -31.2,
+    "tonal": -16.1,
+    "level": -16.1
+   },
+   {
+    "drums": -33.2,
+    "tonal": -14.8,
+    "level": -14.8
+   },
+   {
+    "drums": -26.8,
+    "tonal": -14.5,
+    "level": -14.3
+   },
+   {
+    "drums": -16.5,
+    "tonal": -10.5,
+    "level": -10
+   },
+   {
+    "drums": -17.6,
+    "tonal": -10.7,
+    "level": -10.3
+   },
+   {
+    "drums": -17.6,
+    "tonal": -10.7,
+    "level": -10.3
+   },
+   {
+    "drums": -17.3,
+    "tonal": -10.7,
+    "level": -10.3
+   },
+   {
+    "drums": -16.9,
+    "tonal": -10.8,
+    "level": -10.3
+   },
+   {
+    "drums": -17.8,
+    "tonal": -10.9,
+    "level": -10.5
+   },
+   {
+    "drums": -17.3,
+    "tonal": -10.7,
+    "level": -10.3
+   },
+   {
+    "drums": -22.6,
+    "tonal": -14,
+    "level": -13.7
+   },
+   {
+    "drums": -19.4,
+    "tonal": -13.8,
+    "level": -13.3
+   },
+   {
+    "drums": -20.5,
+    "tonal": -13.7,
+    "level": -13.3
+   },
+   {
+    "drums": -20,
+    "tonal": -13.7,
+    "level": -13.2
+   },
+   {
+    "drums": -20,
+    "tonal": -13.3,
+    "level": -12.8
+   },
+   {
+    "drums": -19.2,
+    "tonal": -13.6,
+    "level": -13.1
+   },
+   {
+    "drums": -19.4,
+    "tonal": -13.4,
+    "level": -12.9
+   },
+   {
+    "drums": -20.1,
+    "tonal": -13.4,
+    "level": -13
+   },
+   {
+    "drums": -20,
+    "tonal": -13.1,
+    "level": -12.7
+   },
+   {
+    "drums": -24.8,
+    "tonal": -15.6,
+    "level": -15.4
+   },
+   {
+    "drums": -28.3,
+    "tonal": -15.6,
+    "level": -15.5
+   },
+   {
+    "drums": -27.5,
+    "tonal": -16.4,
+    "level": -16.2
+   },
+   {
+    "drums": -28.9,
+    "tonal": -15.4,
+    "level": -15.3
+   },
+   {
+    "drums": -25.2,
+    "tonal": -13.7,
+    "level": -13.5
+   },
+   {
+    "drums": -30.2,
+    "tonal": -14.6,
+    "level": -14.6
+   },
+   {
+    "drums": -29.4,
+    "tonal": -15,
+    "level": -15
+   },
+   {
+    "drums": -24.4,
+    "tonal": -14.3,
+    "level": -14.1
+   },
+   {
+    "drums": -17.4,
+    "tonal": -11.3,
+    "level": -10.8
+   },
+   {
+    "drums": -17.8,
+    "tonal": -11.9,
+    "level": -11.3
+   },
+   {
+    "drums": -17.5,
+    "tonal": -11.5,
+    "level": -11
+   },
+   {
+    "drums": -17.5,
+    "tonal": -11.8,
+    "level": -11.2
+   },
+   {
+    "drums": -17.1,
+    "tonal": -11.6,
+    "level": -11
+   },
+   {
+    "drums": -18.1,
+    "tonal": -11.8,
+    "level": -11.3
+   },
+   {
+    "drums": -18.3,
+    "tonal": -11.9,
+    "level": -11.5
+   },
+   {
+    "drums": -24.8,
+    "tonal": -14.6,
+    "level": -14.4
+   },
+   {
+    "drums": -30.9,
+    "tonal": -15.1,
+    "level": -15
+   },
+   {
+    "drums": -29.1,
+    "tonal": -14.6,
+    "level": -14.5
+   },
+   {
+    "drums": -27.5,
+    "tonal": -14.3,
+    "level": -14.2
+   },
+   {
+    "drums": -24.9,
+    "tonal": -14.5,
+    "level": -14.3
+   },
+   {
+    "drums": -21.9,
+    "tonal": -13.3,
+    "level": -13
+   },
+   {
+    "drums": -23.3,
+    "tonal": -13.1,
+    "level": -12.9
+   },
+   {
+    "drums": -21,
+    "tonal": -13.3,
+    "level": -12.9
+   },
+   {
+    "drums": -19.1,
+    "tonal": -12,
+    "level": -11.6
+   },
+   {
+    "drums": -21.9,
+    "tonal": -13.8,
+    "level": -13.4
+   },
+   {
+    "drums": -24.6,
+    "tonal": -14.2,
+    "level": -14
+   },
+   {
+    "drums": -19,
+    "tonal": -12.1,
+    "level": -11.7
+   },
+   {
+    "drums": -19.4,
+    "tonal": -11.6,
+    "level": -11.3
+   },
+   {
+    "drums": -28.9,
+    "tonal": -14.4,
+    "level": -14.3
+   },
+   {
+    "drums": -28.8,
+    "tonal": -14.2,
+    "level": -14.1
+   },
+   {
+    "drums": -29.9,
+    "tonal": -14.6,
+    "level": -14.5
+   },
+   {
+    "drums": -25,
+    "tonal": -13.7,
+    "level": -13.6
+   },
+   {
+    "drums": -17.8,
+    "tonal": -12.1,
+    "level": -11.5
+   },
+   {
+    "drums": -19.5,
+    "tonal": -12.4,
+    "level": -12
+   },
+   {
+    "drums": -18.3,
+    "tonal": -12,
+    "level": -11.5
+   },
+   {
+    "drums": -18.8,
+    "tonal": -11.7,
+    "level": -11.3
+   },
+   {
+    "drums": -17.5,
+    "tonal": -10.2,
+    "level": -9.8
+   },
+   {
+    "drums": -18.1,
+    "tonal": -10.4,
+    "level": -10.1
+   },
+   {
+    "drums": -18.9,
+    "tonal": -11.2,
+    "level": -10.8
+   },
+   {
+    "drums": -19.2,
+    "tonal": -11.6,
+    "level": -11.2
+   },
+   {
+    "drums": -16.1,
+    "tonal": -10.3,
+    "level": -9.8
+   },
+   {
+    "drums": -16.3,
+    "tonal": -10.5,
+    "level": -9.9
+   },
+   {
+    "drums": -16,
+    "tonal": -10.4,
+    "level": -9.8
+   },
+   {
+    "drums": -16.1,
+    "tonal": -10.5,
+    "level": -9.9
+   },
+   {
+    "drums": -15.6,
+    "tonal": -10.5,
+    "level": -9.9
+   },
+   {
+    "drums": -16.4,
+    "tonal": -10.5,
+    "level": -10
+   },
+   {
+    "drums": -16,
+    "tonal": -10.6,
+    "level": -10
+   },
+   {
+    "drums": -17.4,
+    "tonal": -10.6,
+    "level": -10.1
+   },
+   {
+    "drums": -15.7,
+    "tonal": -10.1,
+    "level": -9.5
+   },
+   {
+    "drums": -16.4,
+    "tonal": -10.3,
+    "level": -9.8
+   },
+   {
+    "drums": -16.1,
+    "tonal": -10.3,
+    "level": -9.7
+   },
+   {
+    "drums": -15.6,
+    "tonal": -9.3,
+    "level": -8.8
+   },
+   {
+    "drums": -15.2,
+    "tonal": -9.2,
+    "level": -8.7
+   },
+   {
+    "drums": -14.9,
+    "tonal": -9.3,
+    "level": -8.7
+   },
+   {
+    "drums": -15.9,
+    "tonal": -10.3,
+    "level": -9.7
+   },
+   {
+    "drums": -23.6,
+    "tonal": -14.5,
+    "level": -14.2
+   }
+  ]
  }
 }

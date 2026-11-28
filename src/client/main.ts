@@ -747,6 +747,7 @@ async function main() {
     hands,
     interaction,
     travel: (v) => player.travel(v),
+    isFree: (x, z) => world.isFree(x, z, 0.24, true),
   });
 
   // A living floor: friends chatting in circles (drinks in hand), people snapping

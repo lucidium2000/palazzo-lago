@@ -53,6 +53,8 @@ export const RADIUS = 0.25;
 const JUMP_V = Math.sqrt(2 * GRAVITY * 0.45);
 /** Highest ledge you can walk up (a stair, a curb). */
 const STEP_UP = 0.36;
+/** In the air, how much higher than a stair your feet still find a ledge (a 0.45 m jump clears the 0.6 m pool stage). */
+const MANTLE = 0.15;
 /** Desktop eye height sitting on a stool: this far above its seat. */
 const SEATED_EYE = 0.52;
 /** Once on a stool, you stay on it until your feet are this much further out. */
@@ -286,7 +288,8 @@ export class Player {
       const g = this.world.groundAt(nx, nz);
       // Swimming: anywhere the water is still over the floor (the steps, the shallows).
       if (this.swimming || this.diving) return this.swimSpot(nx, nz, g);
-      return g <= this.feetY + STEP_UP;
+      // In the air you can get your feet onto a ledge a little higher than a stair (a jump up onto the pool stage).
+      return g <= this.feetY + STEP_UP + (this.airborne && this.water === null ? MANTLE : 0);
     };
     const tries: [number, number][] = [
       [dx, dz],

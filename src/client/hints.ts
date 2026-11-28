@@ -232,7 +232,7 @@ export class Hints {
       if (p.seated?.id === 'piano') this.ask('pianokeys', 'Play with A S D F… (W E T… black keys) · Z / X octave · Space pedal', 'keys');
       else if (this.near(d.piano.position, 1.8)) this.ask('piano', 'Press E to sit and play', 'keys');
     }
-    if (d.decks?.atDecks) this.ask('decks', 'Drag a record to scratch', 'record');
+    if (d.decks?.atDecks) this.ask('decks', 'Drag a record to scratch, or slide the crossfader to mix in deck B', 'record');
     const use = d.loose.deskUse();
     if (use === 'Bite') this.ask('eat', 'Press F to take a bite', 'mouth');
     else if (use === 'Wear') this.ask('tryon', 'Press F to try it on (U takes it off)', 'wear');

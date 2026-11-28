@@ -154,6 +154,56 @@ to force a quality tier.
 | Bowling | Click a ball on the return, A/D move, mouse aims, hold click or Space to swing, move sideways for spin, let go; S steps away. Consoles: JOIN / LEAVE / NEW GAME | Grab a ball (grip), walk up, swing and let go; twist your wrist at the release to hook it |
 | Grand piano | Click the pianist to push him off the bench, then sit (E, or walk onto the bench): A S D F G H J K L white keys, W E T Y U O P black, Z / X octave, Space sustain, Shift louder, Esc stand; or click / tap the keys | Shove (or punch) him off, sit on the bench: every fingertip that presses a key plays it, as hard as it came down (hand tracking: all ten; controllers: index and thumb, the whole hand when open); A / X is the sustain pedal |
 
+## The pool party
+
+**The stage.** The riser along the deck's south edge is 0.6 m up. Walk or jump off its front or either end
+onto the deck (you land as from any fall); jump back up from the deck (a 0.45 m jump gets your feet onto it),
+or take the steps at the booth's east end. The back and the truss posts stay solid, and guests and the
+performers never step off.
+
+**The decks** (behind the DJ booth: the steps, then round the console; on a screen, click the decks). Two
+turntables 66 cm apart (30 cm records) with a two-channel mixer between them, all within reach from the DJ's
+spot. Deck A, the left record, is the house record ("No Tomorrow"); deck B, the right, is a scratch and beats
+record ("Woo and Oh Yeah"). The crossfader rests full left (deck A only); slide it right to bring deck B in
+(equal-power: centre is both at -3 dB, full right is deck B only); each deck has its own channel fader. Lay a
+hand (or drag the mouse) on either record to scratch it against its own track; let go and it plays on from
+there. Deck B comes in on deck A's bar line, and is beat-matched to it when their tempos are within a
+turntable's ±8 %. While you're at the decks your mix is what the stacks play, and what your friends hear (your
+faders and where each record is ride in your state); step away and the resident DJ's house record comes back.
+
+**The concert.** A minute or two after you come out to the pool (60-120 s), NIXIE VALE (an original
+electropop headliner) and her band come on for her set; the dancers gather in front of her stage and as many
+again arrive over the next minute and a half; then the DJ plays for about four minutes, then she's back. A
+room shares one running order (the first of you to arrive makes it; it rides in everyone's state, newest
+wins), so everyone sees the same show, band and crowd, all driven from the shared clock.
+
+**Music files** (`public/audio/`, all drop-in replaceable; decoded mono at 32 kHz, loaded only while needed):
+
+| File | What | When it's in memory |
+| --- | --- | --- |
+| `deck_a.mp3` | deck A, the house record ("No Tomorrow", the owner's) | from when you head for the pool |
+| `deck_b.mp3` | deck B ("Woo and Oh Yeah", the owner's) | while anyone's at the decks, and 90 s after |
+| `concert_1.mp3` | her song ("Chasing Dawn", the owner's) | from a minute before her set to two minutes after |
+| `dj_set.mp3` | stands in for deck A if that can't be loaded | only then |
+
+To swap a song, replace the file and measure it:
+
+```
+npx tsx scripts/measure-music.ts --write deck_a      # or deck_b, concert_1: tempo, first downbeat, bars, per-bar energy into index.json
+```
+
+(or `python3 tools/audio/analyze_music.py` with librosa, which loudness-normalises the sources in
+`tools/audio/src/` too). Even without re-measuring, a replaced file still works: when its length doesn't match
+its `index.json` entry the game measures it in the browser (the same code). For a concert song you can add a
+section map (`sections`: verse / pre-chorus / chorus / bridge / outro, by bar) to its entry in `index.json`
+and `tools/audio/tracks.json`, and her routine, the lights and the drops follow it; without one, the loudest
+phrases are taken as the choruses. For a second song in her set, add `concert_2.mp3` and its entry, and
+list it in `CONCERT` in `src/client/party/setlist.ts`.
+
+**Loudness.** The stacks play at 0.45 each with inverse distance from 6 m, through a limiter (-3 dBFS, 20:1).
+Measured at the listener with the house record: about -16 dBFS RMS on the dance floor (peaks around -2 dBFS)
+and -25 at the pool bar, up from -33 and -35 before.
+
 ## Layout
 
 ```

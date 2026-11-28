@@ -1,21 +1,80 @@
 {
-  "bpm": 122,
-  "moves": {
-    "Show_Groove": { "beats": 2, "loop": true },
-    "Show_Iso": { "beats": 2, "loop": true },
-    "Show_KneePop": { "beats": 2, "loop": true },
-    "Show_Hit": { "beats": 1 },
-    "Show_Hits4": { "beats": 4 },
-    "Show_Spin": { "beats": 2 },
-    "Show_Spin2": { "beats": 2 },
-    "Show_JumpFreeze": { "beats": 4 },
-    "Show_Freeze": { "beats": 2 },
-    "Show_GlideL": { "beats": 2, "loop": true, "dx": 0.45 },
-    "Show_GlideR": { "beats": 2, "loop": true, "dx": -0.45 },
-    "Show_Kick": { "beats": 2 },
-    "Show_Call": { "beats": 4 },
-    "Show_StandTilt": { "beats": 4 },
-    "Show_Final": { "beats": 4 },
-    "Show_Bow": { "beats": 4 }
+ "bpm": 122,
+ "moves": {
+  "Show_Groove": {
+   "beats": 2,
+   "loop": true
+  },
+  "Show_Iso": {
+   "beats": 2,
+   "loop": true
+  },
+  "Show_KneePop": {
+   "beats": 2,
+   "loop": true
+  },
+  "Show_Hit": {
+   "beats": 1
+  },
+  "Show_Hits4": {
+   "beats": 4
+  },
+  "Show_Spin": {
+   "beats": 2
+  },
+  "Show_Spin2": {
+   "beats": 2
+  },
+  "Show_JumpFreeze": {
+   "beats": 4
+  },
+  "Show_Freeze": {
+   "beats": 2
+  },
+  "Show_GlideL": {
+   "beats": 2,
+   "loop": true,
+   "dx": 0.45
+  },
+  "Show_GlideR": {
+   "beats": 2,
+   "loop": true,
+   "dx": -0.45
+  },
+  "Show_Kick": {
+   "beats": 2
+  },
+  "Show_Call": {
+   "beats": 4
+  },
+  "Show_StandTilt": {
+   "beats": 4
+  },
+  "Show_Final": {
+   "beats": 4
+  },
+  "Show_Bow": {
+   "beats": 4
+  },
+  "Show_Sway": {
+   "beats": 2,
+   "loop": true
+  },
+  "Show_HipRoll": {
+   "beats": 2,
+   "loop": true
+  },
+  "Show_HairFlip": {
+   "beats": 4
+  },
+  "Show_ArmWave": {
+   "beats": 4
+  },
+  "Show_Sweep": {
+   "beats": 4
+  },
+  "Show_Pose": {
+   "beats": 4
   }
+ }
 }

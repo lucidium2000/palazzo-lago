@@ -3,6 +3,7 @@ import { AMBIENCE_RATE, buildWalla, renderFloor } from './ambience';
 import { decodeAudio } from './musicload';
 import { arrangement, detectSections, plainArrangement, type Arrangement } from './party/beat';
 import { TRACKS } from './party/setlist';
+import type { MeasuredTrack } from './party/beat';
 
 /**
  * The game's sound. Most effects are synthesized in code at startup; a few
@@ -476,9 +477,9 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
     return buf;
   })();
 
-  // The headliner's ad-libs between songs (party/stage.ts): wordless shouts (a "woo", a "hey", a
-  // "whoa-oh"), a voice synthesized here from a buzzing glottal source through vowel formants that
-  // glide (no recording, and no one's trademark yelp).
+  // The headliner's ad-libs between sections (party/stage.ts): a woman's wordless calls (a "woo", a
+  // "hey", a "yeah-eh"), a voice synthesized here from a buzzing glottal source through vowel formants
+  // that glide, pitched and voiced for a female singer (no recording, and no one's trademark cry).
   const shout = (seconds: number, f0: (t: number) => number, vowel: (t: number) => [number, number, number], amp: (t: number) => number, breath: (t: number) => number) => {
     const sr = ctx.sampleRate;
     const res = [0, 0, 0].map(() => ({ y1: 0, y2: 0 }));
@@ -512,26 +513,28 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
   };
   const ramp = (t: number, a: number, b: number) => Math.min(1, Math.max(0, (t - a) / (b - a)));
   const mixV = (u: number, a: [number, number, number], b: [number, number, number]): [number, number, number] => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+  // Formants a little higher than a man's (a shorter vocal tract): x1.15 on the male vowel tables.
+  const fem = (v: [number, number, number]): [number, number, number] => [v[0] * 1.15, v[1] * 1.15, v[2] * 1.12];
   const woo = shout(
     0.62,
-    (t) => 210 + 230 * ramp(t, 0, 0.16) - 120 * ramp(t, 0.36, 0.62),
-    (t) => mixV(ramp(t, 0, 0.12), [320, 620, 2200], [420, 1000, 2350]),
+    (t) => 380 + 340 * ramp(t, 0, 0.16) - 180 * ramp(t, 0.36, 0.62),
+    (t) => fem(mixV(ramp(t, 0, 0.12), [320, 620, 2200], [420, 1000, 2350])),
     (t) => ramp(t, 0, 0.05) * (1 - ramp(t, 0.42, 0.62)),
-    (t) => 0.12 + 0.2 * ramp(t, 0.4, 0.62),
+    (t) => 0.14 + 0.22 * ramp(t, 0.4, 0.62),
   );
   const hey = shout(
     0.46,
-    (t) => 300 + 90 * ramp(t, 0.05, 0.14) - 130 * ramp(t, 0.2, 0.46),
-    (t) => mixV(ramp(t, 0.12, 0.4), [560, 1800, 2500], [330, 2250, 2900]),
+    (t) => 520 + 120 * ramp(t, 0.05, 0.14) - 170 * ramp(t, 0.2, 0.46),
+    (t) => fem(mixV(ramp(t, 0.12, 0.4), [560, 1800, 2500], [330, 2250, 2900])),
     (t) => ramp(t, 0.06, 0.1) * (1 - ramp(t, 0.3, 0.46)),
-    (t) => (t < 0.08 ? 2.2 * ramp(t, 0, 0.03) : 0.1),
+    (t) => (t < 0.08 ? 2.2 * ramp(t, 0, 0.03) : 0.12),
   );
   const whoa = shout(
     0.86,
-    (t) => (t < 0.4 ? 330 + 30 * ramp(t, 0, 0.08) : 290 - 50 * ramp(t, 0.6, 0.86)),
-    (t) => mixV(ramp(t, 0, 0.1), [330, 650, 2300], [560, 920, 2450]),
+    (t) => (t < 0.4 ? 560 + 50 * ramp(t, 0, 0.08) : 600 - 90 * ramp(t, 0.6, 0.86)),
+    (t) => fem(mixV(ramp(t, 0, 0.3), [300, 2200, 2900], [700, 1150, 2600])),
     (t) => ramp(t, 0, 0.05) * (1 - 0.7 * Math.exp(-(((t - 0.4) / 0.04) ** 2))) * (1 - ramp(t, 0.62, 0.86)),
-    () => 0.14,
+    () => 0.16,
   );
   const adlibs = [woo, hey, whoa];
 
@@ -578,7 +581,7 @@ function smoothSeam(buf: AudioBuffer, fade = 0.08): AudioBuffer {
 // ---------------------------------------------------------------------------
 
 /** The lounge track as measured. */
-export const LOUNGE = TRACKS.casino_lounge;
+export const LOUNGE = TRACKS.casino_lounge as MeasuredTrack;
 /** Bars of it that are music (it rings out into silence after its 56th bar): the loop. */
 export const LOUNGE_BARS = (() => {
   const lv = LOUNGE.perBar.map((p) => p.level);
