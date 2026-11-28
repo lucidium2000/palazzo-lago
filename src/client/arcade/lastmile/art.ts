@@ -218,7 +218,18 @@ function bezel(g: CanvasRenderingContext2D, r: LmRect) {
   g.strokeRect(r.x + 6, r.y + 3, r.w - 12, r.h - 6);
 }
 
-function panel(g: CanvasRenderingContext2D, r: LmRect, stickU: number, buttons: { u: number; label: string; col: string }[]) {
+/**
+ * Where the panel's controls sit, as fractions of the panel (u across, v
+ * from the far edge to the near one): the D-pad's middle and how far out its
+ * four arrows are (du across, dv back to front), and each cap's radius (ru,
+ * of the panel's width).
+ */
+export interface PanelPrint {
+  dpad: { u: number; v: number; du: number; dv: number; ru: number };
+  buttons: { u: number; v: number; ru: number; label: string; col: string }[];
+}
+
+function panel(g: CanvasRenderingContext2D, r: LmRect, p: PanelPrint) {
   const pg = g.createLinearGradient(0, r.y, 0, r.y + r.h);
   pg.addColorStop(0, '#17110f');
   pg.addColorStop(1, '#0c0a0b');
@@ -228,38 +239,88 @@ function panel(g: CanvasRenderingContext2D, r: LmRect, stickU: number, buttons: 
   g.fillStyle = 'rgba(201,178,74,0.35)';
   for (let x = r.x + 8; x < r.x + r.w; x += 40) g.fillRect(x, r.y + r.h - 14, 22, 4);
   glowLine(g, r.x + 4, r.y + 4, r.x + r.w - 4, r.y + 4, LM.brand, 2);
-  // The stick's washer and arrows; rings and labels under the buttons. (v runs back to front: the panel's far edge is at the top.)
-  const cy = r.y + r.h * 0.5;
-  const sx = r.x + stickU * r.w;
-  g.fillStyle = '#26201d';
+  // The D-pad: a cross-shaped plate, outlined in the game's orange, a washer under each arrow and a chevron past it.
+  // (v runs back to front: the panel's far edge is at the top.)
+  const d = p.dpad;
+  const cx = r.x + d.u * r.w,
+    cy = r.y + d.v * r.h;
+  const ox = d.du * r.w,
+    oy = d.dv * r.h,
+    rr = d.ru * r.w;
+  const arm = rr + 5;
+  g.save();
   g.beginPath();
-  g.arc(sx, cy, 26, 0, Math.PI * 2);
+  g.roundRect(cx - ox - arm, cy - arm, 2 * (ox + arm), 2 * arm, arm * 0.45);
+  g.roundRect(cx - arm, cy - oy - arm, 2 * arm, 2 * (oy + arm), arm * 0.45);
+  g.fillStyle = '#1f1916';
+  g.fill('nonzero');
+  g.restore();
+  g.strokeStyle = LM.brand;
+  g.lineWidth = 2;
+  g.beginPath();
+  // The cross's outline, traced once round (so the arms join without seams).
+  const e = arm;
+  g.moveTo(cx - e, cy - oy - e);
+  g.lineTo(cx + e, cy - oy - e);
+  g.lineTo(cx + e, cy - e);
+  g.lineTo(cx + ox + e, cy - e);
+  g.lineTo(cx + ox + e, cy + e);
+  g.lineTo(cx + e, cy + e);
+  g.lineTo(cx + e, cy + oy + e);
+  g.lineTo(cx - e, cy + oy + e);
+  g.lineTo(cx - e, cy + e);
+  g.lineTo(cx - ox - e, cy + e);
+  g.lineTo(cx - ox - e, cy - e);
+  g.lineTo(cx - e, cy - e);
+  g.closePath();
+  g.stroke();
+  for (const [ux, uy] of [
+    [0, -1],
+    [0, 1],
+    [-1, 0],
+    [1, 0],
+  ] as const) {
+    const bx = cx + ux * ox,
+      by = cy + uy * oy;
+    washer(g, bx, by, rr);
+  }
+  // A dot in the middle of the cross, and the word for it on the plate's arm ends.
+  g.fillStyle = '#3a302a';
+  g.beginPath();
+  g.arc(cx, cy, 4, 0, Math.PI * 2);
   g.fill();
   g.fillStyle = LM.pale;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.font = font(13);
-  for (const [dx, dy, s] of [
-    [0, -36, '▲'],
-    [0, 38, '▼'],
-    [-38, 0, '◀'],
-    [38, 0, '▶'],
-  ] as const)
-    g.fillText(s, sx + dx, cy + dy);
-  for (const b of buttons) {
-    const bx = r.x + b.u * r.w;
-    g.fillStyle = '#d8d8e0';
-    g.beginPath();
-    g.arc(bx, cy - 6, 19, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#0c0a0b';
-    g.beginPath();
-    g.arc(bx, cy - 6, 16, 0, Math.PI * 2);
-    g.fill();
+  g.font = font(11);
+  g.save();
+  g.translate(cx - ox - arm - 12, cy);
+  g.rotate(-Math.PI / 2);
+  g.fillText('MOVE', 0, 0);
+  g.restore();
+  for (const b of p.buttons) {
+    const bx = r.x + b.u * r.w,
+      by = r.y + b.v * r.h;
+    const br = b.ru * r.w;
+    washer(g, bx, by, br);
     g.fillStyle = b.col;
     g.font = font(13);
-    g.fillText(b.label, bx, cy + 26);
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(b.label, bx, Math.min(r.y + r.h - 22, by + br + 14));
   }
+}
+
+/** A chrome washer round a button cap of radius `cr` (px). */
+function washer(g: CanvasRenderingContext2D, x: number, y: number, cr: number) {
+  g.fillStyle = '#d8d8e0';
+  g.beginPath();
+  g.arc(x, y, cr + 4, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#0c0a0b';
+  g.beginPath();
+  g.arc(x, y, cr + 1.5, 0, Math.PI * 2);
+  g.fill();
 }
 
 function door(g: CanvasRenderingContext2D, r: LmRect) {
@@ -341,13 +402,13 @@ function side(g: CanvasRenderingContext2D, r: LmRect) {
 }
 
 /** Paints all of it. `stickU` and `buttons` place the panel print under the real controls (u across the panel, 0..1). */
-export function paintLastMile(g: CanvasRenderingContext2D, stickU: number, buttons: { u: number; label: string; col: string }[]) {
+export function paintLastMile(g: CanvasRenderingContext2D, print: PanelPrint) {
   g.fillStyle = LM.bg;
   g.fillRect(0, 0, ART, ART);
   side(g, LM_REGION.side);
   marquee(g, LM_REGION.marquee);
   bezel(g, LM_REGION.bezel);
-  panel(g, LM_REGION.panel, stickU, buttons);
+  panel(g, LM_REGION.panel, print);
   door(g, LM_REGION.door);
   SWATCHES.forEach((c, i) => {
     g.fillStyle = c;

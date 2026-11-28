@@ -200,7 +200,8 @@ export class Arcade {
     // Fewer bays than games: keep the head-to-head game (friends want it).
     let games = GAMES.slice(0, cabSlots.length);
     if (cabSlots.length < GAMES.length && cabSlots.length > 0) games = [...GAMES.slice(0, cabSlots.length - 1), GAMES[GAMES.length - 1]];
-    this.inst = new ControlInstances(cabSlots.length * 2 + 4, cabSlots.length * 6 + 6 + (racerSlot ? 14 : 0));
+    // Floor buttons: hoops 1, hockey 2, The Last Mile 6 (four arrows, CROSS, SOUND).
+    this.inst = new ControlInstances(cabSlots.length * 2 + 4, cabSlots.length * 6 + 9 + (racerSlot ? 14 : 0));
     this.inst.addTo(this.live);
 
     games.forEach((gd, i) => {

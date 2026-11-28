@@ -95,9 +95,10 @@ same game from where it was.
 wide 16:9 cabinet against the arcade's east wall, free to play. It's the real web game: a copy in
 `public/arcade/lastmile/` (refresh it with `node scripts/sync-lastmile.mjs [path/to/the-last-mile]`) runs in a hidden
 iframe while you're near, driven frame by frame from the room's loop (so it keeps going inside the
-headset), and its screen is copied onto the cabinet. Stick and CROSS / SOUND buttons in VR; on a screen walk up
-and your keys, clicks, taps and swipes go to the game. Its sound comes from the cabinet; friends nearby see a
-small live picture of your game.
+headset), and its screen is copied onto the cabinet. Four big arrow buttons (one press, one step; held, they
+repeat) and CROSS / SOUND buttons in VR; on a screen walk up and your keys, clicks, taps and swipes go to the
+game (phones get the same four arrows on screen). Its sound comes from the cabinet, made up through a limiter
+(the game mixes itself quietly, for an office hallway); friends nearby see a small live picture of your game.
 
 **Hands and talk:** in VR your avatar's fingers follow your real ones: the Quest controllers'
 touch sensors (trigger touch and pull for the index finger, grip for the rest, thumb on the stick /

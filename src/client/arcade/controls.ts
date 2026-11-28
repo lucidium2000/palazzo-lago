@@ -15,8 +15,8 @@ const LEAN = 0.38;
 const SHAFT = 0.075;
 const BALL_R = 0.021;
 export const BUTTON_R = 0.024;
-const CAP_H = 0.016;
-const TRAVEL = 0.009;
+export const CAP_H = 0.016;
+export const TRAVEL = 0.009;
 
 /** The shared instanced meshes. */
 export class ControlInstances {
@@ -67,6 +67,11 @@ export class ControlInstances {
   setButton(i: number, m: THREE.Matrix4) {
     this.caps.setMatrixAt(i, m);
     this.caps.instanceMatrix.needsUpdate = true;
+  }
+
+  setButtonColor(i: number, color: THREE.Color) {
+    this.caps.setColorAt(i, color);
+    if (this.caps.instanceColor) this.caps.instanceColor.needsUpdate = true;
   }
 
   addTo(parent: THREE.Object3D) {
@@ -297,22 +302,40 @@ export class TouchPoints {
   }
 }
 
+/** Options for a PushButton: its size (times a stick cabinet's button) and whether its cap lights up while it's down. */
+export interface PushButtonOpts {
+  scale?: number;
+  glow?: boolean;
+}
+
 /**
- * A single big push button (the floor games' START): pressed by a fingertip
- * or palm in VR, or by the desk pad's A. Shares the instanced button caps.
+ * A single big push button (the floor games' START, The Last Mile's arrows):
+ * pressed by a fingertip or palm in VR, or by the desk pad's A. Shares the
+ * instanced button caps.
  */
 export class PushButton {
   down = false;
+  /** The hand that pressed it last (VR), for haptics. */
+  by: 'left' | 'right' | null = null;
   private depth = -1;
   private ix: number;
   private inv = new THREE.Matrix4();
+  private scale: number;
+  private base: THREE.Color;
+  private lit: THREE.Color | null;
+  private shownLit = false;
 
   /** `frame`: the button's world matrix (y out of the surface it sits on). */
   constructor(
     private inst: ControlInstances,
     private frame: THREE.Matrix4,
     color: THREE.Color,
+    o: PushButtonOpts = {},
   ) {
+    this.scale = o.scale ?? 1.5;
+    this.base = color.clone();
+    // Lit: the cap colour pushed past 1 (instance colours are float), so it brightens without washing out to white.
+    this.lit = o.glow ? color.clone().multiplyScalar(2.2) : null;
     this.ix = inst.addButton(color);
     this.inv.copy(frame).invert();
     this.show(0);
@@ -323,10 +346,20 @@ export class PushButton {
     return out.setFromMatrixPosition(this.frame);
   }
 
+  /** How far it's pushed in (0..1, as drawn). */
+  get pressDepth() {
+    return Math.max(0, this.depth);
+  }
+
+  /** The cap's radius (m). */
+  get radius() {
+    return BUTTON_R * this.scale;
+  }
+
   private show(d: number) {
     if (Math.abs(d - this.depth) < 0.02) return;
     this.depth = d;
-    tmpM.makeTranslation(0, -d * TRAVEL, 0).scale(tmpV.set(1.5, 1, 1.5));
+    tmpM.makeTranslation(0, -d * TRAVEL, 0).scale(tmpV.set(this.scale, 1, this.scale));
     tmpM2.multiplyMatrices(this.frame, tmpM);
     this.inst.setButton(this.ix, tmpM2);
   }
@@ -334,19 +367,29 @@ export class PushButton {
   /** Feed this frame's hands (VR) or the pad's button: true the moment it goes down. */
   update(touch: TouchPoints | null, padDown: boolean): boolean {
     let best = padDown ? 1 : 0;
+    let who: 'left' | 'right' | null = null;
     if (touch) {
-      const R = BUTTON_R * 1.5 + 0.012;
+      const R = BUTTON_R * this.scale + 0.012;
       for (let i = 0; i < touch.count; i++) {
         tmpV.copy(touch.points[i]).applyMatrix4(this.inv);
         if (tmpV.x * tmpV.x + tmpV.z * tmpV.z > R * R) continue;
         if (tmpV.y > CAP_H + 0.008 || tmpV.y < -0.04) continue;
-        best = Math.max(best, Math.min(1, (CAP_H + 0.008 - tmpV.y) / TRAVEL));
+        const d = Math.min(1, (CAP_H + 0.008 - tmpV.y) / TRAVEL);
+        if (d > best) {
+          best = d;
+          who = touch.sides[i];
+        }
       }
     }
     this.show(best);
     const now = best > 0.55 || (this.down && best > 0.25);
     const edge = now && !this.down;
+    if (edge) this.by = who;
     this.down = now;
+    if (this.lit && now !== this.shownLit) {
+      this.shownLit = now;
+      this.inst.setButtonColor(this.ix, now ? this.lit : this.base);
+    }
     return edge;
   }
 }

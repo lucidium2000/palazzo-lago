@@ -21,7 +21,10 @@ import {
   RATE_PLAY_LIGHT,
   REPEAT_DELAY,
   REPEAT_EVERY,
-  stickDir,
+  stickButtons,
+  blankButtons,
+  GAME_SOUND,
+  makeupDb,
   Ticker,
   UNLOAD_FAR,
   isSoundKey,
@@ -37,6 +40,7 @@ import {
   type KeyStroke,
 } from '../src/client/arcade/lastmile/logic';
 import { ARCADE, ARCADE_SLOT_SPECS } from '../src/client/areas/promenadeplan';
+import { TouchHold } from '../src/client/arcade/desk';
 import shipped from '../public/arcade/lastmile/index.html?raw';
 import shippedLicense from '../public/arcade/lastmile/LICENSE?raw';
 
@@ -189,6 +193,19 @@ describe('The Last Mile: the SOUND button steps the volume', () => {
     expect(loadVolume(null)).toBe(0);
   });
 
+  it("makes the game's quiet mix up to the room's level, with headroom kept by a limiter", () => {
+    // Below the limiter's threshold the game comes out 10..15 dB up (it measured ~-37 dBFS at the ear, under the room's -34).
+    const up = makeupDb(GAME_SOUND.limit.threshold, GAME_SOUND.limit.ratio) + 20 * Math.log10(GAME_SOUND.play);
+    expect(up).toBeGreaterThan(10);
+    expect(up).toBeLessThan(15);
+    // A cue peaking at -14 dBFS (the game's loudest) comes out with 6 dB of headroom.
+    const T = GAME_SOUND.limit.threshold;
+    expect(T + (-14 - T) / GAME_SOUND.limit.ratio + up).toBeLessThan(-5.5);
+    expect(GAME_SOUND.attract).toBeLessThan(GAME_SOUND.play);
+    expect(GAME_SOUND.limit.threshold).toBeLessThan(-6);
+    expect(GAME_SOUND.limit.ratio).toBeGreaterThan(1);
+  });
+
   it('SOUND is the M key, which the cabinet keeps from the game', () => {
     expect(isSoundKey(KEYS.sound)).toBe(true);
     expect(isSoundKey({ key: 'M', code: 'KeyM' })).toBe(true);
@@ -218,63 +235,95 @@ describe('The Last Mile: the SOUND button steps the volume', () => {
 });
 
 describe('The Last Mile: keys', () => {
-  it('reads an 8-way stick as four directions: the stronger axis, forward on a tie, with hysteresis', () => {
-    expect(stickDir(0, 0, null)).toBe(null);
-    expect(stickDir(0, 0.4, null)).toBe(null);
-    expect(stickDir(0, 0.9, null)).toBe('up');
-    expect(stickDir(0, -0.9, null)).toBe('down');
-    expect(stickDir(0.9, 0.2, null)).toBe('right');
-    expect(stickDir(-0.9, 0.2, null)).toBe('left');
-    expect(stickDir(0.7, 0.7, null)).toBe('up');
-    expect(stickDir(0.7, -0.7, null)).toBe('down');
-    // Held: stays until it drops below the release point.
-    expect(stickDir(0.1, 0.45, 'up')).toBe('up');
-    expect(stickDir(0.1, 0.3, 'up')).toBe(null);
-    // A diagonal you were already holding one way keeps that way.
-    expect(stickDir(0.7, 0.7, 'right')).toBe('right');
+  it("reads the desk's stick and the phone's arrows as the four arrow buttons", () => {
+    expect(stickButtons(0, 0, false, false)).toEqual(blankButtons());
+    expect(stickButtons(0, 1, false, false)).toMatchObject({ up: true, down: false, left: false, right: false });
+    expect(stickButtons(0, -1, false, false)).toMatchObject({ up: false, down: true });
+    expect(stickButtons(1, 0, true, false)).toMatchObject({ right: true, left: false, a: true });
+    expect(stickButtons(-1, 0, false, true)).toMatchObject({ left: true, right: false, c: true });
+    // Two keys at once (a diagonal on the keyboard) hold two arrows; a half push holds none.
+    expect(stickButtons(1, 1, false, false)).toMatchObject({ up: true, right: true });
+    expect(stickButtons(0.4, -0.4, false, false)).toEqual(blankButtons());
   });
 
-  it('turns the stick and buttons into keydown/keyup with auto-repeat, like a held arrow key', () => {
+  it('each arrow press is one tap (keydown, keyup); held, it taps again after REPEAT_DELAY, then every REPEAT_EVERY', () => {
     const pk = new PadKeys();
     const out: KeyStroke[] = [];
-    const step = (x: number, y: number, a = false, c = false, dt = 1 / 60) => {
+    const btn = (o: Partial<ReturnType<typeof blankButtons>> = {}) => ({ ...blankButtons(), ...o });
+    const step = (o: Partial<ReturnType<typeof blankButtons>> = {}, dt = 1 / 60) => {
       out.length = 0;
-      pk.update({ x, y, a, c }, dt, out);
+      pk.update(btn(o), dt, out);
       return out.map((s) => `${s.type === 'keydown' ? '+' : '-'}${s.code}${s.repeat ? '*' : ''}`);
     };
-    expect(step(0, 0)).toEqual([]);
-    expect(step(0, 1)).toEqual(['+ArrowUp']);
-    // Held: nothing until the repeat delay, then a repeat every REPEAT_EVERY.
+    expect(step()).toEqual([]);
+    expect(step({ up: true })).toEqual(['+ArrowUp', '-ArrowUp']);
+    // Held: nothing until the repeat delay, then a tap every REPEAT_EVERY.
     let repeats = 0,
       t = 0;
+    const first: number[] = [];
     while (t < REPEAT_DELAY + REPEAT_EVERY * 3 + 0.001) {
       t += 1 / 60;
-      repeats += step(0, 1).filter((s) => s === '+ArrowUp*').length;
+      const got = step({ up: true });
+      if (got.length) {
+        expect(got).toEqual(['+ArrowUp*', '-ArrowUp*']);
+        first.push(t);
+        repeats++;
+      }
     }
     expect(repeats).toBe(4);
-    // Straight to another direction: the old one goes up, the new one down.
-    expect(step(1, 0)).toEqual(['-ArrowUp', '+ArrowRight']);
-    expect(step(0, 0)).toEqual(['-ArrowRight']);
-    expect(step(-1, 0)).toEqual(['+ArrowLeft']);
-    expect(step(0, -1)).toEqual(['-ArrowLeft', '+ArrowDown']);
-    expect(step(0, 0)).toEqual(['-ArrowDown']);
+    expect(first[0]).toBeCloseTo(REPEAT_DELAY, 1);
+    expect(first[1] - first[0]).toBeCloseTo(REPEAT_EVERY, 1);
+    // Let go: nothing more (the tap already went up).
+    expect(step()).toEqual([]);
+    // Each way, one tap per press.
+    expect(step({ right: true })).toEqual(['+ArrowRight', '-ArrowRight']);
+    expect(step()).toEqual([]);
+    expect(step({ left: true })).toEqual(['+ArrowLeft', '-ArrowLeft']);
+    expect(step()).toEqual([]);
+    expect(step({ down: true })).toEqual(['+ArrowDown', '-ArrowDown']);
+    expect(step()).toEqual([]);
+    // A second arrow while one's held: it taps, and it's the one that repeats; let go of it and the first takes over again.
+    step({ up: true });
+    expect(step({ up: true, right: true })).toEqual(['+ArrowRight', '-ArrowRight']);
+    expect(pk.dir).toBe('right');
+    expect(step({ up: true })).toEqual([]);
+    expect(pk.dir).toBe('up');
+    step();
     // CROSS is Space, SOUND is M: press and release.
-    expect(step(0, 0, true)).toEqual(['+Space']);
-    expect(step(0, 0, true)).toEqual([]);
-    expect(step(0, 0, false)).toEqual(['-Space']);
-    expect(step(0, 0, false, true)).toEqual(['+KeyM']);
-    expect(step(0, 0)).toEqual(['-KeyM']);
-    // Letting go of everything at once.
-    step(0, 1, true);
+    expect(step({ a: true })).toEqual(['+Space']);
+    expect(step({ a: true })).toEqual([]);
+    expect(step({ a: false })).toEqual(['-Space']);
+    expect(step({ c: true })).toEqual(['+KeyM']);
+    expect(step()).toEqual(['-KeyM']);
+    // Letting go of everything at once: only CROSS was still down.
+    step({ up: true, a: true });
     out.length = 0;
     pk.release(out);
-    expect(out.map((s) => s.type + s.code).sort()).toEqual(['keyupArrowUp', 'keyupSpace']);
+    expect(out.map((s) => s.type + s.code)).toEqual(['keyupSpace']);
   });
 
   it('sends the keys the game reads (e.key) for each action', () => {
     expect(KEYS.cross.key).toBe(' ');
     expect(KEYS.up.key).toBe('ArrowUp');
     expect(KEYS.sound.key).toBe('m');
+  });
+
+  it("a phone's quick tap on an arrow (down and up between two frames) still reaches the game once", () => {
+    const h = new TouchHold();
+    expect(h.poll()).toBe(false);
+    h.down();
+    h.up();
+    expect(h.poll()).toBe(true);
+    expect(h.poll()).toBe(false);
+    // Held across frames: down until the finger lifts, then up straight away.
+    h.down();
+    expect(h.poll()).toBe(true);
+    expect(h.poll()).toBe(true);
+    h.up();
+    expect(h.poll()).toBe(false);
+    // A stray lift with nothing down changes nothing.
+    h.up();
+    expect(h.poll()).toBe(false);
   });
 
   it('a tap is CROSS, a swipe the arrow it points along', () => {
@@ -291,7 +340,7 @@ describe('The Last Mile: keys', () => {
   });
 });
 
-describe('The Last Mile: the stick moves him all four ways in the real game', () => {
+describe('The Last Mile: the arrow buttons move him all four ways in the real game', () => {
   // The game's own keydown branches, read from the shipped copy: which e.key values make which move.
   const reads = (dir: string) => {
     const m = shipped.match(new RegExp(`if \\(([^)]*)\\)\\{ act\\("${dir}"\\); e\\.preventDefault\\(\\); \\}`));
@@ -300,11 +349,11 @@ describe('The Last Mile: the stick moves him all four ways in the real game', ()
   };
   const handler = { f: reads('f'), b: reads('b'), l: reads('l'), r: reads('r') };
 
-  /** A pad held at (x, y) for `frames` frames at 72 Hz, then let go: the moves the game makes. */
-  const moves = (pk: PadKeys, x: number, y: number, frames = 1) => {
+  /** Arrow buttons held for `frames` frames at 72 Hz, then let go: the moves the game makes. */
+  const moves = (pk: PadKeys, held: Partial<ReturnType<typeof blankButtons>>, frames = 1) => {
     const out: KeyStroke[] = [];
-    for (let i = 0; i < frames; i++) pk.update({ x, y, a: false, c: false }, 1 / 72, out);
-    pk.update({ x: 0, y: 0, a: false, c: false }, 1 / 72, out);
+    for (let i = 0; i < frames; i++) pk.update({ ...blankButtons(), ...held }, 1 / 72, out);
+    pk.update(blankButtons(), 1 / 72, out);
     return out
       .filter((s) => s.type === 'keydown')
       .map((s) => (Object.keys(handler) as (keyof typeof handler)[]).find((d) => handler[d].includes(s.key)) ?? `?${s.key}`);
@@ -317,27 +366,24 @@ describe('The Last Mile: the stick moves him all four ways in the real game', ()
     expect(handler.b).toContain('ArrowDown');
   });
 
-  it('a push each way is one move that way, even a one-frame flick; diagonals go along the stronger axis', () => {
+  it('a press of each arrow is one move that way, even a one-frame tap', () => {
     const pk = new PadKeys();
-    expect(moves(pk, 1, 0)).toEqual(['r']);
-    expect(moves(pk, -1, 0)).toEqual(['l']);
-    expect(moves(pk, 0, 1)).toEqual(['f']);
-    expect(moves(pk, 0, -1)).toEqual(['b']);
-    expect(moves(pk, 0.75, 0.7, 10)).toEqual(['r']);
-    expect(moves(pk, 0.8, -0.6, 10)).toEqual(['r']);
-    expect(moves(pk, -0.7, 0.7, 10)).toEqual(['f']);
-    // A VR stick at partial tilt (past the 0.55 threshold) still counts.
-    expect(moves(pk, 0.6, 0.1, 5)).toEqual(['r']);
-    // Straight from left to right without passing through the middle.
+    expect(moves(pk, { right: true })).toEqual(['r']);
+    expect(moves(pk, { left: true })).toEqual(['l']);
+    expect(moves(pk, { up: true })).toEqual(['f']);
+    expect(moves(pk, { down: true })).toEqual(['b']);
+    // Held a little under the repeat delay: still one.
+    expect(moves(pk, { up: true }, Math.floor(72 * REPEAT_DELAY) - 2)).toEqual(['f']);
+    // Straight from left to right without letting go of left first.
     const out: KeyStroke[] = [];
-    pk.update({ x: -1, y: 0, a: false, c: false }, 1 / 72, out);
-    pk.update({ x: 1, y: 0, a: false, c: false }, 1 / 72, out);
+    pk.update({ ...blankButtons(), left: true }, 1 / 72, out);
+    pk.update({ ...blankButtons(), left: true, right: true }, 1 / 72, out);
     expect(out.filter((s) => s.type === 'keydown').map((s) => s.key)).toEqual(['ArrowLeft', 'ArrowRight']);
   });
 
-  it('held right keeps stepping right (repeats are keydowns the game acts on)', () => {
+  it('held right keeps stepping right (each repeat a tap the game acts on)', () => {
     const pk = new PadKeys();
-    const got = moves(pk, 1, 0, Math.round(72 * 1.2));
+    const got = moves(pk, { right: true }, Math.round(72 * 1.2));
     expect(got.every((d) => d === 'r')).toBe(true);
     expect(got.length).toBe(1 + Math.floor((1.2 - REPEAT_DELAY) / REPEAT_EVERY) + 1);
   });

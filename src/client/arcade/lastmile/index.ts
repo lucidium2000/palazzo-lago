@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Viewpoint } from '../../player';
 import { box, plane, slopePlane } from '../cabinet';
-import { ControlSet } from '../controls';
+import { BUTTON_R, CAP_H, PushButton, TRAVEL } from '../controls';
 import type { DeskStation } from '../desk';
 import { floorEmit, type FloorEnv, type FloorFrame, type FloorGame } from '../floor';
 import { friendNear, type ArcadeFriend, type ArcadeSession } from '../net';
@@ -11,8 +11,11 @@ import { ART, lmSwatch, lmUV, LM_REGION, paintLastMile, paintNowPlaying, paintSc
 import { LastMileHost, type HostAudio } from './host';
 import {
   ACTIVE_FOR,
+  blankButtons,
+  DIRS,
   forwardsKey,
   FrameAssembler,
+  GAME_SOUND,
   gestureKey,
   isSoundKey,
   loadVolume,
@@ -27,12 +30,15 @@ import {
   plan,
   saveVolume,
   splitFrame,
+  stickButtons,
   Ticker,
   volumeBars,
   volumeLevel,
   volumePercent,
   VOLUME_SHOW,
+  type Dir,
   type KeyStroke,
+  type PadLike,
   type Plan,
 } from './logic';
 
@@ -48,13 +54,16 @@ import {
  * fps as an attract screen and at full rate (30 on Quest 2 / phones) while
  * you're playing.
  *
- * Controls: in VR the cabinet's 8-way stick and CROSS / SOUND buttons; on a
+ * Controls: in VR four big arrow buttons in a cross (UP / DOWN / LEFT /
+ * RIGHT: each press is one step, held they repeat like a held arrow key) and
+ * the CROSS and SOUND buttons, pressed with a fingertip or the palm; on a
  * screen walk up (or click the screen) and your keys go straight to the game
  * (arrows / WASD / Space, M for sound), a click or tap is CROSS and a swipe
- * moves; on a phone the arcade's thumb stick and buttons work too.
+ * moves; on a phone the overlay shows the same four arrows and the buttons.
  *
- * Sound: the game plays through the room's AudioContext into a gain (`bus`)
- * on a positional speaker at the screen. SOUND (or M) steps that gain
+ * Sound: the game plays through the room's AudioContext into a limiter that
+ * makes its quiet, peaky mix up to the room's level (GAME_SOUND), then a gain
+ * (`bus`) on a positional speaker at the screen. SOUND (or M) steps that gain
  * 100% / 66% / 33% / mute and round again, remembered per device; the level
  * shows on a badge by the button and briefly on the screen. The game itself
  * stays at its own full volume and never sees M.
@@ -98,15 +107,29 @@ const MARQ_TOP: [number, number] = [0.16, 2.06];
 const WIDTH = 1.36;
 const SCREEN_W = 1.12;
 const SCREEN_H = (SCREEN_W * 9) / 16;
-/** The panel print: stick and buttons across the panel (0..1), and how far back (v, 0 = far edge... 1 = near). */
-const STICK_U = 0.28;
+/**
+ * The panel: across it (u, 0..1) and how far back (v, 0 = far edge ... 1 =
+ * near). The D-pad is four big arrow buttons in a cross around (DPAD_U,
+ * DPAD_V), DPAD_STEP (m) from its middle, so a fingertip on one never
+ * reaches the next; then CROSS and SOUND.
+ */
+const DPAD_U = 0.27;
+const DPAD_V = 0.5;
+const DPAD_STEP = 0.078;
+/** Cap size against a stick cabinet's button (1.5: 72 mm across). */
+const DPAD_SCALE = 1.5;
+const DPAD_COLOR = 0xffb000;
+/** Each arrow's place in the cross (x across, z toward you: UP is the far one). */
+const DPAD_AT: Record<Dir, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+/** Each arrow's turn about the panel's normal (the mark points away from you at 0). */
+const DPAD_TURN: Record<Dir, number> = { up: 0, down: Math.PI, left: Math.PI / 2, right: -Math.PI / 2 };
 const BTN = [
-  { u: 0.6, label: 'CROSS', col: '#ff6a13', color: 0xff3b2f },
-  { u: 0.7, label: '', col: '', color: 0x000000 },
-  { u: 0.8, label: 'SOUND', col: '#3ad8ff', color: 0x3ad8ff },
+  { u: 0.6, v: 0.45, label: 'CROSS', col: '#ff6a13', color: 0xff3b2f, scale: 1.5 },
+  { u: 0.8, v: 0.45, label: 'SOUND', col: '#3ad8ff', color: 0x3ad8ff, scale: 1 },
 ];
 
 const ZERO: Readonly<RawPad> = Object.freeze(blankPad());
+const MARK_M = new THREE.Matrix4();
 
 function remap(geo: THREE.BufferGeometry, rect: [number, number, number, number]) {
   const uv = geo.attributes.uv as THREE.BufferAttribute;
@@ -127,9 +150,21 @@ export class LastMileCabinet implements FloorGame {
   readonly screen: THREE.Mesh;
   readonly screenCanvas: HTMLCanvasElement;
   readonly texture: THREE.CanvasTexture;
-  readonly set: ControlSet;
+  /** The arrow buttons, CROSS and SOUND (tests and the dev harness read them). */
+  readonly arrows: Record<Dir, PushButton>;
+  readonly cross: PushButton;
+  readonly sound: PushButton;
+  private marks: THREE.InstancedMesh;
+  private markDepth: Record<Dir, number> = { up: -1, down: -1, left: -1, right: -1 };
+  private arrowFrame: Record<Dir, THREE.Matrix4>;
+  /** The buttons as they are this frame, and the phone's arrows read the same way. */
+  private buttons = blankButtons();
+  private shown = blankButtons();
+  private touchButtons = blankButtons();
   private sg: CanvasRenderingContext2D;
   private anchor = new THREE.Object3D();
+  /** The game's sound in: its peaks held and the rest made up (limiter; the dev harness reads it), then our level (bus) into the speaker. */
+  limiter: DynamicsCompressorNode | null = null;
   private bus: GainNode | null = null;
   /** The cabinet's speaker (tests and the dev harness read it). */
   speaker: THREE.PositionalAudio | null = null;
@@ -143,7 +178,6 @@ export class LastMileCabinet implements FloorGame {
   private lastInput = -1e9;
   private padKeys = new PadKeys();
   private strokes: KeyStroke[] = [];
-  private xrPad: RawPad = blankPad();
   private ticker = new Ticker();
   private cardT = 0;
   /** What the screen's card says (when the game isn't on it). */
@@ -194,11 +228,12 @@ export class LastMileCabinet implements FloorGame {
       lit: new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }),
     };
     this.build(mats);
-    paintLastMile(
-      ag,
-      STICK_U,
-      BTN.filter((b) => b.label),
-    );
+    const inner0 = WIDTH - 0.04;
+    const depth0 = Math.hypot(PANEL_FRONT[0] - PANEL_BACK[0], PANEL_FRONT[1] - PANEL_BACK[1]);
+    paintLastMile(ag, {
+      dpad: { u: DPAD_U, v: DPAD_V, du: DPAD_STEP / inner0, dv: DPAD_STEP / depth0, ru: (BUTTON_R * DPAD_SCALE) / inner0 },
+      buttons: BTN.map((b) => ({ u: b.u, v: b.v, ru: (BUTTON_R * b.scale) / inner0, label: b.label, col: b.col })),
+    });
     tex.needsUpdate = true;
 
     // The screen.
@@ -226,7 +261,7 @@ export class LastMileCabinet implements FloorGame {
     env.liveRoot.add(this.anchor);
     this.showCard('FREE PLAY  ·  WALK UP TO PLAY');
 
-    // Controls on the panel: the stick, CROSS and SOUND (the middle button isn't fitted).
+    // Controls on the panel: the four arrows, CROSS and SOUND.
     const [fz, fy] = PANEL_FRONT,
       [bz, by] = PANEL_BACK;
     const depth = Math.hypot(fz - bz, fy - by);
@@ -235,20 +270,23 @@ export class LastMileCabinet implements FloorGame {
     pf.premultiply(this.group.matrixWorld);
     const inner = WIDTH - 0.04;
     const at = (u: number, v: number) => new THREE.Vector3((u - 0.5) * inner, 0, -depth / 2 + v * depth);
-    this.set = new ControlSet(
-      env.inst,
-      pf,
-      at(STICK_U, 0.5),
-      BTN.map((b) => at(b.u, 0.45).setY(0.002)),
-      new THREE.Color(0xff6a13),
-      BTN.map((b) => new THREE.Color(b.color)),
-      BTN.map((b) => !!b.label),
-    );
-    env.hands.register(this.set.grab);
+    const frameAt = (p: THREE.Vector3) => new THREE.Matrix4().makeTranslation(p.x, 0.002, p.z).premultiply(pf);
+    const mid = at(DPAD_U, DPAD_V);
+    const arrowFrame = {} as Record<Dir, THREE.Matrix4>;
+    const arrows = {} as Record<Dir, PushButton>;
+    for (const d of DIRS) {
+      const [ax, az] = DPAD_AT[d];
+      arrowFrame[d] = frameAt(mid.clone().add(new THREE.Vector3(ax * DPAD_STEP, 0, az * DPAD_STEP)));
+      arrows[d] = new PushButton(env.inst, arrowFrame[d], new THREE.Color(DPAD_COLOR), { scale: DPAD_SCALE, glow: true });
+    }
+    this.arrows = arrows;
+    this.arrowFrame = arrowFrame;
+    const [cb, sb] = BTN.map((b) => new PushButton(env.inst, frameAt(at(b.u, b.v)), new THREE.Color(b.color), { scale: b.scale, glow: true }));
+    this.cross = cb;
+    this.sound = sb;
+    this.marks = this.buildMarks();
+    this.drawMarks();
     this.buildBadge(pf, at(0.905, 0.45));
-    this.set.onPress = (_b, side) => {
-      if (side) env.haptic(side, 0.6, 30);
-    };
 
     // Where you stand: in front of the panel. Desktop: framed on the whole screen.
     const stand = slot.pos.clone().addScaledVector(fwd, slot.footprint[1] / 2 + 0.45);
@@ -267,6 +305,7 @@ export class LastMileCabinet implements FloorGame {
     this.desk = {
       id: ID,
       buttons: ['CROSS', '', 'SOUND'],
+      dpad: true,
       help: `${TITLE} · free play · Arrows/WASD move · Space cross · M sound · click = cross, drag = move · Esc leave`,
       onKey: (e, down) => this.deskKey(e, down),
     };
@@ -370,6 +409,16 @@ export class LastMileCabinet implements FloorGame {
       this.anchor.add(pa);
       this.bus = ctx.createGain();
       this.bus.gain.value = 0;
+      // The game mixes itself quietly (made for an office hallway) with big peaks on its loudest cues: the limiter
+      // holds those and its make-up gain brings the rest up to the room (see GAME_SOUND).
+      const l = (this.limiter = ctx.createDynamicsCompressor());
+      const c = GAME_SOUND.limit;
+      l.threshold.value = c.threshold;
+      l.knee.value = c.knee;
+      l.ratio.value = c.ratio;
+      l.attack.value = c.attack;
+      l.release.value = c.release;
+      l.connect(this.bus);
       // As the speaker's node source, not a bare connect: three only moves a PositionalAudio's panner
       // to where it is once it's "playing" or has no playback control (a node source), so wired in
       // directly the panner stayed at the world origin, hundreds of metres from the arcade, and the
@@ -377,7 +426,7 @@ export class LastMileCabinet implements FloorGame {
       pa.setNodeSource(this.bus as unknown as AudioBufferSourceNode);
       this.speaker = pa;
     }
-    return { ctx, out: this.bus };
+    return { ctx, out: this.limiter! };
   }
 
   private unlockAudio() {
@@ -448,6 +497,69 @@ export class LastMileCabinet implements FloorGame {
 
   // --- Input ------------------------------------------------------------------------
 
+  /** The arrow marks on the four caps: one instanced mesh, each mark riding down with its cap. */
+  private buildMarks(): THREE.InstancedMesh {
+    // A chunky arrow lying on the cap, pointing away from you (-z): head and stem.
+    const r = BUTTON_R * DPAD_SCALE;
+    const s = new THREE.Shape();
+    const hw = r * 0.62,
+      tip = r * 0.62,
+      neck = r * 0.02,
+      sw = r * 0.24,
+      tail = -r * 0.5;
+    s.moveTo(0, tip);
+    s.lineTo(hw, neck);
+    s.lineTo(sw, neck);
+    s.lineTo(sw, tail);
+    s.lineTo(-sw, tail);
+    s.lineTo(-sw, neck);
+    s.lineTo(-hw, neck);
+    s.closePath();
+    const geo = new THREE.ShapeGeometry(s).rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x1a0f08, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const m = new THREE.InstancedMesh(geo, mat, DIRS.length);
+    m.name = 'lastmile-arrows';
+    m.frustumCulled = false;
+    m.userData.dynamic = true;
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.env.liveRoot.add(m);
+    return m;
+  }
+
+  /** Moves each arrow mark with its cap (only when one moved). */
+  private drawMarks() {
+    const m = this.marks;
+    let dirty = false;
+    DIRS.forEach((d, i) => {
+      const depth = this.arrows[d].pressDepth;
+      if (Math.abs(depth - this.markDepth[d]) < 0.02) return;
+      this.markDepth[d] = depth;
+      MARK_M.makeRotationY(DPAD_TURN[d]).setPosition(0, CAP_H + 0.0008 - depth * TRAVEL, 0).premultiply(this.arrowFrame[d]);
+      m.setMatrixAt(i, MARK_M);
+      dirty = true;
+    });
+    if (dirty) m.instanceMatrix.needsUpdate = true;
+  }
+
+  /**
+   * The six buttons this frame: VR fingertips and palms (`touch`), or what
+   * the desk's keys / the phone's arrows are holding (`pad`, shown on the
+   * cabinet). Haptics on a press in VR.
+   */
+  private readButtons(touch: FloorEnv['touch'] | null, pad: PadLike | null) {
+    const b = this.buttons;
+    for (const d of DIRS) {
+      const btn = this.arrows[d];
+      if (btn.update(touch, pad?.[d] ?? false) && btn.by) this.env.haptic(btn.by, 0.6, 30);
+      b[d] = btn.down;
+    }
+    if (this.cross.update(touch, pad?.a ?? false) && this.cross.by) this.env.haptic(this.cross.by, 0.6, 30);
+    if (this.sound.update(touch, pad?.c ?? false) && this.sound.by) this.env.haptic(this.sound.by, 0.5, 25);
+    b.a = this.cross.down;
+    b.c = this.sound.down;
+    this.drawMarks();
+  }
+
   private send(k: KeyStroke) {
     this.lastInput = this.time;
     // SOUND is the cabinet's: it steps our level, and the game (kept at full) never sees it.
@@ -497,20 +609,20 @@ export class LastMileCabinet implements FloorGame {
     const wasDesk = this.atDesk;
     this.atDesk = !!f.desk;
     if (this.atDesk && !wasDesk) this.satAt = this.time;
-    if (f.inXR && (dStand < 0.9 || this.set.held)) {
+    if (f.inXR && dStand < 0.9) {
       env.touch.gather(env.hands);
-      this.set.pressFrom(env.touch.points, env.touch.sides, env.touch.count);
-      this.set.readInto(this.xrPad);
-      this.padKeys.update(this.xrPad, dt, strokes);
+      this.readButtons(env.touch, null);
+      this.padKeys.update(this.buttons, dt, strokes);
     } else if (f.desk) {
-      // Keys are forwarded as they are (deskKey); the stick shows them. The phone's thumb stick and buttons go through the pad.
-      this.set.setFrom(f.desk.pad);
-      this.padKeys.update(f.desk.touch ?? ZERO, dt, strokes);
+      // Keys are forwarded as they are (deskKey); the buttons show them. The phone's arrows and buttons go through the pad.
+      const pad = f.desk.pad;
+      this.readButtons(null, stickButtons(pad.x, pad.y, pad.a, pad.c, this.shown));
+      const t = f.desk.touch ?? ZERO;
+      this.padKeys.update(stickButtons(t.x, t.y, t.a, t.c, this.touchButtons), dt, strokes);
     } else {
-      if (!this.atDesk && wasDesk) this.set.release();
+      this.readButtons(null, null);
       this.padKeys.release(strokes);
     }
-    this.set.redraw();
     if (strokes.length) {
       this.unlockAudio();
       for (const s of strokes) this.send(s);
@@ -548,7 +660,7 @@ export class LastMileCabinet implements FloorGame {
     if (wasFriend && !friend && host.state === 'off') this.showCard('FREE PLAY  ·  WALK UP TO PLAY');
 
     // Its sound: up while you're playing, lower while it's just the attract screen (the panner does the distance).
-    this.setLevel(env.audio.muted ? 0 : (playing ? 1.6 : 0.7) * this.volume);
+    this.setLevel(env.audio.muted ? 0 : (playing ? GAME_SOUND.play : GAME_SOUND.attract) * this.volume);
     this.sendFrame(dt, playing);
   }
 

@@ -20,6 +20,8 @@ import { COUNTER, COUNTERS, inArcade, onPromenade } from './areas/promenadeplan'
 const MURMUR = 0.11;
 const SIZZLE = 0.22;
 const ARCADE_BED = 0.16;
+/** How much of the grills' sizzle the arcade's walls keep out. */
+const SIZZLE_IN_ARCADE = 0.9;
 /** How much of the casino's music stays as the Promenade's bed, and in the arcade on top of that. */
 const MUSIC_HERE = 0.4;
 const MUSIC_ARCADE = 0.12;
@@ -65,7 +67,8 @@ export class PromenadeSound {
     const p = this.presence;
     this.murmur?.setVolume(MURMUR * p * (1 - 0.7 * this.arcade));
     this.bed?.setVolume(ARCADE_BED * p * this.arcade);
-    for (const s of this.sizzles) s.setVolume(SIZZLE * p);
+    // The grills are outside the arcade's walls: inside, their hiss is shut out (it carried in at full, over the cabinets).
+    for (const s of this.sizzles) s.setVolume(SIZZLE * p * (1 - SIZZLE_IN_ARCADE * this.arcade));
     // Kitchen clatter: a plate set down, a spatula, a cup, now and then at a counter near you.
     if (here && !inArc) {
       this.clatterT -= dt;
@@ -247,15 +250,18 @@ export function renderArcadeBed(sr: number, seconds: number): Float32Array<Array
     (out) => {
       const r = noise(9001);
       const n = out.length;
-      // Hum (60 Hz and its harmonics, slowly wavering) and fan air.
+      // Hum (60 Hz and its harmonics, slowly wavering) and fan air: a low rush, two poles down from 500 Hz so it
+      // doesn't hiss (with one pole its top end carried on past 8 kHz, a steady hiss under every cabinet).
       const a = Math.exp((-2 * Math.PI * 500) / sr);
-      let lp = 0;
+      let lp = 0,
+        lp2 = 0;
       for (let i = 0; i < n; i++) {
         const t = i / sr;
         const w = 1 + 0.08 * Math.sin(t * 0.7);
         const hum = Math.sin(2 * Math.PI * 60 * t) * 0.5 + Math.sin(2 * Math.PI * 120 * t) * 0.3 * w + Math.sin(2 * Math.PI * 180 * t) * 0.12;
         lp = lp * a + r() * (1 - a);
-        out[i] = hum * 0.22 + lp * 0.9;
+        lp2 = lp2 * a + lp * (1 - a);
+        out[i] = hum * 0.22 + lp2 * 1.25;
       }
       // Bleeps: little square-ish blips and three-note runs, as from other machines across the room.
       const scale = [0, 3, 5, 7, 10, 12, 15];

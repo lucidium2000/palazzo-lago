@@ -1,7 +1,7 @@
 /**
  * The pure parts of The Last Mile's cabinet (no DOM, no three.js, so the
  * tests run them in Node): the requestAnimationFrame queue the cabinet
- * drains from the room's own frame loop, the joystick/button/gesture to key
+ * drains from the room's own frame loop, the arrow-button/gesture to key
  * mapping, how often the game runs and its screen is copied, and the size
  * control for the low-rate picture friends see.
  */
@@ -78,64 +78,74 @@ export const KEYS = {
   sound: { key: 'm', code: 'KeyM' },
 } as const;
 
-/** Held direction: first repeat after this long, then one every REPEAT_EVERY (s). */
+/** A held arrow: first repeat after this long, then one every REPEAT_EVERY (s). */
 export const REPEAT_DELAY = 0.32;
 export const REPEAT_EVERY = 0.16;
-const ON = 0.55;
-const OFF = 0.35;
 
-/**
- * Which way an 8-way stick points, for a game that moves in four: the
- * stronger axis wins (forward on a tie, it's the move that matters), with
- * hysteresis so a hand resting near the edge doesn't chatter.
- */
-export function stickDir(x: number, y: number, prev: Dir | null): Dir | null {
-  const ax = Math.abs(x),
-    ay = Math.abs(y);
-  if (prev) {
-    // Keep the current direction while it's still pushed past the release point and still the stronger axis.
-    const along = prev === 'up' ? y : prev === 'down' ? -y : prev === 'right' ? x : -x;
-    const across = prev === 'up' || prev === 'down' ? ax : ay;
-    if (along > OFF && along >= across * 0.8) return prev;
-  }
-  if (Math.max(ax, ay) < ON) return null;
-  if (ay >= ax) return y > 0 ? 'up' : 'down';
-  return x > 0 ? 'right' : 'left';
-}
+export const DIRS: readonly Dir[] = ['up', 'down', 'left', 'right'];
 
-/** The controls as the cabinet reads them: stick (-1..1, y up), CROSS and SOUND buttons. */
+/** The cabinet's controls as it reads them: the four arrow buttons, CROSS and SOUND. */
 export interface PadLike {
-  x: number;
-  y: number;
+  up: boolean;
+  down: boolean;
+  left: boolean;
+  right: boolean;
   a: boolean;
   c: boolean;
 }
 
+export function blankButtons(): PadLike {
+  return { up: false, down: false, left: false, right: false, a: false, c: false };
+}
+
+/** A pad's stick (the desk's keys, the phone's arrow buttons) as the four arrow buttons: each held while it's pushed past half way. */
+export function stickButtons(x: number, y: number, a: boolean, c: boolean, out: PadLike = blankButtons()): PadLike {
+  out.up = y > 0.5;
+  out.down = y < -0.5;
+  out.right = x > 0.5;
+  out.left = x < -0.5;
+  out.a = a;
+  out.c = c;
+  return out;
+}
+
 /**
- * Turns the cabinet's stick and buttons into the key presses the game
- * expects: a keydown when the stick goes into a direction (and auto-repeat
- * while it's held, like a held arrow key), a keyup when it leaves; Space for
- * CROSS and M for SOUND on their press and release.
+ * Turns the cabinet's buttons into the key presses the game expects. Each
+ * arrow press is one tap (keydown then keyup at once: one step in the game);
+ * held, it taps again after REPEAT_DELAY and then every REPEAT_EVERY, like a
+ * held arrow key. With more than one held, the newest repeats. CROSS (Space)
+ * and SOUND (M) go down and up with their buttons.
  */
 export class PadKeys {
-  dir: Dir | null = null;
+  private held: Dir[] = [];
   private rep = 0;
   private a = false;
   private c = false;
 
+  /** The arrow that's repeating (the newest held), if any. */
+  get dir(): Dir | null {
+    return this.held.length ? this.held[this.held.length - 1] : null;
+  }
+
   update(p: PadLike, dt: number, out: KeyStroke[]): KeyStroke[] {
-    const d = stickDir(p.x, p.y, this.dir);
-    if (d !== this.dir) {
-      if (this.dir) out.push(stroke('keyup', KEYS[this.dir], false));
-      if (d) out.push(stroke('keydown', KEYS[d], false));
-      this.dir = d;
-      this.rep = REPEAT_DELAY;
-    } else if (d) {
+    const before = this.dir;
+    // Let go of what's up (keeping the order the rest went down in).
+    for (let i = this.held.length - 1; i >= 0; i--) if (!p[this.held[i]]) this.held.splice(i, 1);
+    let pressed = false;
+    for (const d of DIRS) {
+      if (!p[d] || this.held.includes(d)) continue;
+      this.held.push(d);
+      tap(out, d, false);
+      pressed = true;
+    }
+    const d = this.dir;
+    if (pressed || d !== before) this.rep = REPEAT_DELAY;
+    else if (d) {
       this.rep -= dt;
       if (this.rep <= 0) {
         this.rep += REPEAT_EVERY;
         if (this.rep <= 0) this.rep = REPEAT_EVERY;
-        out.push(stroke('keydown', KEYS[d], true));
+        tap(out, d, true);
       }
     }
     if (p.a !== this.a) out.push(stroke(p.a ? 'keydown' : 'keyup', KEYS.cross, false));
@@ -145,10 +155,15 @@ export class PadKeys {
     return out;
   }
 
-  /** Let go of everything (keyups for whatever was down). */
+  /** Let go of everything (keyups for whatever's still down). */
   release(out: KeyStroke[]): KeyStroke[] {
-    return this.update({ x: 0, y: 0, a: false, c: false }, 0, out);
+    return this.update(blankButtons(), 0, out);
   }
+}
+
+/** One arrow tap: down and straight back up. */
+function tap(out: KeyStroke[], d: Dir, repeat: boolean) {
+  out.push(stroke('keydown', KEYS[d], repeat), stroke('keyup', KEYS[d], repeat));
 }
 
 function stroke(type: KeyStroke['type'], k: { key: string; code: string }, repeat: boolean): KeyStroke {
@@ -335,6 +350,31 @@ export class FrameAssembler {
  * ours never disagree.
  */
 export const VOLUME_STEPS = [1, 0.66, 0.33, 0] as const;
+
+/**
+ * The game's sound on its way to the cabinet's speaker. The game mixes itself
+ * for an office hallway (its master gain tops out at 0.32) and its cues are
+ * short and peaky: measured at the player's ear it averaged about -37 dBFS
+ * while playing, under the arcade's own room tone (-34 dBFS), so it was hard
+ * to hear. It now goes through `limit`, a DynamicsCompressor that holds the
+ * loudest cues (a payout chord, a crash) under full scale and, like every
+ * DynamicsCompressorNode, adds its own make-up gain (makeupDb: about +9 dB at
+ * these settings) to everything; `play` / `attract` are then the bus level
+ * while you're playing / while it's just the attract screen, times the SOUND
+ * step. Between cues the game is digital silence, so nothing is pumped up
+ * under it. The speaker's distance model is flat inside its 1.4 m reference
+ * distance, so where you stand to play doesn't change it.
+ */
+export const GAME_SOUND = {
+  limit: { threshold: -20, knee: 6, ratio: 4, attack: 0.003, release: 0.25 },
+  play: 1.5,
+  attract: 0.65,
+} as const;
+
+/** The make-up gain a DynamicsCompressorNode adds (dB): the spec's (1 / gain at full scale) ^ 0.6, from its threshold and ratio. */
+export function makeupDb(threshold: number, ratio: number): number {
+  return -0.6 * threshold * (1 - 1 / ratio);
+}
 /** Where the level is kept, per device (an index into VOLUME_STEPS). */
 export const VOLUME_KEY = 'palazzo-lago.lastmile.volume';
 /** How long the screen shows the level after a press (s). */
