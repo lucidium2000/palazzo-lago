@@ -28,6 +28,14 @@ export interface Grabbable {
   at(): THREE.Vector3;
   radius: number;
   enabled?(): boolean;
+  /**
+   * Taken between finger and thumb (small things: a chip off a stack): reach is
+   * also measured from the pinch point, not only the palm, and it follows the
+   * pinch while held (drag and release get the pinch point).
+   */
+  pinch?: boolean;
+  /** Among grabbables in reach, a higher priority wins before distance (the wallet tray over the rail). */
+  priority?: number;
   /** Return an object to carry in the hand, 'drag' to keep receiving positions, or null to refuse. */
   grab(hand: Hand): THREE.Object3D | 'drag' | null;
   drag?(hand: Hand, pos: THREE.Vector3): void;
@@ -307,15 +315,47 @@ export class Hands {
     return hand.pos.setFromMatrixPosition(hand.grip.matrixWorld);
   }
 
+  private tipBuf = [0, 1, 2, 3, 4].map(() => new THREE.Vector3());
+  private tipHas = [false, false, false, false, false];
+
+  /** Between thumb and index fingertips (where a pinch closes), or the index tip alone; null if the fingers aren't known. */
+  pinchPos(hand: Hand): THREE.Vector3 | null {
+    const side = hand.ctrl.userData.handedness as 'left' | 'right' | undefined;
+    if (side !== 'left' && side !== 'right') return null;
+    if (!this.fingertips(side, this.tipBuf, this.tipHas)) return null;
+    if (this.tipHas[0] && this.tipHas[1]) return this.tipBuf[0].clone().lerp(this.tipBuf[1], 0.5);
+    return this.tipHas[1] ? this.tipBuf[1].clone() : null;
+  }
+
+  /** Where this hand takes small things right now (the pinch, else the palm), world. */
+  reach(hand: Hand): THREE.Vector3 {
+    return (this.pinchPos(hand) ?? this.handPos(hand)).clone();
+  }
+
+  /** Where a held grabbable follows the hand: the pinch for small things, else the palm. */
+  private holdPos(hand: Hand, g: Grabbable): THREE.Vector3 {
+    return (g.pinch && this.pinchPos(hand)) || this.handPos(hand);
+  }
+
   private nearest(hand: Hand): Grabbable | null {
-    const p = this.handPos(hand);
+    const p = this.handPos(hand).clone();
+    let pinch: THREE.Vector3 | null | undefined;
     let best: Grabbable | null = null,
-      bd = Infinity;
+      bd = Infinity,
+      bp = -Infinity;
     for (const g of this.items) {
       if (g.enabled && !g.enabled()) continue;
-      const d = g.at().distanceTo(p);
-      if (d < g.radius && d < bd) {
+      const at = g.at();
+      let d = at.distanceTo(p);
+      if (g.pinch) {
+        if (pinch === undefined) pinch = this.pinchPos(hand);
+        if (pinch) d = Math.min(d, at.distanceTo(pinch));
+      }
+      if (d >= g.radius) continue;
+      const pr = g.priority ?? 0;
+      if (pr > bp || (pr === bp && d < bd)) {
         bd = d;
+        bp = pr;
         best = g;
       }
     }
@@ -347,7 +387,7 @@ export class Hands {
   private release(hand: Hand) {
     const g = hand.held;
     if (!g) return;
-    const pos = this.handPos(hand).clone();
+    const pos = this.holdPos(hand, g).clone();
     const carried = hand.carried;
     if (carried) this.scene.attach(carried);
     hand.held = null;
@@ -402,7 +442,7 @@ export class Hands {
       tr.push({ t: now, p: p.clone() });
       while (tr.length > 2 && now - tr[0].t > 0.2) tr.shift();
       hand.ctrl.userData.nearGrab = !hand.held && !!this.nearest(hand);
-      if (hand.held?.drag) hand.held.drag(hand, p);
+      if (hand.held?.drag) hand.held.drag(hand, hand.held.pinch ? this.holdPos(hand, hand.held) : p);
     }
   }
 }

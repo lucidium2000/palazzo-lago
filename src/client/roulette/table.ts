@@ -16,6 +16,7 @@ import { easeInOut, money, Tweens, type GameContext } from '../game';
 import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from '../panel';
 import type { Viewpoint } from '../player';
 import { CHIP_DENOMS, radial, toTexture, wood, type ChipDenom } from '../textures';
+import { DealerClock } from '../../rules/dealerclock';
 import { aimFor, sampleAt, simulateSpin, type SpinPlan } from './ballsim';
 import { describeSpot, FELT, FELT_SIZE, feltTexture, spotAnchor, spotAt, WHEEL_CENTER } from './layout';
 
@@ -48,13 +49,13 @@ export class RouletteTable {
   /** What the table says now: no more bets, the hovered bet, the last result, or place your bets. */
   statusLine(): string {
     const hover = this.hoverSpot ? SPOTS_BY_ID.get(this.hoverSpot) : null;
-    return this.game.phase === 'spinning'
+    return this.game.phase === 'spinning' || this.closed
       ? 'No more bets'
       : hover
         ? `${describeSpot(hover)}  ·  pays ${hover.payout} to 1`
-        : this.lastResult
+        : this.lastResult && !this.game.totalBet
           ? `Last: ${pocketLabel(this.lastResult.pocket)} ${pocketColor(this.lastResult.pocket)}  ·  ${this.lastResult.net >= 0 ? 'won' : 'lost'} ${money(Math.abs(this.lastResult.net))}`
-          : `Place your bets${this.game.totalBet ? ' · ' + money(this.game.totalBet) + ' down' : ''}`;
+          : `Place your bets${this.game.totalBet ? ' · ' + money(this.game.totalBet) + ' down' : ''}${this.untilCall !== null ? ` · the croupier spins in ${Math.ceil(this.untilCall)}s` : ''}`;
   }
 
   setPanelVisible(v: boolean) {
@@ -62,7 +63,17 @@ export class RouletteTable {
   }
 
   get canUndo() {
-    return this.game.phase === 'betting' && this.undoStack.length > 0;
+    return this.bettingOpen && this.undoStack.length > 0;
+  }
+
+  /** Taking bets (betting phase, and "No more bets" not yet called). */
+  get bettingOpen(): boolean {
+    return this.game.phase === 'betting' && !this.closed;
+  }
+
+  /** Seconds until the croupier calls "No more bets" (null: not counting). */
+  get untilCall(): number | null {
+    return this.net?.role === 'guest' ? null : this.dealer.untilCall(this.time);
   }
 
   selectChip(d: ChipDenom) {
@@ -78,6 +89,26 @@ export class RouletteTable {
   private lastResult: { pocket: Pocket; net: number } | null = null;
   /** Hooks for the croupier and onlookers. */
   onSpin: (() => void) | null = null;
+  /** The croupier calls "No more bets" (the spin follows a moment later). */
+  onCall: (() => void) | null = null;
+  /**
+   * The croupier spins when he sees you're ready (rules/dealerclock.ts): bets
+   * down and nobody touching the layout for a few seconds, or the betting
+   * window run out. No SPIN button needed (READY tells him you're done).
+   * In a shared room the host's croupier decides for everyone.
+   */
+  readonly dealer = new DealerClock();
+  /** Your friends' layouts (shared room, host side): anyone betting, and a signature that changes as they place chips. */
+  others: (() => { bets: boolean; layout: string } | null) | null = null;
+  /** Someone at this table is holding chips (on their way to the layout). */
+  placing: (() => boolean) | null = null;
+  /** "No more bets" has been called: the layout is closed until the spin. */
+  private closed = false;
+  private closedAt = 0;
+  private time = 0;
+  /** After a result: the payout and the sweep before the croupier looks for the next round. */
+  private payUntil = 0;
+  private minWarned = '';
   onResult: ((pocket: Pocket, staked: number, returned: number) => void) | null = null;
 
   constructor(
@@ -187,7 +218,7 @@ export class RouletteTable {
       // VR: point and press a spot with your index finger to put the chosen chip there (once per press).
       pokeable: true,
       felt: true,
-      enabled: () => this.game.phase === 'betting',
+      enabled: () => this.bettingOpen,
       label: (e) => {
         const p = this.group.worldToLocal(e.hit.point.clone());
         const spot = spotAt(p.x, p.z);
@@ -418,11 +449,11 @@ export class RouletteTable {
       y: 130,
       w: 580,
       h: 250,
-      label: () => (this.game.phase === 'spinning' ? 'Spinning…' : 'SPIN'),
-      sub: () => (this.game.phase === 'spinning' ? 'good luck' : 'no more bets'),
-      enabled: () => betting() && this.game.bets.size > 0,
-      active: () => betting() && this.game.bets.size > 0,
-      onPress: () => this.startSpin(),
+      label: () => (this.game.phase === 'spinning' ? 'Spinning…' : this.closed ? 'No more bets' : 'READY'),
+      sub: () => (this.game.phase === 'spinning' ? 'good luck' : this.closed ? 'here we go' : 'the croupier spins when you are'),
+      enabled: () => this.bettingOpen && this.game.bets.size > 0,
+      active: () => this.bettingOpen && this.game.bets.size > 0,
+      onPress: () => this.ready(),
     });
     p.register(this.ctx.interaction);
     p.redraw();
@@ -498,7 +529,7 @@ export class RouletteTable {
 
   /** The spot a chip set down here would bet (null: not a spot, or bets are closed). */
   spotAt(world: THREE.Vector3): string | null {
-    if (this.game.phase !== 'betting') return null;
+    if (!this.bettingOpen) return null;
     const l = this.group.worldToLocal(world.clone());
     return l.y > TOP - 0.05 && l.y < TOP + 0.35 ? (spotAt(l.x, l.z)?.id ?? null) : null;
   }
@@ -516,6 +547,10 @@ export class RouletteTable {
 
   private bet(spotId: string, amount: number = this.chip, silent = false): boolean {
     let ok = false;
+    if (this.closed) {
+      this.ctx.hud.toast('No more bets', 'info');
+      return false;
+    }
     try {
       this.game.placeBet(spotId, amount);
       this.undoStack.push({ spotId, amount });
@@ -535,7 +570,7 @@ export class RouletteTable {
 
   /** Picks one of your bets back up off the layout (before the spin). Returns what came back. */
   private takeDown(spotId: string): number {
-    if (this.game.phase !== 'betting') return 0;
+    if (!this.bettingOpen) return 0;
     this.undoStack = this.undoStack.filter((u) => u.spotId !== spotId);
     const back = this.game.removeBet(spotId);
     this.refreshStack(spotId);
@@ -544,6 +579,7 @@ export class RouletteTable {
   }
 
   undo() {
+    if (!this.bettingOpen) return;
     const last = this.undoStack.pop();
     if (!last) return;
     // Refund just the last chip: remove the spot and re-place what was there before.
@@ -556,6 +592,7 @@ export class RouletteTable {
   }
 
   clear() {
+    if (!this.bettingOpen) return;
     this.game.clearBets();
     for (const id of [...this.stacks.keys()]) this.refreshStack(id);
     this.undoStack = [];
@@ -564,6 +601,7 @@ export class RouletteTable {
   }
 
   rebet() {
+    if (this.closed) return;
     if (!this.game.rebet()) {
       this.ctx.hud.toast('Not enough chips to rebet', 'warn');
       return;
@@ -576,6 +614,7 @@ export class RouletteTable {
   }
 
   double() {
+    if (!this.bettingOpen) return;
     const bets = [...this.game.bets];
     for (const [id, v] of bets) this.bet(id, v, true);
     this.ctx.sound.play('chips', this.panel.mesh);
@@ -630,7 +669,7 @@ export class RouletteTable {
     if (this.ctx.hud.station !== 'roulette') return;
     if (e.code === 'Space') {
       e.preventDefault();
-      this.startSpin();
+      this.ready();
     } else if (e.code === 'KeyC') this.clear();
     else if (e.code === 'KeyR') this.rebet();
     else if (e.code === 'KeyZ' || e.code === 'Backspace') this.undo();
@@ -680,7 +719,7 @@ export class RouletteTable {
       balance: () => this.ctx.bankroll.balance,
       away: () => this.away,
       visible: () => this.ctx.hud.station === 'roulette',
-      canGrab: () => this.game.phase === 'betting',
+      canGrab: () => this.bettingOpen,
       place: (world, amount) => {
         const spot = atLayout(world);
         return !!spot && this.bet(spot.id, amount);
@@ -708,8 +747,96 @@ export class RouletteTable {
    * Shared-table hooks (two-player games). The host's machine decides every
    * spin; a guest's SPIN asks the host to spin.
    */
-  net: { role: 'host' | 'guest'; request(): void; announce(s: { pocket: Pocket; seed: number; rotor: number }): void } | null = null;
+  net: { role: 'host' | 'guest'; request(): void; announce(s: { pocket: Pocket; seed: number; rotor: number }): void; call?(): void } | null = null;
 
+  /** You're done betting (READY, Space): the croupier calls and spins now. A guest tells the host's croupier. */
+  ready() {
+    if (!this.bettingOpen) return;
+    if (this.game.bets.size === 0) {
+      this.ctx.hud.toast('Place a bet first', 'warn');
+      return;
+    }
+    const problem = this.game.minimumProblem();
+    if (problem) {
+      this.ctx.hud.toast(problem, 'warn');
+      this.ctx.sound.play('denied', this.panel.mesh, { volume: 0.6 });
+      return;
+    }
+    if (this.net?.role === 'guest') {
+      this.net.request();
+      this.ctx.hud.toast('“Thank you, sir.”', 'info');
+      return;
+    }
+    this.dealer.hurry();
+  }
+
+  /** A friend is ready (shared room, host side): the croupier calls now if anyone has bets. */
+  hurry() {
+    this.dealer.hurry();
+  }
+
+  /** "No more bets": the layout closes and the spin follows (host / solo: the dealer clock; guest: the host said so). */
+  private call() {
+    this.closed = true;
+    this.closedAt = this.time;
+    this.ghost.visible = false;
+    this.onCall?.();
+    this.panel.redraw();
+  }
+
+  /** The host's croupier called "No more bets" (guest side). */
+  remoteCall() {
+    if (this.game.phase !== 'betting' || this.closed) return;
+    this.call();
+  }
+
+  /**
+   * The croupier watches the layout (host / solo; a guest's table follows the
+   * host's call and spin). Bets down and quiet, or the window gone: he calls
+   * "No more bets", then spins.
+   */
+  private runDealer() {
+    if (this.net?.role === 'guest') {
+      // The host's spin should follow its call; if it never comes, open up again.
+      if (this.closed && this.game.phase === 'betting' && this.time - this.closedAt > 10) this.closed = false;
+      return;
+    }
+    const mine = this.game.bets.size > 0;
+    const o = this.others?.() ?? { bets: false, layout: '' };
+    let layout = o.layout + '|';
+    for (const [id, v] of this.game.bets) layout += `${id}:${v},`;
+    const ev = this.dealer.update({
+      now: this.time,
+      bets: mine || o.bets,
+      layout,
+      placing: this.placing?.() ?? false,
+      busy: this.game.phase !== 'betting' || this.time < this.payUntil,
+    });
+    if (ev === 'call') {
+      // The table minimums first: he won't call over bets he can't take.
+      const problem = mine ? this.game.minimumProblem() : null;
+      if (problem && !o.bets) {
+        if (this.minWarned !== problem) this.ctx.hud.toast(`Croupier: ${problem}`, 'warn');
+        this.minWarned = problem;
+        this.dealer.reopen(this.time);
+        return;
+      }
+      this.minWarned = '';
+      this.net?.call?.();
+      this.call();
+    } else if (ev === 'go') {
+      this.closed = false;
+      if (this.game.bets.size > 0 && this.game.minimumProblem()) {
+        // Friends are waiting on the wheel: bets under the minimum come back, and it spins.
+        this.clear();
+        this.ctx.hud.toast('Your bets were under the table minimum and came back to you', 'warn');
+      }
+      this.startSpin();
+      if (this.game.phase === 'betting') this.dealer.reopen(this.time);
+    }
+  }
+
+  /** Spin now (the croupier's call; tests). Players don't press this: see ready(). */
   startSpin() {
     if (this.game.phase !== 'betting') return;
     const shared = !!this.net;
@@ -761,6 +888,7 @@ export class RouletteTable {
   }
 
   private beginSpin(target: Pocket, seed: number, rotorSpeed: number) {
+    this.closed = false;
     this.onSpin?.();
     this.away = 0;
     // The dealer spins the rotor up and launches the ball against it; the
@@ -783,6 +911,7 @@ export class RouletteTable {
   private finishSpin() {
     const result = this.game.settle();
     this.spin = null;
+    this.payUntil = this.time + 4;
     // Credited now; it reaches your rail when it's pushed across to you.
     this.away = result.totalReturned;
     this.ballLoop.stop();
@@ -841,8 +970,10 @@ export class RouletteTable {
   }
 
   update(dt: number) {
+    this.time += dt;
     this.tweens.update(dt);
     this.rail.update(dt);
+    this.runDealer();
 
     const sp = this.spin;
     if (sp) {

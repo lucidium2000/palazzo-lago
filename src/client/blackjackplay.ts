@@ -748,8 +748,9 @@ export class BlackjackPlay {
       { id: 'bjrebet', label: 'Rebet', disabled: !betting || pending > 0 || this.lastBet <= 0, onPress: () => this.rebet() },
       {
         id: 'bjdeal',
-        label: this.phase === 'round' ? '…' : 'DEAL',
-        sub: pending > 0 ? `bet ${money(pending)}` : `min ${money(this.min)}`,
+        // The dealer deals once the bets are in and settle (a few quiet seconds); this just says you're ready.
+        label: this.phase === 'round' ? '…' : 'READY',
+        sub: pending > 0 ? `bet ${money(pending)} · dealer deals` : `min ${money(this.min)}`,
         kind: 'primary',
         disabled: this.phase === 'round' || pending < this.min,
         onPress: () => this.deal(),
