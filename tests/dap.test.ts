@@ -7,6 +7,7 @@ import {
   DAP_ADOPT,
   DAP_GRIP,
   DAP_SECONDS,
+  DAP_SIDESTEP,
   dapArrives,
   dapCues,
   dapFingers,
@@ -170,9 +171,12 @@ describe('the dap sequence', () => {
     expect(them.clone().add(dapOffset(them, me, s)).distanceTo(me)).toBeCloseTo(0.85 + (1.5 - 0.85) * (1 - s.engage), 3);
     s.step(DAP.clasp + DAP.pull);
     const at = them.clone().add(dapOffset(them, me, s));
-    expect(at.distanceTo(me)).toBeCloseTo(0.5, 3);
+    // In to a shoulder bump: half a metre closer along the line, stepped aside to their free side (their left: my right, −x).
+    expect(Math.abs(at.z)).toBeCloseTo(0.5, 3);
+    expect(at.x).toBeCloseTo(-DAP_SIDESTEP, 3);
+    expect(dapOffset(them, me, s, 1, 'l').x).toBeCloseTo(DAP_SIDESTEP, 3);
     // Watching two friends: each does half.
-    expect(dapOffset(them, me, s, 0.5).length()).toBeCloseTo(0.5, 3);
+    expect(dapOffset(them, me, s, 0.5).z).toBeCloseTo(-0.5, 3);
     s.step(10);
     expect(dapOffset(them, me, s).length()).toBe(0);
   });

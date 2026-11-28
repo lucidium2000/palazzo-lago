@@ -407,17 +407,24 @@ export function poseDap(b: Bones, o: DapBody): { l: boolean; r: boolean } {
 
 /**
  * Where a body stands for the move: `from` its own spot, `partner` theirs.
- * Arm's length for the clasp, a shoulder bump's distance for the hug; `share`
- * is how much of the closing this body does (1 when the partner can't move,
- * i.e. it's you; ½ when you're watching two friends). Returns the offset to
- * add to where it would otherwise stand (capped).
+ * Arm's length for the clasp, a shoulder bump's distance for the hug (shifted
+ * toward its free side, so the clasping shoulders meet rather than faces);
+ * `share` is how much of it this body does (1 when the partner can't move,
+ * i.e. it's you; ½ when you're watching two friends). `hand`: its clasping
+ * hand. Returns the offset to add to where it would otherwise stand (capped).
  */
-export function dapOffset(from: THREE.Vector3, partner: THREE.Vector3, seq: DapSeq, share = 1): THREE.Vector3 {
+export function dapOffset(from: THREE.Vector3, partner: THREE.Vector3, seq: DapSeq, share = 1, hand: Side = 'r'): THREE.Vector3 {
   const d = partner.clone().sub(from).setY(0);
   const dist = d.length();
   if (dist < 1e-4 || dist > 3) return new THREE.Vector3();
   d.divideScalar(dist);
   const want = THREE.MathUtils.lerp(0.85, 0.5, seq.close);
   const move = THREE.MathUtils.clamp((dist - want) * share, -0.4, 1.6) * seq.engage;
-  return d.multiplyScalar(move);
+  // Its own left, facing the partner (fwd (sin y, 0, cos y) has left (cos y, 0, −sin y)).
+  const left = new THREE.Vector3(d.z, 0, -d.x);
+  const side = DAP_SIDESTEP * seq.close * share * seq.engage * (hand === 'r' ? 1 : -1);
+  return d.multiplyScalar(move).addScaledVector(left, side);
 }
+
+/** How far (m) a body steps toward its free side for the shoulder bump. */
+export const DAP_SIDESTEP = 0.2;

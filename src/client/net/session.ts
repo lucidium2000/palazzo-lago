@@ -1035,9 +1035,9 @@ export class Session {
   private dapShift(r: Remote): THREE.Vector3 | null {
     const x = r.dap;
     if (!x || x.seq.done) return null;
-    if (x.partner === 'me') return dapOffset(r.target, this.d.player.feet(), x.seq, 1);
+    if (x.partner === 'me') return dapOffset(r.target, this.d.player.feet(), x.seq, 1, x.hand);
     const o = this.remotes.get(x.partner);
-    return o ? dapOffset(r.target, o.target, x.seq, 0.5) : null;
+    return o ? dapOffset(r.target, o.target, x.seq, 0.5, x.hand) : null;
   }
 
   /** A gesture landed: sound, buzz, toast, cheers. `mine` says whether we detected it (then tell them). */
