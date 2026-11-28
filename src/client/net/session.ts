@@ -17,6 +17,7 @@ import type { Bankroll } from '../../rules/bankroll';
 import type { NetEvent, PlayerState, Transport, Wire } from './transport';
 import { PosedHand, skinTone } from '../posedhand';
 import { DAB_SECONDS, dabWeight, GrabTrack, poseDab, pullApart } from '../dab';
+import { ApproachTrack, classifyClasp, dapArrives, dapFingers, dapMessage, dapOffset, DapSeq, fingerTilt, poseDap, readDapMessage, type Approach, type Clasp, type DapCue, type Finisher, type Side } from '../dap';
 
 /** Viewpoints where a player sits (the rest are played standing). */
 const SEATED = (id: string | null) => !!id && id !== 'craps';
@@ -65,13 +66,30 @@ interface Remote {
   /** A gesture a screen player is offering (their avatar acts it out). */
   emote: { k: string; t0: number } | null;
   /** Hand-contact bookkeeping per my-hand/their-hand pair. */
-  contact: Map<string, { t0: number; speed: number; done: boolean; grab: GrabTrack }>;
+  contact: Map<string, Contact>;
   /** A still grab that just let go (per hand pair): when it parted. Pulled apart fast enough, it's a dab (dab.ts). */
   pulls: Map<string, number>;
+  /** Mid-dap (dap.ts): with you ('me') or with another friend (their id); `lead` plays its sounds. */
+  dap: { seq: DapSeq; hand: Side; partner: string; lead: boolean; id: number } | null;
   bubble: THREE.Sprite | null;
   bubbleUntil: number;
   target: THREE.Vector3;
   name: string;
+}
+
+/** One of my hands touching one of a friend's: when, how it came in, what it's become. */
+interface Contact {
+  t0: number;
+  speed: number;
+  done: boolean;
+  grab: GrabTrack;
+  /** How my hand came in (dap.ts), and what that makes a grab: a dap or a plain handshake. */
+  ap: Approach;
+  kind: Clasp;
+  /** Both came in as fists, fast: a fist bump if they part again quickly, a dap if they hang on. */
+  fists: boolean;
+  /** Both came in open. */
+  open: boolean;
 }
 
 export interface SessionDeps {
@@ -100,6 +118,12 @@ export interface SessionDeps {
    * the "ayyy", your own body's pose, the crew). Their avatar's pose is done here.
    */
   dab?(at: THREE.Vector3, friend: string): void;
+  /**
+   * A moment in a dap (dap.ts) that makes a sound: the clasp's clap, the shoulder
+   * bump, pats on the back, the snap or fist bump, the "ayyy". `mine`: you're in it
+   * (cheer, the crew); otherwise two friends are dapping over there.
+   */
+  dapCue?(cue: DapCue, at: THREE.Vector3, mine: boolean): void;
   /** The 3D audio listener (voice chat plays from the friend's avatar). */
   listener: THREE.AudioListener;
   /** Your real hands in VR (world positions), or null on a screen. */
@@ -149,7 +173,10 @@ export class Session {
   private time = 0;
   private gestAt = new Map<string, number>();
   private offered: { k: string; t: number } | null = null;
-  private prevHands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null } = { l: null, r: null };
+  /** My hands' recent paths (how they come in to meet a friend's). */
+  private tracks = { l: new ApproachTrack(), r: new ApproachTrack() };
+  /** The dap I'm in (dap.ts): which of my hands clasps, with whom. */
+  private myDap: { seq: DapSeq; hand: Side; with: string; id: number } | null = null;
   readonly voice: Voice;
   /** Your friend clinked glasses with you (position, their name). */
   onCheers: ((at: THREE.Vector3, name: string) => void) | null = null;
@@ -400,6 +427,7 @@ export class Session {
         emote: null,
         contact: new Map(),
         pulls: new Map(),
+        dap: null,
         bubble: null,
         bubbleUntil: 0,
         target: at.clone(),
@@ -693,8 +721,38 @@ export class Session {
         }
         break;
       case 'gest':
+        // (Sent to everyone: only the friend it was with celebrates it.)
+        if (typeof d.to === 'string' && d.to !== this.d.transport.self) break;
         this.celebrate(r, String(d.k), null, false);
         break;
+      case 'dap': {
+        const m = readDapMessage(d);
+        if (!m) break;
+        const busy = (x: Remote) => (x.dap && !x.dap.seq.done ? x.dap : null);
+        if (m.to === this.d.transport.self) {
+          const cur = this.myDap && !this.myDap.seq.done ? this.myDap : null;
+          const v = dapArrives(cur ? { id: cur.id, t: cur.seq.t, samePair: cur.with === r.id && !!busy(r) } : busy(r) ? { id: busy(r)!.id, t: 0, samePair: false } : null, m.id);
+          if (v === 'start') this.startDap(r, m.th, m.h, m.fin, m.id, false);
+          else if (v === 'adopt' && cur) {
+            // Both of us spotted it at once: everyone goes with the lower id's (same finisher on every machine).
+            this.myDap = { seq: new DapSeq(m.fin, cur.seq.t), hand: m.th, with: r.id, id: m.id };
+            r.dap = { seq: new DapSeq(m.fin, cur.seq.t), hand: m.h, partner: 'me', lead: false, id: m.id };
+          }
+        } else {
+          // Two friends dapping each other: you watch them do it.
+          const o = this.remotes.get(m.to);
+          if (!o || o === r) break;
+          const a = busy(r),
+            c = busy(o);
+          const same = !!a && !!c && a.partner === o.id && c.partner === r.id;
+          const v = dapArrives(a || c ? { id: (a ?? c)!.id, t: (a ?? c)!.seq.t, samePair: same } : null, m.id);
+          if (v === 'ignore') break;
+          const t = v === 'adopt' ? a!.seq.t : 0;
+          r.dap = { seq: new DapSeq(m.fin, t), hand: m.h, partner: o.id, lead: true, id: m.id };
+          o.dap = { seq: new DapSeq(m.fin, t), hand: m.th, partner: r.id, lead: false, id: m.id };
+        }
+        break;
+      }
       case 'emote':
         if (r.person) {
           const k = String(d.k);
@@ -742,13 +800,30 @@ export class Session {
   }
 
   /**
-   * Desktop/phone (G, or the chat's Dab button): dab with the nearest friend
-   * close by (you both strike the pose). False if nobody's near enough.
+   * Desktop/phone (Shift+G, or the chat's "Dab pose" button): the dance dab with
+   * the nearest friend close by (you both strike the pose). False if nobody's near enough.
    */
   dab(): boolean {
+    const best = this.nearestFriend();
+    if (!best) return false;
+    this.celebrate(best, 'dab', null, true);
+    return true;
+  }
+
+  /**
+   * Desktop/phone (G, or the chat's "Dab up" button): dap up the nearest
+   * friend close by (both avatars do the whole move). False if nobody's near.
+   */
+  dap(): boolean {
+    const best = this.nearestFriend();
+    if (!best) return false;
+    return this.startDap(best, 'r', 'r', Math.random() < 0.5 ? 'snap' : 'knock', Math.floor(Math.random() * 1e9), true);
+  }
+
+  private nearestFriend(range = 2.6): Remote | null {
     const f = this.d.player.feet();
     let best: Remote | null = null,
-      bd = 2.6;
+      bd = range;
     for (const r of this.remotes.values()) {
       const dist = r.person ? r.person.pos.distanceTo(f) : Infinity;
       if (dist < bd) {
@@ -756,12 +831,49 @@ export class Session {
         best = r;
       }
     }
-    if (!best) return false;
-    this.celebrate(best, 'dab', null, true);
+    return best;
+  }
+
+  /** Am I mid-dap (with anyone)? */
+  get dapping(): boolean {
+    return !!this.myDap && !this.myDap.seq.done;
+  }
+
+  /**
+   * Starts a dap with `r`: my `mine` hand in their `theirs`. `emit`: we
+   * detected it (tell everyone; the friend runs the same move on their side).
+   * False if either of us is already in one.
+   */
+  private startDap(r: Remote, mine: Side, theirs: Side, fin: Finisher, id: number, emit: boolean): boolean {
+    if (this.myDap && !this.myDap.seq.done) return false;
+    if (r.dap && !r.dap.seq.done) return false;
+    this.myDap = { seq: new DapSeq(fin), hand: mine, with: r.id, id };
+    r.dap = { seq: new DapSeq(fin), hand: theirs, partner: 'me', lead: false, id };
+    r.emote = null;
+    if (emit) this.emit('dap', dapMessage(r.id, mine, theirs, fin, id));
+    this.gestAt.set('dap' + r.id, this.time);
+    this.d.hud.toast(`Dap with ${r.name}!`, 'win');
     return true;
   }
 
-  /** Real hand contact in VR: classify and celebrate high fives, fist bumps, handshakes and dabs. */
+  /** My hands' finger poses with the dap's grip on the clasping hand (your own hand models, and what friends see). */
+  dapFingers(p: { l: FingerPose; r: FingerPose }): { l: FingerPose; r: FingerPose } {
+    const m = this.myDap;
+    if (!m || m.seq.done) return p;
+    return { ...p, [m.hand]: dapFingers(p[m.hand], m.seq) };
+  }
+
+  /** Mid-dap, your own body (VR) leans in toward your friend: which way, and how far (radians). */
+  selfLean(): { dir: THREE.Vector3; angle: number } | null {
+    const m = this.myDap;
+    const r = m ? this.remotes.get(m.with) : null;
+    if (!m || m.seq.done || !r?.person) return null;
+    const dir = r.person.pos.clone().sub(this.d.player.feet()).setY(0);
+    if (dir.lengthSq() < 1e-6) return null;
+    return { dir: dir.normalize(), angle: (0.04 + 0.12 * m.seq.close) * m.seq.engage };
+  }
+
+  /** Real hand contact in VR: classify and celebrate high fives, fist bumps, handshakes, daps and dabs. */
   private gestures(r: Remote, p: Person, dt: number) {
     // A screen player's offered gesture: their avatar holds the hand out (and VR players can meet it).
     if (r.emote && !r.state.lh && !r.state.rh) {
@@ -784,23 +896,30 @@ export class Session {
     const mine = this.d.hands?.();
     if (!mine) return;
     const grip = this.d.grip?.() ?? { l: 0, r: 0 };
+    const fp = this.d.fingers?.();
+    const wr = this.d.wrists?.();
+    const floorY = this.d.player.floorY;
+    const eyeY = this.d.player.camera.getWorldPosition(new THREE.Vector3()).y;
+    const curl = (q: FingerPose) => (q[2] + q[3] + q[4]) / 3;
     for (const ms of ['l', 'r'] as const) {
       const a = mine[ms];
-      const prev = this.prevHands[ms];
-      const speed = a && prev ? a.distanceTo(prev) / Math.max(dt, 1e-3) : 0;
-      this.prevHands[ms] = a ? a.clone() : null;
       if (!a) continue;
+      const speed = this.tracks[ms].speed;
+      const myFist = (fp ? curl(fp[ms]) : grip[ms]) > 0.6;
       for (const ts of ['l', 'r'] as const) {
         const b = r.hands[ts];
         const key = ms + ts;
         const c = r.contact.get(key);
-        const fp = this.d.fingers?.();
-        const curl = (q: FingerPose) => (q[2] + q[3] + q[4]) / 3;
-        const myFist = (fp ? curl(fp[ms]) : grip[ms]) > 0.6,
-          theirFist = Math.max(r.fist[ts], curl(r.pose[ts])) > 0.6;
+        const theirFist = Math.max(r.fist[ts], curl(r.pose[ts])) > 0.6;
         if (!b || a.distanceTo(b) > 0.13) {
-          // A still grab just let go of: if it's yanked apart (still gripping), it's a dab.
-          if (c && !c.done && c.grab.armed && myFist) r.pulls.set(key, this.time);
+          if (c && !c.done) {
+            // Fists that met fast and parted again: a fist bump. Open hands that slapped and parted: a high five.
+            const quick = this.time - c.t0 < 0.45;
+            if (quick && c.fists) this.celebrate(r, 'fistbump', ms, true);
+            else if (quick && c.open && c.ap.speed > 0.35 && a.y > floorY + 1.2) this.celebrate(r, 'highfive', ms, true);
+            // A still (handshake-style) grab just let go of: if it's yanked apart (still gripping), it's the dance dab.
+            else if (c.grab.armed && myFist) r.pulls.set(key, this.time);
+          }
           if (c) r.contact.delete(key);
           const parted = r.pulls.get(key);
           if (parted !== undefined) {
@@ -811,22 +930,34 @@ export class Session {
           continue;
         }
         r.pulls.delete(key);
-        if (c) c.grab.touch(dt, a.y, myFist && theirFist);
         if (!c) {
-          const entry = { t0: this.time, speed, done: false, grab: new GrabTrack() };
+          // First touch: how did my hand come in? (Up, swinging, raised, fingers up: a dap. Low, slow and level: a handshake.)
+          const w = wr?.[ms];
+          const ap = this.tracks[ms].read(b, floorY, Math.max(1, eyeY - floorY), w ? fingerTilt(w.q) : null);
+          const entry: Contact = { t0: this.time, speed, done: false, grab: new GrabTrack(), ap, kind: classifyClasp(ap), fists: myFist && theirFist && speed > 0.3, open: !myFist && !theirFist };
           r.contact.set(key, entry);
-          if (myFist && theirFist && speed > 0.3) {
-            entry.done = true;
-            this.celebrate(r, 'fistbump', ms, true);
-          } else if (!myFist && !theirFist && a.y > 1.25 && speed > 0.35) {
+          // Open hands up around the head, fast: a high five, now.
+          if (entry.open && a.y > eyeY - 0.12 && speed > 0.35) {
             entry.done = true;
             this.celebrate(r, 'highfive', ms, true);
           }
-        } else if (!c.done && this.time - c.t0 > 0.45 && a.y < 1.45 && a.y > 0.7 && (!(myFist && theirFist) || c.grab.shaking)) {
-          // (Both gripping: a handshake once it's shaken; held still, it may be a dab: see above.)
+          continue;
+        }
+        c.grab.touch(dt, a.y, myFist && theirFist);
+        if (c.done) continue;
+        const held = this.time - c.t0;
+        const gripping = myFist || theirFist;
+        // (Fists that came in fast get a moment first: a fist bump parts again within it.)
+        const settle = c.fists ? 0.35 : 0.12;
+        if (c.kind === 'dap' && ((held > settle && myFist && theirFist) || (held > Math.max(settle, 0.3) && gripping) || held > 0.6)) {
+          // Hands that came in up and swinging and hung on: dap them up.
+          c.done = true;
+          this.startDap(r, ms, ts, Math.random() < 0.5 ? 'snap' : 'knock', Math.floor(Math.random() * 1e9), true);
+        } else if (c.kind === 'handshake' && held > 0.45 && a.y < floorY + 1.45 && a.y > floorY + 0.7 && (!(myFist && theirFist) || c.grab.shaking)) {
+          // (Both gripping: a handshake once it's shaken; held still, it may be the dance dab: see above.)
           c.done = true;
           this.celebrate(r, 'handshake', ms, true);
-        } else if (c && this.time - c.t0 > 0.45) {
+        } else if (held > 0.45) {
           // Shaking: a little buzz while hands are held.
           if (Math.random() < 0.1) this.d.haptic?.(ms === 'l' ? 'left' : 'right', 0.15, 20);
         }
@@ -834,11 +965,86 @@ export class Session {
     }
   }
 
+  /** The daps going on: run their clocks, their sounds and buzzes, and where the bodies stand. */
+  private daps(dt: number) {
+    const m = this.myDap;
+    if (m) {
+      const r = this.remotes.get(m.with);
+      const cues = m.seq.step(dt);
+      if (!r || m.seq.done) this.myDap = null;
+      if (r && cues.length) {
+        const at = this.dapPoint(r) ?? this.d.player.feet().setY(1.3);
+        const side = (s: Side) => (s === 'l' ? 'left' : 'right');
+        const hand = side(m.hand),
+          free = side(m.hand === 'l' ? 'r' : 'l');
+        for (const c of cues) {
+          this.d.dapCue?.(c, at, true);
+          // Buzzes on both controllers: the clap in the clasping hand, the bump in both, the pats in the patting hand.
+          if (c === 'clasp') this.d.haptic?.(hand, 1, 90), this.d.haptic?.(free, 0.35, 40);
+          else if (c === 'bump') this.d.haptic?.(hand, 0.8, 90), this.d.haptic?.(free, 0.8, 90);
+          else if (c === 'pat') this.d.haptic?.(free, 0.6, 45), this.d.haptic?.(hand, 0.3, 30);
+          else if (c === 'release') this.d.haptic?.(hand, 0.3, 40);
+          else if (c === 'snap') this.d.haptic?.(hand, 0.7, 30);
+          else if (c === 'knock') this.d.haptic?.(hand, 1, 60), this.d.haptic?.(free, 0.3, 30);
+          else if (c === 'ayy' && r.person) r.person.cheer = 1.2;
+        }
+      }
+    }
+    for (const r of this.remotes.values()) {
+      const x = r.dap;
+      if (!x) continue;
+      const cues = x.seq.step(dt);
+      const partner = x.partner === 'me' ? null : this.remotes.get(x.partner);
+      if (x.seq.done || (x.partner !== 'me' && !partner)) {
+        r.dap = null;
+        continue;
+      }
+      if (x.lead && partner && cues.length) {
+        const at = this.dapPoint(r) ?? r.target.clone().setY(1.3);
+        for (const c of cues) this.d.dapCue?.(c, at, false);
+        if (cues.includes('ayy')) {
+          if (r.person) r.person.cheer = 1.2;
+          if (partner.person) partner.person.cheer = 1.2;
+        }
+      }
+    }
+  }
+
+  /** Where the joined hands are in r's dap (world), or null if it isn't in one. */
+  private dapPoint(r: Remote): THREE.Vector3 | null {
+    const x = r.dap;
+    const p = r.person;
+    if (!x || !p) return null;
+    const chest = (feet: THREE.Vector3, eye: number) => feet.y + eye * 0.78;
+    if (x.partner === 'me') {
+      // Your real hand when it's tracked (their hand locks onto it), else between the two of you at chest height.
+      const mine = this.d.hands?.()?.[this.myDap?.hand ?? 'r'];
+      const f = this.d.player.feet();
+      if (mine) return mine.clone().addScaledVector(p.pos.clone().sub(f).setY(0).normalize(), 0.06);
+      const eye = this.d.player.camera.getWorldPosition(new THREE.Vector3()).y - f.y;
+      const mid = f.clone().lerp(p.pos, 0.5);
+      return mid.setY((chest(f, eye) + chest(p.pos, p.look.height * 0.93)) / 2);
+    }
+    const o = this.remotes.get(x.partner)?.person;
+    if (!o) return null;
+    const mid = p.pos.clone().lerp(o.pos, 0.5);
+    return mid.setY((chest(p.pos, p.look.height * 0.93) + chest(o.pos, o.look.height * 0.93)) / 2);
+  }
+
+  /** Where r's avatar stands mid-dap: moved in toward its partner (added to where the network puts it). */
+  private dapShift(r: Remote): THREE.Vector3 | null {
+    const x = r.dap;
+    if (!x || x.seq.done) return null;
+    if (x.partner === 'me') return dapOffset(r.target, this.d.player.feet(), x.seq, 1, x.hand);
+    const o = this.remotes.get(x.partner);
+    return o ? dapOffset(r.target, o.target, x.seq, 0.5, x.hand) : null;
+  }
+
   /** A gesture landed: sound, buzz, toast, cheers. `mine` says whether we detected it (then tell them). */
   private celebrate(r: Remote, k: string, hand: 'l' | 'r' | null, mine: boolean) {
     if (this.time - (this.gestAt.get(k + r.id) ?? -10) < 1.5) return;
     this.gestAt.set(k + r.id, this.time);
-    if (mine) this.emit('gest', { k });
+    if (mine) this.emit('gest', { k, to: r.id });
     const at = r.person ? r.person.pos.clone().setY(1.4) : this.d.player.feet().setY(1.4);
     const names: Record<string, string> = { highfive: 'High five', fistbump: 'Fist bump', handshake: 'Handshake', wave: 'Wave', dab: 'Dab' };
     this.d.hud.toast(`${names[k] ?? 'Nice'} with ${r.name}!`, 'win');
@@ -932,6 +1138,33 @@ export class Session {
           setFingers(b, S, side === 'l' ? [0, 0, 0, 0, 0] : [1, 1, 1, 1, 1]);
         }
     }
+    // Dapping (with you or another friend): the clasp, the pull-in, the arm round the back, the finisher.
+    const x = r.dap;
+    const clasp = x ? this.dapPoint(r) : null;
+    if (x && clasp && x.seq.engage > 0) {
+      let partner: THREE.Vector3, partnerYaw: number, partnerHeight: number;
+      if (x.partner === 'me') {
+        const me = this.myHeading();
+        partner = me.pos;
+        partnerYaw = me.yaw;
+        partnerHeight = Math.max(1.2, this.d.player.camera.getWorldPosition(new THREE.Vector3()).y - me.pos.y) / 0.93;
+      } else {
+        const o = this.remotes.get(x.partner)?.person;
+        if (!o) return;
+        partner = o.pos.clone();
+        partnerYaw = o.yaw;
+        partnerHeight = o.look.height;
+      }
+      rig.root.updateMatrixWorld(true);
+      const took = poseDap(b, { seq: x.seq, hand: x.hand, clasp, partner, partnerYaw, partnerHeight, yaw: p.yaw, sc });
+      // The arms it took over show the avatar's own hands (their tracked hand models hide for the beat).
+      for (const [side, S] of [['l', 'L'], ['r', 'R']] as const) {
+        if (!took[side]) continue;
+        const ph = r.posed?.[side];
+        if (ph) ph.visible = false;
+        (b[`Wrist${S}`] ?? b[`Hand${S}`])?.scale.setScalar(1);
+      }
+    }
   }
 
   private showBubble(r: Remote, text: string) {
@@ -946,6 +1179,7 @@ export class Session {
   }
 
   private drop(r: Remote) {
+    r.dap = null;
     this.d.scene.remove(r.tag, r.ghost);
     if (r.posed) {
       this.d.scene.remove(r.posed.l.root, r.posed.r.root);
@@ -979,16 +1213,24 @@ export class Session {
       this.refreshLooks();
     }
     const cam = this.d.player.camera.getWorldPosition(new THREE.Vector3());
+    // My hands' paths (how they come in when they meet a friend's), then the daps going on.
+    const myHands = this.d.hands?.();
+    this.tracks.l.push(this.time, myHands?.l ?? null);
+    this.tracks.r.push(this.time, myHands?.r ?? null);
+    this.daps(dt);
     for (const r of this.remotes.values()) {
       const p = r.person;
       if (!p) continue;
       const s = r.state;
       const stool = Number(s.st) || 0;
       const seated = SEATED(s.seat) || stool > 0;
-      const dx = r.target.x - p.pos.x,
-        dz = r.target.z - p.pos.z;
+      // Mid-dap: they step in to arm's length, then into the shoulder bump (you never move: comfort in VR).
+      const shift = seated ? null : this.dapShift(r);
+      const goal = shift ? r.target.clone().add(shift) : r.target;
+      const dx = goal.x - p.pos.x,
+        dz = goal.z - p.pos.z;
       const dist = Math.hypot(dx, dz);
-      if (dist > 6) p.pos.copy(r.target);
+      if (dist > 6) p.pos.copy(goal);
       else {
         const k = Math.min(1, dt * 8);
         p.pos.x += dx * k;
@@ -1008,8 +1250,14 @@ export class Session {
       p.seatY = stool > 0 ? p.pos.y + hipOnSeat(stool) : s.seat === 'roulette' ? 0.66 : 0.62;
       // The body follows where they look only when they turn far or walk; the head does the rest.
       const headYaw = Number(s.yaw) || 0;
+      // Mid-dap: the body squares up to whoever they're dapping.
+      const dp = r.dap && !seated ? (r.dap.partner === 'me' ? this.d.player.feet() : this.remotes.get(r.dap.partner)?.person?.pos) : null;
+      if (r.dap && dp) {
+        const want = Math.atan2(dp.x - p.pos.x, dp.z - p.pos.z);
+        r.bodyYaw += Math.atan2(Math.sin(want - r.bodyYaw), Math.cos(want - r.bodyYaw)) * Math.min(1, dt * 10) * r.dap.seq.engage;
+      }
       let diff = Math.atan2(Math.sin(headYaw - r.bodyYaw), Math.cos(headYaw - r.bodyYaw));
-      if (Math.abs(diff) > 0.75 || p.moving > 0.3 || seated) {
+      if (!(r.dap && dp) && (Math.abs(diff) > 0.75 || p.moving > 0.3 || seated)) {
         r.bodyYaw += diff * Math.min(1, dt * (p.moving > 0.3 ? 8 : 4));
         diff = Math.atan2(Math.sin(headYaw - r.bodyYaw), Math.cos(headYaw - r.bodyYaw));
       }

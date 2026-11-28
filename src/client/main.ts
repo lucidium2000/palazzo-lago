@@ -65,7 +65,7 @@ import { Night } from './night';
 import { TouchControls } from './touch';
 import type { Control } from './hud';
 import { CHIP_COLORS, CHIP_DENOMS, chipLabel, type ChipDenom } from './textures';
-import { CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
+import { CREW_DAP_LINES, CROUPIER_LINES, STAFF, TIPSY_LINES, rouletteCall } from './speech';
 import { mouthOf, voices } from './voices';
 import { Faces } from './faces';
 import { Throwables } from './throwables';
@@ -1092,7 +1092,9 @@ async function main() {
   for (const b of chatForm.querySelectorAll('.quick button')) {
     b.addEventListener('click', () => {
       const k = (b as HTMLElement).dataset.gesture;
-      if (k === 'dab') {
+      if (k === 'dap') {
+        if (session && !session.dap()) hud.toast('Get close to a friend to dab up', 'info');
+      } else if (k === 'dab') {
         if (session && !session.dab()) hud.toast('Get close to a friend to dab', 'info');
       } else if (k) session?.offer(k as 'highfive' | 'fistbump' | 'handshake' | 'wave');
       else session?.say(b.textContent ?? '');
@@ -1102,11 +1104,13 @@ async function main() {
   chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeChat();
   });
-  // G: dab with the friend next to you (G is also "clink glasses" when you hold a drink by a guest's: that wins).
+  // G: dab up (dap) the friend next to you; Shift+G: the dance dab together.
+  // (G is also "clink glasses" when you hold a drink by a guest's: that wins.)
   addEventListener('keydown', (e) => {
     if (e.code !== 'KeyG' || e.repeat || !session || player.inXR || e.target instanceof HTMLInputElement) return;
     if (lounge.holdingDrink && lounge.clinkable()) return;
-    session.dab();
+    if (e.shiftKey) session.dab();
+    else if (!session.dap() && !session.dapping && session.friends.length) hud.toast('Get close to a friend to dab up', 'info');
   });
   addEventListener('keydown', (e) => {
     if (e.code === 'KeyT' && session && chatForm.hidden && !player.inXR) {
@@ -1211,6 +1215,27 @@ async function main() {
         selfBody.dab();
         crowd.react(at, 2.5, 'cheer');
         crew.react('win', { chance: 0.7, cheer: true });
+      },
+      // The dap (dap.ts): a clap on the clasp, a thud for the shoulder bump, pats on the back, the snap or the
+      // knuckles, then the "ayyy" (wordless) and, if you're in it, one of the boys on a recorded take.
+      dapCue: (cue, at, mine) => {
+        if (cue === 'clasp') {
+          sound.play('slap', at, { volume: 1, rate: 0.85 });
+          sound.play('block', at, { volume: 0.35, rate: 1.2 });
+        } else if (cue === 'bump') sound.play('block', at, { volume: 0.6, rate: 0.7 });
+        else if (cue === 'pat') {
+          sound.play('block', at, { volume: 0.5, rate: 1.1 });
+          sound.play('slap', at, { volume: 0.25, rate: 0.6 });
+        } else if (cue === 'snap') sound.play('slap', at, { volume: 0.7, rate: 1.9 });
+        else if (cue === 'knock') {
+          sound.play('chips', at, { volume: 0.6, rate: 0.5 });
+          sound.play('ballDrop', at, { volume: 0.9, rate: 0.35 });
+        } else if (cue === 'ayy') {
+          // (The swoosh-and-"ayyy" of friends' voices: synthesized and wordless.)
+          sound.play('dab', at, { volume: mine ? 0.8 : 0.6 });
+          crowd.react(at, 2.5, 'cheer');
+          if (mine) crew.hypeRecorded(CREW_DAP_LINES);
+        }
       },
       haptic: buzz,
       slap: (at) => {
@@ -1455,7 +1480,9 @@ async function main() {
   const shopMirror = new ShopMirror({ scene, camera, player, self: selfBody, wardrobe, loose, small: quality.name !== 'desktop' });
   const fingerPoses = () => {
     const gp = (side: string) => interaction.gamepads().find((g) => g.handedness === side)?.gamepad;
-    return { l: hands.fingerPose('left', gp('left')), r: hands.fingerPose('right', gp('right')) };
+    const raw = { l: hands.fingerPose('left', gp('left')), r: hands.fingerPose('right', gp('right')) };
+    // Mid-dap: the clasping hand locks into the thumb grip (your own hand, and what your friend sees).
+    return session ? session.dapFingers(raw) : raw;
   };
   const gripValues = () => {
     const g = { l: 0, r: 0 };
@@ -2080,7 +2107,7 @@ async function main() {
         const camQ = camera.getWorldQuaternion(new THREE.Quaternion());
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camQ);
         const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camQ);
-        selfBody.update(dt, { on, head, dir, up, floorY: player.floorY, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.swimming ? Math.max(player.speed, player.swimSpeed) : player.speed, swim: player.swimming ? 1 : 0, seat: player.stool, eyeY: party.selfEye(head.y), crouch: player.crouch.drop });
+        selfBody.update(dt, { on, head, dir, up, floorY: player.floorY, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.swimming ? Math.max(player.speed, player.swimSpeed) : player.speed, swim: player.swimming ? 1 : 0, seat: player.stool, eyeY: party.selfEye(head.y), crouch: player.crouch.drop, lean: session?.selfLean() ?? null });
       } else if (shopMirror.wantsSelf) {
         // On a screen in the boutique: your body, posed for its mirror only (shopmirror.ts shows it there).
         const head = camera.getWorldPosition(new THREE.Vector3());

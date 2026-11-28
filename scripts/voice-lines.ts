@@ -6,7 +6,7 @@ import { writeFileSync } from 'node:fs';
 import { REACTIONS, PLAYER_VOICES, PLAYER_STANDIN, replyLabels } from '../src/client/reactlines';
 import { EXCHANGES, OPENERS, PASSING, WIN_REACTIONS, type Ctx, type Node } from '../src/client/dialogueLines';
 import {
-  BARTENDER_LINES, CHEERS_LINES, CONVO_BYE, HUH_LINES, CREW_LINES, CREW_VOICES, CROUPIER_LINES, GUEST_ALL, PACE, STAFF,
+  BARTENDER_LINES, CHEERS_LINES, CONVO_BYE, HUH_LINES, CREW_DAP_LINES, CREW_LINES, CREW_VOICES, CROUPIER_LINES, GUEST_ALL, PACE, STAFF,
   TIPSY_LINES, lineId, orderLine, rouletteCall, sceneVoice, type Prep,
 } from '../src/client/speech';
 import { stickCall } from '../src/rules/craps';
@@ -77,6 +77,7 @@ for (const [id, list] of Object.entries(smallTalkLines().staff)) for (const t of
 // Your crew.
 for (const v of CREW_VOICES) {
   for (const list of Object.values(CREW_LINES)) for (const t of list) add(v, t);
+  for (const t of CREW_DAP_LINES) add(v, t);
   for (const t of TIPSY_LINES) add(v, t);
 }
 
@@ -212,6 +213,7 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
   for (const name of ['rocco', 'dev', 'mikey']) {
     const v = elVoice('crew_' + name);
     for (const list of Object.values(CREW_LINES)) for (const t of list) addEl(v, t);
+    for (const t of CREW_DAP_LINES) addEl(v, t);
     for (const t of TIPSY_LINES) addEl(v, t);
   }
   // Getting physical: pushed, punched, doused, hit (priority 1: these are the loud moments).
