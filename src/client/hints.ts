@@ -55,6 +55,8 @@ export interface HintDeps {
   fighting(): boolean;
   watch: { lookedAt: boolean; group: THREE.Object3D };
   toast(text: string): void;
+  /** VR: the heads-up corner's info panel (hudcorner.ts). Tips show there instead of floating by the thing. */
+  info?: { setTip(text: string | null, alpha?: number): void };
 }
 
 export interface HintArcade {
@@ -264,6 +266,12 @@ export class Hints {
 
   private showVR(h: ShownHint<HintData> | null, dt: number) {
     const tag = this.tag;
+    // In the top-right corner of your view, with the other info (not floating in the room).
+    if (this.d.info) {
+      tag.visible = false;
+      this.d.info.setTip(h ? h.data.text : null, h ? h.alpha : 0);
+      return;
+    }
     if (!h) {
       tag.visible = false;
       this.placed = false;

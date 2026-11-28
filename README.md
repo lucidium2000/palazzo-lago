@@ -105,7 +105,7 @@ touch sensors (trigger touch and pull for the index finger, grip for the rest, t
 buttons / thumb rest) or full hand tracking (25 joints per hand). Walk up to craps in VR and the
 stickman slides you the dice: grab them and throw at the far wall. Push the stick further to run;
 click it to sprint. Guests talk to each other (bubbles and voices nearby) and to you when you stop
-and look at them; answer with reply buttons (keys 1-3, or the floating panel in VR).
+and look at them; answer with reply buttons (keys 1-3, or in VR the strip in the top-right corner of your view: A, B, X/Y, a pinch, or just say it).
 
 It plays like a night out with the guys: your crew (Rocco, Dev and Mikey) follow you around, hype your
 wins and razz your losses; there's a casino-floor groove, hot streaks, big-win celebrations with confetti,

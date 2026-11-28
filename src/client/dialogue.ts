@@ -970,6 +970,11 @@ export class Dialogue {
   }
 
   private bubble(p: Person, text: string, seconds: number) {
+    // VR: the words go in the heads-up corner with the other captions, not over their head.
+    if (this.d.hud.presenting) {
+      this.d.hud.say(this.title(p), text);
+      return;
+    }
     this.clearBubble(p);
     const sprite = bubbleSprite(text);
     this.d.scene.add(sprite);

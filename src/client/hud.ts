@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { corner, InfoHud } from './hudcorner';
 import type { Bankroll } from '../rules/bankroll';
 import { money } from './game';
 import type { Interaction } from './interaction';
@@ -50,8 +51,9 @@ export class Hud {
   private balanceEl: HTMLElement;
   private toastEl: HTMLElement;
   private navEl: HTMLElement;
-  private vrToast: CanvasPanel;
-  private vrToastUntil = 0;
+  /** VR: toasts, captions and banners in the top-right corner of your view (hudcorner.ts). */
+  readonly info: InfoHud;
+  private lastUpdate = 0;
   readonly wrist: CanvasPanel;
   /** Draws the wrist menu (the VR menu takes this over). */
   wristBuilder: (() => void) | null = null;
@@ -75,11 +77,7 @@ export class Hud {
     bankroll.onChange(() => this.renderBalance());
     this.renderBalance();
 
-    this.vrToast = new CanvasPanel(0.7, 1400, 200);
-    this.vrToast.mesh.visible = false;
-    (this.vrToast.mesh.material as THREE.MeshBasicMaterial).depthTest = false;
-    this.vrToast.mesh.renderOrder = 1000;
-    scene.add(this.vrToast.mesh);
+    this.info = new InfoHud(scene);
 
     this.wrist = new CanvasPanel(0.22, 600, 900);
     this.wrist.mesh.visible = false;
@@ -87,7 +85,8 @@ export class Hud {
     renderer.xr.addEventListener('sessionend', () => {
       this.wristOpen = false;
       this.wrist.mesh.visible = false;
-      this.vrToast.mesh.visible = false;
+      this.info.clear();
+      corner.reset();
     });
   }
 
@@ -175,7 +174,7 @@ export class Hud {
     this.subtitleEl.classList.add('on');
     clearTimeout(this.subtitleTimer);
     this.subtitleTimer = window.setTimeout(() => this.subtitleEl.classList.remove('on'), 3800);
-    if (this.renderer.xr.isPresenting) this.vrMessage(`${speaker}: ${text}`, 'info');
+    if (this.renderer.xr.isPresenting) this.info.push(`${speaker}: ${text}`, 'caption', 3800);
   }
 
   /** The big moment: BIG WIN, ON FIRE, goal complete. */
@@ -186,7 +185,7 @@ export class Hud {
     this.bannerEl.classList.add('on');
     clearTimeout(this.bannerTimer);
     this.bannerTimer = window.setTimeout(() => this.bannerEl.classList.remove('on'), 3000);
-    if (this.renderer.xr.isPresenting) this.vrMessage(sub ? `${title} · ${sub}` : title, 'win');
+    if (this.renderer.xr.isPresenting) this.info.push(sub ? `${title} · ${sub}` : title, 'win', 3200);
   }
 
   setGoals(goals: Goal[]) {
@@ -283,24 +282,16 @@ export class Hud {
     this.vrMessage(text, kind);
   }
 
+  /** VR: a message in the top-right corner of your view. */
   private vrMessage(text: string, kind: ToastKind) {
-    const p = this.vrToast;
-    const ctx = p.ctx;
-    ctx.clearRect(0, 0, p.pxW, p.pxH);
-    roundRect(ctx, 6, 6, p.pxW - 12, p.pxH - 12, 60);
-    ctx.fillStyle = kind === 'win' ? 'rgba(46,30,6,0.92)' : kind === 'warn' ? 'rgba(60,12,12,0.92)' : 'rgba(14,10,8,0.9)';
-    ctx.fill();
-    ctx.strokeStyle = kind === 'warn' ? '#e07a6a' : GOLD;
-    ctx.lineWidth = 6;
-    ctx.stroke();
-    ctx.fillStyle = kind === 'win' ? '#ffe08a' : GOLD_LIGHT;
-    ctx.font = `600 ${text.length > 40 ? 58 : 70}px ${SERIF}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, p.pxW / 2, p.pxH / 2 + 4);
-    p.texture.needsUpdate = true;
-    this.vrToastUntil = performance.now() + 2800;
+    this.info.push(text, kind === 'win' ? 'win' : kind === 'warn' ? 'warn' : 'info', 3000);
   }
+
+  /** Are you in VR right now? */
+  get presenting() {
+    return this.renderer.xr.isPresenting;
+  }
+
 
   private buildWrist() {
     if (this.wristBuilder) return this.wristBuilder();
@@ -373,18 +364,12 @@ export class Hud {
     if (this.wristAttached) this.wrist.mesh.visible = this.wristOpen;
     // (Where the menu is: a first-time hint by the watch, see hints.ts.)
 
-    const p = this.vrToast.mesh;
-    camera.updateMatrixWorld(true);
-    const head = camera.getWorldPosition(new THREE.Vector3());
-    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
-    fwd.y = 0;
-    fwd.normalize();
-    const target = head.clone().addScaledVector(fwd, 1.3);
-    target.y = head.y - 0.28;
-    if (!p.visible) p.position.copy(target);
-    else p.position.lerp(target, 0.08);
-    p.lookAt(head);
-    p.visible = performance.now() < this.vrToastUntil;
+    // The heads-up corner (top right of your view): it follows your gaze, then the info panel takes its place.
+    const now = performance.now();
+    const dt = this.lastUpdate ? Math.min(0.1, (now - this.lastUpdate) / 1000) : 0;
+    this.lastUpdate = now;
+    if (this.renderer.xr.isPresenting) corner.update(dt, camera);
+    this.info.update(this.renderer.xr.isPresenting);
   }
 }
 

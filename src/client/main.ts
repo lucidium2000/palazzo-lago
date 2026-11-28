@@ -9,6 +9,7 @@ import { preloadChips } from './chips';
 import { CrapsTable, FELT_Y, makeCrapsStick } from './craps/table';
 import { handTo } from './gestures';
 import { SuitePerks } from './suiteperks';
+import { corner } from './hudcorner';
 import { PostFX } from './post';
 import { Dialogue, voiceArbiter } from './dialogue';
 import { AREA_NODES, buildAreas, PROMENADE_NODES, registerAreas } from './areas';
@@ -1561,6 +1562,7 @@ async function main() {
   const hints = new Hints({
     scene,
     camera,
+    info: hud.info,
     hands,
     interaction,
     xr: () => player.inXR,
@@ -2369,7 +2371,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, shopMirror, arcade, promenade, hints, stock, culler };
+  (window as unknown as { casino: unknown }).casino = { corner, piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, shopMirror, arcade, promenade, hints, stock, culler };
   (window as unknown as { casino: Record<string, unknown> }).casino.promSound = promSound;
 }
 

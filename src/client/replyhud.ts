@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CORNER, corner } from './hudcorner';
 import { canvas } from './textures';
 import { GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
 
@@ -119,13 +120,11 @@ export class PinchHold {
 export const OVERLAY_LAYER = 3;
 
 const W = 1024;
-const ROW_H = 92;
+const ROW_H = 104;
 const GAP = 10;
 const H = 3 * ROW_H + 2 * GAP + 8;
-/** Strip width in metres, distance from the eyes, and how far below centre. */
-const WIDTH_M = 0.78; // text about 1.4° tall: easy to read in a headset
-const DIST = 1.1;
-const BELOW = THREE.MathUtils.degToRad(27);
+/** Strip width in metres (in the top-right corner, a metre away: text about 1.5° tall, easy to read in a headset). */
+const WIDTH_M = 0.5;
 
 export interface ReplyHudState {
   input: ReplyInput;
@@ -144,13 +143,6 @@ export class ReplyHud {
   private picked = -1;
   private opacity = 0;
   private sig = '';
-  private q = new THREE.Quaternion();
-  private placed = false;
-  private tilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -BELOW);
-  private tmpM = new THREE.Matrix4();
-  private tmpQ = new THREE.Quaternion();
-  private head = new THREE.Vector3();
-  private fwd = new THREE.Vector3();
   private time = 0;
 
   constructor(scene: THREE.Scene) {
@@ -206,7 +198,6 @@ export class ReplyHud {
     this.opacity += Math.sign(target - this.opacity) * Math.min(Math.abs(target - this.opacity), dt / (this.shown ? 0.2 : 0.35));
     if (this.opacity <= 0.001 && !this.shown) {
       this.mesh.visible = false;
-      this.placed = false;
       return;
     }
     this.mat.opacity = this.opacity;
@@ -215,27 +206,14 @@ export class ReplyHud {
     this.draw(state);
   }
 
-  /** Head-locked: sits a fixed distance from your eyes; its direction follows your gaze lazily. */
-  private place(dt: number, camera: THREE.Camera) {
+  /**
+   * In the heads-up corner (hudcorner.ts): top right of your view, just under the info panel,
+   * following your gaze lazily with it (no roll). The corner follows your gaze in hud.update.
+   */
+  private place(_dt: number, camera: THREE.Camera) {
     camera.layers.enable(OVERLAY_LAYER);
-    camera.updateMatrixWorld();
-    camera.getWorldPosition(this.head);
-    this.fwd.set(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(this.tmpQ));
-    // Level (no roll): built from the gaze and world up.
-    if (Math.abs(this.fwd.y) > 0.98) this.fwd.y = Math.sign(this.fwd.y) * 0.98;
-    this.tmpM.lookAt(ORIGIN, this.fwd, UP);
-    this.tmpQ.setFromRotationMatrix(this.tmpM);
-    if (!this.placed) {
-      this.q.copy(this.tmpQ);
-      this.placed = true;
-    } else {
-      // Gentle lazy-follow, a little quicker when you've turned well away.
-      const off = this.q.angleTo(this.tmpQ);
-      const rate = off > 0.6 ? 9 : 4.5;
-      this.q.slerp(this.tmpQ, 1 - Math.exp(-dt * rate));
-    }
-    this.mesh.quaternion.copy(this.q).multiply(this.tilt);
-    this.mesh.position.set(0, -Math.sin(BELOW) * DIST, -Math.cos(BELOW) * DIST).applyQuaternion(this.q).add(this.head);
+    if (!corner.fresh) corner.update(0, camera);
+    corner.place(this.mesh, CORNER.right, CORNER.replyUp);
   }
 
   private draw(s: ReplyHudState) {
@@ -272,7 +250,7 @@ export class ReplyHud {
       g.fillStyle = '#fbf1d6';
       g.textAlign = 'left';
       g.textBaseline = 'middle';
-      g.font = `600 40px ${SERIF}`;
+      g.font = `600 54px ${SERIF}`;
       g.fillText(fit(g, label, W - 12 - ROW_H - 24 - micW - 16), 6 + ROW_H + 14, cy + 2);
       if (s.mic !== 'off') micGlyph(g, W - 12 - 34, cy, s.mic === 'listening' ? 0.75 + pulse * 0.0625 : 0.4);
     });
@@ -280,8 +258,6 @@ export class ReplyHud {
   }
 }
 
-const ORIGIN = new THREE.Vector3();
-const UP = new THREE.Vector3(0, 1, 0);
 
 /** Trims a label with an ellipsis to fit `max` px. */
 function fit(g: CanvasRenderingContext2D, s: string, max: number) {
