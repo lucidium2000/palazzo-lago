@@ -1,6 +1,8 @@
 import { copyMono, decodeAudio } from '../musicload';
 import { CONCERT, entryMatches, indexPlan, songPlan, trackPlan, type SongPlan, type TrackName, type TrackPlan } from './setlist';
 import type { RawTrack } from './song';
+import type { SongMaps } from './songmaps';
+import { analyse } from './songmapsload';
 import { measureTrack } from './tempo';
 
 /**
@@ -47,10 +49,13 @@ export async function loadRecord(name: TrackName): Promise<{ plan: TrackPlan; ra
  * The concert: each song's plan (its sections: index.json's, read from its
  * energy, or measured), and all of them back to back as one track (`raw`),
  * each from its first downbeat for its whole bars. One song decoded at a time.
+ * Each song's maps (songmaps.ts: its vocal, drums, bass and keys) follow a
+ * moment later, worked out in a worker from its mid and side channels.
  */
-export async function loadConcert(): Promise<{ songs: SongPlan[]; raw: RawTrack }> {
+export async function loadConcert(): Promise<{ songs: SongPlan[]; raw: RawTrack; maps: Promise<SongMaps | null>[] }> {
   const songs: SongPlan[] = [];
   const parts: Float32Array<ArrayBuffer>[] = [];
+  const maps: Promise<SongMaps | null>[] = [];
   for (const [i, name] of CONCERT.entries()) {
     let plan: SongPlan;
     let d: Float32Array<ArrayBuffer>;
@@ -61,11 +66,12 @@ export async function loadConcert(): Promise<{ songs: SongPlan[]; raw: RawTrack 
       // (A second of silence past the end: the audio thread reads a sample ahead.)
       d = new Float32Array(n + (CONCERT.length === 1 ? PARTY_RATE : 0));
       copyMono(buf, plan.firstBeat, d, 0, n);
+      maps.push(analyseSong(buf, plan, n));
     }
     songs.push(plan);
     parts.push(d);
   }
-  if (parts.length === 1) return { songs, raw: { data: parts[0], sampleRate: PARTY_RATE, loop: songs[0].length } };
+  if (parts.length === 1) return { songs, raw: { data: parts[0], sampleRate: PARTY_RATE, loop: songs[0].length }, maps };
   const total = parts.reduce((s, p) => s + p.length, 0);
   const data = new Float32Array(total + PARTY_RATE);
   let at = 0;
@@ -73,5 +79,24 @@ export async function loadConcert(): Promise<{ songs: SongPlan[]; raw: RawTrack 
     data.set(p, at);
     at += p.length;
   }
-  return { songs, raw: { data, sampleRate: PARTY_RATE, loop: total / PARTY_RATE } };
+  return { songs, raw: { data, sampleRate: PARTY_RATE, loop: total / PARTY_RATE }, maps };
+}
+
+/** A song's maps: its mid (L+R)/2 and side (L-R)/2 from its first downbeat, to the worker. */
+function analyseSong(buf: AudioBuffer, plan: SongPlan, n: number): Promise<SongMaps | null> {
+  const s0 = Math.max(0, Math.round(plan.firstBeat * buf.sampleRate));
+  const len = Math.max(0, Math.min(n, buf.length - s0));
+  const mid = new Float32Array(len);
+  let side: Float32Array | null = null;
+  if (buf.numberOfChannels >= 2) {
+    const L = buf.getChannelData(0).subarray(s0, s0 + len),
+      R = buf.getChannelData(1).subarray(s0, s0 + len);
+    side = new Float32Array(len);
+    for (let i = 0; i < len; i++) {
+      mid[i] = (L[i] + R[i]) * 0.5;
+      side[i] = (L[i] - R[i]) * 0.5;
+    }
+  } else mid.set(buf.getChannelData(0).subarray(s0, s0 + len));
+  const info = { bpm: plan.bpm, sung: plan.info.map((b) => b.voice > 0), drops: plan.info.flatMap((b, i) => (b.drop ? [i] : [])) };
+  return analyse(mid, side, buf.sampleRate, info).catch(() => null);
 }

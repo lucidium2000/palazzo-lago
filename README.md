@@ -173,7 +173,17 @@ faders and where each record is ride in your state); step away and the resident 
 
 **The concert.** A minute or two after you come out to the pool (60-120 s), NIXIE VALE (an original
 electropop headliner) and her band come on for her set; the dancers gather in front of her stage and as many
-again arrive over the next minute and a half; then the DJ plays for about four minutes, then she's back. A
+again arrive over the next minute and a half. Her set plays from the two line arrays flown at the front of
+her stage's truss (the DJ's music from the booth's stacks), and she and her band perform the recording itself:
+when her song loads, a worker reads it (`party/songmaps.ts`) for her vocal (a mid-minus-side, 300-3400 Hz
+envelope, its phrases and held notes) and the drums, bass and keys (kick, snare and hat onsets by spectral
+flux). Her mouth opens with the vocal and shuts in the gaps, the mic comes up to her mouth for each line and
+goes out to the crowd in the instrumental breaks, she breathes in before a line, tilts her head and closes her
+eyes on held notes, leans back into the big ones, and her dance-heavy moves land where she isn't singing; each
+drumstick comes down on its drum on the hit you hear, the kick pedal on each kick, the bassist plucks each bass
+note and the keys player's hands follow the chord changes. When her set ends the DJ plays "One More Drop" once
+through from the booth while her audience drifts back to his floor, then the house record again; then she's
+back. A
 room shares one running order (the first of you to arrive makes it; it rides in everyone's state, newest
 wins), so everyone sees the same show, band and crowd, all driven from the shared clock.
 
@@ -184,6 +194,7 @@ wins), so everyone sees the same show, band and crowd, all driven from the share
 | `deck_a.mp3` | deck A, the house record ("No Tomorrow", the owner's) | from when you head for the pool |
 | `deck_b.mp3` | deck B ("Woo and Oh Yeah", the owner's) | while anyone's at the decks, and 90 s after |
 | `concert_1.mp3` | her song ("Chasing Dawn", the owner's) | from a minute before her set to two minutes after |
+| `deck_c.mp3` | the DJ's record after her set ("One More Drop", the owner's), once through | from a minute before her set to its end |
 | `dj_set.mp3` | stands in for deck A if that can't be loaded | only then |
 
 To swap a song, replace the file and measure it:

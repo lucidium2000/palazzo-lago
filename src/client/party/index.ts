@@ -18,16 +18,18 @@ import { PARTY_RATE, loadConcert, loadRecord } from './music';
 import { STACKS } from './pachain';
 import type { Performers } from './performers';
 import { BobDetector } from './rhythm';
-import { cycleLength, liveSlot, makePlan, needsPlan, newer, packPlan, planTag, programAt, unpackPlan, type Plan, type Program, type Timing } from './schedule';
-import { DECK_B_PLAN, DJ_SET, HOUSE_PLAN, INDEX_SONGS, beatMatch, concertLength, deckArrangement, songAt, type SongPlan, type TrackPlan } from './setlist';
+import { afterAt, cycleLength, liveSlot, makePlan, needsPlan, newer, packPlan, planTag, programAt, unpackPlan, type Plan, type Program, type Timing } from './schedule';
+import { AFTER_PLAN, DECK_B_PLAN, DJ_SET, HOUSE_PLAN, INDEX_SONGS, beatMatch, concertLength, deckArrangement, songAt, type SongPlan, type TrackPlan } from './setlist';
 import { HEADLINER, Stage, type ShowState } from './stage';
+import type { SongMaps } from './songmaps';
 import { StageMic } from './stagemic';
 import { renderPartyRaw } from './track';
 
 /**
- * The pool party: the music from the booth's speaker stacks (it falls off with
- * distance and is muffled through the building, and the casino's own music
- * ducks out as you come out to the deck), the beat clock everything else
+ * The pool party: the DJ's music from the booth's speaker stacks and the
+ * headliner's set from the line arrays at her stage (each falls off with
+ * distance and is muffled through the building the same way, and the casino's
+ * own music ducks out as you come out to the deck), the beat clock everything else
  * follows, the lights, the guests dancing on the floor, you dancing (VR: bob
  * your head to the beat and your legs bounce, throw your hands up on the drop;
  * screen: J cycles dance moves) and your friends dancing too (`dn`).
@@ -41,7 +43,8 @@ import { renderPartyRaw } from './track';
  * back. Both records run off the wall clock, so a room hears the same bar.
  *
  * The concert: a minute or two after you come out to the pool, the headliner
- * (stage.ts) and her band (band.ts) come on for her set (concert_*.mp3), the
+ * (stage.ts) and her band (band.ts) come on for her set (concert_*.mp3, out of
+ * her stage's PA: the decks' engine has a bus for each), the
  * dancers gather in front of her stage and more guests arrive (audience.ts);
  * then the DJ again for a few minutes, then her again (schedule.ts: the plan
  * rides in everyone's state as `pz`, so a room shares one running order).
@@ -53,7 +56,9 @@ import { renderPartyRaw } from './track';
  * deck A as you head for the pool (~26 MB); deck B only while someone's at the
  * decks (released a minute and a half after); the concert from a minute before
  * her set to two minutes after it (~32 MB). If deck A can't be had, dj_set.mp3
- * plays instead, and failing that the synthesized set (track.ts).
+ * plays instead, and failing that the synthesized set (track.ts). Her songs
+ * are read in a worker as they load (songmaps.ts: her vocal, the drums, bass
+ * and keys), so she sings and her band plays what you hear.
  */
 
 /** Start fetching the party's music this long after the casino's started, wherever you are (ms). */
@@ -103,7 +108,9 @@ export class Party {
   private me = new Dancer(3.7);
   private guests = new Map<Person, Dancer>();
   private friends = new Map<Person, { d: Dancer; amt: number }>();
+  /** The DJ booth's stacks (the decks), and her stage's PA (her set). */
   private stacks: THREE.PositionalAudio[] = [];
+  private stagePa: THREE.PositionalAudio[] = [];
   private filters: BiquadFilterNode[] = [];
   private playing: { ctx: number; wall: number } | null = null;
   /** Where the music comes from: the records, dj_set standing in for deck A, or the synthesized fallback. */
@@ -148,6 +155,18 @@ export class Party {
   drops = 0;
   /** The stage's mic: step up and you're on the PA (stagemic.ts). */
   readonly mic: StageMic;
+  /** Each of her songs' maps (songmaps.ts), once they're worked out (kept: they're small). */
+  readonly maps: (SongMaps | null)[] = [];
+
+  /** Her mouth as she sings (faces.ts: like a recorded voice line), for her alone. */
+  mouthLevel(p: Person): { level: number; vowel: number } | null {
+    return p === this.stage.singer ? this.stage.mouth : null;
+  }
+
+  /** How closed someone's eyes are beyond blinking (hers, on a long held note). */
+  eyesClosed(p: Person): number {
+    return p === this.stage.singer ? this.stage.eyesClosed : 0;
+  }
 
   constructor(private d: PartyDeps) {
     this.lights = new PartyLights(d.scene, d.dj, d.lights, d.poles);
@@ -174,12 +193,13 @@ export class Party {
       dance(p, dancer);
     }
     this.audience = d.dancers.length || extras.length ? new Audience(d.dancers, extras, d.isFree ?? (() => true), Math.PI) : null;
-    for (const [k, x] of [-2.6, 2.6].entries()) {
-      const anchor = new THREE.Object3D();
-      anchor.position.set(d.dj.x + x, 1.7, d.dj.z - 0.5);
-      anchor.name = `party-stack-${k}`;
-      d.scene.add(anchor);
+    // The DJ booth's two stacks (the decks), and the two line arrays at her stage (her set): the same
+    // speakers, carrying the same way (STACKS), muffled the same way through the building.
+    const speaker = (anchor: THREE.Object3D) => {
       const a = new THREE.PositionalAudio(d.sound.listener);
+      // Equal-power panning: the speakers' direction without HRTF's per-source convolution (four big
+      // sources, cheaper on a headset), and a level that follows the distances, not the ear's filtering.
+      a.panner.panningModel = 'equalpower';
       a.setRefDistance(STACKS.ref);
       a.setRolloffFactor(STACKS.rolloff);
       a.setDistanceModel('inverse');
@@ -190,11 +210,21 @@ export class Party {
       f.type = 'lowpass';
       f.frequency.value = 20000;
       a.setFilter(f);
+      f.connect(a.getOutput());
       anchor.add(a);
-      this.stacks.push(a);
       this.filters.push(f);
+      return a;
+    };
+    for (const [k, x] of [-2.6, 2.6].entries()) {
+      const anchor = new THREE.Object3D();
+      anchor.position.set(d.dj.x + x, 1.7, d.dj.z - 0.5);
+      anchor.name = `party-stack-${k}`;
+      d.scene.add(anchor);
+      this.stacks.push(speaker(anchor));
     }
-    this.mic = new StageMic({ listener: d.sound.listener, stacks: this.stacks.map((a) => a.parent!), stage: this.stage, hands: d.hands, toast: d.toast });
+    for (const anchor of this.stage.pa) this.stagePa.push(speaker(anchor));
+    // The stage mic plays from her PA.
+    this.mic = new StageMic({ listener: d.sound.listener, stacks: this.stage.pa, stage: this.stage, hands: d.hands, toast: d.toast });
     addEventListener('keydown', (e) => {
       if (e.code !== 'KeyJ' || e.repeat) return;
       const t = e.target as HTMLElement | null;
@@ -234,7 +264,7 @@ export class Party {
   /** What's on (for the curious and the tests: window.casino.party.show). */
   get show() {
     const p = this.program;
-    return { onAir: this.onAir, plan: this.plan && { start: this.plan.start, rev: this.plan.rev }, inSec: Number.isFinite(p.next) ? +p.next.toFixed(1) : null, into: +p.into.toFixed(1), set: p.set, liveReady: this.liveReady, cycle: +cycleLength(this.timing()).toFixed(1), slot: +liveSlot(this.timing()).toFixed(1), extras: this.audience?.here ?? 0, deckB: this.bLoaded, off: this.off.map((v) => +v.toFixed(3)), remote: !!this.remote };
+    return { onAir: this.onAir, after: +this.afterInto(this.wall()).toFixed(1), afterReady: this.afterReady, plan: this.plan && { start: this.plan.start, rev: this.plan.rev }, inSec: Number.isFinite(p.next) ? +p.next.toFixed(1) : null, into: +p.into.toFixed(1), set: p.set, liveReady: this.liveReady, cycle: +cycleLength(this.timing()).toFixed(1), slot: +liveSlot(this.timing()).toFixed(1), extras: this.audience?.here ?? 0, deckB: this.bLoaded, off: this.off.map((v) => +v.toFixed(3)), remote: !!this.remote };
   }
 
   /** How much a spot is at the party (1 on the deck, a little by the doors in the corridor). */
@@ -345,17 +375,27 @@ export class Party {
         }
       }
       const deck = await deckP;
-      // The decks → a limiter (the PA's protection: nothing past -1 dBFS reaches the stacks) → the stacks.
-      const lim = ctx.createDynamicsCompressor();
-      lim.threshold.value = -3;
-      lim.knee.value = 0;
-      lim.ratio.value = 20;
-      lim.attack.value = 0.002;
-      lim.release.value = 0.12;
-      deck.output.connect(lim);
+      // Each bus → a limiter (the PA's protection: nothing past -1 dBFS reaches the speakers) → its speakers:
+      // the decks to the booth's stacks, her set to her stage's line arrays.
+      const limiter = () => {
+        const lim = ctx.createDynamicsCompressor();
+        lim.threshold.value = -3;
+        lim.knee.value = 0;
+        lim.ratio.value = 20;
+        lim.attack.value = 0.002;
+        lim.release.value = 0.12;
+        return lim;
+      };
+      const djLim = limiter(),
+        liveLim = limiter();
+      deck.output.connect(djLim);
+      deck.liveOutput.connect(liveLim);
       this.stacks.forEach((a, i) => {
-        lim.connect(this.filters[i]);
-        this.filters[i].connect(a.getOutput());
+        djLim.connect(this.filters[i]);
+        a.setVolume(0);
+      });
+      this.stagePa.forEach((a, i) => {
+        liveLim.connect(this.filters[this.stacks.length + i]);
         a.setVolume(0);
       });
       this.house = rec.plan;
@@ -384,8 +424,48 @@ export class Party {
     if (!this.deck) return;
     const t = this.timing();
     const on = this.liveReady && !!this.plan;
-    this.deck.setSchedule({ on: on ? 1 : 0, start: this.plan?.start ?? 0, slot: liveSlot(t), cycle: cycleLength(t) });
+    const after = this.afterReady && this.afterPlan && this.plan ? this.afterPlan.length : 0;
+    this.deck.setSchedule({ on: on ? 1 : 0, start: this.plan?.start ?? 0, slot: liveSlot(t), cycle: cycleLength(t), after });
   }
+
+  /** Seconds into the DJ's after-set record at wall time `w` (-1: not on, or not loaded). */
+  private afterInto(w: number): number {
+    return this.afterReady && this.afterPlan ? afterAt(w, this.plan, this.timing(), this.afterPlan.length) : -1;
+  }
+
+  /**
+   * The DJ's after-set record ("One More Drop", deck_c.mp3): fetched with her
+   * music (a minute before her set) and kept through to its end; let go once
+   * the house record's back and her next set is still a while off.
+   */
+  private manageAfter(p: Program, w: number) {
+    if (!this.deck || this.source === 'synth' || !this.afterPlan) return;
+    const need = p.live || p.next < CONCERT_AHEAD || afterAt(w, this.plan, this.timing(), this.afterPlan.length) >= 0;
+    if (need && !this.afterReady && !this.afterLoading && this.time - this.afterFailedAt > 30) {
+      this.afterLoading = true;
+      loadRecord('deck_c')
+        .then(({ plan, raw }) => {
+          this.afterPlan = plan;
+          this.afterArr = deckArrangement(plan);
+          this.deck?.setAfter(raw);
+          this.afterReady = true;
+        })
+        .catch((e) => {
+          console.warn("Party: the DJ's after-set record could not be loaded (the house record plays on)", e);
+          this.afterFailedAt = this.time;
+        })
+        .finally(() => (this.afterLoading = false));
+    } else if (!need && this.afterReady) {
+      this.deck.setAfter(null);
+      this.afterReady = false;
+    }
+  }
+  /** The after-set record as it plays (index.json's, or measured from the file) and its sections. */
+  afterPlan: TrackPlan | null = AFTER_PLAN;
+  private afterArr: Arrangement | null = AFTER_PLAN ? deckArrangement(AFTER_PLAN) : null;
+  afterReady = false;
+  private afterLoading = false;
+  private afterFailedAt = -Infinity;
   private pushedSchedule = '';
 
   /** Deck B: fetched while anyone's at the decks, let go a while after. */
@@ -410,24 +490,34 @@ export class Party {
   }
 
   /** Her music: fetched a minute before her set, let go two minutes after. */
-  private manageConcert(p: Program) {
+  private manageConcert(p: Program, w: number) {
     if (!this.deck || this.source === 'synth') return;
     const soon = p.live || p.next < CONCERT_AHEAD;
     if (soon && !this.liveReady && !this.concertLoading && this.time - this.concertFailedAt > 30) {
       this.concertLoading = true;
       loadConcert()
-        .then(({ songs, raw }) => {
+        .then(({ songs, raw, maps }) => {
           this.songs = songs;
           this.stage.setSongs(songs);
           this.deck?.setLive(raw);
           this.liveReady = true;
+          // Her songs' maps (her vocal, the drums, bass and keys), worked out in a worker a moment later.
+          maps.forEach((p, i) =>
+            p.then((m) => {
+              if (!m) return;
+              this.maps[i] = m;
+              this.stage.setMaps(i, m);
+            }),
+          );
         })
         .catch((e) => {
           console.warn("Party: the concert's music could not be loaded (the DJ plays on)", e);
           this.concertFailedAt = this.time;
         })
         .finally(() => (this.concertLoading = false));
-    } else if (!soon && this.liveReady && p.next > CONCERT_KEEP && p.next < Infinity) {
+    } else if (!soon && this.liveReady && this.plan && p.set >= 0 && w - (this.plan.start + p.set * cycleLength(this.timing()) + liveSlot(this.timing())) > CONCERT_KEEP) {
+      // (Two minutes after her set ended, not when her next is two minutes off: her audience walks
+      // back to the DJ's floor on the time since it ended, which needs her set's timing kept that long.)
       this.deck.setLive(null);
       this.liveReady = false;
     }
@@ -460,13 +550,15 @@ export class Party {
     }
     this.wasHere = here;
     const prog = (this.program = programAt(W, this.plan, this.timing()));
-    const sched = JSON.stringify([this.liveReady, this.plan?.start, this.plan?.rev, this.timing().liveLen]);
+    const sched = JSON.stringify([this.liveReady, this.afterReady, this.afterPlan?.length, this.plan?.start, this.plan?.rev, this.timing().liveLen]);
     if (sched !== this.pushedSchedule) {
       this.pushedSchedule = sched;
       this.pushSchedule();
     }
-    this.manageConcert(prog);
+    this.manageConcert(prog, W);
+    this.manageAfter(prog, W);
     const live = prog.live && this.liveReady;
+    const afterT = live ? -1 : this.afterInto(W);
 
     // The decks: yours if you're at them, else a friend's, else the house record at rest.
     const local = this.decks.atDecks;
@@ -475,7 +567,8 @@ export class Party {
     // The beat: her song while she's on, the house record (where deck A is) otherwise.
     let b: Beat;
     let song = -1,
-      songBeat = 0;
+      songBeat = 0,
+      songT = 0;
     if (live) {
       const at = songAt(this.songs, prog.into);
       song = at.song;
@@ -484,10 +577,15 @@ export class Party {
         this.clock.setArrangement(sp.arr);
         b = this.clock.update(at.t);
         songBeat = at.t / (60 / sp.bpm);
+        songT = at.t;
       } else {
         this.clock.setArrangement(this.houseArr);
         b = this.clock.update(this.housePos(W));
       }
+    } else if (afterT >= 0 && this.afterArr) {
+      // After her set: the DJ's record, its own tempo and drops.
+      this.clock.setArrangement(this.afterArr);
+      b = this.clock.update(afterT);
     } else {
       this.clock.setArrangement(this.houseArr);
       b = this.clock.update(this.housePos(W));
@@ -502,14 +600,17 @@ export class Party {
     for (const f of this.filters) f.frequency.setTargetAtTime(cutoff, ctx.currentTime, 0.08);
     // The stage mic (its PA plays from the same stacks); the music ducks while someone talks into it.
     this.mic.update(dt, you.head, !you.xr, open, cutoff);
-    if (this.playing) for (const a of this.stacks) a.gain.gain.setTargetAtTime(vol * this.mic.duck, ctx.currentTime, 0.02);
+    if (this.playing) {
+      for (const a of this.stacks) a.gain.gain.setTargetAtTime(vol * this.mic.duck, ctx.currentTime, 0.02);
+      for (const a of this.stagePa) a.gain.gain.setTargetAtTime(vol * this.mic.duck, ctx.currentTime, 0.02);
+    }
 
     // The stage, her band and her audience.
     const r = this.d.renderer;
     const scale = r.xr.isPresenting ? 750 : r.getDrawingBufferSize(this.v2).y / (2 * Math.tan(THREE.MathUtils.degToRad(this.d.camera.fov) / 2));
-    const show: ShowState = { ready: this.liveReady, live, song, songBeat, toLive: prog.next, bar: 240 / this.clock.bpm };
+    const show: ShowState = { ready: this.liveReady, live, song, songBeat, toLive: prog.next, bar: 240 / this.clock.bpm, t: songT };
     this.stage.update(dt, b, show, scale);
-    this.band?.update(dt, b, live || (this.liveReady && prog.next < 4 * this.house.bar));
+    this.band?.update(dt, b, live || (this.liveReady && prog.next < 4 * this.house.bar), live && song >= 0 ? songT : -1, live && song >= 0 ? (this.maps[song] ?? null) : null);
     if (this.audience) {
       const t = this.timing();
       const C = cycleLength(t),

@@ -283,6 +283,7 @@ export interface FaceState {
   smile: number;
   wide: number;
   brow: number;
+  vowel: number;
 }
 
 export interface FacesOpts {
@@ -290,8 +291,13 @@ export interface FacesOpts {
   radius?: number;
   /** At most this many faces at once (the nearest). */
   max?: number;
-  /** A person's recorded line, analysed (voices.mouthLevel). */
+  /** A person's recorded line, analysed (voices.mouthLevel), or a song they're singing (the headliner). */
   level?: (p: Person) => { level: number; vowel: number } | null;
+  /** How closed someone's eyes are beyond blinking, 0..1 (the headliner on a long note). */
+  eyes?: (p: Person) => number;
+  /** Someone who always gets a face out to `starRadius` (the headliner on her stage: the crowd watches her from further off). */
+  star?: () => Person | null;
+  starRadius?: number;
 }
 
 const C = {
@@ -428,6 +434,16 @@ export class Faces {
     cand.sort((a, b) => a.d - b.d);
     this.near.length = 0;
     for (let i = 0; i < cand.length && i < this.max; i++) this.near.push(cand[i].p);
+    const star = this.opts.star?.();
+    if (star && star.rig?.mesh && star.rig.bones.Head && !star.culled && star.rig.root.visible && !this.near.includes(star)) {
+      const R = this.opts.starRadius ?? 20;
+      const dx = star.pos.x - cam.x,
+        dz = star.pos.z - cam.z;
+      if (dx * dx + dz * dz < R * R) {
+        if (this.near.length >= this.max) this.near[this.near.length - 1] = star;
+        else this.near.push(star);
+      }
+    }
     if (!this.warm) {
       // Measure every character model once, up front (the first frame is behind the loading screen).
       this.warm = true;
@@ -458,7 +474,7 @@ export class Faces {
     const lay = faceLayout(rig.mesh!, head);
     let st = this.state.get(p);
     if (!st) {
-      st = { nextBlink: time + Math.random() * 3, blinkAt: -9, open: 0, gx: 0, gy: 0, sx: 0, sy: 0, nextSac: 0, lookAwayUntil: 0, nextLookAway: time + 3 + Math.random() * 4, smile: 0, wide: 0, brow: 0 };
+      st = { nextBlink: time + Math.random() * 3, blinkAt: -9, open: 0, gx: 0, gy: 0, sx: 0, sy: 0, nextSac: 0, lookAwayUntil: 0, nextLookAway: time + 3 + Math.random() * 4, smile: 0, wide: 0, brow: 0, vowel: 0.5 };
       this.state.set(p, st);
     }
     head.updateWorldMatrix(true, false);
@@ -486,7 +502,10 @@ export class Faces {
     const heard = p.ownMouth ? null : (this.opts.level?.(p) ?? null);
     const speaking = time < p.speakUntil || (p.talk && p.talk.members[p.talk.speaker] === p && p.talking > 0.5) || (!!p.chatWith && p.talking > 0.6);
     let want = 0;
-    if (heard) want = speechOpen(heard.level, heard.vowel);
+    if (heard) {
+      want = speechOpen(heard.level, heard.vowel);
+      st.vowel += (heard.vowel - st.vowel) * Math.min(1, dt * 12);
+    }
     else if (speaking) {
       // No recording to follow (muted, or ambient chatter): a natural-looking flap.
       const t = time + p.seed;
@@ -535,7 +554,8 @@ export class Faces {
       }
     }
     const blink = blinkCurve(time - st.blinkAt);
-    const upper = Math.max(blink, 0.22 * st.smile * (1 - st.wide));
+    const shut = this.opts.eyes?.(p) ?? 0;
+    const upper = Math.max(blink, 0.22 * st.smile * (1 - st.wide), 0.92 * shut);
     const lower = 0.42 * st.smile * (1 - blink);
     const browUp = 0.0055 * st.wide + 0.0018 * cheer + (heard ? 0.0012 * heard.level : 0) - 0.0032 * p.angry * (1 - st.wide);
     st.brow += (browUp - st.brow) * Math.min(1, dt * 12);
@@ -583,6 +603,10 @@ export class Faces {
     if (!p.ownMouth) {
       const m = lay.mouth;
       const sh = mouthShape(st.open);
+      // The vowel: rounder and narrower for "oo", wider for "ah" (singing and talking).
+      const vw = heard ? 0.88 + 0.2 * st.vowel : 1;
+      sh.lips.sx *= vw;
+      sh.inner.sx *= vw;
       const sm = st.smile;
       const L = MOUTH.lips,
         I = MOUTH.inner,

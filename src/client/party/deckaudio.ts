@@ -5,13 +5,17 @@ import type { RawTrack } from './song';
  * The decks' audio engine: DeckDSP (scratch.ts) running on the audio thread
  * as an AudioWorklet (its module is made from DeckDSP's own source), or, where
  * worklets can't load (a page that refuses blob: modules), on a
- * ScriptProcessor. One mono output: the party's speaker stacks play it.
+ * ScriptProcessor. Two mono outputs: the decks (`output`, the DJ booth's
+ * speaker stacks play it) and the headliner's set (`liveOutput`, the PA at
+ * her stage), crossfading on the schedule.
  *
  * Tracks are handed over (transferred, not copied) as raw samples, and can be
  * taken back (`free`): the worklet drops its reference and the memory goes.
  */
 export class DeckAudio {
+  /** The decks (the booth's stacks), and her set (the stage's PA). */
   readonly output: AudioNode;
+  readonly liveOutput: AudioNode;
   readonly kind: 'worklet' | 'script';
   private node: AudioWorkletNode | null = null;
   private dsp: DeckDSP | null = null;
@@ -30,7 +34,7 @@ export class DeckAudio {
       const dsp = (this.dsp = new DeckDSP(ctx.sampleRate));
       node.onaudioprocess = (e) => {
         const out = e.outputBuffer.getChannelData(0);
-        dsp.process(out, out.length, e.playbackTime);
+        dsp.process(out, out.length, e.playbackTime, e.outputBuffer.getChannelData(1));
         if (dsp.changed) {
           dsp.changed = false;
           this.reported[0] = dsp.off[0];
@@ -51,7 +55,20 @@ export class DeckAudio {
         }
       };
     }
-    this.output = node;
+    // Each output through its own gain (the worklet's two outputs, or the script's two channels split).
+    const dj = ctx.createGain(),
+      live = ctx.createGain();
+    if (node instanceof ScriptProcessorNode) {
+      const split = ctx.createChannelSplitter(2);
+      node.connect(split);
+      split.connect(dj, 0);
+      split.connect(live, 1);
+    } else {
+      node.connect(dj, 0);
+      node.connect(live, 1);
+    }
+    this.output = dj;
+    this.liveOutput = live;
   }
 
   static async create(ctx: BaseAudioContext): Promise<DeckAudio> {
@@ -70,6 +87,7 @@ class PalazzoDecks extends AudioWorkletProcessor {
       const m = e.data, d = this.dsp;
       if (m.k === 'rec') d.recs[m.i] = { data: m.data, sr: m.sr, loop: m.loop };
       else if (m.k === 'live') d.live = { data: m.data, sr: m.sr };
+      else if (m.k === 'after') d.after = { data: m.data, sr: m.sr };
       else if (m.k === 'sched') d.sched = m.s;
       else if (m.k === 'clock') { d.t0 = m.t0; d.w0 = m.w0; }
       else if (m.k === 'speed') d.speed[m.i] = m.v;
@@ -81,7 +99,7 @@ class PalazzoDecks extends AudioWorkletProcessor {
     if (!out) return true;
     const p = this.dsp.params;
     for (const k of PARAMS) p[k] = params[k][0];
-    this.dsp.process(out, out.length, currentTime);
+    this.dsp.process(out, out.length, currentTime, outputs[1] && outputs[1][0]);
     if (this.dsp.changed) { this.dsp.changed = false; this.port.postMessage({ k: 'off', off: this.dsp.off.slice() }); }
     return true;
   }
@@ -94,11 +112,11 @@ registerProcessor('palazzo-decks', PalazzoDecks);
       } finally {
         URL.revokeObjectURL(url);
       }
-      const node = new AudioWorkletNode(ctx, 'palazzo-decks', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
+      const node = new AudioWorkletNode(ctx, 'palazzo-decks', { numberOfInputs: 0, numberOfOutputs: 2, outputChannelCount: [1, 1] });
       return new DeckAudio(ctx, node);
     } catch (e) {
       console.warn('Decks: no AudioWorklet, using a ScriptProcessor', e);
-      const sp = (ctx as AudioContext).createScriptProcessor(2048, 1, 1);
+      const sp = (ctx as AudioContext).createScriptProcessor(2048, 1, 2);
       return new DeckAudio(ctx, sp);
     }
   }
@@ -123,8 +141,19 @@ registerProcessor('palazzo-decks', PalazzoDecks);
     } else if (this.dsp) this.dsp.live = { data: raw ? raw.data : null, sr: raw ? raw.sampleRate : 32000 };
   }
 
-  /** When he's on (schedule.ts): `on` 0 keeps the decks playing whatever the clock says. */
-  setSchedule(s: { on: number; start: number; slot: number; cycle: number }) {
+  /** The DJ's record after her sets (null: released). */
+  setAfter(raw: RawTrack | null) {
+    if (this.node) {
+      if (raw) this.post({ k: 'after', data: raw.data, sr: raw.sampleRate }, [raw.data.buffer]);
+      else this.post({ k: 'after', data: null, sr: 32000 });
+    } else if (this.dsp) this.dsp.after = { data: raw ? raw.data : null, sr: raw ? raw.sampleRate : 32000 };
+  }
+
+  /**
+   * When she's on (schedule.ts): `on` 0 keeps the decks playing whatever the
+   * clock says; `after` (s, 0: none) the DJ's record from the end of each of her slots.
+   */
+  setSchedule(s: { on: number; start: number; slot: number; cycle: number; after: number }) {
     if (this.node) this.post({ k: 'sched', s });
     else if (this.dsp) this.dsp.sched = s;
   }

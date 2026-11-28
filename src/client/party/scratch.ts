@@ -18,8 +18,9 @@
  * can follow). An offset set from outside (a friend's decks, a re-cue) is
  * crossfaded to, never jumped. A two-channel mixer: a volume fader per deck
  * and an equal-power crossfader (full left only A, centre both, full right
- * only B). And when the headliner's on, his set (the concert's songs, on the
- * same wall clock and schedule: schedule.ts) takes over the stacks.
+ * only B). And when the headliner's on, her set (the concert's songs, on the
+ * same wall clock and schedule: schedule.ts) takes over: out of its own output,
+ * for the PA at her stage, while the decks' output (the booth's stacks) fades out.
  *
  * DeckDSP is written self-contained (no imports, no outside helpers): its
  * source is shipped as the AudioWorklet's module text.
@@ -125,7 +126,10 @@ export class DeckDSP {
   off: number[];
   /** The headliner's set: its samples and rate, and when it's on (schedule.ts: start, slot, cycle; wall s). */
   live: { data: Float32Array | null; sr: number };
-  sched: { on: number; start: number; slot: number; cycle: number };
+  sched: { on: number; start: number; slot: number; cycle: number; after?: number };
+  /** The DJ's record after each of her sets (played once through on deck A's channel from the end of her slot; `sched.after` its length, s). */
+  after: { data: Float32Array | null; sr: number };
+  afterAmt: number;
   /** Clock: wall time `w0` (s) at context time `t0`. */
   t0: number;
   w0: number;
@@ -147,7 +151,9 @@ export class DeckDSP {
     this.speed = [1, 1];
     this.off = [0, 0];
     this.live = { data: null, sr: 32000 };
-    this.sched = { on: 0, start: 0, slot: 0, cycle: 1 };
+    this.sched = { on: 0, start: 0, slot: 0, cycle: 1, after: 0 };
+    this.after = { data: null, sr: 32000 };
+    this.afterAmt = 0;
     this.t0 = 0;
     this.w0 = 0;
     this.params = { rateA: 1, rateB: 1, holdA: 0, holdB: 0, xf: 0, volA: 1, volB: 1 };
@@ -197,6 +203,25 @@ export class DeckDSP {
     return into < S.slot ? into : -1;
   }
 
+  /** Seconds into the DJ's after-set record at wall time `w`, or -1 when it isn't playing. */
+  afterAt(w: number) {
+    const S = this.sched;
+    const len = S.after || 0;
+    if (!(len > 0) || !this.after.data || w < S.start || !(S.cycle > 0)) return -1;
+    const n = Math.floor((w - S.start) / S.cycle);
+    const into = w - S.start - n * S.cycle - S.slot;
+    return into >= 0 && into < len ? into : -1;
+  }
+
+  readAfter(into: number) {
+    const arr = this.after.data;
+    if (!arr) return 0;
+    const x = into * this.after.sr;
+    const i = Math.floor(x);
+    if (i < 0 || i + 1 >= arr.length) return 0;
+    return arr[i] + (arr[i + 1] - arr[i]) * (x - i);
+  }
+
   readLive(into: number) {
     const arr = this.live.data;
     if (!arr) return 0;
@@ -239,7 +264,11 @@ export class DeckDSP {
     }
   }
 
-  process(out: Float32Array, n: number, time: number) {
+  /**
+   * One block: the decks into `out`; her set into `live` if given (the stage's
+   * PA: the two crossfade on the same 20 ms ramp), else into `out` with them.
+   */
+  process(out: Float32Array, n: number, time: number, live?: Float32Array) {
     const P = this.params;
     const sr = this.outRate;
     const wb = this.wall(time);
@@ -272,17 +301,27 @@ export class DeckDSP {
             D.fade = Math.min(1, D.fade + fadeStep);
           }
         }
+        if (k === 0 && this.afterAmt > 0) {
+          // After her set: the DJ's record in place of the house record on deck A's channel.
+          const ai = this.afterAt(w);
+          s = s * (1 - this.afterAmt) + (ai >= 0 ? this.readAfter(ai) : 0) * this.afterAmt;
+        }
         if (g > 0) mix += s * g;
       }
+      const aw = this.afterAt(w) >= 0 ? 1 : 0;
+      this.afterAmt += Math.max(-liveStep, Math.min(liveStep, aw - this.afterAmt));
       const into = this.liveAt(w);
       const want = into >= 0 ? 1 : 0;
       this.liveAmt += Math.max(-liveStep, Math.min(liveStep, want - this.liveAmt));
-      const x = this.liveAmt > 0 ? mix * (1 - this.liveAmt) + (into >= 0 ? this.readLive(into) : 0) * this.liveAmt : mix;
+      const sung = this.liveAmt > 0 && into >= 0 ? this.readLive(into) * this.liveAmt : 0;
+      // Her set on its own bus (the stage's PA) when there's one, else mixed in with the decks.
+      const x = live ? mix * (1 - this.liveAmt) : this.liveAmt > 0 ? mix * (1 - this.liveAmt) + sung : mix;
       // A DC blocker: a record held still sits on one sample value.
       const y = x - this.dcx + 0.995 * this.dcy;
       this.dcx = x;
       this.dcy = y;
       out[i] = y;
+      if (live) live[i] = sung;
     }
     this.gains[0] = ga1;
     this.gains[1] = gb1;

@@ -19,7 +19,7 @@ import { arrangement, detectSections, songSections, type Arrangement, type BarIn
  * Pure (no audio): tests/beat.test.ts, tests/scratch.test.ts.
  */
 
-export type TrackName = 'dj_set' | 'deck_a' | 'deck_b' | 'concert_1' | 'concert_2' | 'casino_lounge' | 'jackpot' | 'cheer' | 'applause' | 'floor_loop';
+export type TrackName = 'dj_set' | 'deck_a' | 'deck_b' | 'deck_c' | 'concert_1' | 'concert_2' | 'casino_lounge' | 'jackpot' | 'cheer' | 'applause' | 'floor_loop';
 
 export interface IndexEntry extends Partial<MeasuredTrack> {
   kind: string;
@@ -73,6 +73,8 @@ export function entryMatches(name: TrackName, decodedSeconds: number): boolean {
 /** The house record (deck A), as index.json has it; dj_set if deck A isn't measured. */
 export const HOUSE_PLAN: TrackPlan = indexPlan('deck_a') ?? indexPlan('dj_set')!;
 export const DECK_B_PLAN: TrackPlan | null = indexPlan('deck_b');
+/** The DJ's record after her set (deck_c.mp3, "One More Drop": once through, then the house record again). */
+export const AFTER_PLAN: TrackPlan | null = indexPlan('deck_c');
 
 /** A deck record's bars as the beat clock reads them (drops, breakdowns, builds from its energy). */
 export function deckArrangement(p: TrackPlan): Arrangement {
