@@ -210,5 +210,49 @@
   "stability": 0.45,
   "similarity_boost": 0.8,
   "style": 0.3
+ },
+ "el_cook_pizza": {
+  "voice_id": "OBLxU3DhFiBOh33EeRvi",
+  "brief": "man in his fifties, New York Italian-American, warm, gravelly, big-hearted, a pizzeria owner",
+  "stability": 0.38,
+  "similarity_boost": 0.8,
+  "style": 0.42,
+  "name": "Pauly - Brooklyn Wise Guy",
+  "public_owner_id": "57c68390e62520a15f12682bf5c1244b7d5bd0be3c3e25962390f0fcc4058469"
+ },
+ "el_cook_burger": {
+  "voice_id": "9T9vSqRrPPxIs5wpyZfK",
+  "brief": "man in his forties, loud, booming, Texas drawl, cheerful short-order cook energy",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45,
+  "name": "Eric - Southern, Confident and Sassy"
+ },
+ "el_cook_noodles": {
+  "voice_id": "hgnWqggl2GuD6Xmc3ymR",
+  "brief": "woman in her thirties, calm, precise, low and dry, quietly funny, neutral American",
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "style": 0.3,
+  "name": "Nixie - Flat & Effortlessly Cool",
+  "public_owner_id": "d75afdc7f8909a458e8b255c44440d1248a410217cc4af5e160be7b49e767a80"
+ },
+ "el_cook_gelato": {
+  "voice_id": "NeTWyxKL7qMefrZEowed",
+  "brief": "young woman, bright, sunny, sweet, playful, light Italian accent",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45,
+  "name": "Silvia - Italian Accent English",
+  "public_owner_id": "b9659df47c7cd0278ab8ebbefc2bef8e1f150298f6bb1f3ae407995d63cda2b4"
+ },
+ "el_clerk": {
+  "voice_id": "YgzytRZyVmEux6PCtJYB",
+  "brief": "woman in her thirties, polished, elegant, smooth and low, quietly witty, refined American",
+  "stability": 0.48,
+  "similarity_boost": 0.8,
+  "style": 0.32,
+  "name": "Ivanna -  Sultry, Fun and Captivating",
+  "public_owner_id": "941af4fd552205a37d16a9b27984d15aff7048f2b34d7d64062de299bb914639"
  }
 }

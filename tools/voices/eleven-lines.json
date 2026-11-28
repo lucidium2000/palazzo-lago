@@ -102,6 +102,12 @@
   "p": 1
  },
  {
+  "id": "3168d9cd",
+  "voice": "el_bartender",
+  "text": "One Strawberry Daiquiri, shaken. Coming up.",
+  "p": 1
+ },
+ {
   "id": "322a4901",
   "voice": "el_bartender",
   "text": "No worries. Have a good one!",
@@ -258,6 +264,12 @@
   "p": 1
  },
  {
+  "id": "915a40a4",
+  "voice": "el_bartender",
+  "text": "One Frozen Margarita, shaken. Coming up.",
+  "p": 1
+ },
+ {
   "id": "92685a15",
   "voice": "el_bartender",
   "text": "Good to see you again, my friend. The usual, or something new?",
@@ -369,6 +381,12 @@
   "id": "d802b85b",
   "voice": "el_bartender",
   "text": "Iced tea. Good choice.",
+  "p": 1
+ },
+ {
+  "id": "d8865418",
+  "voice": "el_bartender",
+  "text": "One Piña Colada, shaken. Coming up.",
   "p": 1
  },
  {

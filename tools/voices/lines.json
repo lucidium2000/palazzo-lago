@@ -305,6 +305,12 @@
   "speed": 1
  },
  {
+  "id": "4c870337",
+  "voice": "af_bella",
+  "text": "One Frozen Margarita, shaken. Coming up.",
+  "speed": 1
+ },
+ {
   "id": "4e594622",
   "voice": "af_bella",
   "text": "Good to see you again, my friend. The usual, or something new?",
@@ -406,6 +412,12 @@
   "id": "81b5ed3d",
   "voice": "af_bella",
   "text": "The elevators are in the hotel lobby, just east of the casino floor.",
+  "speed": 1
+ },
+ {
+  "id": "8645a82f",
+  "voice": "af_bella",
+  "text": "One Piña Colada, shaken. Coming up.",
   "speed": 1
  },
  {
@@ -516,6 +528,12 @@
   "voice": "af_bella",
   "text": "[annoyed] Okay. That's your last drink tonight.",
   "say": "Okay. That's your last drink tonight.",
+  "speed": 1
+ },
+ {
+  "id": "d60772d4",
+  "voice": "af_bella",
+  "text": "One Strawberry Daiquiri, shaken. Coming up.",
   "speed": 1
  },
  {
