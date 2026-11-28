@@ -4,7 +4,7 @@ import { OPENERS, type Node } from '../src/client/dialogueLines';
 import { GUESTS, SPEAKERS } from '../src/client/cast';
 import { replyLabels, REACTIONS } from '../src/client/reactlines';
 import { DRINK_ALIASES, FOOD_ALIASES, REPLY_LEX } from '../src/client/replylex';
-import { BAR_MENU, DRINKS } from '../src/client/bar';
+import { BAR_MENU, DRINKS, POOL_MENU } from '../src/client/bar';
 import { COUNTERS } from '../src/client/areas/promenadeplan';
 import { GUEST_TALK, HOW_RECORDED, RUDE_COMEBACKS, STAFF_TALK, STAFF_WHERE, smallTalkLines } from '../src/client/smalltalk';
 
@@ -732,8 +732,9 @@ describe('ordering by voice', () => {
     return typeof m === 'number' ? names[m] : m;
   };
 
-  it('every drink alias is a real drink on the menu', () => {
-    for (const k of Object.keys(DRINK_ALIASES)) expect(names).toContain(k);
+  it('every drink alias is a real drink on a bar menu (Bar Lago or the pool bar)', () => {
+    const either = [...names, ...POOL_MENU.map((d) => d.name)];
+    for (const k of Object.keys(DRINK_ALIASES)) expect(either).toContain(k);
     for (const d of DRINKS.filter((d) => !d.offMenu)) expect(DRINK_ALIASES[d.name]).toBeDefined();
   });
 
@@ -777,6 +778,30 @@ describe('ordering by voice', () => {
     ["I don't want a beer", null],
   ];
   it.each(DRINK_CASES)('"%s" at the bar', (said, want) => expect(drink(said)).toBe(want));
+
+  const poolNames = POOL_MENU.map((d) => d.name);
+  const POOL_CASES: [string, string | null][] = [
+    ['can I get a beer', 'Lager on tap'],
+    ['a frozen margarita please', 'Frozen Margarita'],
+    ['margarita', 'Frozen Margarita'],
+    ["I'll have a pina colada", 'Piña Colada'],
+    ['strawberry daiquiri', 'Strawberry Daiquiri'],
+    ['something frozen', 'Frozen Margarita'],
+    ['an IPA', 'Hazy IPA'],
+    ['surprise me', 'surprise'],
+    ['no thanks', null],
+  ];
+  it.each(POOL_CASES)('"%s" at the pool bar', (said, want) => {
+    const m = matchMenu(said, poolNames, DRINK_ALIASES);
+    expect(typeof m === 'number' ? poolNames[m] : m).toBe(want);
+  });
+
+  it('the pool bar serves beer, frozen drinks and cocktails, all real drinks', () => {
+    expect(POOL_MENU.every((d) => DRINKS.includes(d) && !d.offMenu)).toBe(true);
+    for (const s of ['Beer', 'Frozen', 'Cocktails'] as const) expect(POOL_MENU.some((d) => d.section === s)).toBe(true);
+    // Bar Lago's menu doesn't list the frozen drinks.
+    expect(BAR_MENU.some((d) => d.frozen)).toBe(false);
+  });
 
   it('every dish alias is a real dish, and names a dish at its own counter', () => {
     for (const c of COUNTERS) {

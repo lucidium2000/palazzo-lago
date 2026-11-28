@@ -62,7 +62,7 @@ export class DrinkSync {
       if (!s || s.kind !== kind) {
         if (s) s.drink.group.removeFromParent();
         // They just picked up the drink they ordered: it leaves the counter.
-        this.lounge.friendPickedUp();
+        this.lounge.friendPickedUp(kind);
         s = { drink: new Drink(DRINKS[kind]), kind };
         s.drink.remote = true;
         s.drink.group.traverse((o) => (o.raycast = () => {}));

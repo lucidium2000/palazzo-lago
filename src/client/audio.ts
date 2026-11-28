@@ -52,6 +52,7 @@ type SoundName =
   | 'block'
   | 'slap'
   | 'whoosh'
+  | 'dab'
   | 'thunk'
   | 'swim'
   | 'land'
@@ -366,6 +367,56 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
       b = hp(0.6);
     return synth(ctx, 0.3, (t) => b(l(rand())) * 2.4 * Math.sin(Math.PI * Math.min(1, t / 0.3)) ** 2);
   })();
+  // A dab with a friend: a swoosh of air (the arm flung out), then a few voices going "ayyy!"
+  // (buzzy throats through vowel resonances gliding from "a" to "ee", a little out of step).
+  const dab = (() => {
+    const sr = ctx.sampleRate;
+    const reson = () => {
+      let y1 = 0,
+        y2 = 0;
+      return (x: number, f: number, q: number) => {
+        const w = (2 * Math.PI * f) / sr;
+        const r = Math.exp(-w / (2 * q));
+        const y = x * (1 - r) + 2 * r * Math.cos(w) * y1 - r * r * y2;
+        y2 = y1;
+        y1 = y;
+        return y;
+      };
+    };
+    const air = reson();
+    const crowd = [
+      { at: 0.17, f0: 190, g: 1 },
+      { at: 0.2, f0: 245, g: 0.8 },
+      { at: 0.23, f0: 155, g: 0.9 },
+      { at: 0.19, f0: 300, g: 0.55 },
+      { at: 0.26, f0: 215, g: 0.7 },
+    ].map((v) => ({ ...v, f1: reson(), f2: reson(), f3: reson(), ph: Math.abs(rand()) }));
+    const buf = synth(ctx, 1.5, (t) => {
+      let out = 0;
+      if (t < 0.4) {
+        const u = t / 0.4;
+        out += air(rand(), 450 + 2600 * Math.sin(Math.PI * u), 2.2) * Math.sin(Math.PI * u) ** 2 * 18;
+      }
+      for (const v of crowd) {
+        const u = t - v.at;
+        if (u <= 0 || u > 1.2) continue;
+        const f0 = v.f0 * (1 + 0.28 * Math.min(1, u / 0.25) - 0.1 * Math.max(0, u - 0.6)) * (1 + 0.02 * Math.sin(2 * Math.PI * 5.5 * u + v.f0));
+        v.ph += f0 / sr;
+        const throat = ((v.ph % 1) * 2 - 1) + rand() * 0.12;
+        const g = THREE.MathUtils.clamp((u - 0.25) / 0.5, 0, 1);
+        const y = v.f1(throat, 760 - 420 * g, 5) + v.f2(throat, 1250 + 1050 * g, 7) * 0.6 + v.f3(throat, 2600 + 300 * g, 9) * 0.3;
+        const e = Math.min(1, u / 0.06) * (u < 0.8 ? 1 : Math.max(0, 1 - (u - 0.8) / 0.4));
+        out += y * e * v.g;
+      }
+      return out;
+    });
+    // Normalise (the resonances' gain depends on the sample rate).
+    const d = buf.getChannelData(0);
+    let peak = 1e-6;
+    for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+    for (let i = 0; i < d.length; i++) d[i] *= 0.8 / peak;
+    return buf;
+  })();
   // A glass landing without breaking: a dull knock with a little ring.
   const thunk = synth(ctx, 0.35, (t) => Math.sin(2 * Math.PI * 180 * t) * 0.5 * env(t, 0.001, 0.04) + Math.sin(2 * Math.PI * 2900 * t) * 0.08 * env(t, 0.001, 0.09));
   const pour = (() => {
@@ -486,7 +537,7 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
 
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, denied,
-    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, punch, block, slap, whoosh, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
+    stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, punch, block, slap, whoosh, dab, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
     ding, liftHum, splash, swim, land, crunch, munch, adlib: woo,
     variants: { ...stepVariants, adlib: adlibs },
   };

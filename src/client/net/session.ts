@@ -16,6 +16,7 @@ import { money } from '../game';
 import type { Bankroll } from '../../rules/bankroll';
 import type { NetEvent, PlayerState, Transport, Wire } from './transport';
 import { PosedHand, skinTone } from '../posedhand';
+import { DAB_SECONDS, dabWeight, GrabTrack, poseDab, pullApart } from '../dab';
 
 /** Viewpoints where a player sits (the rest are played standing). */
 const SEATED = (id: string | null) => !!id && id !== 'craps';
@@ -64,7 +65,9 @@ interface Remote {
   /** A gesture a screen player is offering (their avatar acts it out). */
   emote: { k: string; t0: number } | null;
   /** Hand-contact bookkeeping per my-hand/their-hand pair. */
-  contact: Map<string, { t0: number; speed: number; done: boolean }>;
+  contact: Map<string, { t0: number; speed: number; done: boolean; grab: GrabTrack }>;
+  /** A still grab that just let go (per hand pair): when it parted. Pulled apart fast enough, it's a dab (dab.ts). */
+  pulls: Map<string, number>;
   bubble: THREE.Sprite | null;
   bubbleUntil: number;
   target: THREE.Vector3;
@@ -92,6 +95,11 @@ export interface SessionDeps {
   knock?(at: THREE.Vector3): void;
   /** A soft clasp (handshake). */
   pat?(at: THREE.Vector3): void;
+  /**
+   * You and a friend dabbed together (dab.ts): your side of it (the whoosh and
+   * the "ayyy", your own body's pose, the crew). Their avatar's pose is done here.
+   */
+  dab?(at: THREE.Vector3, friend: string): void;
   /** The 3D audio listener (voice chat plays from the friend's avatar). */
   listener: THREE.AudioListener;
   /** Your real hands in VR (world positions), or null on a screen. */
@@ -391,6 +399,7 @@ export class Session {
         pose: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose },
         emote: null,
         contact: new Map(),
+        pulls: new Map(),
         bubble: null,
         bubbleUntil: 0,
         target: at.clone(),
@@ -732,7 +741,27 @@ export class Session {
     this.d.hud.toast(k === 'wave' ? 'You wave' : `You offer ${label}`, 'info');
   }
 
-  /** Real hand contact in VR: classify and celebrate high fives, fist bumps and handshakes. */
+  /**
+   * Desktop/phone (G, or the chat's Dab button): dab with the nearest friend
+   * close by (you both strike the pose). False if nobody's near enough.
+   */
+  dab(): boolean {
+    const f = this.d.player.feet();
+    let best: Remote | null = null,
+      bd = 2.6;
+    for (const r of this.remotes.values()) {
+      const dist = r.person ? r.person.pos.distanceTo(f) : Infinity;
+      if (dist < bd) {
+        bd = dist;
+        best = r;
+      }
+    }
+    if (!best) return false;
+    this.celebrate(best, 'dab', null, true);
+    return true;
+  }
+
+  /** Real hand contact in VR: classify and celebrate high fives, fist bumps, handshakes and dabs. */
   private gestures(r: Remote, p: Person, dt: number) {
     // A screen player's offered gesture: their avatar holds the hand out (and VR players can meet it).
     if (r.emote && !r.state.lh && !r.state.rh) {
@@ -765,16 +794,26 @@ export class Session {
         const b = r.hands[ts];
         const key = ms + ts;
         const c = r.contact.get(key);
-        if (!b || a.distanceTo(b) > 0.13) {
-          if (c) r.contact.delete(key);
-          continue;
-        }
         const fp = this.d.fingers?.();
         const curl = (q: FingerPose) => (q[2] + q[3] + q[4]) / 3;
         const myFist = (fp ? curl(fp[ms]) : grip[ms]) > 0.6,
           theirFist = Math.max(r.fist[ts], curl(r.pose[ts])) > 0.6;
+        if (!b || a.distanceTo(b) > 0.13) {
+          // A still grab just let go of: if it's yanked apart (still gripping), it's a dab.
+          if (c && !c.done && c.grab.armed && myFist) r.pulls.set(key, this.time);
+          if (c) r.contact.delete(key);
+          const parted = r.pulls.get(key);
+          if (parted !== undefined) {
+            const v = pullApart(this.time - parted, b ? a.distanceTo(b) : Infinity, myFist);
+            if (v !== 'wait') r.pulls.delete(key);
+            if (v === 'dab') this.celebrate(r, 'dab', ms, true);
+          }
+          continue;
+        }
+        r.pulls.delete(key);
+        if (c) c.grab.touch(dt, a.y, myFist && theirFist);
         if (!c) {
-          const entry = { t0: this.time, speed, done: false };
+          const entry = { t0: this.time, speed, done: false, grab: new GrabTrack() };
           r.contact.set(key, entry);
           if (myFist && theirFist && speed > 0.3) {
             entry.done = true;
@@ -783,7 +822,8 @@ export class Session {
             entry.done = true;
             this.celebrate(r, 'highfive', ms, true);
           }
-        } else if (!c.done && this.time - c.t0 > 0.45 && a.y < 1.45 && a.y > 0.7) {
+        } else if (!c.done && this.time - c.t0 > 0.45 && a.y < 1.45 && a.y > 0.7 && (!(myFist && theirFist) || c.grab.shaking)) {
+          // (Both gripping: a handshake once it's shaken; held still, it may be a dab: see above.)
           c.done = true;
           this.celebrate(r, 'handshake', ms, true);
         } else if (c && this.time - c.t0 > 0.45) {
@@ -800,8 +840,16 @@ export class Session {
     this.gestAt.set(k + r.id, this.time);
     if (mine) this.emit('gest', { k });
     const at = r.person ? r.person.pos.clone().setY(1.4) : this.d.player.feet().setY(1.4);
-    const names: Record<string, string> = { highfive: 'High five', fistbump: 'Fist bump', handshake: 'Handshake', wave: 'Wave' };
+    const names: Record<string, string> = { highfive: 'High five', fistbump: 'Fist bump', handshake: 'Handshake', wave: 'Wave', dab: 'Dab' };
     this.d.hud.toast(`${names[k] ?? 'Nice'} with ${r.name}!`, 'win');
+    if (k === 'dab') {
+      // Both of you strike the pose: their avatar here (embody), you there (main.ts: your body, the sound, the crew).
+      if (r.person) r.person.dabT = DAB_SECONDS;
+      this.d.dab?.(at, r.name);
+      this.d.haptic?.('left', 0.9, 110);
+      this.d.haptic?.('right', 0.9, 110);
+      return;
+    }
     if (k === 'highfive') this.d.slap?.(at);
     else if (k === 'fistbump') this.d.knock?.(at);
     else this.d.pat?.(at);
@@ -870,6 +918,19 @@ export class Session {
       const pole = shoulder.clone().add(new THREE.Vector3(0, -0.6, 0)).addScaledVector(fwd, -0.35).addScaledVector(left, 0.45 * dir);
       reach(upper, lower, end, target, pole, 1);
       setFingers(b, S, wrist ? [1, 1, 1, 1, 1] : r.pose[side]);
+    }
+    // Dabbing with you: the whole pose over everything else, arms and head (their real hands hide for that beat).
+    const dab = dabWeight(p.dabT);
+    if (dab > 0) {
+      rig.root.updateMatrixWorld(true);
+      poseDab(b, p.yaw, sc, dab);
+      if (dab > 0.5)
+        for (const [side, S] of [['l', 'L'], ['r', 'R']] as const) {
+          const ph = r.posed?.[side];
+          if (ph) ph.visible = false;
+          (b[`Wrist${S}`] ?? b[`Hand${S}`])?.scale.setScalar(1);
+          setFingers(b, S, side === 'l' ? [0, 0, 0, 0, 0] : [1, 1, 1, 1, 1]);
+        }
     }
   }
 

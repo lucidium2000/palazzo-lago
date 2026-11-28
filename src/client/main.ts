@@ -721,6 +721,11 @@ async function main() {
 
   // The pool party has its own share of the crowd (see Crowd: it's out of sight of the floor and vice versa).
   areas.populate(crowd);
+  // The pool bar serves drinks too (her poolside menu, her counter): lounge.ts runs both bars.
+  lounge.addPoolBar(
+    POOL_BAR,
+    crowd.people.find((p) => p.role === 'bartender' && Math.hypot(p.pos.x - POOL_BAR.x, p.pos.z - POOL_BAR.z) < POOL_BAR.r) ?? null,
+  );
   // The DJ's set, the beat, the lights and the dancing (party/index.ts).
   const party = new Party({
     scene,
@@ -1058,13 +1063,21 @@ async function main() {
   for (const b of chatForm.querySelectorAll('.quick button')) {
     b.addEventListener('click', () => {
       const k = (b as HTMLElement).dataset.gesture;
-      if (k) session?.offer(k as 'highfive' | 'fistbump' | 'handshake' | 'wave');
+      if (k === 'dab') {
+        if (session && !session.dab()) hud.toast('Get close to a friend to dab', 'info');
+      } else if (k) session?.offer(k as 'highfive' | 'fistbump' | 'handshake' | 'wave');
       else session?.say(b.textContent ?? '');
       closeChat();
     });
   }
   chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeChat();
+  });
+  // G: dab with the friend next to you (G is also "clink glasses" when you hold a drink by a guest's: that wins).
+  addEventListener('keydown', (e) => {
+    if (e.code !== 'KeyG' || e.repeat || !session || player.inXR || e.target instanceof HTMLInputElement) return;
+    if (lounge.holdingDrink && lounge.clinkable()) return;
+    session.dab();
   });
   addEventListener('keydown', (e) => {
     if (e.code === 'KeyT' && session && chatForm.hidden && !player.inXR) {
@@ -1163,6 +1176,13 @@ async function main() {
         sound.play('ballDrop', at, { volume: 0.9, rate: 0.35 });
       },
       pat: (at) => sound.play('chip', at, { volume: 0.6, rate: 0.45 }),
+      // A dab with a friend: the whoosh and the "ayyy", your own body strikes it, the crew whoops.
+      dab: (at) => {
+        sound.play('dab', at, { volume: 1 });
+        selfBody.dab();
+        crowd.react(at, 2.5, 'cheer');
+        crew.react('win', { chance: 0.7, cheer: true });
+      },
       haptic: buzz,
       slap: (at) => {
         sound.play('ballDrop', at, { volume: 1, rate: 0.45 });
@@ -1337,7 +1357,7 @@ async function main() {
     },
     [
       { p: new THREE.Vector3(Lounge.COUNTER_X + 0.3, Lounge.TOP + 0.038, Lounge.COUNTER_Z0 + 0.5), yaw: Math.PI / 2 },
-      { p: new THREE.Vector3(POOL_BAR.x + POOL_BAR.r + 0.04, 1.2, POOL_BAR.z + 0.4), yaw: Math.PI / 2 },
+      { p: new THREE.Vector3(POOL_BAR.x + POOL_BAR.r + 0.04, Lounge.TOP + 0.038, POOL_BAR.z + 0.4), yaw: Math.PI / 2 },
     ],
     boardAt,
   );
@@ -2026,6 +2046,12 @@ async function main() {
         const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camQ);
         selfBody.update(dt, { on, head, dir, up, floorY: player.floorY, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.swimming ? Math.max(player.speed, player.swimSpeed) : player.speed, swim: player.swimming ? 1 : 0, seat: player.stool, eyeY: party.selfEye(head.y), crouch: player.crouch.drop });
       } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, poses: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose }, speed: 0 });
+      // Dabbing on a screen: your view tucks down into the elbow for the beat (never in VR: the headset is your head).
+      const dab = selfBody.dabbing;
+      if (!on && dab > 0) {
+        camera.rotation.x -= 0.3 * dab;
+        camera.rotation.z -= 0.15 * dab;
+      }
     }
     for (const m of machines) m.update(dt);
     piggy.update(dt);

@@ -6,6 +6,7 @@ import { canvas, radial, toTexture } from '../textures';
 import { Batch, M, nightSky, plane, type Mats } from './kit';
 import { flowers } from './hotel';
 import { assets } from '../assets';
+import { ROUND_TOP } from '../barcounter';
 
 /**
  * The pool deck at night, Vegas pool-party style, in an Italian garden: a lit
@@ -402,7 +403,11 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
 
   // Round pool bar with a glowing front and stools.
   b.add(new THREE.CylinderGeometry(BAR.r, BAR.r, 1.05, 40, 1, true), m.walnut, M(BAR.x, 0.52, BAR.z));
-  b.add(new THREE.TorusGeometry(BAR.r + 0.05, 0.08, 8, 48).rotateX(Math.PI / 2), m.darkMarble, M(BAR.x, 1.08, BAR.z));
+  // A flat marble top round the ring (drinks are served on it: lounge.ts), with a rounded front edge.
+  b.add(new THREE.RingGeometry(ROUND_TOP.inner, ROUND_TOP.outer, 48).rotateX(-Math.PI / 2), m.darkMarble, M(BAR.x, ROUND_TOP.y, BAR.z));
+  b.add(new THREE.CylinderGeometry(ROUND_TOP.inner, ROUND_TOP.inner, 0.06, 40, 1, true), m.darkMarble, M(BAR.x, ROUND_TOP.y - 0.03, BAR.z));
+  b.add(new THREE.TorusGeometry(ROUND_TOP.outer, 0.03, 6, 48).rotateX(Math.PI / 2), m.darkMarble, M(BAR.x, ROUND_TOP.y - 0.03, BAR.z));
+  b.add(new THREE.RingGeometry(BAR.r, ROUND_TOP.outer, 48).rotateX(Math.PI / 2), m.darkMarble, M(BAR.x, ROUND_TOP.y - 0.06, BAR.z));
   b.add(new THREE.TorusGeometry(BAR.r + 0.02, 0.02, 6, 48).rotateX(Math.PI / 2), m.glow(0x5ad0ff, 1.8), M(BAR.x, 0.12, BAR.z));
   b.add(new THREE.CylinderGeometry(0.7, 0.8, 2.6, 24), m.walnut, M(BAR.x, 1.3, BAR.z));
   b.add(new THREE.CylinderGeometry(2.6, 2.6, 0.15, 40), m.cream, M(BAR.x, 3.0, BAR.z));
