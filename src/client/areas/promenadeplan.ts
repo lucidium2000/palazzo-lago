@@ -109,6 +109,8 @@ export const STORE_FIX = {
     { x: -614.2, z: 5.6, yaw: 0 },
     { x: -602.6, z: 5.6, yaw: 0 },
   ],
+  /** The full-length mirror on the back wall (a real reflection: try things on and see), facing into the shop. */
+  mirror: { x: -605.9, y: 1.4, z: 13.94, w: 1.1, h: 1.9 },
 };
 
 /** Where each piece of stock starts (deterministic, so ids match on every machine). */

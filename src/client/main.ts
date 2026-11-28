@@ -17,6 +17,7 @@ import { onPromenade } from './areas/promenadeplan';
 import { onEntrance } from './areas/entranceplan';
 import { onBowling } from './bowling/plan';
 import { Boutique, FoodCourt, Wardrobe, WearView } from './promenadelife';
+import { ShopMirror } from './shopmirror';
 import { PromenadeSound } from './promenadeaudio';
 import { DECK, POOL, WATER_Y } from './areas/pool';
 import { BeachBalls } from './beachball';
@@ -1088,8 +1089,8 @@ async function main() {
   // --- The Promenade: the food court's counters, the boutique's register, what you wear, the arcade ---
   const promenade = areas.promenade;
   const foodCourt = new FoodCourt({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast, listener });
-  const boutique = new Boutique({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast });
   const wardrobe = new Wardrobe({ scene, camera, loose, hands, hud, player, sound });
+  const boutique = new Boutique({ scene, interaction, sound, hud, bankroll, crowd, loose, player, area: promenade, cast: () => areas.promenadeCast, wardrobe });
   const wearView = new WearView(scene, loose);
   const promSound = new PromenadeSound(sound, promenade.root);
   // Every bit of food and drink on show is takeable: the food court's counters and tables, the
@@ -1421,6 +1422,8 @@ async function main() {
   selfBody.onSkin = (c) => hands.setSkin(c);
   selfBody.onDance = (rig, yaw, dt) => party.danceSelf(rig, yaw, dt);
   selfBody.setAvatar(me.avatar);
+  // The boutique's mirror: try on the sunglasses and see yourself in them.
+  const shopMirror = new ShopMirror({ scene, camera, player, self: selfBody, wardrobe, loose, small: quality.name !== 'desktop' });
   const fingerPoses = () => {
     const gp = (side: string) => interaction.gamepads().find((g) => g.handedness === side)?.gamepad;
     return { l: hands.fingerPose('left', gp('left')), r: hands.fingerPose('right', gp('right')) };
@@ -2045,6 +2048,14 @@ async function main() {
         const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camQ);
         const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camQ);
         selfBody.update(dt, { on, head, dir, up, floorY: player.floorY, hands: { l: hands.wrist('left'), r: hands.wrist('right') }, poses: fingerPoses(), wrists: { l: hands.wristPose('left'), r: hands.wristPose('right') }, speed: player.swimming ? Math.max(player.speed, player.swimSpeed) : player.speed, swim: player.swimming ? 1 : 0, seat: player.stool, eyeY: party.selfEye(head.y), crouch: player.crouch.drop });
+      } else if (shopMirror.wantsSelf) {
+        // On a screen in the boutique: your body, posed for its mirror only (shopmirror.ts shows it there).
+        const head = camera.getWorldPosition(new THREE.Vector3());
+        const camQ = camera.getWorldQuaternion(new THREE.Quaternion());
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camQ);
+        const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camQ);
+        selfBody.update(dt, { on: true, head, dir, up, floorY: player.floorY, hands: { l: null, r: null }, poses: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose }, speed: player.speed, seat: player.stool, crouch: player.crouch.drop });
+        selfBody.root.visible = false;
       } else selfBody.update(dt, { on: false, head: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, 1), floorY: 0, hands: { l: null, r: null }, poses: { l: [...OPEN] as FingerPose, r: [...OPEN] as FingerPose }, speed: 0 });
       // Dabbing on a screen: your view tucks down into the elbow for the beat (never in VR: the headset is your head).
       const dab = selfBody.dabbing;
@@ -2127,6 +2138,7 @@ async function main() {
     foodCourt.update(dt);
     boutique.update(dt);
     wardrobe.update();
+    shopMirror.update();
     arcade?.update(dt);
     napkins ??= new Napkins({ loose, throwables, drinkPhysics, sound, crowd, camera, onDab: (p) => (p.attendUntil = Math.min(p.attendUntil, crowd.now + 0.5)) });
     napkins.update(dt);
@@ -2279,7 +2291,7 @@ async function main() {
   });
 
   const colliders = new ColliderDebug(scene, world, renderer, [crowd.group, selfBody.root, player.rig]);
-  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, arcade, promenade, hints, stock, culler };
+  (window as unknown as { casino: unknown }).casino = { piano, Drink, waiterTrays, napkins: () => napkins, hall: casino, zoneCulling, party, colliders, scene, renderer, player, areas, roulette, craps, machines, piggy, bankroll, hud, quality, crowd, world, lounge, hands, interaction, crew, night, touch, sound, POSE, FINGER, THUMB, curlFingers, setFingers, dialogue, selfBody, voices, throwables, makeMouth, setOpen, bodies, fights, drinkPhysics, loose, beachBalls, slotRows, blackjacks, watch, faces, bjSeats, camera, photoCams, poker, pokerRoom, pkSeats, chips: chipSystem, foodCourt, boutique, wardrobe, wearView, shopMirror, arcade, promenade, hints, stock, culler };
   (window as unknown as { casino: Record<string, unknown> }).casino.promSound = promSound;
 }
 

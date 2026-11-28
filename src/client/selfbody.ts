@@ -65,6 +65,11 @@ export class SelfBody {
     this.dabLeft = DAB_SECONDS;
   }
 
+  /** The character you wear (its root and bones), or null before it's loaded: the boutique's mirror shows it. */
+  get figure(): { root: THREE.Object3D; bones: Record<string, THREE.Object3D | undefined> } | null {
+    return this.rig;
+  }
+
   /** How far into a dab you are (0..1), for the screen players' camera nod (main.ts). */
   get dabbing() {
     return dabWeight(this.dabLeft);
