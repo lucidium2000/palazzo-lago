@@ -22,7 +22,7 @@ function fakeEl(): Record<string, unknown> {
     addEventListener() {},
     removeEventListener() {},
     querySelector: () => fakeEl(),
-    getContext: () => new Proxy({}, { get: (_t, k) => (k === 'createRadialGradient' ? () => ({ addColorStop() {} }) : () => {}) }),
+    getContext: () => new Proxy({}, { get: (_t, k) => (k === 'createRadialGradient' || k === 'createLinearGradient' ? () => ({ addColorStop() {} }) : () => {}) }),
   };
   return el;
 }
@@ -133,6 +133,11 @@ describe('fights over the network', () => {
         B.fights.update(0.05);
       }
     };
+    // (Fight mode: a versus intro, ROUND 1, FIGHT!, then they swing.)
+    step(3.4);
+    expect(A.fights.mode.hostedMatch?.live).toBe(true);
+    // B sees the same match on its power bars (watching: A's name on the left).
+    expect(B.fights.mode.show).toMatchObject({ fighter: false });
     step(3);
     expect(A.fights.debug().you).toBeLessThan(100);
     expect(Math.hypot(pb.pos.x - pa.pos.x, pb.pos.z - pa.pos.z)).toBeLessThan(0.2);
@@ -149,9 +154,19 @@ describe('fights over the network', () => {
     // The same knockdown (clip and clock) on both machines.
     expect(pb.fight!.act).toBe('ko');
     expect(Math.abs(pb.fight!.actT - pa.fight!.actT)).toBeLessThan(0.3);
-    step(1.2);
+    // (The K.O.'s slow-motion beat slows the fall on both.)
+    step(2.4);
     expect(pb.fight!.down).toBeGreaterThan(0.8);
-    // They get up and leave; the fight ends on both machines.
+    // In a match, they get up for ROUND 2 (not walk off).
+    step(14);
+    expect(A.fights.mode.hostedMatch?.round).toBe(2);
+    expect(A.fights.debug().fights[0].phase).not.toBe('leave');
+    expect(B.fights.mode.show?.round).toBe(2);
+    // A walks away: FIGHT OVER, they let it go, and the fight ends on both machines.
+    A.feet.set(0, 0, 12);
+    step(4);
+    expect(A.fights.mode.hostedMatch?.aborted ?? true).toBe(true);
+    A.feet.set(0, 0, 0);
     step(20);
     expect(A.fights.debug().fights.length).toBe(0);
     step(0.2);

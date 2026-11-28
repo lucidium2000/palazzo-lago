@@ -2839,5 +2839,238 @@
     "level": -16.5
    }
   ]
+ },
+ "fight": {
+  "kind": "music",
+  "title": "Ring of Steel",
+  "use": "Fight mode: Ring of Steel, the owner's own track (artist lucidium2000, made with Suno). Kicks in on ROUND 1, loops on its bar lines through the rounds on the fighters' 2D music bus, fades out after the fight.",
+  "bpm": 144.523,
+  "loop": true,
+  "seconds": 72.52,
+  "firstBeat": 0.08,
+  "bars": 44,
+  "beatJitterMs": 27.3,
+  "perBar": [
+   {
+    "drums": -31.4,
+    "tonal": -26.4,
+    "level": -16.2
+   },
+   {
+    "drums": -37.4,
+    "tonal": -27.3,
+    "level": -21.4
+   },
+   {
+    "drums": -33.6,
+    "tonal": -25.6,
+    "level": -16.4
+   },
+   {
+    "drums": -31.3,
+    "tonal": -22.4,
+    "level": -17.2
+   },
+   {
+    "drums": -34.2,
+    "tonal": -21.8,
+    "level": -16.8
+   },
+   {
+    "drums": -32.4,
+    "tonal": -25.4,
+    "level": -17.5
+   },
+   {
+    "drums": -35.3,
+    "tonal": -25.8,
+    "level": -17.7
+   },
+   {
+    "drums": -36.0,
+    "tonal": -22.3,
+    "level": -17.1
+   },
+   {
+    "drums": -34.8,
+    "tonal": -23.8,
+    "level": -17.0
+   },
+   {
+    "drums": -36.7,
+    "tonal": -29.4,
+    "level": -19.1
+   },
+   {
+    "drums": -36.0,
+    "tonal": -23.6,
+    "level": -17.8
+   },
+   {
+    "drums": -35.4,
+    "tonal": -24.2,
+    "level": -18.2
+   },
+   {
+    "drums": -34.3,
+    "tonal": -26.4,
+    "level": -17.9
+   },
+   {
+    "drums": -34.5,
+    "tonal": -25.3,
+    "level": -17.6
+   },
+   {
+    "drums": -34.2,
+    "tonal": -25.7,
+    "level": -17.3
+   },
+   {
+    "drums": -35.5,
+    "tonal": -25.1,
+    "level": -17.6
+   },
+   {
+    "drums": -34.1,
+    "tonal": -24.1,
+    "level": -17.0
+   },
+   {
+    "drums": -34.7,
+    "tonal": -22.8,
+    "level": -17.4
+   },
+   {
+    "drums": -34.2,
+    "tonal": -23.7,
+    "level": -17.2
+   },
+   {
+    "drums": -33.2,
+    "tonal": -21.6,
+    "level": -17.1
+   },
+   {
+    "drums": -32.9,
+    "tonal": -23.1,
+    "level": -17.1
+   },
+   {
+    "drums": -35.4,
+    "tonal": -26.5,
+    "level": -17.7
+   },
+   {
+    "drums": -34.4,
+    "tonal": -24.2,
+    "level": -17.1
+   },
+   {
+    "drums": -34.7,
+    "tonal": -24.0,
+    "level": -17.2
+   },
+   {
+    "drums": -35.0,
+    "tonal": -25.3,
+    "level": -17.2
+   },
+   {
+    "drums": -34.5,
+    "tonal": -25.1,
+    "level": -17.3
+   },
+   {
+    "drums": -34.7,
+    "tonal": -23.6,
+    "level": -17.3
+   },
+   {
+    "drums": -36.2,
+    "tonal": -23.5,
+    "level": -17.5
+   },
+   {
+    "drums": -32.9,
+    "tonal": -24.4,
+    "level": -17.9
+   },
+   {
+    "drums": -33.3,
+    "tonal": -24.0,
+    "level": -17.1
+   },
+   {
+    "drums": -34.5,
+    "tonal": -22.7,
+    "level": -16.9
+   },
+   {
+    "drums": -33.9,
+    "tonal": -22.0,
+    "level": -17.1
+   },
+   {
+    "drums": -33.9,
+    "tonal": -23.5,
+    "level": -16.8
+   },
+   {
+    "drums": -33.5,
+    "tonal": -23.1,
+    "level": -17.2
+   },
+   {
+    "drums": -35.5,
+    "tonal": -21.6,
+    "level": -16.9
+   },
+   {
+    "drums": -35.5,
+    "tonal": -20.8,
+    "level": -17.0
+   },
+   {
+    "drums": -36.4,
+    "tonal": -22.6,
+    "level": -17.3
+   },
+   {
+    "drums": -36.8,
+    "tonal": -26.0,
+    "level": -17.9
+   },
+   {
+    "drums": -36.2,
+    "tonal": -25.5,
+    "level": -17.9
+   },
+   {
+    "drums": -37.0,
+    "tonal": -24.2,
+    "level": -17.7
+   },
+   {
+    "drums": -36.8,
+    "tonal": -25.5,
+    "level": -17.3
+   },
+   {
+    "drums": -35.1,
+    "tonal": -26.0,
+    "level": -18.1
+   },
+   {
+    "drums": -35.9,
+    "tonal": -25.5,
+    "level": -18.2
+   },
+   {
+    "drums": -48.2,
+    "tonal": -35.8,
+    "level": -28.6
+   }
+  ]
  }
 }

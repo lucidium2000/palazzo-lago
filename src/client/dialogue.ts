@@ -12,7 +12,7 @@ import { temperament } from './fight/anger';
 import { characterFor, elVoice, SPEAKERS, spoken, type Character } from './cast';
 import type { Listener } from './listen';
 import { mouthOf, voices } from './voices';
-import { PLAYER_STANDIN, PLAYER_VOICES, REACTIONS, type ReactKind } from './reactlines';
+import { PLAYER_STANDIN, PLAYER_VOICES, REACTIONS, SLAPPED, type ReactKind } from './reactlines';
 import { NIXIE, type PartyPhase } from './party/concertlines';
 import { chatterGap, chatterPool, concertSet, partyReactions, partySafe, silent, whoopShare, type PartyTalk } from './party/partytalk';
 
@@ -763,7 +763,8 @@ export class Dialogue {
    * pushed, a loud "ouch" when punched, anger when doused or hit by something thrown. `crew` names
    * one of your boys (rocco, dev, mikey) with their stand-in voice. Returns how long they talk.
    */
-  react(p: Person, kind: ReactKind, crew?: { name: string; voice: VoiceId }, say?: string): number {
+  react(p: Person, kindIn: ReactKind, crew?: { name: string; voice: VoiceId }, say?: string): number {
+    const kind = kindIn;
     const t = this.time;
     // Performing (she's on; the band, the DJ): no words, no gasp, just the body: a glance, a flinch, and on with the show.
     if (silent(p)) {
@@ -773,7 +774,7 @@ export class Dialogue {
       return 0.4;
     }
     // One reaction at a time per person (a punch always gets its yell).
-    if ((this.reactCool.get(p) ?? -9) > t && kind !== 'punched' && kind !== 'security') return 0;
+    if ((this.reactCool.get(p) ?? -9) > t && kind !== 'punched' && kind !== 'slapped' && kind !== 'security') return 0;
     let id: string;
     let alt: VoiceId;
     if (crew) {
@@ -804,6 +805,25 @@ export class Dialogue {
       alt = ch.fallback;
     }
     const has = (l: string) => voices.has(elVoice(id), l) || voices.has(alt, l);
+    // Slapped: their "did you just slap me?!" line once it's recorded; until then, the punched yell.
+    if (kind === 'slapped') {
+      const sl = (SLAPPED[id] ?? []).filter(has);
+      if (sl.length && !silent(p)) {
+        const text = say && sl.includes(say) ? say : sl[Math.floor(Math.random() * sl.length)];
+        this.lastReaction = text;
+        this.onSpeak?.({ p, kind, text, voice: elVoice(id), alt, who: this.title(p), volume: 1.5 });
+        const dur = voices.talk({ who: this.title(p), text, voice: elVoice(id), alt, at: mouthOf(p), priority: true, group: 'react', volume: 1.5, recordedOnly: true });
+        this.reactCool.set(p, t + Math.max(1.2, dur));
+        this.d.crowd.speak(p, dur);
+        p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + dur + 4);
+        this.globalCd = Math.max(this.globalCd, 12);
+        return dur;
+      }
+    }
+    return this.reactAs(p, kind === 'slapped' ? 'punched' : kind, id, alt, has, t, crew, say);
+  }
+
+  private reactAs(p: Person, kind: Exclude<ReactKind, 'slapped'>, id: string, alt: VoiceId, has: (l: string) => boolean, t: number, crew?: { name: string; voice: VoiceId }, say?: string): number {
     // At the party (crew excepted): the show's lines (a shove from someone trying to see the stage).
     const party = !crew && this.atParty(p) && kind !== 'security';
     const showLines = id === 'nixie' ? (kind === 'security' ? [] : NIXIE.react[kind]) : party ? concertSet(id)?.react[kind] : undefined;
@@ -851,7 +871,7 @@ export class Dialogue {
       this.d.sound.play('gasp', anchor.pos.clone().setY(anchor.pos.y + 1.5), { volume: l.volume, rate: l.volume >= 1 ? 0.9 : 1.1 });
       return 0.8;
     }
-    const react = l.kind === 'pushed' || l.kind === 'punched' || l.kind === 'doused' || l.kind === 'hit';
+    const react = l.kind === 'pushed' || l.kind === 'punched' || l.kind === 'slapped' || l.kind === 'doused' || l.kind === 'hit';
     const dur = voices.talk({
       who: l.who,
       text: l.text,

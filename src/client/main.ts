@@ -619,7 +619,8 @@ async function main() {
       if (say !== 'none' && k > 0.1 && !silent(p)) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * Math.min(k, 0.6), rate: 1.2 + Math.random() * 0.25 });
     },
     // A thud you feel, a stumble, a loud ouch, and maybe a fight (fight/fights.ts).
-    onPunch: (p, power, _at, zone, v) => fights.hitPerson(p, power, zone, v),
+    // (Its damage from the fist's speed and where it met them: fight/impact.ts.)
+    onPunch: (p, power, at, zone, v) => fights.hitPerson(p, power, zone, v, false, undefined, { speed: v.length(), at }),
     // An open hand (palm or back) fast into the face: a slap.
     onSlap: (p, power, _at, v, hit) => fights.hitPerson(p, power, 'head', v, true, hit?.side),
     // Too gentle to be a slap: a flinch, a glance, maybe a word.
@@ -823,6 +824,11 @@ async function main() {
     haptic: (side, strength, ms) => buzz(side, strength, ms),
     handsBusy: () => lounge.holdingDrink || loose.holding,
     canvas: renderer.domElement,
+    playerFemale: () => {
+      const l = avatarLook(me.avatar);
+      return (l.kind ?? '').startsWith('female') || !!l.dress;
+    },
+    myName: () => me.name,
   });
   // Insulting a hot-head (Sal, Vinnie) out loud winds them up, a little at a time.
   dialogue.onProvoke = (p) => fights.provoke(p, 'pushed', 0.6);
@@ -1319,6 +1325,11 @@ async function main() {
       faces: faceHits,
     });
     fights.boxing = boxing;
+    // Fight mode: punches between friends become a match (rounds, power bars, the announcer).
+    boxing.gate = (id) => fights.gate(id);
+    boxing.onExchange = (id, name) => fights.pvpExchange(id, name);
+    boxing.guardUp = () => fights.guardUp();
+    boxing.onImpact = (k) => fights.mode.impact(k);
     (window as unknown as { casino: Record<string, unknown> }).casino.boxing = boxing;
     pianoSync?.dispose();
     pianoSync = piano ? new PianoSync(session, piano) : null;
@@ -2217,6 +2228,10 @@ async function main() {
     }
     bodies.update(dt);
     fights.update(dt);
+    // Fight mode's slow-motion beat and hit-stop: the people slow down, never your view.
+    const peopleDt = dt * fights.timeScale;
+    // And its music ducks the world's (the pool party's decks read this too).
+    sound.worldDuck = fights.musicDuck;
     party.update(dt, {
       feet,
       head,
@@ -2229,7 +2244,7 @@ async function main() {
       player.danceBob = db.bob;
       player.danceRoll = db.roll;
     }
-    crowd.update(dt, t, feet, head);
+    crowd.update(peopleDt, t, feet, head);
     faces.update(dt, t, crowd.people, head);
     beachBalls.update(dt);
     casino.update(t, feet);
@@ -2318,7 +2333,7 @@ async function main() {
     // Out at the pool party the DJ takes over: the casino's groove ducks out.
     // (And it steps aside for your room's speaker or the lift's music.)
     suitePerks.update(dt);
-    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence) * (1 - 0.95 * suitePerks.duck) * promSound.musicMix * entMix.musicMix * bowlMix.musicMix);
+    sound.setMusicLevel(0.2 * (1 - outside * 0.6) * (1 - byPiano * 0.8) * (1 - 0.95 * party.presence) * (1 - 0.95 * suitePerks.duck) * fights.musicDuck * promSound.musicMix * entMix.musicMix * bowlMix.musicMix);
     if (outside > 0.5) {
       if (!finaleSeen && casino.fountainLevel() > 0.8) {
         finaleSeen = true;

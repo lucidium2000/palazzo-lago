@@ -18,10 +18,17 @@ export interface Blow {
   slap?: boolean;
   /** The thrower's strength (temperament), 1 = average. */
   strength?: number;
+  /** The damage already worked out (fight/impact.ts: fist speed, mass, where it landed); overrides the power scale. */
+  amount?: number;
+  /** A hard one that rocks them (impact.ts); else judged from `power`. */
+  stagger?: boolean;
+  /** A crit (impact.ts). */
+  crit?: boolean;
 }
 
 /** Damage one blow does (health points out of 100). */
 export function damage(b: Blow): number {
+  if (b.amount !== undefined) return Math.max(0, b.amount);
   const p = Math.max(0.1, Math.min(1, b.power));
   let d = b.slap ? 4 + 4 * p : b.zone === 'head' ? 10 + 12 * p : 6 + 7 * p;
   d *= b.strength ?? 1;

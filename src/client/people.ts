@@ -6,7 +6,7 @@ import type { Paint, Surface } from './peopleshade';
 import { FINGER, orientHand, reach, setFingers } from './net/embody';
 import { lieLegs, sitLegs, standLegs } from './sitpose';
 import { DAB_HEAD, dabAngles, dabWeight } from './dab';
-import { fightAim, fightHandoff, fightMix, type FightPose } from './fightanim';
+import { fightAim, fightHandoff, fightMix, fightRecoil, type FightPose } from './fightanim';
 import { showMix, type ShowPose } from './party/showanim';
 import { dry, linkRoutes, pathTo } from './routes';
 import { promenadeShare } from './areas/promenadeplan';
@@ -1239,6 +1239,7 @@ export class Crowd {
     if (p.fight && fightW > 0.01) {
       rig.root.updateMatrixWorld(true);
       fightAim(p, rig, sc);
+      fightRecoil(p, rig);
     }
     if (p.onPose) {
       rig.root.updateMatrixWorld(true);

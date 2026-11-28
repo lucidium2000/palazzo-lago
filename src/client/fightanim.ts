@@ -35,10 +35,14 @@ export interface FightPose {
   /** Seconds since a punch landed on them (a flinch plays), and where. */
   hitT: number;
   hitZone: 'head' | 'body';
+  /** Which way that punch was going (world, horizontal, unit) and how hard (0..1): the body gives that way. */
+  hitX: number;
+  hitZ: number;
+  hitPow: number;
 }
 
 export function fightPose(): FightPose {
-  return { guard: 0, block: 0, act: 'none', actT: 0, body: false, side: 1, aim: new THREE.Vector3(), down: 0, wobble: 0, hitT: 99, hitZone: 'head' };
+  return { guard: 0, block: 0, act: 'none', actT: 0, body: false, side: 1, aim: new THREE.Vector3(), down: 0, wobble: 0, hitT: 99, hitZone: 'head', hitX: 0, hitZ: 0, hitPow: 0 };
 }
 
 /** The footwork clips' design speed (m/s at timeScale 1; scripts/build-fight-anims.mjs SHUFFLE.v). */
@@ -269,4 +273,45 @@ export function fightAim(p: Fighter, rig: Rig, scale: number) {
   spine.parent.getWorldQuaternion(_p);
   const world = _p.clone().multiply(spine.quaternion);
   spine.quaternion.copy(_p.invert().multiply(_q.multiply(world)));
+}
+
+const _ax = new THREE.Vector3(),
+  _rq = new THREE.Quaternion(),
+  _pq = new THREE.Quaternion(),
+  _wq = new THREE.Quaternion();
+/** Rotates a bone by a world-space rotation (keeping its parent). */
+function turnWorld(bone: THREE.Object3D, q: THREE.Quaternion) {
+  if (!bone.parent) return;
+  bone.parent.getWorldQuaternion(_pq);
+  _wq.copy(_pq).multiply(bone.quaternion);
+  bone.quaternion.copy(_pq.invert().multiply(_rq.copy(q).multiply(_wq)));
+}
+
+/**
+ * A punch landing moves the body the way it was going: the torso gives
+ * (snaps over in a few hundredths of a second, eases back over a fifth), the
+ * head a little more on a head shot, doubled over a touch on a body shot.
+ * On top of the flinch clip, which is the same every time: this makes it
+ * directional. Call after the mixer.
+ */
+export function fightRecoil(p: Fighter, rig: Rig) {
+  const f = p.fight;
+  if (!f || f.hitPow <= 0 || f.hitT > 0.9 || f.act === 'ko' || f.act === 'getup') return;
+  const t = f.hitT;
+  const w = (t < 0.05 ? t / 0.05 : Math.exp(-(t - 0.05) / 0.17)) * Math.min(1, f.hitPow);
+  if (w < 0.01) return;
+  // Tipping the top toward (hitX, hitZ): about the horizontal axis across it.
+  _ax.set(f.hitZ, 0, -f.hitX);
+  if (_ax.lengthSq() < 1e-6) return;
+  _ax.normalize();
+  const torso = rig.bones.Torso ?? rig.bones.Chest;
+  if (torso) {
+    _rq.setFromAxisAngle(_ax, (f.hitZone === 'body' ? 0.22 : 0.16) * w);
+    turnWorld(torso, _rq);
+  }
+  const head = rig.bones.Head;
+  if (head && f.hitZone === 'head') {
+    _rq.setFromAxisAngle(_ax, 0.28 * w);
+    turnWorld(head, _rq);
+  }
 }

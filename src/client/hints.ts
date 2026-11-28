@@ -236,7 +236,7 @@ export class Hints {
     const use = d.loose.deskUse();
     if (use === 'Bite') this.ask('eat', 'Press F to take a bite', 'mouth');
     else if (use === 'Wear') this.ask('tryon', 'Press F to try it on (U takes it off)', 'wear');
-    if (d.fighting()) this.ask('fight', 'Click or F to punch · Y to slap · hold H or right-click to block', 'fist');
+    if (d.fighting()) this.ask('fight', 'Click or F to punch · G to hook · Y to slap · hold H or right-click to block', 'fist');
   }
 
   private near(at: THREE.Vector3, r: number) {

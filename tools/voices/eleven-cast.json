@@ -272,5 +272,12 @@
   "similarity_boost": 0.8,
   "style": 0.6,
   "public_owner_id": "1158e22c567a63f43fe94e43f361a610e704cc96eac1e48fd0fbbfea1a0757d4"
+ },
+ "el_announcer": {
+  "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer (fight mode's own original announcer, not any game's), drawn-out vowels, gravelly, American",
+  "note": "Not cast yet: the recording session casts it (render_eleven.py --cast fills voice_id; until then render_eleven.py skips it).",
+  "stability": 0.3,
+  "similarity_boost": 0.8,
+  "style": 0.65
  }
 }

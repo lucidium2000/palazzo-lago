@@ -6,6 +6,7 @@ import type { Hud } from '../hud';
 import type { Player } from '../player';
 import type { You } from '../fight/you';
 import { boneFromPose, handSide, headTurn, slapSnap, type SlapDetector } from '../fight/slap';
+import { punchImpact, speedOf } from '../fight/impact';
 
 /**
  * Boxing with your friend. In VR, make a fist and throw a real punch: a fast
@@ -69,6 +70,20 @@ export class Boxing {
 
   private get ko() {
     return this.d.you.out ? 1 : 0;
+  }
+
+  /** Fight mode (fight/fights.ts): do punches with this friend count right now (not before the bell, not between rounds)? */
+  gate: ((friendId: string) => boolean) | null = null;
+  /** Fight mode: a punch landed between you and this friend (either way): it may start a match. */
+  onExchange: ((friendId: string, name: string) => void) | null = null;
+  /** Fight mode: your hands up by your face (most of a punch's damage blocked). */
+  guardUp: (() => boolean) | null = null;
+  /** Fight mode: a big hit (the bars shake, a freeze of a couple of frames). */
+  onImpact: ((k: number) => void) | null = null;
+
+  /** A new round: they're back to full (their own machine resets them; this is what we know of it). */
+  setTheirs(id: string, hp: number) {
+    this.theirs.set(id, Math.max(0, Math.min(100, hp)));
   }
 
   constructor(private d: BoxingDeps) {
@@ -230,8 +245,14 @@ export class Boxing {
 
   /** Your punch (or slap) lands on a friend (as you see it). `cheek`: a slap's side of their face (0 their left, 1 their right). */
   private land(f: Friend, zone: Zone, power: number, dir: THREE.Vector3, blocked: boolean, side: 'left' | 'right' | null, slap = false, cheek?: 0 | 1) {
+    // Fight mode: before the bell or between rounds, a punch at your opponent doesn't count.
+    if (!slap && this.gate && !this.gate(f.id)) {
+      this.d.sound.playLocal('block', 0.3);
+      return;
+    }
     if (side) this.d.haptic(side, blocked ? 0.4 : slap ? 0.35 + power * 0.65 : 0.6 + power * 0.4, blocked ? 40 : slap ? 25 + 35 * power : 70);
     this.last = { id: f.id, name: f.name, t: this.time };
+    if (!slap && !blocked) this.onExchange?.(f.id, f.name);
     cheek = this.reel(f, zone, power, dir, blocked, slap, cheek);
     this.d.session.emit('punch', {
       // Who it's for (everyone else in the room just sees it).
@@ -287,7 +308,18 @@ export class Boxing {
     }
     if (this.ko > 0) return;
     this.last = { id: f.id, name: f.name, t: this.time };
-    const r = this.d.you.hurt({ zone, power, blocked, slap });
+    // Fight mode: not before the bell, not between rounds.
+    if (!slap && this.gate && !this.gate(f.id)) return;
+    // A punch: its damage from its speed and where it landed (impact.ts); your hands up by your face take most of it.
+    let hurt: Parameters<You['hurt']>[0] = { zone, power, blocked, slap };
+    if (!slap) {
+      const guard = blocked || !!this.guardUp?.();
+      const imp = punchImpact({ speed: Number(data.sp) || speedOf(power), spot: guard ? 'guard' : zone });
+      hurt = { zone, power: imp.power, blocked: guard, amount: imp.damage, crit: imp.crit };
+      if (!guard) this.onImpact?.(imp.crit ? 0.9 : imp.power * 0.8);
+      if (!guard) this.onExchange?.(f.id, f.name);
+    }
+    const r = this.d.you.hurt(hurt);
     if (slap) {
       // You feel it: a loud smack right at your face, a red flare on that side, your head knocked the way their hand went.
       this.d.sound.playLocal('slap', Math.min(1.6, 0.9 + power * 0.7), 0.9 + power * 0.25);
@@ -299,7 +331,7 @@ export class Boxing {
       const cheek = data.cs === 0 || data.cs === 1 ? data.cs : turn.side;
       this.d.you.sting(cheek === 0 ? 'left' : 'right', power);
       this.d.player.jolt(turn.yaw, dir.x, dir.z, 0.015 + 0.025 * power);
-    } else this.d.sound.playLocal(blocked ? 'block' : 'punch', blocked ? 0.6 : 0.9);
+    } else this.d.sound.playLocal(hurt.blocked ? 'block' : 'punch', hurt.blocked ? 0.6 : 0.9);
     if (r.ko) {
       this.d.hud.toast(`${f.name} knocked you out!`, 'warn');
       this.d.session.emit('ouch', { hp: 0, ko: 1 });

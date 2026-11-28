@@ -5,6 +5,7 @@ import { arrangement, detectSections, plainArrangement, type Arrangement } from 
 import { TRACKS } from './party/setlist';
 import type { MeasuredTrack } from './party/beat';
 import { CROWD_SFX, renderCrowdSfx, type CrowdSfx } from './party/crowdsfx';
+import { FIGHT_SFX, renderFightSfx, type FightSfx } from './fight/fightsfx';
 
 /**
  * The game's sound. Most effects are synthesized in code at startup; a few
@@ -62,6 +63,7 @@ type SoundName =
   | 'munch'
   | 'adlib'
   | CrowdSfx
+  | FightSfx
   | SampleName;
 
 /** Recorded effects (public/audio/<name>.mp3) and the synthesized sound that stands in for each until it's loaded. */
@@ -91,7 +93,7 @@ function bell(f: number, t: number, decay = 0.4) {
   return (Math.sin(2 * Math.PI * f * t) + 0.35 * Math.sin(2 * Math.PI * f * 2.01 * t) + 0.15 * Math.sin(2 * Math.PI * f * 3.02 * t)) * env(t, 0.004, decay);
 }
 
-type Buffers = Record<Exclude<SoundName, SampleName | CrowdSfx>, AudioBuffer> & { variants: Partial<Record<SoundName, AudioBuffer[]>> };
+type Buffers = Record<Exclude<SoundName, SampleName | CrowdSfx | FightSfx>, AudioBuffer> & { variants: Partial<Record<SoundName, AudioBuffer[]>> };
 
 function buildBuffers(ctx: BaseAudioContext): Buffers {
   // One-pole filters, stateful per buffer.
@@ -565,7 +567,7 @@ const AMB_FLOOR = 0.115;
 /** The recorded room under the procedural floor (floor_loop.mp3), mixed low. */
 const AMB_ROOM = 0.06;
 
-const pick = (b: Buffers, name: Exclude<SoundName, SampleName | CrowdSfx>) => {
+const pick = (b: Buffers, name: Exclude<SoundName, SampleName | CrowdSfx | FightSfx>) => {
   const v = b.variants[name];
   return v ? v[Math.floor(Math.random() * v.length)] : b[name];
 };
@@ -635,6 +637,8 @@ export class Sound {
   private buffers: Buffers | null = null;
   private pool: THREE.PositionalAudio[] = [];
   muted = false;
+  /** The world's music (the casino's, the pool party's decks) under fight mode's music: a gain multiplier (main.ts sets it). */
+  worldDuck = 1;
 
   constructor(
     private scene: THREE.Scene,
@@ -684,7 +688,11 @@ export class Sound {
       const v = this.crowdVariants(name as CrowdSfx);
       return v[Math.floor(Math.random() * v.length)];
     }
-    return pick(this.ensure(), name as Exclude<SoundName, SampleName | CrowdSfx>);
+    if ((FIGHT_SFX as readonly string[]).includes(name)) {
+      const v = this.fightVariants(name as FightSfx);
+      return v[Math.floor(Math.random() * v.length)];
+    }
+    return pick(this.ensure(), name as Exclude<SoundName, SampleName | CrowdSfx | FightSfx>);
   }
 
   /** The concert crowd's sounds (party/crowdsfx.ts): synthesized the first time the party wants them. */
@@ -699,6 +707,22 @@ export class Sound {
         return b;
       });
       this.crowdBufs.set(name, v);
+    }
+    return v;
+  }
+
+  /** Fight mode's sounds (fight/fightsfx.ts): synthesized the first time a fight wants them. */
+  private fightBufs = new Map<FightSfx, AudioBuffer[]>();
+  private fightVariants(name: FightSfx): AudioBuffer[] {
+    let v = this.fightBufs.get(name);
+    if (!v) {
+      const ctx = this.listener.context;
+      v = renderFightSfx(name, ctx.sampleRate).map((d) => {
+        const b = ctx.createBuffer(1, d.length, ctx.sampleRate);
+        b.getChannelData(0).set(d);
+        return b;
+      });
+      this.fightBufs.set(name, v);
     }
     return v;
   }

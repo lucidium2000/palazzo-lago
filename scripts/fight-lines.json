@@ -1,0 +1,2860 @@
+{
+ "about": "Fight mode's new lines to record with ElevenLabs (eleven_v3: [tags] are performance directions, not words): the regulars who fight you, the regulars watching, your crew, your own voice, the slap reactions, and fight mode's own original announcer. Each take goes to public/voices/<voice>/<id>.mp3 and into public/voices/index.json (tools/voices/render_eleven.py does both; scripts/voice-lines.ts lists these in tools/voices/eleven-lines.json). The game picks a take up as soon as it is in the index; until then these lines are captions with wordless effort sounds (fighters) or synthesized stings (the announcer), never browser TTS.",
+ "newVoice": {
+  "el_announcer": {
+   "character": "Announcer",
+   "gender": "male",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American",
+   "note": "Not cast yet: el_announcer is in tools/voices/eleven-cast.json with its brief and no voice_id; run render_eleven.py --cast to pick one."
+  }
+ },
+ "takes": 316,
+ "uniqueLines": 298,
+ "voices": 19,
+ "lines": [
+  {
+   "id": "b7d3632a",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, drawn out] K.O.!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "07e65db9",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, ecstatic] Perfect!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "82446bad",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, explosive] Fight!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "b43b9d62",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, intense] Final round!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "3ee91179",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, triumphant] Dale wins!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "3785ee88",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, triumphant] Marcus wins!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "017778e0",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, triumphant] Priya wins!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "0874d692",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, triumphant] Rosa wins!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "a0deac0b",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, triumphant] Sal wins!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "2991fa4b",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, triumphant] Security wins!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "8caa45de",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, triumphant] Vinnie wins!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "bf403f6f",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming, triumphant] You win!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "ae9ffa1c",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming] Draw!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "27ba908a",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming] Fight over!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "eb07f104",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming] Round one!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "b21b6894",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming] Round three!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "e0a3d952",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming] Round two!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "e9a5a025",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming] Time!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "3a4e86f3",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming] Winner!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "767afb7e",
+   "voice": "el_announcer",
+   "character": "Announcer",
+   "gender": "male",
+   "context": "the arcade fighting-game announcer of fight mode (an original voice, deep and booming, big hype; heard over the HUD between rounds)",
+   "text": "[booming] You lose!",
+   "brief": "man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American"
+  },
+  {
+   "id": "843d4625",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[dry, loud] I'm filming this, so maybe win?",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "5fd32ff1",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[laughing] This is the best thing that's happened all trip!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "9931b17e",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[shouting] Duck! DUCK! Oh, you did not duck.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "27675f74",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[shouting] He's open! Why is he open and you're not hitting him?!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "01728ea7",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[yelling] Jab! Jab! The other jab!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "207a1ccc",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[consoling] Hey. You lasted longer than I would've.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "1ce3bf72",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[dry] Well. You tried. Physically.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "29dfe6fc",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[wincing] Oof. That's going in the slideshow.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "c3901d99",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[dry] Legend. Absolute legend. Still terrible form.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "42cdcdc8",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[shocked laugh] You actually won! I had money against you!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "ca60f500",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[shouting] Okay! Okay! I take back everything!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "e24e50a3",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[deadpan] Did you just slap me. In public.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "34be0d7c",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[dry] Wow. A slap. Very dramatic.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "25a11e6e",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[cheering] WOOO! You got this!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "8a45bccf",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[excited] Go, go, GO! I believe in you!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "a63c94ca",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[nervous] Oh my god. Oh my god. Keep your hands up!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "f4151e4c",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[shrieking] Get him! Get him! Oh no, don't get hurt!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "9beb42f2",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[yelling] Punch him! Gently! No, hard!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "a8bd18f7",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[gasps] Are you okay?! Say something!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "2aa3c3f5",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[teary] You were so brave, man. So brave.",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "4be2a42c",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[whimpering] I can't watch. I watched. I'm sorry.",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "561d792d",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[cheering] Best friend! Best friend in the world!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "3d1f9853",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[sobbing happily] That was so beautiful!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "bedc1d0e",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[squealing] YOU DID IT! I'm gonna cry!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "01e9c74a",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[whining] Hey! That's my face!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "b73decd0",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[yelping] Ow! You slapped me! Why?!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "d312114e",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[hyped] That's my boy! Get him!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "a42e8927",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[laughing, shouting] Oh, he's rattled! Finish it!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "a4b73b56",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[shouting] Hands up! HANDS UP!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "5c250512",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[shouting] Move your feet! Move your feet!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "38c0d10e",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew watching the player's fight, egging them on from the crowd (loud, over a crowd)",
+   "text": "[yelling] Go to the body! The body!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "82f861e5",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[consoling] Hey, hey. You went out swingin'. That counts.",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "229339c3",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[sighs] Alright, champ. Ice, then whiskey. In that order.",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "379d24cb",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just lost their fight (consoling, wincing)",
+   "text": "[wincing] Ohhh. Okay. Okay, we'll get 'em next time, buddy.",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "07ec7721",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[laughing] Champ! We got a champ over here!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "e6651b85",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[roaring] YEAHHH! That's what I'm talkin' about!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "dbfa2854",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "fight mode: your crew: the player just won their fight (cheering, ecstatic)",
+   "text": "[shouting] Drinks are on the champ tonight!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "ffbb91e3",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[laughing, outraged] Did you just SLAP me?! Oh, it's on!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "49517f14",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[shouting] A slap?! What are we, twelve?!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "ec33c58e",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[drawl] Keep your chin down, son!",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "60979c43",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[hollering] Yeehaw! Now that's a scrap!",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "a070e0a7",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[laughs] Haven't seen a dust-up like this since Abilene.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "ca621a59",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[groggy drawl] Lord have mercy. Where'd my hat go?",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "9dd8b43f",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[grunting] Ain't stayin' down. Ain't in my blood.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "9811b300",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[shaking it off] Whoo. Saw stars. Pretty ones.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "4eed8177",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[chuckles] Felt that one in your boots, didn't ya?",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "201f9dd5",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[drawl] Easy does it, son.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "14452676",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[grunts] That there's a Texas howdy.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "d2b3df10",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[satisfied] Mm-hm. Like bustin' a fence post.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "0872643b",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[drawl] Alright. Now I'm payin' attention.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "52234e6d",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[groans] Now that was uncalled for. But fair.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "56abeb82",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[grunts] Well, I'll be. You got some kick.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "a9a78308",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[pained] Whoo. That'll leave a mark on a man.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "1760ec80",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[drawl] You fight fair. I respect that.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "a97ceb21",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[groans] Well. Hats off to ya, son. Literally.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "5632d163",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[laughs, pained] Ain't been dropped like that since the rodeo.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "4d64cbe5",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[calm] Well. If we're doin' this, let's do it proper.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "59bc4218",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[low] Reckon you're about to learn somethin'.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "ca74373b",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[slow drawl] Son, I've wrestled steers meaner than you.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "42ccedd1",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[taking off hat] Hold my hat. This won't take long.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "a206840f",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[calm] Somebody fetch this boy some water.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "86eaa78c",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[chuckles] Told ya. Steers.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "1302859b",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[drawl] Shake it off, son. Ain't no shame in it.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "7e9c2414",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[rubbing jaw] Now that's just plain disrespectful.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "0fbcd5fb",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[slow, angry] Nobody slaps a Texan. Nobody.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "8c8cb658",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[stunned] Well, I'll be. Did you just slap me, son?",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "ae2734cd",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[cheering] Woo! Get him, babe!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "fa017443",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[shrieking, laughing] This is SO going on my story!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "cb972559",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[squealing] Oh my god! Oh my god! Fight!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "d5469187",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[crying out] On my bachelorette?! Seriously?!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "59883861",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[outraged] Girls! He just slapped me!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "81203692",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[shrieks] Oh my god! Did you just SLAP me?!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "00146d9a",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[amused] Oh, my. Rather a good one, that.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "ca6f586a",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[calling out] Do mind the carpet, dears!",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "3e5c5b06",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[dry] Well. This is livelier than baccarat.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "12febe6f",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[gasps] Did you just slap me, young man?!",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "907f6b4b",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[icy] In all my years. A slap.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "d72e4977",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[indignant] I have buried two husbands for less.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "6d2b6e14",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[excited] Oh my gosh! Okay! Go, go!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "07d7a62d",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[shouting] Careful! I'm a nurse, but I'm on vacation!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "ccd2a78d",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[wincing] Oh, gosh! That's gonna need ice!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "877c5f70",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[angry] Oh, you're lucky I'm off duty.",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "f15d122b",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[shocked] Ow! Did you just slap me?!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "0da0164d",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[stunned] What? Why would you slap a nurse?!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "607b198e",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[hyped] Ohhh! Fight! FIGHT!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "acb0b7f4",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[laughing] Somebody get this on camera!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "6489f16e",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[shouting] Ooh! He felt that one!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "0aa7cc95",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[dazed] Nobody post that. Nobody post that!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "e6eac14a",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[groggy] I'm good, I'm good. Where am I? Vegas. Right.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "c0cd63bf",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[shaking it off] Whoo! Okay! Round two, baby!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "46696183",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[cocky] You good? You good?",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "266b5276",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[hyped] Too quick! Too quick!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "0df575e8",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[laughing] Ayyy! Did you see that?!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "586737d5",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[shouting] That's for the bachelor party!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "85017732",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[groans] Oh, that went straight to my soul.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "a6895ea0",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[grunts] Ooh! Okay, that was real.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "c2f987d9",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[pained] Man! I have a toast to give tomorrow!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "8f096b1f",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[shouting] Okay! Okay! No more Mr. Nice Guy!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "7ec98d56",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[groans] Alright, man. You got that one. Good fight.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "3c19aa37",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[laughs weakly] Don't tell the groom. Please.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "0949df23",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[pained] My face is gonna be in every wedding photo like this.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "03128de1",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[bouncing] Okay, okay, I'm a lover, but I'm also a fighter!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "6a0c711a",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[hyped] The groom's gonna hear about this one!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "593db849",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[laughs] Oh, y'all seein' this? He really wants it!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "a1d6b9f6",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[shouting] Let's go, then! Bring it!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "a46794e8",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[breathing hard] Best man wins. Literally.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "20094aee",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[hyped] And the crowd goes wild!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "e13f0360",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[laughing] Somebody film that! Send it to the group chat!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "33159e48",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[laughing in disbelief] Bro. A slap? A SLAP?",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "8a7df9b6",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[outraged] In front of everybody?! Really?!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "d6a999d8",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[shocked] Yo! Did you just SLAP me?!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "3058b7bf",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[delighted] Ooh! Honey, this is better than the show!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "a802acd8",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[laughing] Somebody call the paparazzi!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "e506bc66",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[shouting] Hit him, sweetheart! Hit him!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "c3df089c",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[gasps] Did you just SLAP me, honey?!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "da1b1ee1",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[outraged] Oh, no. No, no, no. Not the face, sweetheart!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "4c27ff83",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[shrieks] You slapped a showgirl?! In this town?!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "c0d0c8c6",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[excited] Oh my god, this is happening!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "f122133f",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[fast] My money's on the one in front!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "31b6714b",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[shouting] Left hook! LEFT HOOK!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "09c28f3e",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[dazed] Did I lose consciousness? I'm billing someone for this.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "0a7baab0",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[groggy] I'm fine. I'm fine. That was a data point.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "5531bb24",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[shaking it off] Rebooting. Okay. Again.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "0589384e",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[breathing hard] Yeah. Process that.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "71018587",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[cold] Did you see that coming? No.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "aad36fc0",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[satisfied] That's a ninety-percent win rate, by the way.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "1e251480",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[sharp] Calculated.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "afb061ac",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[angry] Oh, you did NOT just do that!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "16d6e956",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[grunts] Ow! Okay, recalculating.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "add1db97",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[pained] Unbelievable. That actually landed.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "bd569bd3",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[sharp] Fine. Gloves off.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "f9259a06",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[annoyed, laughing] Fine. You win. Don't make it weird.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "a6598712",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[groans] Okay. Okay. That was not in the model.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "67e2e2ed",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[pained] I need to run a postmortem on that.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "4f5387f8",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[cold] Okay. Let's optimize your face.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "a0555249",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[cracks neck] Let's make this quick, I have a table waiting.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "41c49356",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[fast] I do Krav Maga on Tuesdays. Today feels like a Tuesday.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "46d1c89f",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[sharp] You really want to do this? Fine. I'm efficient.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "7d407655",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[breathing hard] And that's the quarterly results.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "7dc38a40",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[cold] Next time, read the room.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "d63be415",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[satisfied] Told you. Efficient.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "d0c32bd3",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[cold] Wow. That's assault. You know that, right?",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "9583cbbe",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[furious] Oh my god. You SLAPPED me.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "e1a6f1ca",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[shocked] Did you seriously just slap me?!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "aeec5979",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[appalled, excited] Good heavens! Have at him!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "01439d43",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[calling out] Queensberry rules, gentlemen! Queensberry rules!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "301a2895",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[exclaims] I say! Jolly good shot!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "76b59dc1",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[appalled] Did you just strike me with an open hand?!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "c9c18bfb",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[indignant] I demand satisfaction, sir!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "4b1006df",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[sputtering] A slap! How utterly barbaric!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "21544730",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[amused] Ay. Boys.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "f13a026f",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[calling out] Keep your guard up, mijo.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "6bc67817",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[cool] Mm. My money's on the quiet one.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "6bf78351",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[getting up] I'm not done. Deal again.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "f1417d71",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[groggy] Ay... the lights. Okay. Okay.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "f83fa4fb",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[shaking it off] Mm. That was a bad beat.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "d90df086",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[amused] Too slow, cariño.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "74746e6d",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[cool] Mm. Read you like a hand.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "87379cf5",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[laughs softly] You telegraph everything.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "822ea639",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[quiet] Again?",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "e5a7459c",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[angry] Que te pasa?! Okay. Okay.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "e083defe",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[grunts] Ay! Okay. Now I am awake.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "4b7ba205",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[hisses] Mm. Lucky.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "07187bce",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[pained] That's the only one you get.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "72212539",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[cool, hurt] Okay. Good hand. Don't get used to it.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "8f75f375",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[groans] Ay, Dios mio. Fine. Fine. You won.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "74ebe022",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[pained laugh] My brothers are going to love this.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "82912370",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[cool] Ay. You really want to do this here? Okay.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "e75236e2",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[low, amused] You came to the wrong table, mijo.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "fcc80589",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[quiet] I grew up with four brothers. Go ahead.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "6acdcd2d",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[smiles] I don't bluff.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "de620f6b",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[amused] House always wins.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "b71bc3ea",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[cool] Fold, mijo. Fold.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "85150da3",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[quiet] Go home. Ice it.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "7459f5c9",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[hisses] Que te pasa?! A slap?!",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "e4f09814",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[quiet fury] Ay. You slapped me. Okay.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "b635cbfc",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[very cold] Did you just slap me, mijo?",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "05998c8b",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[growls] Keep your hands up, ya bum!",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "b76ddf63",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[laughs] Reminds me of the Sands in seventy-two!",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "0284cb6d",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[shouting] Work the body! The body!",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "9596ba0e",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[groggy] Who turned the lights out? I wasn't finished.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "87d3bd1e",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[grunting] Up. Up. Not done yet.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "e4fd82c5",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[shakes it off] Ohh. That's the second set. Here we go.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "e9ccfb05",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[breathing hard] How was that for a high note?",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "2796b9bc",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[grunts] Still got it!",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "b4ced809",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[laughs] That's from the old days, kid.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "7338a3aa",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[snarls] Sit DOWN.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "9b8360bc",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[growls] You hit like a cocktail napkin.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "049147d0",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[grunts] Oof. Lucky shot.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "3a31b239",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[pained] Okay. Okay. That's one.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "f9e4f9f2",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[wheezing] Ohh, that one I felt.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "fc65a960",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[groans] Alright. Alright. You got me, kid.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "02f1676d",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[pained laugh] Ain't the first time I closed a show on the floor.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "20240d6e",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[wheezing] I need a drink. And a chiropractor.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "e1f84018",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[chuckles darkly] I used to sing in this room. Tonight I'm swingin'.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "bc9084f6",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[cracks knuckles] I've been thrown out of better joints than this, kid.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "f598ffe2",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[growls] Alright. Let's dance.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "985a0d3e",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[low, menacing] Forty years in this town. You wanna be my encore?",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "58c6b080",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[breathing hard] Show's over, kid. Tip the band.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "adc7b2f4",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[laughs] Told ya. Forty years.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "4a1cf070",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[satisfied] And that is how we did it in seventy-eight.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "646ce7f2",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[cold] You slapped me. You actually slapped me.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "93cfa1d9",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[growls] Kid. Nobody slaps Sal.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "1514bb22",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[low, menacing] That was the last mistake you make tonight.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "8d0a55e0",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[groggy] Alright. Alright. I'm up.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "5201bf09",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[grunting] Nobody saw that. Nobody.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "4628f0f6",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[shaking it off] Okay. Round two.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "adb2cefc",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[calm] I do this every night, pal.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "47a502e6",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[firm] That's enough.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "b96dcfa7",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[grunts] Stay down.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "23fd48d3",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[low] Easy. Easy.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "b774e541",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[angry] Now you're done.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "2d5f7e97",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[firm] That's assault on staff, pal.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "8e9006ef",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[grunts] Okay. You got one.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "468c8400",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[pained] Ohh. That was a mistake.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "a3831962",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[groaning] I don't get paid enough for this.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "665fa0f7",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[groans] Okay. Okay. Radioing for backup.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "406dbd85",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[pained] Not my night.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "4795a0a5",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[calm] Last chance, pal. Hands down.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "9b3fabc0",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[cracks knuckles] Okay. We do this my way now.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "a5962af9",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[firm] Alright. You want it the hard way.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "7457d3cd",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[low] You picked the wrong guy.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "920f5c8b",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[breathing hard] Every. Single. Night.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "1e9c339a",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[calm] It's over. Walk it off.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "300a4c28",
+   "voice": "el_security",
+   "character": "Security",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[firm] Somebody get him some water. Then the door.",
+   "brief": "man in his forties, deep, calm, firm, authoritative, American, a bouncer"
+  },
+  {
+   "id": "73b06057",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[excited] The odds just shifted! The odds just shifted!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "8bdb9722",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[nervous] Oh no. Oh no no no. Okay, that's kinda awesome.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "7d8dcabb",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[yelping] Whoa! Did you see that?!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "968ee0fd",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[squeaking] Did you just slap me?! Why?!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "8cf8c1b3",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[stunned] Ow! Okay! That was a slap! That was definitely a slap!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "d9d75530",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[whimpering] My face... Mom's never even slapped me.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "80ec66a4",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[laughing] Now THIS is entertainment!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "cbfdd110",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[shouting] Hey! Hey! Twenty bucks on the big guy!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "c2166692",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: a guest in the crowd around a fight in the casino, shouting and egging it on (excited, loud, over a crowd)",
+   "text": "[yelling] Uppercut! Uppercut!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "cd475676",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[dazed] Who's countin'? Stop countin'!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "ae426830",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[groggy] I'm up! I'm up! Where's my shoe?",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "b0c777e5",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: getting up off the floor after being knocked down, groggy, between rounds",
+   "text": "[shaking it off] Woo! Okay! That's a wake-up call!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "dcf705d4",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[excited] That's what I'm talkin' about!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "a5ebd528",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[laughing] Ha! Right on the button!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "36db1300",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[shouting] BOOM! You feel that, my friend?",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "95f0fade",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: just landed a punch on the player in a fight: cocky, breathing hard",
+   "text": "[yelling] Ohhh! Somebody get this guy a menu, 'cause he's eatin' that!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "55e3a409",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[groans] Whoa. Whoa. The room is spinning a little.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "6806f14a",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[grunts] Ow! Okay, okay, you got a little pop!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "16de3d07",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[pained] Ohh! My friend! Why so serious?",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "f57b4759",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: just took a punch from the player in a fight: winded, angry",
+   "text": "[shouting] Hey! Not the face, I got pictures tomorrow!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "073c54c4",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[dazed] Did anybody get the plate of that truck?",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "325f8324",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[groaning] Okay. You win. I need ice. And a cannoli.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "cbd76033",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: lost the fight against the player: sore, beaten, catching their breath",
+   "text": "[laughs weakly] Respect, my friend. Respect. Ow.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "69399bbb",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[fired up] Alright, alright! Everybody back up! Give us room!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "5f4d1742",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[laughing] Oh, this is gonna be beautiful. Somebody hold my watch!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "c10c378e",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[rolling up sleeves] This suit's Italian. These hands? Jersey.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "9b118666",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: squaring up to the player at the start of a fight (fists up, a crowd around)",
+   "text": "[shouting] You wanna go, my friend? Let's GO!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "aa40c5b5",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[breathing hard] No hard feelings, my friend. Okay, a few.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "b9733bce",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[laughing] And THAT'S why they comp my room, baby!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "8d18ad64",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "fight mode: won the fight against the player (the player is down or beaten): gloating",
+   "text": "[shouting] Drinks on me! Not for him, though!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "fa0362bb",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[holding cheek] Oh, you did NOT just do that, my friend.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "b44e81d5",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[outraged] A slap?! What is this, a soap opera?!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "a5782ce2",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "slapped across the face by the player (an open hand): shocked, outraged, holding their cheek",
+   "text": "[shocked] Did you just SLAP me? Me?!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "be1ba96b",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player getting back up after being knocked down, groggy",
+   "text": "[breathing hard] Not done yet.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "a1c19eee",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player getting back up after being knocked down, groggy",
+   "text": "[groggy] I'm up. I'm up.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "1ab4a5c3",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player getting back up after being knocked down, groggy",
+   "text": "[shaking it off] Whoa. Okay. Again.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "e13bfcbd",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just landed a punch in a fight",
+   "text": "[breathing hard] How'd that feel?",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "21a2d564",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just landed a punch in a fight",
+   "text": "[grunts] Yes!",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "b624dc92",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just landed a punch in a fight",
+   "text": "[laughs] Got you.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "15c6cc24",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just landed a punch in a fight",
+   "text": "[sharp] There it is.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "721605de",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just lost the fight",
+   "text": "[groans] Okay. You got me.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "adb31277",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just lost the fight",
+   "text": "[pained] Not my night.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "af81cd3a",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just took a punch in a fight",
+   "text": "[breathing hard] That's nothing.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "73d64401",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just took a punch in a fight",
+   "text": "[grunts] Ugh!",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "e8becc28",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just took a punch in a fight",
+   "text": "[pained] Okay. Okay.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "163064da",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just won the fight",
+   "text": "[breathing hard] And stay down.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "d8d1ea0f",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just won the fight",
+   "text": "[exhales] Good fight. Seriously.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "e1d8e6c9",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player just won the fight",
+   "text": "[laughs] That's the fight.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "dac71f55",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player squaring up for a fight (a crowd around)",
+   "text": "[confident] You sure about this?",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "243d54b3",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player squaring up for a fight (a crowd around)",
+   "text": "[exhales] Okay. Let's dance.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "9a907485",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player squaring up for a fight (a crowd around)",
+   "text": "[fists up] Come on, then.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "238aee41",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "fight mode: the player squaring up for a fight (a crowd around)",
+   "text": "[squaring up] Alright. Let's do this.",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "b17d9390",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player getting back up after being knocked down, groggy",
+   "text": "[breathing hard] Not done yet.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "dc1fb729",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player getting back up after being knocked down, groggy",
+   "text": "[groggy] I'm up. I'm up.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "44f840ba",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player getting back up after being knocked down, groggy",
+   "text": "[shaking it off] Whoa. Okay. Again.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "c6007f54",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just landed a punch in a fight",
+   "text": "[breathing hard] How'd that feel?",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "2b9432d3",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just landed a punch in a fight",
+   "text": "[grunts] Yeah!",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "40d9d02b",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just landed a punch in a fight",
+   "text": "[laughs] Got you.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "c6ce577b",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just landed a punch in a fight",
+   "text": "[sharp] There it is.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "00a26761",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just lost the fight",
+   "text": "[groans] Okay. You got me.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "b01e1a1c",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just lost the fight",
+   "text": "[pained] Not my night.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "c127dbed",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just took a punch in a fight",
+   "text": "[breathing hard] That's nothing.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "3be8f4a4",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just took a punch in a fight",
+   "text": "[grunts] Ugh!",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "6eb031d3",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just took a punch in a fight",
+   "text": "[pained] Okay. Okay.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "bccd6797",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just won the fight",
+   "text": "[breathing hard] And stay down.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "f1998a78",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just won the fight",
+   "text": "[exhales] Good fight. Seriously.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "fe3e5a42",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player just won the fight",
+   "text": "[laughs] That's the fight.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "03e4b90a",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player squaring up for a fight (a crowd around)",
+   "text": "[confident] You sure about this?",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "af011f8b",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player squaring up for a fight (a crowd around)",
+   "text": "[exhales] Okay. Dance with me.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "7898cbc4",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player squaring up for a fight (a crowd around)",
+   "text": "[fists up] Come on, then.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "93f90d48",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "fight mode: the player squaring up for a fight (a crowd around)",
+   "text": "[squaring up] Alright. Let's do this.",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  }
+ ]
+}

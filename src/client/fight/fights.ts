@@ -18,6 +18,13 @@ import type { Blow, Zone } from './health';
 import { You, KO_SECONDS } from './you';
 import { Bars, type OverheadBar } from './bars';
 import { slapSnap, touchLean, type FaceHit } from './slap';
+import { FightMode } from './mode';
+import { HitSparks } from './sparks';
+import { punchImpact, speedOf, type Impact, type Spot } from './impact';
+import { CREW_FIGHT, CROWD_FIGHT, FIGHTER_LINES, type CrewFight, type FightMoment } from './fightlines';
+import { MATCH_PHASES, type MatchEvent, type MatchPhase, type MatchSnap } from './rounds';
+import { decodeAudio } from '../musicload';
+import { CREW_VOICES } from '../speech';
 
 /**
  * Fights. Push people around, punch them, slap them, soak them, and they get
@@ -64,6 +71,10 @@ export interface FightsDeps {
   handsBusy(): boolean;
   /** The canvas (right-click to block). */
   canvas: HTMLElement;
+  /** Your character is a woman (your voice in a fight). */
+  playerFemale?: () => boolean;
+  /** Your name (on the power bars friends see). */
+  myName?: () => string;
 }
 
 /** Who started it locally, and the state of it. */
@@ -92,6 +103,10 @@ interface Local {
   warned: boolean;
   t: number;
   phase: Phase;
+  /** Fight mode: this fight is a best-of-three match (fight/rounds.ts). */
+  match: boolean;
+  /** Last time they said a fight line. */
+  lastLine: number;
 }
 
 /** A fight a friend is running, shown here. */
@@ -120,6 +135,8 @@ const AVATAR_GETUP = T.getup / 1.3;
 /** Numbers per fight in the published state (`fx`). */
 const FX = 10;
 const PUNCH_COOL = 0.35;
+/** A hook on a screen (G): harder, slower to throw again. */
+const HEAVY_COOL = 0.85;
 const rnd = () => Math.random();
 
 const DUTY_LINES = ['Security. Let’s keep it friendly, alright?', 'Easy. Hands down, take a walk.'];
@@ -167,9 +184,38 @@ export class Fights {
   private q = new THREE.Quaternion();
   private fxOut: number[] = [];
   /** A boxing match with a friend (net/boxing.ts) shows up in the bars too. */
-  boxing: { current(): { name: string; frac: number } | null; deskSlap(): boolean } | null = null;
+  boxing: { current(): { name: string; frac: number } | null; deskSlap(): boolean; their(id: string): number | null; setTheirs(id: string, hp: number): void } | null = null;
+  /** Fight mode: the match, the power bars, the announcer, the music (fight/mode.ts). */
+  readonly mode: FightMode;
+  private sparks: HitSparks;
+  /** The guest in the match you're running. */
+  private matchFoe: Local | null = null;
+  /** The friend in the match you're running (two players). */
+  private pvpFoe: { id: string; name: string; away: number } | null = null;
+  /** Fight mode's new-round health reset already done for (match id, round). */
+  private resetFor = '';
+  private crowdT = 6;
+  private crowdTurn = 0;
 
   constructor(private d: FightsDeps) {
+    this.mode = new FightMode({
+      sound: d.sound,
+      camera: d.camera,
+      scene: d.scene,
+      inXR: () => d.player.inXR,
+      feet: () => d.player.feet(),
+      selfId: () => this.session?.selfId ?? null,
+      emit: (k, x) => this.session?.emit(k, x),
+      playerFemale: () => d.playerFemale?.() ?? false,
+      music: () => {
+        const l = d.sound.listener;
+        if (!l || l.context.state !== 'running') return null;
+        return { ctx: l.context, out: l.getInput(), load: () => decodeAudio('fight', Math.min(44100, l.context.sampleRate)) };
+      },
+      myHp: () => this.you.health.fraction,
+    });
+    this.mode.onCall = (ph, snap, fighter) => this.onCall(ph, snap, fighter);
+    this.sparks = new HitSparks(d.scene);
     this.you = new You({
       camera: d.camera,
       listener: d.sound.listener,
@@ -316,13 +362,30 @@ export class Fights {
    * A punch (or a slap) of yours landed on someone: in VR your fist (bodies.ts),
    * on a screen F / a click. `v` is the hand's velocity (world).
    */
-  hitPerson(p: Person, power: number, zone: Zone, v: THREE.Vector3, slap = false, cheek?: 0 | 1) {
+  hitPerson(p: Person, power: number, zone: Zone, v: THREE.Vector3, slap = false, cheek?: 0 | 1, opts: { speed?: number; at?: THREE.Vector3 } = {}) {
     if (this.you.out || p.driven) return;
     this.lastAttack = this.time;
-    const blow: Blow = { zone, power, slap };
     const lf = this.local.get(p);
     const rf = this.remoteBy.get(p);
-    let blocked = false;
+    // Fight mode: before the bell and between rounds, punches don't count.
+    if (lf?.match && !this.mode.hostedMatch?.live) {
+      this.d.sound.play('block', this.headOf(p, this.v1), { volume: 0.4 });
+      return;
+    }
+    // A punch: its damage from the fist's speed and where it met them (impact.ts); a slap stays a slap.
+    let imp: Impact | null = null;
+    const blow: Blow = { zone, power, slap };
+    if (!slap) {
+      const spot: Spot = opts.at && this.onGloves(p, opts.at) ? 'guard' : zone;
+      imp = punchImpact({ speed: opts.speed ?? speedOf(power), spot });
+      blow.power = Math.max(imp.power, 0.1);
+      blow.amount = imp.damage;
+      blow.stagger = imp.stagger;
+      blow.crit = imp.crit;
+      if (spot === 'guard') blow.blocked = true;
+      power = blow.power;
+    }
+    let blocked = !!blow.blocked;
     if (lf) {
       const r = lf.brawl.hit(blow, rnd);
       blocked = r.blocked;
@@ -335,14 +398,27 @@ export class Fights {
       // Not fighting (yet).
       p.gaspT = Math.max(p.gaspT, slap ? 0.8 : 1);
     }
-    this.hitFx(p, zone, power, v, blocked, slap, cheek);
+    this.hitFx(p, zone, power, v, blocked, slap, cheek, imp);
+    if (imp && lf) {
+      // Big ones: a freeze of a couple of frames, the bars shake, a crack on a crit, a rumble in your hands.
+      if (!blocked) this.mode.impact(imp.crit ? 1 : imp.power);
+      if (imp.crit && !blocked) {
+        this.d.sound.play('crack', this.headOf(p, this.v1), { volume: 0.9 });
+        this.d.haptic('left', 0.9, 90);
+        this.d.haptic('right', 0.9, 90);
+        if (lf.match) this.d.hud.toast('Critical hit!', 'win');
+      }
+      if (lf.match && !blocked && Math.random() < 0.3) this.mode.say('land');
+    }
     if (slap && !blocked) {
       // Shocked: they stare at you (and their temper shows).
       p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + 3);
       p.angry = Math.max(p.angry, 0.4 + 0.4 * power);
     }
-    // Out loud.
-    if (!lf || this.time - lf.lastYell > 4) {
+    // Out loud (in a match: their fight lines; else the usual).
+    if (lf?.match && !slap) {
+      if (!blocked && !lf.brawl.down) this.fighterLine(lf, 'hurt', 0.45);
+    } else if (!lf || this.time - lf.lastYell > 4) {
       if (lf) lf.lastYell = this.time;
       if (blocked)
         this.d.sound.play('gasp', this.headOf(p, this.v1), {
@@ -353,7 +429,7 @@ export class Fights {
       // A slap gets the outraged "ouch" (recorded lines only); a feeble one a "hey!".
       else if (slap && power < 0.3) {
         if (this.d.react(p, 'pushed') <= 0) this.d.sound.play('gasp', this.headOf(p, this.v1), { volume: 0.7, rate: 1.15 });
-      } else this.d.react(p, 'punched');
+      } else this.d.react(p, slap ? 'slapped' : 'punched');
     } else if (!blocked)
       this.d.sound.play('gasp', this.headOf(p, this.v1), {
         volume: 0.6,
@@ -410,7 +486,7 @@ export class Fights {
   }
 
   /** What a blow looks and sounds like on someone: the thud (or the clap), the head turning, a red cheek. */
-  private hitFx(p: Person, zone: Zone, power: number, v: THREE.Vector3, blocked: boolean, slap: boolean, cheek?: 0 | 1) {
+  private hitFx(p: Person, zone: Zone, power: number, v: THREE.Vector3, blocked: boolean, slap: boolean, cheek?: 0 | 1, imp: Impact | null = null) {
     const at = zone === 'head' ? this.headOf(p, this.v2) : this.v2.set(p.pos.x, p.pos.y + 1.2 * (p.look.height / 1.75), p.pos.z);
     if (slap && !blocked)
       // A smack: louder, sharper and carrying further the harder it lands.
@@ -420,15 +496,22 @@ export class Fights {
         volume: slap ? 0.9 + power * 0.5 : 0.8 + power * 0.6,
         rate: (slap ? 1.0 : 0.85) + Math.random() * 0.15,
       });
+    if (!slap) this.sparks.burst(at, v, blocked ? 'block' : imp?.crit ? 'crit' : 'hit');
     if (blocked) {
       this.remoteBy.get(p)?.puppet.blockNow();
+      // Even a blocked one moves them a little (momentum through the gloves).
+      if (imp && this.fighting(p)) this.knock(p, v, imp.push);
       return;
     }
     if (p.fight?.down) return;
-    // A fighter flinches (head snapped back, or doubled over).
+    // A fighter flinches (head snapped back, or doubled over), the body giving the way the punch went.
     if (p.fight && !slap) {
       p.fight.hitT = 0;
       p.fight.hitZone = zone;
+      const l = Math.hypot(v.x, v.z) || 1;
+      p.fight.hitX = v.x / l;
+      p.fight.hitZ = v.z / l;
+      p.fight.hitPow = imp ? Math.min(1, 0.35 + imp.energy * 0.6) : 0.3 + 0.5 * power;
     }
     // Which way the hand went, across their face: their right is (-cos yaw, sin yaw).
     const across = -v.x * Math.cos(p.yaw) + v.z * Math.sin(p.yaw);
@@ -449,14 +532,31 @@ export class Fights {
       }
     }
     p.gaspT = Math.max(p.gaspT, slap ? 0.6 : 0.8);
-    // A fighter rocks back a little (the fight handles where they stand).
-    if (this.fighting(p) && !slap) {
-      const l = Math.hypot(v.x, v.z) || 1;
-      const k = 0.08 + 0.12 * power;
-      const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, (v.x / l) * k, (v.z / l) * k, 0.22, true);
-      p.pos.x = nx;
-      p.pos.z = nz;
+    // A fighter is knocked back by it (the fight handles where they stand), never through a wall.
+    if (this.fighting(p) && !slap) this.knock(p, v, imp ? imp.push : 0.08 + 0.12 * power);
+  }
+
+  /** Knock-back along the punch (horizontal), `d` metres, stopped by walls (world.move). */
+  private knock(p: Person, v: THREE.Vector3, d: number) {
+    const l = Math.hypot(v.x, v.z);
+    if (l < 1e-4 || d <= 0) return;
+    const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, (v.x / l) * d, (v.z / l) * d, 0.22, true);
+    p.pos.x = nx;
+    p.pos.z = nz;
+  }
+
+  /** Did a fist meet their gloves (held up in front of the face) rather than them? */
+  private onGloves(p: Person, at: THREE.Vector3) {
+    const f = p.fight;
+    const b = p.rig?.bones;
+    if (!f || !b || (f.guard < 0.5 && f.block < 0.3) || f.down > 0.2) return false;
+    for (const n of ['WristL', 'WristR', 'HandL', 'HandR']) {
+      const w = b[n];
+      if (!w) continue;
+      w.getWorldPosition(this.v3);
+      if (this.v3.distanceTo(at) < (f.block > 0.3 ? 0.13 : 0.09)) return true;
     }
+    return false;
   }
 
   /** The guest you're fighting took one. */
@@ -512,9 +612,12 @@ export class Fights {
       warned: false,
       t: 0,
       phase: brawl.phase,
+      match: false,
+      lastLine: -99,
     };
     this.local.set(p, f);
     p.fight = fightPose();
+    if (!talker && !quiet && p.role !== 'guard') this.startMatch(f);
     this.dropProp(p);
     p.angry = 1;
     p.pause = 0;
@@ -600,9 +703,256 @@ export class Fights {
   }
 
   private end(f: Local) {
+    if (f === this.matchFoe) this.mode.abortHosted();
     this.local.delete(f.p);
     this.restore(f.p, f.home);
     this.session?.emit('fge', { i: f.idx });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fight mode: the match (rounds.ts, mode.ts)
+  // ---------------------------------------------------------------------------
+
+  /** A guest's fight becomes a best-of-three match (unless you're already in one). */
+  private startMatch(f: Local) {
+    if (this.mode.hostedMatch || this.mode.mine()) return;
+    const self = this.session?.selfId ?? 'me';
+    const m = this.mode.host(
+      { id: this.mode.me(), name: this.d.myName?.() ?? 'Player' },
+      { id: `n:${self}:${f.idx}`, name: f.name },
+      [
+        { hp: () => this.you.health.fraction, down: () => this.you.out, up: () => !this.you.out },
+        { hp: () => f.brawl.health.fraction, down: () => f.brawl.phase === 'ko', up: () => f.brawl.phase !== 'ko' && f.brawl.phase !== 'getup' },
+      ],
+      () => {
+        const a = this.d.player.feet();
+        return { x: (a.x + f.p.pos.x) / 2, z: (a.z + f.p.pos.z) / 2 };
+      },
+      (e) => this.matchEvent(f, e),
+    );
+    if (!m) return;
+    f.match = true;
+    f.brawl.hold = true;
+    f.brawl.afterGetup = 'square';
+    f.brawl.lie = 1.6;
+    this.matchFoe = f;
+  }
+
+  /** The match you're running with a guest moves on: what the guest does about it. */
+  private matchEvent(f: Local, e: MatchEvent) {
+    const b = f.brawl;
+    switch (e.k) {
+      case 'fight':
+        b.hold = false;
+        break;
+      case 'round':
+      case 'ko':
+      case 'time':
+        b.hold = true;
+        break;
+      case 'reset':
+        b.health.reset();
+        if (b.phase === 'leave' || b.phase === 'flee') b.show('guard');
+        break;
+      case 'result': {
+        b.hold = true;
+        b.afterGetup = 'leave';
+        const won = e.winner === 1;
+        if (e.winner !== 2) setTimeout(() => this.fighterLine(f, won ? 'win' : 'lose', 1), 1300);
+        if (e.winner === 0) {
+          this.d.crew.react('bigwin', { force: true, cheer: true });
+          this.d.crowd.react(f.p.pos, 8, 'cheer');
+        }
+        break;
+      }
+      case 'over':
+        f.match = false;
+        b.hold = false;
+        b.afterGetup = 'leave';
+        if (this.matchFoe === f) this.matchFoe = null;
+        if (!b.over && !b.down && b.phase !== 'getup') b.show('leave');
+        this.angerOf(f.p).vent(0.2);
+        break;
+    }
+  }
+
+  /** Each frame: two-player matches' ends, the new round's health, the crowd. */
+  private matchTick(dt: number) {
+    // A friend's match you run: over if they've left the room or walked off.
+    const pv = this.pvpFoe;
+    const hm = this.mode.hostedMatch;
+    if (pv && hm && hm.on) {
+      const fr = this.session?.friendList().find((x) => x.id === pv.id);
+      const me = this.d.player.feet();
+      const far = !fr?.person || Math.hypot(fr.person.pos.x - me.x, fr.person.pos.z - me.z) > 9;
+      pv.away = far ? pv.away + dt : 0;
+      if (pv.away > 3) this.mode.abortHosted();
+    }
+    if (pv && !hm) this.pvpFoe = null;
+    // A new round: you're back to full (the one running it resets the guest; each player resets themself).
+    const m = this.mode.mine();
+    if (m && MATCH_PHASES[m.ph] === 'round' && m.r > 1) {
+      const key = `${m.id}:${m.r}`;
+      if (key !== this.resetFor && !this.you.out) {
+        this.resetFor = key;
+        this.you.health.reset();
+      }
+    }
+    // The crowd eggs it on: your crew, the regulars watching.
+    if (m && MATCH_PHASES[m.ph] === 'live') {
+      this.crowdT -= dt;
+      if (this.crowdT <= 0) {
+        this.crowdT = 6 + Math.random() * 5;
+        this.eggOn(m);
+      }
+    } else this.crowdT = Math.min(this.crowdT, 4);
+  }
+
+  /** A call in the match on show (mode.ts): the fighters and the crowd react. */
+  private onCall(ph: MatchPhase, s: MatchSnap, fighter: boolean) {
+    const at = this.v3.set(s.x, 0, s.z);
+    const foe = this.matchFoe && s.id === this.mode.hostedMatch?.id ? this.matchFoe : null;
+    switch (ph) {
+      case 'intro':
+        this.d.crowd.react(at, 7, 'gasp');
+        if (foe) setTimeout(() => this.fighterLine(foe, 'taunt', 1), 900);
+        break;
+      case 'fight':
+        if (fighter) this.d.crowd.react(at, 7, 'cheer');
+        break;
+      case 'ko':
+        this.d.crowd.react(at, 8, 'gasp');
+        break;
+      case 'result':
+        if (fighter) {
+          const mine = s.a.id === this.mode.me() ? 0 : 1;
+          if (s.win !== 2) setTimeout(() => this.crewLine(s.win === mine ? 'youWin' : 'youLose'), 2200);
+        } else this.d.crowd.react(at, 8, 'cheer');
+        break;
+    }
+  }
+
+  /** A fighter's line (fightlines.ts), in their voice; until it's recorded, a caption and an effort sound. */
+  private fighterLine(f: Local, moment: FightMoment, chance = 1) {
+    const p = f.p;
+    if (Math.random() > chance || this.time - f.lastLine < (moment === 'hurt' || moment === 'land' ? 4 : 1.2)) return;
+    const id = p.role === 'guard' ? 'security' : this.temperId(p);
+    const pool = FIGHTER_LINES[id]?.[moment];
+    if (!pool?.length) return;
+    f.lastLine = this.time;
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    const [voice, alt] = p.role === 'guard' ? ['el_security', 'el_security'] : this.d.dialogue.voicesOf(p);
+    this.fightTalk(p, f.name, text, voice, alt, moment === 'hurt' ? 'oof' : moment === 'land' ? 'grunt' : null);
+    this.session?.emit('fgv', { i: f.idx, t: text, v: voice, a: alt });
+  }
+
+  /** Says a fight line: the take if there is one; else the caption (and an effort sound for a grunt-y moment). Never the browser voice. */
+  private fightTalk(p: Person, who: string, text: string, voice: VoiceId, alt: VoiceId, effort: 'grunt' | 'oof' | null) {
+    const recorded = voices.has(voice, text) || voices.has(alt, text);
+    if (!recorded && effort) this.d.sound.play(effort, this.headOf(p, this.v2), { volume: 0.6, rate: this.pitchOf(p) });
+    const dur = voices.talk({ who, text, voice, alt, at: mouthOf(p), priority: true, group: 'fight', volume: 1.4, recordedOnly: true, captionFallback: !effort || recorded });
+    this.d.crowd.speak(p, recorded ? dur : Math.min(dur, 1.2));
+  }
+
+  /** Your crew in the crowd (the nearest of them, if they're close enough to see it). */
+  private crewLine(kind: CrewFight): boolean {
+    const me = this.d.player.feet();
+    const near = this.d.crew.buddies.filter((b) => Math.hypot(b.person.pos.x - me.x, b.person.pos.z - me.z) < 14);
+    if (!near.length) return false;
+    const b = near[Math.floor(Math.random() * near.length)];
+    const id = 'crew_' + b.name.toLowerCase();
+    const pool = CREW_FIGHT[id]?.[kind];
+    if (!pool?.length) return false;
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    const k = ['rocco', 'dev', 'mikey'].indexOf(b.name.toLowerCase());
+    const alt = CREW_VOICES[Math.max(0, k)];
+    if (kind !== 'egg' || voices.has('el_' + id, text)) {
+      voices.talk({ who: b.name, text, voice: 'el_' + id, alt, at: mouthOf(b.person), priority: true, group: 'crew-fight', volume: 1.2, recordedOnly: true, captionFallback: kind !== 'egg' });
+      this.d.crowd.speak(b.person, 1.5);
+    }
+    b.person.cheer = Math.max(b.person.cheer, 1.6);
+    return true;
+  }
+
+  /** Someone in the crowd eggs the fight on: your crew, or a regular watching. */
+  private eggOn(s: MatchSnap) {
+    this.crowdTurn++;
+    if (this.crowdTurn % 2 === 1 && this.crewLine('egg')) return;
+    const at = this.v3.set(s.x, 0, s.z);
+    let best: Person | null = null,
+      bd = 9;
+    for (const p of this.d.crowd.people) {
+      if (p.culled || p.driven || p.fight || p.performer || p.role === 'buddy' || p.role === 'guard' || this.isStaff(p)) continue;
+      const dd = Math.hypot(p.pos.x - at.x, p.pos.z - at.z);
+      if (dd < bd && dd > 1.2 && Math.random() < 0.7) {
+        bd = dd;
+        best = p;
+      }
+    }
+    this.d.crowd.react(at, 7, 'cheer');
+    if (!best) return;
+    const ch = this.d.dialogue.character(best);
+    const pool = CROWD_FIGHT[ch.id];
+    if (!pool?.length) return;
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    const [voice, alt] = this.d.dialogue.voicesOf(best);
+    // Recorded: they shout it. Not yet: a cheer and their arms up (no caption: it's crowd noise).
+    if (voices.has(voice, text) || voices.has(alt, text)) {
+      const dur = voices.talk({ who: ch.name, text, voice, alt, at: mouthOf(best), volume: 1.2, recordedOnly: true, captionFallback: false });
+      this.d.crowd.speak(best, dur);
+    }
+    best.cheer = Math.max(best.cheer, 1.8);
+  }
+
+  /** Higher voices for the women (the effort sounds). */
+  private pitchOf(p: Person) {
+    const fem = (p.look.kind ?? '').startsWith('female') || !!p.look.dress;
+    return (fem ? 1.45 : 0.95) + Math.random() * 0.1;
+  }
+
+  /** Your hands up by your face (VR: a wrist within a hand's breadth of your face; screen: blocking). */
+  guardUp(): boolean {
+    if (!this.d.player.inXR) return this.blocking;
+    const head = this.d.camera.getWorldPosition(this.headV);
+    let n = 0;
+    for (const s of ['left', 'right'] as const) {
+      const w = this.d.hands.wrist(s);
+      if (w && w.distanceTo(head) < 0.26 && w.y > head.y - 0.22) n++;
+    }
+    return n >= 1;
+  }
+
+  /**
+   * You and a friend traded a punch (boxing.ts, either way): it becomes a
+   * match. The lower id of the two runs it; the other follows its snapshots.
+   */
+  pvpExchange(friendId: string, name: string) {
+    const self = this.session?.selfId;
+    if (!self || this.mode.versus(friendId) || this.mode.mine() || this.mode.busy('p:' + friendId) || this.matchFoe) return;
+    if (self > friendId) return;
+    const their = () => (this.boxing?.their(friendId) ?? 100) / 100;
+    const m = this.mode.host(
+      { id: this.mode.me(), name: this.d.myName?.() ?? 'Player' },
+      { id: 'p:' + friendId, name },
+      [
+        { hp: () => this.you.health.fraction, down: () => this.you.out, up: () => !this.you.out },
+        { hp: their, down: () => their() <= 0, up: () => their() > 0 },
+      ],
+      () => {
+        const a = this.d.player.feet();
+        const fp = this.session?.friendList().find((x) => x.id === friendId)?.person?.pos ?? a;
+        return { x: (a.x + fp.x) / 2, z: (a.z + fp.z) / 2 };
+      },
+      (e) => {
+        if (e.k === 'reset') this.boxing?.setTheirs(friendId, 100);
+      },
+    );
+    if (m) this.pvpFoe = { id: friendId, name, away: 0 };
+  }
+
+  /** Punches between you and this friend count right now (fight mode: not before the bell, not between rounds). */
+  gate(friendId: string) {
+    return this.mode.gate(friendId);
   }
 
   // ---------------------------------------------------------------------------
@@ -614,6 +964,12 @@ export class Fights {
     if (this.guards.some((g) => this.local.has(g) || this.remoteBy.has(g))) return;
     const name = this.nameOf(caller);
     this.d.hud.toast(`${name} called security!`, 'warn');
+    // Security on the way: the match is off.
+    if (this.matchFoe) {
+      const foe = this.matchFoe;
+      this.mode.abortHosted();
+      if (!foe.brawl.down && foe.brawl.phase !== 'getup') foe.brawl.show('leave');
+    }
     // They yell for it, in their own voice.
     this.d.react(caller, 'security');
     // They walk over from a few steps away (not out of thin air in front of you).
@@ -646,6 +1002,7 @@ export class Fights {
     if (e.target instanceof HTMLInputElement || this.d.player.inXR) return;
     if (e.code === 'KeyH') this.blockKey = true;
     if (e.code === 'KeyF' && !e.repeat && !this.d.handsBusy()) this.deskPunch();
+    if (e.code === 'KeyG' && !e.repeat && !this.d.handsBusy() && this.active) this.deskPunch(true);
     if (e.code === 'KeyY' && !e.repeat && this.d.player.seated?.id !== 'piano') this.deskSlap();
   };
 
@@ -701,9 +1058,9 @@ export class Fights {
   }
 
   /** A jab at whoever is right in front of you (F, a click in a fight, the Punch button). */
-  deskPunch() {
+  deskPunch(heavy = false) {
     if (this.you.out || this.deskCool > 0) return;
-    this.deskCool = PUNCH_COOL;
+    this.deskCool = heavy ? HEAVY_COOL : PUNCH_COOL;
     const p = this.target(1.25);
     this.session?.emit('jab', { s: Math.random() < 0.5 ? 'l' : 'r' });
     if (!p) {
@@ -717,8 +1074,10 @@ export class Fights {
     this.v1
       .set(p.pos.x - me.x, 0, p.pos.z - me.z)
       .normalize()
-      .multiplyScalar(3);
-    this.hitPerson(p, 0.65, pitch > -0.25 ? 'head' : 'body', this.v1);
+      .multiplyScalar(heavy ? 6 : 4);
+    // A jab's about 4 m/s at the fist, a thrown hook (G) a good deal more.
+    const speed = heavy ? 6 + Math.random() * 0.8 : 3.9 + Math.random() * 0.8;
+    this.hitPerson(p, 0.65, pitch > -0.25 ? 'head' : 'body', this.v1, false, undefined, { speed });
   }
 
   /** Someone to slap on a screen: a guest right in front of you (null if there's no one). */
@@ -761,14 +1120,27 @@ export class Fights {
     this.d.hud.toast('Knocked out!', 'warn');
     this.d.crowd.react(this.d.player.feet(), 6, 'gasp');
     this.session?.emit('fgk', { i: -99, w: 'p' });
-    // Whoever did it has won: they walk off.
-    for (const f of this.local.values()) if (!f.brawl.over && !f.brawl.down) f.brawl.show('leave');
+    // Whoever did it has won: they walk off (in a match, only once the match is theirs).
+    for (const f of this.local.values()) {
+      if (f.match) {
+        f.brawl.hold = true;
+        this.fighterLine(f, 'land', 1);
+        continue;
+      }
+      if (!f.brawl.over && !f.brawl.down) f.brawl.show('leave');
+    }
   }
 
   private cameRound() {
+    this.session?.emit('fgk', { i: -99, w: 'u' });
+    // In a match: back on your feet for the next round.
+    const m = this.mode.mine();
+    if (m && MATCH_PHASES[m.ph] !== 'result' && MATCH_PHASES[m.ph] !== 'over') {
+      this.mode.say('getup');
+      return;
+    }
     this.d.hud.toast('You got rocked, buddy. Take a breather.', 'info');
     this.d.crew.react('bigloss', { force: true });
-    this.session?.emit('fgk', { i: -99, w: 'u' });
   }
 
   /** Hands down (VR: both wrists below your chin; screen: not blocking) and not throwing anything. */
@@ -799,7 +1171,22 @@ export class Fights {
   // Every frame
   // ---------------------------------------------------------------------------
 
-  update(dt: number) {
+  /** The people's clock in a fight (fight mode's slow-motion beat and hit-stop; main.ts slows the crowd by it). Never your view. */
+  get timeScale() {
+    return this.mode.timeScale;
+  }
+
+  /** The world's music level multiplier (fight mode's music ducks it). */
+  get musicDuck() {
+    return this.mode.duck;
+  }
+
+  update(rawDt: number) {
+    // The fight runs on the people's clock (slow motion on a knockout); the match, HUD and music on real time.
+    this.mode.update(rawDt);
+    this.sparks.update(rawDt);
+    this.matchTick(rawDt);
+    const dt = rawDt * this.mode.timeScale;
     this.time += dt;
     this.deskCool = Math.max(0, this.deskCool - dt);
     for (const [p, a] of this.anger) {
@@ -846,10 +1233,15 @@ export class Fights {
     if (ev === 'windup') {
       f.zone = b.head ? 'head' : 'body';
       f.aimLocked = false;
+      // The effort of it (a wordless grunt; their own recorded lines are for words).
+      if (f.match && Math.random() < 0.55) this.d.sound.play('grunt', this.headOf(p, this.v2), { volume: 0.45, rate: this.pitchOf(p) });
     } else if (ev === 'impact') this.impact(f, head);
     else if (ev === 'ko') {
       /* counted in afterHit */
+    } else if (ev === 'getup') {
+      if (f.match) this.fighterLine(f, 'getup', 1);
     } else if (ev === 'giveup') {
+      if (f === this.matchFoe) this.mode.abortHosted();
       this.d.hud.toast(this.you.out ? `${f.name} walks off` : `${f.name} lets it go`, 'info');
       this.angerOf(p).vent(0.3);
     }
@@ -986,14 +1378,26 @@ export class Fights {
       });
       return;
     }
-    const blocked = this.guarded(f.aim, at);
-    const power = 0.6 + Math.random() * 0.35;
+    // Your gloves in the way of it, or held up by your face: a block.
+    const blocked = this.guarded(f.aim, at) || this.guardUp();
+    // Their punch, from its speed (a hook and a cross carry more than a jab) and their strength.
+    const mv = f.brawl.move;
+    const speed = (mv === 'jab' ? 4.4 : mv === 'cross' ? 5.3 : 5.6) + Math.random() * 0.9;
+    const imp = punchImpact({ speed, spot: blocked ? 'guard' : f.zone, strength: f.temper.power });
+    const power = imp.power;
     const r = this.you.hurt({
       zone: f.zone,
       power,
       blocked,
       strength: f.temper.power,
+      amount: imp.damage,
+      crit: imp.crit,
     });
+    if (!blocked) this.mode.impact(imp.crit ? 0.9 : imp.power * 0.8);
+    if (f.match && !r.ko) {
+      if (!blocked && Math.random() < 0.3) this.mode.say('hurt');
+      else if (!blocked) this.fighterLine(f, 'land', 0.3);
+    }
     this.d.sound.playLocal(blocked ? 'block' : 'punch', blocked ? 0.7 : 1, 0.85 + Math.random() * 0.15);
     if (!blocked && f.zone === 'head' && !r.ko && Math.random() < 0.3) this.d.hud.toast(`${f.name} rocks you!`, 'warn');
     this.session?.emit('fgh', {
@@ -1003,8 +1407,8 @@ export class Fights {
       p: r2(power),
       b: blocked ? 1 : 0,
     });
-    // Losing badly: one of the boys comes over.
-    if (this.you.health.fraction < 0.4 && !this.peacemaker && !r.ko) this.callBuddy(f);
+    // Losing badly: one of the boys comes over (not in a match: they're cheering you on).
+    if (this.you.health.fraction < 0.4 && !this.peacemaker && !r.ko && !f.match) this.callBuddy(f);
   }
 
   /** Line in their own voice (a recorded angry one), and the same on friends' machines. */
@@ -1031,6 +1435,8 @@ export class Fights {
       priority: true,
       group: 'react',
       volume: 1.4,
+      // (Never the browser voice: a line with no take is a caption.)
+      recordedOnly: true,
     });
     this.d.crowd.speak(p, dur);
   }
@@ -1141,7 +1547,9 @@ export class Fights {
     const box = this.boxing?.current() ?? null;
     if (box && !opp) opp = box;
     const mine = this.active || box || this.you.health.hp < this.you.health.max - 0.5 ? this.you.health.fraction : null;
-    this.bars.update(this.d.player.inXR, mine, opp, heads);
+    // Fight mode's power bars take over while a match is on show.
+    if (this.mode.show) this.bars.update(this.d.player.inXR, null, null, heads);
+    else this.bars.update(this.d.player.inXR, mine, opp, heads);
   }
 
   // ---------------------------------------------------------------------------
@@ -1156,9 +1564,11 @@ export class Fights {
     session.extraState = () => ({
       ...(prev?.() ?? {}),
       fx: this.fx(),
+      fm: this.mode.snapshot(),
       fh: this.active || this.you.health.hp < 99.5 ? Math.round(this.you.health.hp) : null,
     });
     session.on('fgs', (f, d) => this.onStart(f, d));
+    session.on('fmx', (_f, d) => this.mode.onSnap(d));
     session.on('fge', (f, d) => {
       const r = this.remote.get(`${f.id}:${Math.round(Number(d.i))}`);
       if (r) this.dropRemote(r);
@@ -1343,6 +1753,7 @@ export class Fights {
     if (!s) return;
     const seen = new Set<string>();
     for (const fr of s.friendList()) {
+      if (fr.state.fm) this.mode.onSnap(fr.state.fm);
       const a = fr.state.fx;
       if (!Array.isArray(a)) continue;
       for (let k = 0; k + FX - 1 < a.length; k += FX) {
@@ -1448,6 +1859,8 @@ export class Fights {
     this.d.canvas.removeEventListener('contextmenu', this.onContext);
     this.bars.dispose();
     this.you.dispose();
+    this.mode.dispose();
+    this.sparks.dispose();
   }
 }
 

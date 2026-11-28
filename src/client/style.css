@@ -1082,6 +1082,40 @@ body.listening #replies::before {
   background: linear-gradient(#f0cf88, #c89a48);
 }
 
+/* Fight mode (fight/fighthud.ts): the power bars across the top, the big calls in the middle. */
+#fighthud {
+  position: fixed;
+  top: 62px;
+  left: 50%;
+  width: min(980px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  display: none;
+  pointer-events: none;
+  z-index: 31;
+}
+#fighthud.on {
+  display: block;
+}
+#fighthud canvas,
+#fightcall canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+#fightcall {
+  position: fixed;
+  top: 44%;
+  left: 50%;
+  width: min(720px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  display: none;
+  pointer-events: none;
+  z-index: 32;
+}
+#fightcall.on {
+  display: block;
+}
+
 /* First-time hints (hints.ts): a small, quiet line low in the middle, for a few seconds. */
 #hint {
   position: absolute;

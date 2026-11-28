@@ -231,6 +231,18 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
     for (const name of ['rocco', 'dev', 'mikey']) for (const list of Object.values(CREW_PARTY)) for (const t of list) addEl(elVoice('crew_' + name), t);
     for (const pv of Object.values(PLAYER_VOICES)) for (const t of concertReplyLabels()) addEl(elVoice(pv), t);
   }
+  // Fight mode (fight/fightlines.ts; scripts/fight-lines.json): the fighters, the crowd, your crew, your voice,
+  // the announcer (el_announcer, cast in the session), and the slap reactions (reactlines.ts SLAPPED).
+  {
+    const F = await import('../src/client/fight/fightlines');
+    const { SLAPPED } = await import('../src/client/reactlines');
+    for (const [id, set] of Object.entries(F.FIGHTER_LINES)) for (const m of F.FIGHT_MOMENTS) for (const t of set[m]) addEl(elVoice(id), t);
+    for (const [id, list] of Object.entries(F.CROWD_FIGHT)) for (const t of list) addEl(elVoice(id), t);
+    for (const [id, list] of Object.entries(SLAPPED)) for (const t of list) addEl(elVoice(id), t);
+    for (const [id, set] of Object.entries(F.CREW_FIGHT)) for (const list of Object.values(set)) for (const t of list) addEl(elVoice(id), t);
+    for (const [id, set] of Object.entries(F.PLAYER_FIGHT)) for (const m of F.FIGHT_MOMENTS) for (const t of set[m]) addEl(elVoice(id), t);
+    for (const t of F.announcerLines()) addEl(elVoice(F.ANNOUNCER_ID), t);
+  }
   const elLines = [...el.values()].sort((x, y) => (x.voice + x.id).localeCompare(y.voice + y.id));
   writeFileSync('tools/voices/eleven-lines.json', JSON.stringify(elLines, null, 1));
   const chars = elLines.reduce((n, l) => n + l.text.length, 0);

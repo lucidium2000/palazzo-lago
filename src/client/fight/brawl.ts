@@ -1,5 +1,6 @@
 import { Health, type Blow } from './health';
 import type { Temperament } from './anger';
+import { BLOCK_THROUGH } from './impact';
 
 /**
  * One guest's side of a fight: the state machine that squares up, closes the
@@ -82,6 +83,12 @@ const CROWDED = 0.75;
 export const STAGGER_AT = 0.75;
 /** The stagger's stumble back: this far (m), between these times (s) (the clip's steps land with it). */
 export const STAGGER_BACK = { d: 0.22, from: 0.05, to: 0.4 };
+/** A counter's (or a combo's second punch's) wind-up (s): still a tell, a quicker one. */
+export const QUICK_WINDUP = 0.38;
+/** Chance (times their guard) they slip a punch they didn't block. */
+export const DODGE = 0.55;
+/** Chance (at an average tempo) of throwing a second punch straight after. */
+export const COMBO = 0.28;
 /** Walk this far away and they let you go. */
 export const WALKED_AWAY = 7;
 
@@ -118,6 +125,25 @@ export class Brawl {
   strafe = 0;
   /** Hits they've taken in this fight. */
   taken = 0;
+  /**
+   * Fight mode (rounds.ts): between rounds, before the bell, after a knockout
+   * of yours. They keep their guard and their footwork but throw nothing, and
+   * a calm opponent doesn't end it.
+   */
+  hold = false;
+  /** After the get-up: walk off (the fight's over), or square up again (another round). */
+  afterGetup: 'leave' | 'square' = 'leave';
+  /** Seconds lying there before the get-up. */
+  lie = T.lie;
+  /** This punch's wind-up (s): a full tell, or a quick one (a counter, the second punch of a combo). */
+  windupLen = T.windup;
+  /** Punches thrown back to back right now (a combo). */
+  combo = 0;
+  /** Slipping a punch right now (seconds left), and which way (+ their left). */
+  dodgeT = 0;
+  dodgeDir: 1 | -1 = 1;
+  /** A counter is coming (after a block or a slip). */
+  private counter = false;
   private next = 1;
   private away = 0;
   private calm = 0;
@@ -156,6 +182,7 @@ export class Brawl {
   private go(p: Phase) {
     this.phase = p;
     this.t = 0;
+    this.t0++;
   }
 
   update(i: BrawlInput): BrawlEvent | null {
@@ -167,14 +194,17 @@ export class Brawl {
     this.strafe = 0;
     const p = this.phase;
     if (p === 'ko') {
-      if (this.t >= T.fall + T.lie) {
+      if (this.t >= T.fall + this.lie) {
         this.go('getup');
         return 'getup';
       }
       return null;
     }
     if (p === 'getup') {
-      if (this.t >= T.getup) this.go('leave');
+      if (this.t >= T.getup) {
+        this.go(this.afterGetup);
+        if (this.afterGetup === 'square') this.health.reset();
+      }
       return null;
     }
     if (p === 'leave' || p === 'flee') {
@@ -184,7 +214,7 @@ export class Brawl {
 
     // Is it over? Walked away, or hands down and backed off.
     this.away = i.dist > WALKED_AWAY ? this.away + i.dt : 0;
-    this.calm = i.passive && i.dist > 1.6 ? this.calm + i.dt : 0;
+    this.calm = i.passive && i.dist > 1.6 && !this.hold ? this.calm + i.dt : 0;
     if (this.away > T.away || this.calm > T.calm) {
       this.go('leave');
       return 'giveup';
@@ -198,6 +228,15 @@ export class Brawl {
       }
     }
 
+    // Slipping a punch: a quick side step and a lean back out of it.
+    if (this.dodgeT > 0) {
+      this.dodgeT = Math.max(0, this.dodgeT - i.dt);
+      if (p === 'guard' || p === 'close' || p === 'square') {
+        this.strafe = 2.1 * this.dodgeDir;
+        this.advance = -0.6;
+        return null;
+      }
+    }
     switch (p) {
       case 'square':
         if (this.t >= T.square) this.go(i.dist > STRIKE_RANGE ? 'close' : 'guard');
@@ -230,12 +269,16 @@ export class Brawl {
           this.strafe = 0.35 * this.circle;
           this.advance = 0.22 * Math.sin(this.bob * 3.1) + (i.dist > STRIKE_RANGE + 0.1 ? 0.3 : 0);
         }
-        if (this.talker) return null;
-        if (this.t >= this.next && i.dist < CHASE_AT + 0.2) {
+        if (this.talker || this.hold) return null;
+        if ((this.t >= this.next || (this.counter && this.t >= 0.22)) && i.dist < CHASE_AT + 0.2) {
           this.side = i.rnd() < 0.55 ? 1 : 0;
           this.head = i.rnd() < 0.65;
           // The lead hand: a jab, or (at the head) now and then a hook.
           this.move = this.side === 1 ? 'cross' : this.head && i.rnd() < 0.4 ? 'hook' : 'jab';
+          // A counter comes quick (less of a tell).
+          this.windupLen = this.counter ? QUICK_WINDUP : T.windup;
+          this.counter = false;
+          this.combo = 0;
           this.go('windup');
           return 'windup';
         }
@@ -243,7 +286,7 @@ export class Brawl {
       case 'windup':
         // Leaning in as the punch comes.
         if (i.dist > STRIKE_RANGE) this.advance = 0.6;
-        if (this.t >= T.windup) {
+        if (this.t >= this.windupLen) {
           this.go('strike');
           this.advance = 1.2;
         }
@@ -258,6 +301,16 @@ export class Brawl {
       case 'recover':
         // Punch, then a step back out.
         if (this.t > 0.15 && this.t < 0.45 && i.dist < CHASE_AT) this.advance = -0.55;
+        // A combo: straight into the other hand (a jab, then the cross), a quick tell.
+        if (this.t >= T.recover * 0.55 && this.combo < 2 && !this.hold && !this.talker && i.dist < CHASE_AT && this.comboRoll(i.rnd)) {
+          this.combo++;
+          this.side = this.side === 1 ? 0 : 1;
+          this.head = i.rnd() < 0.6;
+          this.move = this.side === 1 ? 'cross' : this.head && this.move !== 'hook' ? 'hook' : 'jab';
+          this.windupLen = QUICK_WINDUP;
+          this.go('windup');
+          return 'windup';
+        }
         if (this.t >= T.recover) {
           this.go('guard');
           this.next = this.temper.tempo * (0.6 + i.rnd() * 0.8);
@@ -286,9 +339,32 @@ export class Brawl {
     if (this.sawT < 0.6) return this.saw;
     this.sawT = 0;
     this.saw = this.guarding && rnd() < this.temper.guard;
-    if (this.saw) this.blockT = 0.6;
+    if (this.saw) {
+      this.blockT = 0.6;
+      // Gloves up, and a counter right after.
+      if (!this.talker && rnd() < this.temper.guard * 0.6) this.counter = true;
+    } else if (this.guarding && !this.talker && this.phase !== 'recover' && rnd() < DODGE * this.temper.guard) {
+      // Or they slip it: a step to the side, out of the way, and come back with one.
+      this.dodgeT = 0.32;
+      this.dodgeDir = rnd() < 0.5 ? 1 : -1;
+      this.counter = true;
+    }
     return this.saw;
   }
+
+  /** Slipping a punch right now. */
+  get dodging() {
+    return this.dodgeT > 0;
+  }
+
+  /** Throws another straight after this one? (Busy fighters more often.) */
+  private comboRoll(rnd: () => number) {
+    if (this.phase !== 'recover' || this.comboAsked === this.t0) return false;
+    this.comboAsked = this.t0;
+    return rnd() < COMBO * (1.4 / Math.max(0.8, this.temper.tempo)) * (this.combo ? 0.5 : 1);
+  }
+  private comboAsked = -1;
+  private t0 = 0;
 
   /** Gloves up now (a block decided elsewhere: a friend's machine). */
   blockNow(s = 0.45) {
@@ -308,7 +384,9 @@ export class Brawl {
     if (this.phase === 'ko' || this.phase === 'getup') return { blocked: false, dmg: 0, ko: false, flee: false };
     // Guard up and it's to the head: they may get their arms there (unless whoever threw it already saw).
     const blocked = b.blocked ?? this.rollBlock(b, rnd);
-    const res = this.health.take({ ...b, blocked }, 99);
+    // Damage worked out for a clean hit (impact.ts) that their gloves took after all: what gets through.
+    const amount = b.amount !== undefined && blocked && !b.blocked ? b.amount * BLOCK_THROUGH : b.amount;
+    const res = this.health.take({ ...b, blocked, amount }, 99);
     this.taken++;
     if (blocked) this.blockT = Math.max(this.blockT, 0.35);
     if (res.ko) {
@@ -323,7 +401,7 @@ export class Brawl {
     // still knocks them off a punch they were only winding up.
     const busy = this.phase === 'flee' || this.phase === 'leave';
     if (!blocked && !b.slap && !busy) {
-      if (b.power >= STAGGER_AT) this.go('stagger');
+      if (b.stagger ?? b.power >= STAGGER_AT) this.go('stagger');
       else if (this.phase === 'windup') {
         this.go('guard');
         this.next = 0.5;
@@ -365,7 +443,8 @@ export class Brawl {
       case 'recover':
         out.guard = 1;
         out.act = this.move;
-        out.actT = this.phase === 'windup' ? t : this.phase === 'strike' ? T.windup + t : T.windup + T.strike + t;
+        // (A quick wind-up plays the clip's wind-up faster: the strike still lands on its frame.)
+        out.actT = this.phase === 'windup' ? t * (T.windup / this.windupLen) : this.phase === 'strike' ? T.windup + t : T.windup + T.strike + t;
         break;
       case 'stagger':
         out.guard = 1;

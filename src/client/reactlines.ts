@@ -9,10 +9,33 @@
 import { GUESTS } from './cast';
 import { OPENERS } from './dialogueLines';
 
-/** `security`: yelling for security (or, for the guards, telling you to cool it). */
-export type ReactKind = 'pushed' | 'punched' | 'doused' | 'hit' | 'security';
+/** `security`: yelling for security (or, for the guards, telling you to cool it). `slapped`: an open hand across the face (outraged more than hurt). */
+export type ReactKind = 'pushed' | 'punched' | 'doused' | 'hit' | 'security' | 'slapped';
 
-export type ReactLines = Record<Exclude<ReactKind, 'security'>, string[]> & { security?: string[] };
+export type ReactLines = Record<Exclude<ReactKind, 'security' | 'slapped'>, string[]> & { security?: string[]; slapped?: string[] };
+
+/**
+ * Slapped across the face (fight/slap.ts): shock and outrage, in each
+ * regular's own voice (and your crew's). Until a take's recorded the slap
+ * falls back to their recorded "punched" yell (dialogue.ts react).
+ */
+export const SLAPPED: Record<string, string[]> = {
+  vinnie: ["[shocked] Did you just SLAP me? Me?!", "[outraged] A slap?! What is this, a soap opera?!", "[holding cheek] Oh, you did NOT just do that, my friend."],
+  dale: ["[stunned] Well, I'll be. Did you just slap me, son?", "[slow, angry] Nobody slaps a Texan. Nobody.", "[rubbing jaw] Now that's just plain disrespectful."],
+  marcus: ["[shocked] Yo! Did you just SLAP me?!", "[laughing in disbelief] Bro. A slap? A SLAP?", "[outraged] In front of everybody?! Really?!"],
+  reggie: ["[appalled] Did you just strike me with an open hand?!", "[sputtering] A slap! How utterly barbaric!", "[indignant] I demand satisfaction, sir!"],
+  tommy: ["[squeaking] Did you just slap me?! Why?!", "[stunned] Ow! Okay! That was a slap! That was definitely a slap!", "[whimpering] My face... Mom's never even slapped me."],
+  sal: ["[cold] You slapped me. You actually slapped me.", "[growls] Kid. Nobody slaps Sal.", "[low, menacing] That was the last mistake you make tonight."],
+  margo: ["[gasps] Did you just SLAP me, honey?!", "[outraged] Oh, no. No, no, no. Not the face, sweetheart!", "[shrieks] You slapped a showgirl?! In this town?!"],
+  priya: ["[shocked] Did you seriously just slap me?!", "[furious] Oh my god. You SLAPPED me.", "[cold] Wow. That's assault. You know that, right?"],
+  destiny: ["[shrieks] Oh my god! Did you just SLAP me?!", "[crying out] On my bachelorette?! Seriously?!", "[outraged] Girls! He just slapped me!"],
+  eleanor: ["[gasps] Did you just slap me, young man?!", "[icy] In all my years. A slap.", "[indignant] I have buried two husbands for less."],
+  kayla: ["[shocked] Ow! Did you just slap me?!", "[stunned] What? Why would you slap a nurse?!", "[angry] Oh, you're lucky I'm off duty."],
+  rosa: ["[very cold] Did you just slap me, mijo?", "[quiet fury] Ay. You slapped me. Okay.", "[hisses] Que te pasa?! A slap?!"],
+  crew_rocco: ["[laughing, outraged] Did you just SLAP me?! Oh, it's on!", "[shouting] A slap?! What are we, twelve?!"],
+  crew_dev: ["[deadpan] Did you just slap me. In public.", "[dry] Wow. A slap. Very dramatic."],
+  crew_mikey: ["[yelping] Ow! You slapped me! Why?!", "[whining] Hey! That's my face!"],
+};
 
 export const REACTIONS: Record<string, ReactLines> = {
   vinnie: {

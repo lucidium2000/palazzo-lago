@@ -88,6 +88,8 @@ export interface PlayerState {
   fx?: number[] | null;
   /** Your health while in a fight (0-100). */
   fh?: number | null;
+  /** Fight mode: the match you're running (fight/rounds.ts MatchSnap). */
+  fm?: unknown;
   /** Acks: for each friend (their id), the last event number handled from them. */
   a?: Record<string, number>;
   /** Host only: the colour slot of each guest (by id); the host is slot 0. */

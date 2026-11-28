@@ -64,10 +64,10 @@ def propose_cast():
     briefs = dict(re.findall(r"id: '([a-z_]+)'[^}]*?voiceHint: ['\"]([^'\"]+)['\"]", src, re.S))
     mine = call('GET', '/v2/voices?page_size=100').get('voices', [])
     cast = json.load(open(CAST)) if os.path.exists(CAST) else {}
-    used = {c['voice_id'] for c in cast.values()}
+    used = {c['voice_id'] for c in cast.values() if c.get('voice_id')}
     for cid, brief in briefs.items():
         key = 'el_' + cid
-        if key in cast:
+        if key in cast and cast[key].get('voice_id'):
             continue
         words = set(re.findall(r'[a-z]+', brief.lower()))
         def score(v):
@@ -81,7 +81,7 @@ def propose_cast():
             print('shared library search failed:', e)
         best = max(pool, key=score) if pool else None
         if best:
-            cast[key] = {'voice_id': best['voice_id'], 'name': best.get('name'), 'brief': brief, 'stability': 0.4, 'similarity_boost': 0.8, 'style': 0.35, **({'public_owner_id': best['shared']} if best.get('shared') else {})}
+            cast[key] = {**{k: v for k, v in cast.get(key, {}).items() if k != 'note'}, 'voice_id': best['voice_id'], 'name': best.get('name'), 'brief': cast.get(key, {}).get('brief', brief), 'stability': 0.4, 'similarity_boost': 0.8, 'style': 0.35, **({'public_owner_id': best['shared']} if best.get('shared') else {})}
             used.add(best['voice_id'])
             print(f'{key:16} -> {best.get("name")} ({best["voice_id"]})  brief: {brief}')
     json.dump(cast, open(CAST, 'w'), indent=1)
@@ -128,7 +128,8 @@ def main():
     lines = json.load(open(os.path.join(ROOT, 'tools', 'voices', 'eleven-lines.json')))
     index_path = os.path.join(OUT, 'index.json')
     index = json.load(open(index_path))['voices'] if os.path.exists(index_path) else {}
-    todo = [l for l in lines if l['voice'] in cast and l['id'] not in index.get(l['voice'], {})
+    # (A voice in the cast without a voice_id isn't cast yet: --cast picks one.)
+    todo = [l for l in lines if cast.get(l['voice'], {}).get('voice_id') and l['id'] not in index.get(l['voice'], {})
             and (not a.priority or l.get('p', 1) <= a.priority) and (not a.voice or l['voice'] == a.voice)]
     todo.sort(key=lambda l: (l.get('p', 1), l['voice']))
     need = sum(len(l['text']) for l in todo)

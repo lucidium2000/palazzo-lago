@@ -153,6 +153,7 @@ to force a quality tier.
 | Boutique | Click an item to pick it up, click the register to pay, F put it on, U take it off | Grab it, hold it to the register (or point at it), then hold shades to your eyes or a hat on your head; grab at your head to take it off |
 | Bowling | Click a ball on the return, A/D move, mouse aims, hold click or Space to swing, move sideways for spin, let go; S steps away. Consoles: JOIN / LEAVE / NEW GAME | Grab a ball (grip), walk up, swing and let go; twist your wrist at the release to hook it |
 | Grand piano | Click the pianist to push him off the bench, then sit (E, or walk onto the bench): A S D F G H J K L white keys, W E T Y U O P black, Z / X octave, Space sustain, Shift louder, Esc stand; or click / tap the keys | Shove (or punch) him off, sit on the bench: every fingertip that presses a key plays it, as hard as it came down (hand tracking: all ten; controllers: index and thumb, the whole hand when open); A / X is the sustain pedal |
+| Fights | F jabs whoever's right in front of you, G throws a hook (harder, slower to throw again), Y slaps, hold H or the right mouse button to keep your guard up; on a phone, the Punch button | Make a fist and throw a real punch: its speed is its damage (head, body, or their gloves); keep your hands up by your face to block |
 
 ## The pool party
 
@@ -214,6 +215,48 @@ list it in `CONCERT` in `src/client/party/setlist.ts`.
 **Loudness.** The stacks play at 0.45 each with inverse distance from 6 m, through a limiter (-3 dBFS, 20:1).
 Measured at the listener with the house record: about -16 dBFS RMS on the dance floor (peaks around -2 dBFS)
 and -25 at the pool bar, up from -33 and -35 before.
+
+## Fight mode
+
+Push a hot-head far enough (Sal, Vinnie, Marcus, Dale, Priya, Rosa) or trade punches with a friend, and
+the fight becomes an arcade-style versus moment (`src/client/fight/mode.ts`): power bars slam in across the
+top with both names (`fight/fighthud.ts`: the Palazzo's black and gold, rounds won as casino chips, the
+round clock in a gold diamond), then ROUND 1 and FIGHT! with the announcer, and "Ring of Steel" (the owner's
+own track) kicks in. In VR the bars and calls are two panels in the world a little above your eye line,
+turning to follow you only once you've looked well away; nothing ever moves your view.
+
+- **Rounds** (`fight/rounds.ts`): best of three, 45 s on the clock. A knockout wins the round ("K.O.!",
+  with a slow-motion beat for the people, never your head tracking), else most health left when the clock
+  runs out ("TIME!"). The one who went down gets up groggy, both are back to full, then ROUND 2, and with
+  one each, the FINAL ROUND. Then YOU WIN / YOU LOSE / PERFECT (the deciding round won without a scratch),
+  or DRAW. Walking off, putting your hands down and backing away, security turning up, or your friend
+  leaving ends it early: FIGHT OVER. Punches don't count before the bell or between rounds.
+- **Punches** (`fight/impact.ts`): the damage is the fist's kinetic energy (its speed at contact, with
+  1.6 kg of hand and forearm behind it) against a solid 6.5 m/s punch; head shots hurt more than body
+  shots; a head shot over 5.4 m/s is a crit (×1.5, a stagger, a crack), a body shot over 6 m/s winds them.
+  A fist that meets the gloves they're holding up is a block (15% gets through, a dull thud); so is one that
+  meets yours: keep your hands up by your face. Hits knock the body back along the punch (stopped by walls),
+  the torso and head give that way (`fightanim.ts` fightRecoil), with a little burst of hit sparks, a hit-stop
+  of a couple of frames on big ones, a shake of the screen bars and a rumble in your hands.
+- **Guests fight smarter** (`fight/brawl.ts`): they guard, slip a punch they see coming with a quick side
+  step, counter (a quicker tell), and throw two- and three-punch combinations.
+- **Who runs it.** The player fighting the guest runs that match, and the lower id of two friends runs
+  theirs; the match rides in their published state (`fm`) and goes out as an event on every phase change
+  (`fmx`), so the calls land at the same moment everywhere. Friends watching see the same bars and calls.
+- **Music** (`fight/fightmusic.ts`): Ring of Steel plays on a 2D music bus (through the listener, so your
+  knockout's muffle and mute take it too), looping on its bar lines, for the fighters at 0.5 with the
+  casino's music and the pool party's decks ducked to 15%; a friend watching hears it faintly within a few
+  metres (nothing past 14 m); it fades out over three seconds after the result.
+- **Voices** (`fight/fightlines.ts`): taunts, landing one, taking one, winning, losing and getting up for the
+  regulars who fight, security, your crew egging you on, the regulars in the crowd, your own voice, and an
+  original announcer (`el_announcer`, cast in the recording session). Until the takes are in: captions and
+  wordless effort sounds for the fighters, synthesized stings for the announcer (`fight/fightsfx.ts`), never
+  the browser's speech voice. The list for the session: `npx tsx scripts/fight-lines.ts`
+  (`scripts/fight-lines.json`); `scripts/voice-lines.ts` puts them in `tools/voices/eleven-lines.json`.
+
+| File | What | When it's in memory |
+| --- | --- | --- |
+| `fight.mp3` | "Ring of Steel" (the owner's), 72.5 s, -14 LUFS, loops bars 8-40 | fetched when a fight starts |
 
 ## Layout
 

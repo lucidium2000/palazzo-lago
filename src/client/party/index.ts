@@ -640,7 +640,8 @@ export class Party {
     this.presence += (pres - this.presence) * Math.min(1, dt * 2);
     const open = this.presence;
     const cutoff = 260 * Math.pow(75, open);
-    const vol = STACKS.vol * (0.05 + 0.95 * Math.pow(open, 1.5)) * (this.d.sound.musicOn ? 1 : 0);
+    // (Ducked under fight mode's music: Sound.worldDuck.)
+    const vol = STACKS.vol * (0.05 + 0.95 * Math.pow(open, 1.5)) * (this.d.sound.musicOn ? 1 : 0) * (this.d.sound.worldDuck ?? 1);
     for (const f of this.filters) f.frequency.setTargetAtTime(cutoff, ctx.currentTime, 0.08);
     // The stage mic (its PA plays from the same stacks); the music ducks while someone talks into it.
     this.mic.update(dt, you.head, !you.xr, open, cutoff);

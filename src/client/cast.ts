@@ -409,6 +409,8 @@ export const SPEAKERS: { id: string; name: string; bio: string; voiceHint: strin
   { id: 'clerk', name: 'Simone', bio: 'The Lago Luxe boutique\'s clerk: polished, elegant, quietly witty, never pushy.', voiceHint: 'woman in her thirties, polished, elegant, smooth and low, quietly witty, refined American' },
   // The pool party's DJ on the mic, calling her a minute before her set (party/concertlines.ts MC).
   { id: 'dj', name: 'DJ', bio: "The pool party's resident DJ, on the mic between records: a hype man's voice, big, rhythmic, all about the show.", voiceHint: 'man, Brooklyn accent, energetic, fast, rhythmic, carnival barker, big hype-man announcer on a club PA' },
+  // Fight mode's announcer (fight/fightlines.ts ANNOUNCER): an original arcade fighting-game announcer.
+  { id: 'announcer', name: 'Announcer', bio: "Fight mode's announcer: an original arcade fighting-game voice (not any game's), calling the rounds, the knockouts and the winner over the power bars.", voiceHint: 'man, deep, booming, larger than life, hype arcade fighting-game announcer, drawn-out vowels, gravelly, American' },
   // The pool stage's headliner, between her sets (her lines: party/concertlines.ts).
   { id: 'nixie', name: 'Nixie Vale', bio: "NIXIE VALE, the pool stage's headliner: an electropop star in her late twenties (an original character). Warm, quick, a little breathless between sets, all about the show and the people who came to see it.", voiceHint: 'young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American' },
 ];
