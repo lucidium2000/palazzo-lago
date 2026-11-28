@@ -245,7 +245,7 @@ export class BowlSound {
     r.last = this.clock;
     r.o.position.copy(at);
     const speed = vel.length();
-    // Doppler-ish: the closing speed toward the listener, exaggerated a little (sound is slow next to a ball? no: but it reads).
+    // Doppler-ish: the pitch bends up as it rolls toward you and down as it rolls away (exaggerated, so it reads).
     const to = this.tmp.copy(this.listenerPos).sub(at);
     const d = to.length() || 1;
     const closing = vel.dot(to) / d;

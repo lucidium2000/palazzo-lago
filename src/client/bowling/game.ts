@@ -177,6 +177,8 @@ export class Bowling {
   private qa = new THREE.Quaternion();
   private qb = new THREE.Quaternion();
   private handQ = new THREE.Quaternion();
+  private qc = new THREE.Quaternion();
+  private v3 = new THREE.Vector3();
   private s1 = new THREE.Vector3(1, 1, 1);
   private zero = new THREE.Vector3(0, 0, 0);
   private laneQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
@@ -484,7 +486,7 @@ export class Bowling {
     const dt = now - s.t;
     if (dt < 0.004) return;
     // dq = q · prev⁻¹: its axis-angle over dt.
-    const dq = this.qa.copy(this.qb).multiply(s.q.clone().invert());
+    const dq = this.qa.copy(this.qb).multiply(this.qc.copy(s.q).invert());
     if (dq.w < 0) dq.set(-dq.x, -dq.y, -dq.z, -dq.w);
     const ang = 2 * Math.acos(Math.min(1, dq.w));
     const sn = Math.sqrt(Math.max(1e-12, 1 - dq.w * dq.w));
@@ -1318,7 +1320,7 @@ export class Bowling {
       });
     }
     // A few guests in the lounge and at the bar.
-    if (people.length + 2 <= budget) for (const p of crowd.addGroup(-287.6, -1.2, 2, { drinks: 0.8 })) people.push(p);
+    if (people.length + 2 <= budget) for (const p of crowd.addGroup(-286.0, 6.1, 2, { drinks: 0.8 })) people.push(p);
     for (let i = 0; i < 2 && people.length < budget; i++) {
       const p = add('watch', randomLook(), BAR.x0 + 0.6 + (i * 2 + 1) * 1.15, BAR.z1 + 0.42, Math.PI);
       if (p) {
@@ -1482,7 +1484,7 @@ export class Bowling {
     const th = n.swing;
     const target = this.v.set(sh.x - fx * Math.sin(th) * L, sh.y - Math.cos(th) * L, sh.z - fz * Math.sin(th) * L);
     rig.root.updateMatrixWorld(true);
-    armTo(rig.bones, 'R', target, yaw, new THREE.Vector3());
+    armTo(rig.bones, 'R', target, yaw, this.v3);
   }
 }
 

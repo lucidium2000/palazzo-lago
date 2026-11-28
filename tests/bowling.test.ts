@@ -293,3 +293,22 @@ describe('Palazzo Lanes layout', () => {
     expect(RETURNS.flatMap((r) => r.lanes)).toEqual([...Array(LANES).keys()]);
   });
 });
+
+describe('floor B in the elevators', () => {
+  it('is a landing on every panel, reached from every landing', async () => {
+    const { destSlot, floorLabel, isLanding, LANDINGS, PANEL_ROWS } = await import('../src/client/areas/liftlogic');
+    const { BOWL_CARS } = await import('../src/client/bowling/plan');
+    expect(isLanding('bowling')).toBe(true);
+    expect(PANEL_ROWS).toContain('bowling');
+    expect(LANDINGS.bowling.short).toBe('B');
+    expect(floorLabel(LANDINGS.bowling.floor)).toBe('B');
+    const cars = [
+      { landing: 'casino' as const, index: 0, slot: 0, x: 42, z: 2.2 },
+      { landing: 'suite' as const, index: 0, slot: 1, x: 600, z: 3.4 },
+      ...BOWL_CARS.zs.map((z, i) => ({ landing: 'bowling' as const, index: i, slot: 2 + i, x: BOWL_CARS.doorX, z })),
+    ];
+    for (const c of cars) expect(cars[destSlot(cars, c, 'bowling')].landing).toBe('bowling');
+    expect(cars[destSlot(cars, cars[2], 'casino')].landing).toBe('casino');
+    expect(onBowling(BOWL_CARS.doorX + 2)).toBe(true);
+  });
+});
