@@ -192,6 +192,22 @@ export class Crew {
     b.person.headYaw = 0;
   }
 
+  /**
+   * The boys cheer, and the nearest one says one of `lines`, but only one he
+   * has a recorded take of (never a stand-in voice). False if nobody spoke.
+   */
+  hypeRecorded(lines: readonly string[]): boolean {
+    for (const b of this.buddies) b.person.cheer = 1.4 + Math.random() * 0.5;
+    const b = this.nearest();
+    if (!b || voiceArbiter.busy() || voices.priorityBusy) return false;
+    const el = elVoice('crew_' + b.name.toLowerCase());
+    const ok = lines.filter((l) => voices.has(el, l) || voices.has(b.voiceId, l));
+    if (!ok.length) return false;
+    this.cooldown = 5;
+    this.say(b, ok[Math.floor(Math.random() * ok.length)]);
+    return true;
+  }
+
   /** The nearest buddy (if you're with them) says a line. */
   sayNear(line: string) {
     const b = this.nearest();

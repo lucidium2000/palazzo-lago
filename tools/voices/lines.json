@@ -7012,6 +7012,12 @@
   "speed": 1.05
  },
  {
+  "id": "1ac77e14",
+  "voice": "am_eric",
+  "text": "Ayyy!",
+  "speed": 1.05
+ },
+ {
   "id": "1bc19635",
   "voice": "am_eric",
   "text": "Whoa!",
@@ -7173,6 +7179,12 @@
   "id": "3dd693ac",
   "voice": "am_eric",
   "text": "Big money, big money!",
+  "speed": 1.05
+ },
+ {
+  "id": "3ed5a573",
+  "voice": "am_eric",
+  "text": "My guy!",
   "speed": 1.05
  },
  {
@@ -8222,6 +8234,12 @@
   "speed": 1.04
  },
  {
+  "id": "be40210a",
+  "voice": "am_fenrir",
+  "text": "My guy!",
+  "speed": 1.04
+ },
+ {
   "id": "be880f01",
   "voice": "am_fenrir",
   "text": "[sarcastic] Oh, great. Throwing things. That's new.",
@@ -8329,6 +8347,12 @@
   "id": "f809671e",
   "voice": "am_fenrir",
   "text": "Let's gooo!",
+  "speed": 1.04
+ },
+ {
+  "id": "f9a0bb3d",
+  "voice": "am_fenrir",
+  "text": "Ayyy!",
   "speed": 1.04
  },
  {
@@ -9367,6 +9391,12 @@
   "speed": 1.03
  },
  {
+  "id": "1ad70225",
+  "voice": "am_michael",
+  "text": "My guy!",
+  "speed": 1.03
+ },
+ {
   "id": "1d6e96c2",
   "voice": "am_michael",
   "text": "I've got a good feeling about tonight.",
@@ -9651,6 +9681,12 @@
   "id": "b9d09738",
   "voice": "am_michael",
   "text": "First stop: the tables. Let's make some money.",
+  "speed": 1.03
+ },
+ {
+  "id": "bb9dddc2",
+  "voice": "am_michael",
+  "text": "Ayyy!",
   "speed": 1.03
  },
  {

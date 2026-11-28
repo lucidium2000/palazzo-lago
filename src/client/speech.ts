@@ -106,6 +106,9 @@ export const CREW_LINES: Record<CrewMoment, string[]> = {
   legend: ["Legendary night, boys. Legendary.", "Nobody's gonna believe this back home."],
 };
 
+/** Your crew when you dap up a friend (dap.ts): recorded takes only, never a stand-in voice. */
+export const CREW_DAP_LINES = ['Ayyy!', 'My guy!', "Let's gooo!"];
+
 /** Your crew, a few drinks in. */
 export const TIPSY_LINES = ['', 'Easy there, champ!', "Somebody's feeling good tonight!", 'Okay, water next. I mean it.'];
 

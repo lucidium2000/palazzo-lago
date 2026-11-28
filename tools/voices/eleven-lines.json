@@ -1620,6 +1620,12 @@
   "p": 1
  },
  {
+  "id": "8c8b4f44",
+  "voice": "el_crew_dev",
+  "text": "My guy!",
+  "p": 1
+ },
+ {
   "id": "8ce48024",
   "voice": "el_crew_dev",
   "text": "Wait for the finale. Trust me.",
@@ -1713,6 +1719,12 @@
   "id": "b53eceef",
   "voice": "el_crew_dev",
   "text": "That's alright, next one.",
+  "p": 1
+ },
+ {
+  "id": "b68672f3",
+  "voice": "el_crew_dev",
+  "text": "Ayyy!",
   "p": 1
  },
  {
@@ -1983,6 +1995,12 @@
   "id": "24bae909",
   "voice": "el_crew_mikey",
   "text": "[laughs, then annoyed] Okay, that was funny. But also, why?!",
+  "p": 1
+ },
+ {
+  "id": "26c4a0a1",
+  "voice": "el_crew_mikey",
+  "text": "Ayyy!",
   "p": 1
  },
  {
@@ -2286,6 +2304,12 @@
   "p": 1
  },
  {
+  "id": "c44bb806",
+  "voice": "el_crew_mikey",
+  "text": "My guy!",
+  "p": 1
+ },
+ {
   "id": "c6e12e62",
   "voice": "el_crew_mikey",
   "text": "[shocked] Dude! Why?! That was my good shirt!",
@@ -2484,6 +2508,12 @@
   "p": 1
  },
  {
+  "id": "1db8d06d",
+  "voice": "el_crew_rocco",
+  "text": "My guy!",
+  "p": 1
+ },
+ {
   "id": "245d693e",
   "voice": "el_crew_rocco",
   "text": "Somebody's feeling good tonight!",
@@ -2553,6 +2583,12 @@
   "id": "38b6de47",
   "voice": "el_crew_rocco",
   "text": "[laughing] You son of a... You are SO dead!",
+  "p": 1
+ },
+ {
+  "id": "38f59f0a",
+  "voice": "el_crew_rocco",
+  "text": "Ayyy!",
   "p": 1
  },
  {

@@ -9,6 +9,7 @@ import { crouchLegs, hipOnSeat, leanToward, sitLegs, standLegs } from './sitpose
 import type { Seat } from './world';
 import { bodyYaw as facing, neckPivot } from './bodyframe';
 import { DAB_SECONDS, dabWeight, poseDab } from './dab';
+import { leanChest } from './dap';
 
 /**
  * Your own body in VR: the character you picked, standing under your headset
@@ -102,7 +103,7 @@ export class SelfBody {
    * position/direction, `hands` the controllers (null if not tracked), `grip`
    * how hard each grip is squeezed, `speed` walking speed.
    */
-  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; up?: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null; eyeY?: number; crouch?: number }) {
+  update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; up?: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null; eyeY?: number; crouch?: number; lean?: { dir: THREE.Vector3; angle: number } | null }) {
     this.root.visible = o.on && !!this.rig;
     this.dabLeft = Math.max(0, this.dabLeft - dt);
     const rig = this.rig;
@@ -194,6 +195,11 @@ export class SelfBody {
     const dab = this.dabbing;
     if (dab > 0 && this.swimBlend < 0.05) {
       poseDab(b, this.bodyYaw, sc, dab, { arms: false, head: false, lean: 0.18 });
+      rig.root.updateMatrixWorld(true);
+    }
+    // Dapping up a friend: the chest leans in for the shoulder bump (your head and arms stay your own).
+    if (o.lean && o.lean.angle > 0.001 && sit === 0 && this.swimBlend < 0.05) {
+      leanChest(b, o.lean.dir, o.lean.angle);
       rig.root.updateMatrixWorld(true);
     }
     const left = new THREE.Vector3(Math.cos(this.bodyYaw), 0, -Math.sin(this.bodyYaw));
