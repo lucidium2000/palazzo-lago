@@ -176,6 +176,7 @@ export class Bowling {
   private v2 = new THREE.Vector3();
   private qa = new THREE.Quaternion();
   private qb = new THREE.Quaternion();
+  private handQ = new THREE.Quaternion();
   private s1 = new THREE.Vector3(1, 1, 1);
   private zero = new THREE.Vector3(0, 0, 0);
   private laneQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
@@ -265,10 +266,11 @@ export class Bowling {
       void k;
     });
     // NPC lanes: the regulars' games.
+    let nn = 0;
     for (const li of NPC_LANES) {
       const lane = this.lanes[li];
-      lane.game.join(`npc-${li}-a`, NPC_NAMES[(li * 2) % NPC_NAMES.length]);
-      if (li % 2 === 0) lane.game.join(`npc-${li}-b`, NPC_NAMES[(li * 2 + 1) % NPC_NAMES.length]);
+      lane.game.join(`npc-${li}-a`, NPC_NAMES[nn++ % NPC_NAMES.length]);
+      if (li % 2 === 0) lane.game.join(`npc-${li}-b`, NPC_NAMES[nn++ % NPC_NAMES.length]);
     }
     this.drawConsoles();
     this.input();
@@ -456,16 +458,16 @@ export class Bowling {
       },
       drag: (hand, pos) => {
         // The ball sits in the hand (fingers in the holes): under the palm, a touch forward.
-        hand.grip.getWorldQuaternion(this.qa);
-        ball.pos.copy(off).applyQuaternion(this.qa).add(pos);
-        ball.quat.copy(this.qa);
+        hand.grip.getWorldQuaternion(this.handQ);
+        ball.pos.copy(off).applyQuaternion(this.handQ).add(pos);
+        ball.quat.copy(this.handQ);
         this.trackTwist(hand);
       },
       release: (hand, pos) => {
         ball.hand = null;
         const v = this.d.hands.velocity(hand);
         const tw = this.twist.get(hand)?.w ?? this.zero;
-        this.vrRelease(ball, pos.clone().add(off.clone().applyQuaternion(this.qa)), v, tw);
+        this.vrRelease(ball, pos.clone().add(off.clone().applyQuaternion(this.handQ)), v, tw);
       },
     };
   }
@@ -1534,20 +1536,21 @@ function drawMonitor(g: CanvasRenderingContext2D, x: number, y: number, w: numbe
   }
   const players = lane.game.players;
   const top = 46;
-  const rowH = Math.min(58, (h - top - 6) / Math.max(1, players.length));
+  const rowH = Math.min(players.length === 1 ? 110 : 76, (h - top - 6) / Math.max(1, players.length));
+  const big = rowH > 50;
   const nameW = 86,
     totW = 54;
   const fw = (w - nameW - totW - 16) / 10;
   players.forEach((pl, r) => {
     const ry = top + r * rowH;
     const active = cur?.id === pl.id && !lane.game.over;
-    g.fillStyle = active ? 'rgba(255,198,90,0.16)' : 'rgba(255,255,255,0.04)';
+    g.fillStyle = active ? 'rgba(255,198,90,0.22)' : 'rgba(255,255,255,0.08)';
     g.fillRect(8, ry, w - 16, rowH - 4);
     g.fillStyle = PLAYER_TINTS[r % 4];
     g.fillRect(8, ry, 4, rowH - 4);
     g.textAlign = 'left';
     g.fillStyle = '#ffffff';
-    g.font = `bold ${rowH > 40 ? 17 : 14}px ${SANS}`;
+    g.font = `bold ${big ? 19 : 15}px ${SANS}`;
     g.fillText(pl.name.slice(0, 9), 16, ry + rowH * 0.32);
     if (pl.id === self) {
       g.fillStyle = '#ffc65a';
@@ -1557,15 +1560,17 @@ function drawMonitor(g: CanvasRenderingContext2D, x: number, y: number, w: numbe
     const fs = frames(pl.rolls, pl.fouls);
     for (let f = 0; f < 10; f++) {
       const fx = 8 + nameW + f * fw;
-      g.strokeStyle = 'rgba(201,160,80,0.55)';
-      g.lineWidth = 1;
+      g.fillStyle = 'rgba(240,232,255,0.1)';
+      g.fillRect(fx + 1, ry + 1, fw - 2, rowH - 6);
+      g.strokeStyle = 'rgba(232,196,120,0.85)';
+      g.lineWidth = 1.5;
       g.strokeRect(fx, ry, fw, rowH - 4);
       const fr = fs[f];
       const boxes = f === 9 ? 3 : 2;
       const bw = fw / boxes;
       g.strokeRect(fx + fw - bw * (boxes - 1), ry, bw * (boxes - 1), (rowH - 4) * 0.45);
       if (!fr) continue;
-      g.font = `bold ${rowH > 40 ? 15 : 12}px ${SANS}`;
+      g.font = `bold ${big ? 20 : 14}px ${SANS}`;
       g.textAlign = 'center';
       fr.marks.forEach((mk, k) => {
         if (!mk) return;
@@ -1575,13 +1580,13 @@ function drawMonitor(g: CanvasRenderingContext2D, x: number, y: number, w: numbe
       });
       if (fr.total !== null) {
         g.fillStyle = '#f2d38a';
-        g.font = `bold ${rowH > 40 ? 16 : 13}px ${SANS}`;
+        g.font = `bold ${big ? 22 : 15}px ${SANS}`;
         g.fillText(String(fr.total), fx + fw / 2, ry + (rowH - 4) * 0.74);
       }
     }
     g.textAlign = 'center';
     g.fillStyle = '#ffffff';
-    g.font = `bold ${rowH > 40 ? 22 : 17}px ${SANS}`;
+    g.font = `bold ${big ? 30 : 20}px ${SANS}`;
     g.fillText(String(runningTotal(pl.rolls)), w - 8 - totW / 2, ry + rowH * 0.45);
   });
   g.restore();

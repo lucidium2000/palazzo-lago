@@ -699,7 +699,7 @@ export function buildCasino(scene: THREE.Scene, renderer: THREE.WebGLRenderer, q
     // The ground-floor lobby inside the glass.
     entranceLobby: { exp: 0.8, hemi: 0.4, sky: new THREE.Color(0xffdcb0), ground: new THREE.Color(0x3a2214), key: 0.25, keyC: new THREE.Color(0xffe6c4), env: 0.75 },
     // Palazzo Lanes: a dim lounge, the neon and the lanes' lights doing the work.
-    bowling: { exp: 0.95, hemi: 0.2, sky: new THREE.Color(0xd8b8ff), ground: new THREE.Color(0x2a1410), key: 0.08, keyC: new THREE.Color(0xffd8b0), env: 0.7 },
+    bowling: { exp: 1.0, hemi: 0.32, sky: new THREE.Color(0xe0c4ff), ground: new THREE.Color(0x3a1c12), key: 0.14, keyC: new THREE.Color(0xffd8b0), env: 0.7 },
     // Its arcade: dim, the neon and the screens doing the lighting.
     arcade: { exp: 0.95, hemi: 0.16, sky: new THREE.Color(0xb8a0ff), ground: new THREE.Color(0x200a2a), key: 0.05, keyC: new THREE.Color(0xc0a0ff), env: 0.4 },
   };

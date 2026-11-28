@@ -299,10 +299,10 @@ function fasciaTexture(): HTMLCanvasElement {
   return c;
 }
 
-/** The faint mirror of the fascia's glow and the ceiling's light strips on the boards (additive). */
-function sheenTexture(): HTMLCanvasElement {
+/** The mirror of the lit fascia and the ceiling's light strips on the glossy boards (additive). */
+function sheenTexture(fascia: HTMLCanvasElement): HTMLCanvasElement {
   const W = 512,
-    H = 512;
+    H = 1024;
   const [c, g] = canvas(W, H);
   g.fillStyle = '#000';
   g.fillRect(0, 0, W, H);
@@ -310,27 +310,41 @@ function sheenTexture(): HTMLCanvasElement {
   for (let i = 0; i < LANES; i++) {
     const cx = ((SPAN.z1 - laneZ(i)) / span) * W;
     const hw = (LANE_HALF / span) * W;
-    // The fascia's reflection: strongest by the pins (top), fading toward the bowler.
-    const gr = g.createLinearGradient(0, 0, 0, H * 0.75);
-    gr.addColorStop(0, 'rgba(150,120,200,0.55)');
-    gr.addColorStop(0.15, 'rgba(110,80,160,0.3)');
-    gr.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = gr;
-    g.fillRect(cx - hw, 0, hw * 2, H * 0.75);
-    // Streaks under the ceiling's light baffles (along the lane).
+    g.save();
+    g.beginPath();
+    g.rect(cx - hw, 0, hw * 2, H);
+    g.clip();
+    // The fascia upside down (its bottom edge nearest the pins), stretched along the boards and softened.
+    g.filter = 'blur(3px)';
+    g.globalAlpha = 0.55;
+    g.save();
+    g.translate(0, H * 0.3);
+    g.scale(1, -1);
+    g.drawImage(fascia, 0, 0, fascia.width, fascia.height, 0, 0, W, H * 0.3);
+    g.restore();
+    g.filter = 'none';
+    g.globalAlpha = 1;
+    // Fade it out toward the bowler.
+    const fade = g.createLinearGradient(0, 0, 0, H * 0.32);
+    fade.addColorStop(0, 'rgba(0,0,0,0)');
+    fade.addColorStop(1, 'rgba(0,0,0,1)');
+    g.fillStyle = fade;
+    g.fillRect(cx - hw, 0, hw * 2, H * 0.32);
+    // Streaks under the ceiling's light baffles (long, along the lane).
     for (let k = 0; k < 4; k++) {
-      const y = H * (0.18 + k * 0.21);
-      const s = g.createRadialGradient(cx, y, 0, cx, y, 70);
-      s.addColorStop(0, 'rgba(255,230,190,0.32)');
-      s.addColorStop(1, 'rgba(255,230,190,0)');
+      const y = H * (0.12 + k * 0.23);
+      const sg = g.createRadialGradient(cx, y, 0, cx, y, 90);
+      sg.addColorStop(0, 'rgba(255,214,160,0.42)');
+      sg.addColorStop(1, 'rgba(255,214,160,0)');
       g.save();
       g.translate(cx, y);
-      g.scale(0.22, 1);
+      g.scale(0.16, 1);
       g.translate(-cx, -y);
-      g.fillStyle = s;
-      g.fillRect(cx - 80, y - 80, 160, 160);
+      g.fillStyle = sg;
+      g.fillRect(cx - 100, y - 100, 200, 200);
       g.restore();
     }
+    g.restore();
   }
   return c;
 }
@@ -595,21 +609,23 @@ export function buildAlley(scene: THREE.Scene, q: Quality, m: Mats): Alley {
   const panelT = toTexture(panelTexture());
   panelT.wrapS = panelT.wrapT = THREE.RepeatWrapping;
   panelT.repeat.set(1 / 0.9, 1 / 3);
-  const walnut = new THREE.MeshStandardMaterial({ map: panelT, roughness: 0.45, envMapIntensity: 0.9, emissive: 0x1a0c06, emissiveIntensity: 0.5 });
+  const walnut = new THREE.MeshStandardMaterial({ map: panelT, roughness: 0.45, envMapIntensity: 0.9, emissive: 0xffffff, emissiveMap: panelT, emissiveIntensity: 0.32 });
   const carpetT = toTexture(carpetTexture());
   carpetT.wrapS = carpetT.wrapT = THREE.RepeatWrapping;
   carpetT.repeat.set(1 / 2.4, 1 / 2.4);
   const carpet = new THREE.MeshStandardMaterial({ map: carpetT, roughness: 0.95, emissive: 0xffffff, emissiveMap: carpetT, emissiveIntensity: 0.1 });
-  const ceiling = new THREE.MeshStandardMaterial({ color: 0x14121a, roughness: 0.9, emissive: 0x08070c, emissiveIntensity: 1 });
+  const ceiling = new THREE.MeshStandardMaterial({ color: 0x1c1822, roughness: 0.9, emissive: 0x100c14, emissiveIntensity: 1 });
   const leather = new THREE.MeshStandardMaterial({ color: 0x5a1220, roughness: 0.42, envMapIntensity: 0.9, emissive: 0x200408, emissiveIntensity: 0.5 });
   const brass = m.gold;
   const marbleTop = m.marble;
   const glowWarm = m.glow(0xffe2b0, 1.5);
+  const baffle = m.glow(0xffc890, 0.95);
   const neonPink = m.glow(0xff3fa8, 2.2);
   const neonTeal = m.glow(0x2fe0d8, 2.0);
   const neonGold = m.glow(0xffc65a, 2.0);
   const neonViolet = m.glow(0x9a5cff, 2.0);
-  const fasciaTex = toTexture(fasciaTexture());
+  const fasciaCanvas = fasciaTexture();
+  const fasciaTex = toTexture(fasciaCanvas);
   fasciaTex.anisotropy = 4;
   const fascia = new THREE.MeshBasicMaterial({ map: fasciaTex, color: new THREE.Color(0.95, 0.95, 0.95) });
 
@@ -677,7 +693,7 @@ export function buildAlley(scene: THREE.Scene, q: Quality, m: Mats): Alley {
   }
   // The lanes' mirror shine (additive, over the boards from the pins back).
   {
-    const sheen = new THREE.MeshBasicMaterial({ map: toTexture(sheenTexture()), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0.75 });
+    const sheen = new THREE.MeshBasicMaterial({ map: toTexture(sheenTexture(fasciaCanvas)), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0.8 });
     const g = floorQuad(FOUL_X - HEAD_Z + 0.4, FOUL_X - 1.0, SPAN.z0, SPAN.z1, 0.003, [0, 1], [0, 1]);
     const mesh = new THREE.Mesh(g, sheen);
     mesh.raycast = () => {};
@@ -700,7 +716,7 @@ export function buildAlley(scene: THREE.Scene, q: Quality, m: Mats): Alley {
     for (let k = 0; k < 4; k++) {
       const x = FOUL_X - 2.5 - k * 3.9;
       b.box(lacquer, x, R.h - 0.08, laneZ(i), 1.6, 0.14, 0.32);
-      b.box(glowWarm, x, R.h - 0.152, laneZ(i), 1.5, 0.006, 0.18);
+      b.box(baffle, x, R.h - 0.152, laneZ(i), 1.4, 0.006, 0.12);
     }
   }
   for (const z of [-4.8, 0, 4.8]) {
@@ -754,6 +770,18 @@ export function buildAlley(scene: THREE.Scene, q: Quality, m: Mats): Alley {
       g.textBaseline = 'middle';
       g.fillText('ELEVATORS  ·  B', w / 2, h / 2 + 2);
     });
+  }
+  // Sconces between the posters: brass fans with a warm glow washing up the panelling.
+  for (let k = 0; k < 5; k++) {
+    const x = FOUL_X - 1.3 - k * 4.4;
+    for (const [z, s] of [
+      [R.z0, 1],
+      [R.z1, -1],
+    ] as const) {
+      b.box(brass, x, 1.95, z + s * 0.05, 0.22, 0.12, 0.1);
+      b.box(glowWarm, x, 2.02, z + s * 0.08, 0.18, 0.02, 0.06);
+      b.add(new THREE.PlaneGeometry(1.2, 1.4), m.halo, M(x, 2.15, z + s * 0.02, s > 0 ? 0 : Math.PI));
+    }
   }
   // Wall art along the side aisles (original posters).
   POSTERS.forEach((p, k) => {
