@@ -76,6 +76,11 @@ export class Player {
   /** Dancing on a screen (party/index.ts): the view bounces (m) and sways (radians) with the beat. */
   danceBob = 0;
   danceRoll = 0;
+  /** A slap's jolt (fight/you.ts): on a screen the view turns (radians) and springs back; in VR the head shifts a few cm and comes back. */
+  private joltYaw = 0;
+  private joltT = -1;
+  private joltDir = new THREE.Vector2();
+  private joltOff = 0;
   private speedNow = 0;
   private vignette: THREE.Mesh;
   private turnFlash = 0;
@@ -260,7 +265,39 @@ export class Player {
   private applyDesktopCamera() {
     if (this.inXR) return;
     this.camera.position.set(0, this.eye - this.crouch.drop + Math.sin(this.bob * 2) * 0.018 * Math.min(1, this.speedNow / WALK) + this.danceBob, 0);
-    this.camera.rotation.set(this.pitch, 0, Math.sin(this.bob) * 0.004 * Math.min(1, this.speedNow / WALK) + this.danceRoll, 'YXZ');
+    this.camera.rotation.set(this.pitch, this.joltYaw, Math.sin(this.bob) * 0.004 * Math.min(1, this.speedNow / WALK) + this.danceRoll, 'YXZ');
+  }
+
+  /**
+   * Your head knocked by a slap: `yaw` radians (+ to your left) on a screen,
+   * and in VR a shift of `metres` along (dx, dz) that comes straight back.
+   */
+  jolt(yaw: number, dx: number, dz: number, metres: number) {
+    this.joltYaw = THREE.MathUtils.clamp(this.joltYaw + yaw, -0.5, 0.5);
+    const l = Math.hypot(dx, dz);
+    if (l > 1e-6 && metres > 0) {
+      this.joltDir.set((dx / l) * Math.min(metres, 0.05), (dz / l) * Math.min(metres, 0.05));
+      this.joltT = 0;
+    }
+  }
+
+  private updateJolt(dt: number) {
+    if (this.joltYaw !== 0) this.joltYaw = Math.abs(this.joltYaw) < 0.002 ? 0 : this.joltYaw * Math.max(0, 1 - dt * 6);
+    if (this.joltT < 0) return;
+    // Out in 50 ms, back over ~300 ms.
+    this.joltT += dt;
+    const t = this.joltT;
+    const o = t < 0.05 ? t / 0.05 : t > 0.6 ? 0 : Math.exp(-(t - 0.05) * 10);
+    const d = o - this.joltOff;
+    this.joltOff = o;
+    if (this.inXR) {
+      this.rig.position.x += this.joltDir.x * d;
+      this.rig.position.z += this.joltDir.y * d;
+    }
+    if (t > 0.6) {
+      this.joltT = -1;
+      this.joltOff = 0;
+    }
   }
 
   /** Feet position (desktop rig position, or the point under the VR head), at your feet's height. */
@@ -682,6 +719,7 @@ export class Player {
     else if (!this.inXR) this.updateDesktop(dt);
     else this.updateXR(dt, interaction);
     if (this.nudgeT > 0) this.updateNudge(dt);
+    this.updateJolt(dt);
     if (!this.tween && !this.seated) this.updateVertical(dt, this.feet(), this.speedNow > 0.2);
     else this.updateCrouch(dt, false);
     if (!this.inXR && !this.tween) this.applyDesktopCamera();

@@ -31,6 +31,8 @@ export class You {
   private black: THREE.Mesh;
   private blackMat: THREE.MeshBasicMaterial;
   private flashA = 0;
+  /** The flash pushed toward one side (a slap), metres at the flash plane; settles back to the middle. */
+  private flashX = 0;
   private dark = 0;
   private filter: BiquadFilterNode | null = null;
   private ring: {
@@ -100,6 +102,16 @@ export class You {
     return r;
   }
 
+  /**
+   * A slap's sting on one side of your face: the red edge flares on that side
+   * (then settles back round the whole edge).
+   */
+  sting(side: 'left' | 'right', power: number) {
+    this.flashA = Math.min(0.6, this.flashA + 0.12 + 0.2 * power);
+    // (Moving the clear middle away from a side brings the red in on that side.)
+    this.flashX = (side === 'left' ? 1 : -1) * (0.04 + 0.03 * power);
+  }
+
   /** Knocked out by something else (a friend in a boxing match). */
   private knockOut() {
     this.outT = 0;
@@ -126,6 +138,8 @@ export class You {
     this.blackMat.opacity = this.dark;
     this.black.visible = this.dark > 0.005;
     this.flashA = Math.max(0, this.flashA - dt * 1.8);
+    this.flashX *= Math.max(0, 1 - dt * 3);
+    this.flash.position.x = this.flashX;
     // Hurt and low: a faint red edge that stays.
     const low = this.health.ko ? 0 : Math.max(0, 0.35 - this.health.fraction) * 0.6;
     const a = Math.max(this.flashA, low);

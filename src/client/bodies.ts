@@ -7,6 +7,7 @@ import type { Session } from './net/session';
 import type { Hand, Hands } from './hands';
 import { BODY_R, BUMP_SPEED, SLIDE, SOFT, Wedge, YIELD_HOLD, YIELD_STEP, capsuleDepth, handInto, handShove, separate, shoveDistance, shoveProgress, stepAgainst, yieldDirs } from './push';
 import { knocksOffSeat, stepUnseat, unseat, UNSEAT, walking, type Unseat } from './seatshove';
+import { SLAP, SlapDetector, handSide, sampleHands, type FaceHit } from './fight/slap';
 
 /**
  * People are solid. You meet resistance when you walk into someone (you slow
@@ -79,8 +80,16 @@ export interface BodiesDeps {
   onBump?(p: Person, strength: number, say: 'line' | 'gasp' | 'none'): void;
   /** A fist (or a very fast hand) landed on someone: power 0..1, where it landed, head or body, the hand's velocity. */
   onPunch?(p: Person, power: number, at: THREE.Vector3, zone: 'head' | 'body', v: THREE.Vector3): void;
-  /** An open hand swiped across someone's face: power 0..1, where, the hand's velocity. */
-  onSlap?(p: Person, power: number, at: THREE.Vector3, v: THREE.Vector3): void;
+  /** An open hand (palm or back) smacked into someone's face: power 0..1, where, the hand's velocity (relative to their head), and the contact. */
+  onSlap?(p: Person, power: number, at: THREE.Vector3, v: THREE.Vector3, hit?: FaceHit): void;
+  /** A hand touched someone's face too gently to be a slap (a graze, a pat): `hit.strength` 0..1. */
+  onFaceTouch?(p: Person, hit: FaceHit): void;
+  /**
+   * The hands-on-faces detector (fight/slap.ts), shared with boxing.ts. When
+   * given, whoever owns it feeds it the hands each frame (sampleHands);
+   * without it, Bodies keeps its own and feeds it.
+   */
+  faces?: SlapDetector;
   /** In a fight (fight/): punches don't shove them around (the fight handles the knock-back). */
   fighting?(p: Person): boolean;
   /** Is this hand making a fist (grip squeezed)? */
@@ -96,18 +105,16 @@ export interface BodiesDeps {
 }
 
 const SHOVE_T = 0.38;
-/** An open hand across a face faster than this (m/s) is a slap; slower is a touch. */
-export const SLAP_SPEED = 1.2;
+/** An open hand into a face faster than this (m/s, along the contact normal: see fight/slap.ts) is a slap; slower is a touch. */
+export const SLAP_SPEED = SLAP.speed;
 /** A closed fist faster than this (m/s) is a punch (any hand faster than PUNCH_ANY). */
 export const PUNCH_SPEED = 1.9;
 export const PUNCH_ANY = 3.2;
-/** How near the middle of the head a hand has to pass (m). */
-export const FACE_R = 0.17;
 
-/** What a fast hand meeting someone's head is: a punch, a slap, or just a touch. */
+/** What a fast hand meeting someone's head is: a punch, a slap, or just a touch (the full grading is fight/slap.ts gradeTouch). */
 export function faceContact(speed: number, fist: boolean): 'punch' | 'slap' | null {
-  if ((fist && speed > PUNCH_SPEED) || speed > PUNCH_ANY) return 'punch';
-  if (!fist && speed > SLAP_SPEED) return 'slap';
+  if (fist && speed > PUNCH_SPEED) return 'punch';
+  if (!fist && speed >= SLAP_SPEED) return 'slap';
   return null;
 }
 
@@ -162,6 +169,8 @@ export class Bodies {
   private friendLast = new Map<Person, THREE.Vector2>();
 
   constructor(private d: BodiesDeps) {
+    this.faces = d.faces ?? new SlapDetector();
+    this.ownFaces = !d.faces;
     d.player.bodies = (x, z, dx, dz, out) => this.step(x, z, dx, dz, out);
   }
 
@@ -421,7 +430,10 @@ export class Bodies {
     this.friendsPart(dt);
 
     // 2. VR hands pushing into bodies.
-    if (player.inXR) for (const h of this.d.hands.hands) this.handPush(h);
+    if (player.inXR) {
+      this.faceStep();
+      for (const h of this.d.hands.hands) this.handPush(h);
+    }
 
     // 3. Shoves in progress, turning toward you, and drifting back to where they stood.
     for (const [p, s] of this.state) {
@@ -666,8 +678,72 @@ export class Bodies {
     return [hx + dx * 1.2, hz + dz * 1.2];
   }
 
-  private headP = new THREE.Vector3();
-  /** A VR hand moving into someone's body pushes them a step back that way; a fast one punches or slaps. */
+  /** Hands on faces (fight/slap.ts): Bodies' own when none is shared. */
+  private faces: SlapDetector;
+  private ownFaces: boolean;
+  /** Faces each hand met this frame. */
+  private faceTouched = new Map<Hand, Set<Person>>();
+
+  /**
+   * VR hands meeting faces: a touch, a slap (open hand, palm or back, fast
+   * into the face) or a punch (a fist). Swept from last frame, so a fast
+   * swing can't pass through a head between frames.
+   */
+  faceStep() {
+    const det = this.faces;
+    if (this.ownFaces) {
+      det.beginFrame(this.time);
+      sampleHands(det, this.d.hands, (h) => this.d.isFist?.(h) ?? null);
+    }
+    for (const h of this.d.hands.hands) {
+      let set = this.faceTouched.get(h);
+      if (!set) this.faceTouched.set(h, (set = new Set()));
+      set.clear();
+      const id = handSide(h);
+      const hp = det.palmAt(id);
+      if (!hp) continue;
+      for (const p of this.d.crowd.people) {
+        if (p.culled || p.driven) continue;
+        const head = p.rig?.bones.Head;
+        if (!head) continue;
+        if (Math.abs(hp.x - p.pos.x) > 0.7 || Math.abs(hp.z - p.pos.z) > 0.7) continue;
+        head.updateWorldMatrix(true, false);
+        const hit = det.contact(id, p, head.matrixWorld);
+        if (!hit) continue;
+        set.add(p);
+        this.faceHit(h, p, hit);
+      }
+    }
+  }
+
+  private faceHit(h: Hand, p: Person, hit: FaceHit) {
+    const s = this.st(p);
+    const fighting = this.d.fighting?.(p) ?? false;
+    const v = hit.v;
+    if (hit.kind === 'punch') {
+      // A fist to the face: the punch it always was.
+      if (s.cool > 0) return;
+      const power = hit.power;
+      const vl = Math.hypot(v.x, v.z) || 1;
+      if (!fighting) this.shove(p, v.x / vl, v.z / vl, 0.35, Math.min(0.7, 0.3 + power * 0.4), this.d.player.feet(), true);
+      s.cool = Math.max(s.cool, fighting ? 0.3 : 0.8);
+      this.d.hands.onHaptic?.(h, 0.6 + power * 0.4, 70);
+      this.d.onPunch?.(p, power, hit.at.clone(), 'head', v.clone());
+      return;
+    }
+    // (A slap or a touch: no body shove from the follow-through.)
+    s.cool = Math.max(s.cool, 0.4);
+    if (hit.kind === 'slap') {
+      // The sting in your own hand: sharp, stronger the harder.
+      this.d.hands.onHaptic?.(h, 0.35 + 0.65 * hit.power, 25 + 35 * hit.power);
+      this.d.onSlap?.(p, hit.power, hit.at.clone(), v.clone(), hit);
+      return;
+    }
+    this.d.hands.onHaptic?.(h, 0.08 + 0.17 * hit.strength, 15);
+    this.d.onFaceTouch?.(p, hit);
+  }
+
+  /** A VR hand moving into someone's body pushes them a step back that way; a fast one punches (faces: faceStep). */
   private handPush(h: Hand) {
     if (h.ctrl.userData.connected === false) return;
     h.grip.updateMatrixWorld(true);
@@ -682,33 +758,8 @@ export class Bodies {
       const s = this.st(p);
       if (s.cool > 0) continue;
       const fighting = this.d.fighting?.(p) ?? false;
-      // The face: a fist is a punch to the head, an open hand swiping across it a slap.
-      const head = p.driven ? null : p.rig?.bones.Head;
-      if (head) {
-        head.getWorldPosition(this.headP);
-        this.headP.y += 0.08 * (p.look.height / 1.75);
-        if (this.headP.distanceToSquared(hp) < FACE_R * FACE_R) {
-          const v = this.d.hands.velocity(h);
-          const speed = v.length();
-          const kind = faceContact(speed, this.d.isFist?.(h) ?? false);
-          if (kind === 'punch') {
-            const power = Math.min(1, (speed - 1.6) / 3);
-            const vl = Math.hypot(v.x, v.z) || 1;
-            if (!fighting) this.shove(p, v.x / vl, v.z / vl, 0.35, Math.min(0.7, 0.3 + power * 0.4), this.d.player.feet(), true);
-            s.cool = Math.max(s.cool, fighting ? 0.3 : 0.8);
-            this.d.hands.onHaptic?.(h, 0.6 + power * 0.4, 70);
-            this.d.onPunch?.(p, power, hp.clone(), 'head', v);
-            continue;
-          }
-          if (kind === 'slap') {
-            const power = Math.min(1, (speed - SLAP_SPEED) / 2.5 + 0.2);
-            s.cool = Math.max(s.cool, 0.5);
-            this.d.hands.onHaptic?.(h, 0.45 + power * 0.4, 35);
-            this.d.onSlap?.(p, power, hp.clone(), v);
-            continue;
-          }
-        }
-      }
+      // The face was this hand's this frame (faceStep): no shove from the same touch.
+      if (this.faceTouched.get(h)?.has(p)) continue;
       const k = p.look.height / 1.75;
       const y0 = p.pos.y + (p.seated ? p.seatY - 0.1 : 0.5 * k);
       const y1 = p.pos.y + (p.seated ? p.seatY + 0.55 * k : 1.42 * k);

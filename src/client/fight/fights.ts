@@ -17,6 +17,7 @@ import { Brawl, MOVES, PHASES, T, type Phase, type PoseOut } from './brawl';
 import type { Blow, Zone } from './health';
 import { You, KO_SECONDS } from './you';
 import { Bars, type OverheadBar } from './bars';
+import { slapSnap, touchLean, type FaceHit } from './slap';
 
 /**
  * Fights. Push people around, punch them, slap them, soak them, and they get
@@ -166,7 +167,7 @@ export class Fights {
   private q = new THREE.Quaternion();
   private fxOut: number[] = [];
   /** A boxing match with a friend (net/boxing.ts) shows up in the bars too. */
-  boxing: { current(): { name: string; frac: number } | null } | null = null;
+  boxing: { current(): { name: string; frac: number } | null; deskSlap(): boolean } | null = null;
 
   constructor(private d: FightsDeps) {
     this.you = new You({
@@ -315,7 +316,7 @@ export class Fights {
    * A punch (or a slap) of yours landed on someone: in VR your fist (bodies.ts),
    * on a screen F / a click. `v` is the hand's velocity (world).
    */
-  hitPerson(p: Person, power: number, zone: Zone, v: THREE.Vector3, slap = false) {
+  hitPerson(p: Person, power: number, zone: Zone, v: THREE.Vector3, slap = false, cheek?: 0 | 1) {
     if (this.you.out || p.driven) return;
     this.lastAttack = this.time;
     const blow: Blow = { zone, power, slap };
@@ -334,7 +335,12 @@ export class Fights {
       // Not fighting (yet).
       p.gaspT = Math.max(p.gaspT, slap ? 0.8 : 1);
     }
-    this.hitFx(p, zone, power, v, blocked, slap);
+    this.hitFx(p, zone, power, v, blocked, slap, cheek);
+    if (slap && !blocked) {
+      // Shocked: they stare at you (and their temper shows).
+      p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + 3);
+      p.angry = Math.max(p.angry, 0.4 + 0.4 * power);
+    }
     // Out loud.
     if (!lf || this.time - lf.lastYell > 4) {
       if (lf) lf.lastYell = this.time;
@@ -344,7 +350,10 @@ export class Fights {
           rate: 1.3,
         });
       else if (p.role === 'guard') this.d.sound.play('gasp', this.headOf(p, this.v1), { volume: 0.7, rate: 0.8 });
-      else this.d.react(p, slap && power < 0.6 ? 'hit' : 'punched');
+      // A slap gets the outraged "ouch" (recorded lines only); a feeble one a "hey!".
+      else if (slap && power < 0.3) {
+        if (this.d.react(p, 'pushed') <= 0) this.d.sound.play('gasp', this.headOf(p, this.v1), { volume: 0.7, rate: 1.15 });
+      } else this.d.react(p, 'punched');
     } else if (!blocked)
       this.d.sound.play('gasp', this.headOf(p, this.v1), {
         volume: 0.6,
@@ -365,6 +374,7 @@ export class Fights {
         sl: slap ? 1 : 0,
         dx: r2(v.x),
         dz: r2(v.z),
+        ...(cheek !== undefined ? { cs: cheek } : {}),
       });
     }
     // Not in a fight yet: this might start one.
@@ -372,13 +382,44 @@ export class Fights {
     else if (lf) this.angerOf(p).add(slap ? 'slapped' : 'punched', power);
   }
 
+  private lastTouchLine = -99;
+
+  /**
+   * A hand touched someone's face, too gently to be a slap (a graze, a pat, a
+   * hand brushing past): nothing hurts. They flinch or lean away, glance at
+   * you, and now and then say something ("hey", "excuse me?").
+   */
+  touchFace(p: Person, hit: Pick<FaceHit, 'strength' | 'v' | 'kind'>) {
+    if (p.driven || p.fight?.down) return;
+    const k = hit.kind === 'brush' ? hit.strength * 0.5 : hit.strength;
+    // A glance (longer the more it was).
+    p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + 0.8 + 2 * k);
+    if (hit.kind === 'brush') return;
+    // Lean away from the hand.
+    const lean = touchLean(hit.v, p.yaw, k);
+    p.snapY += lean.yaw;
+    p.snapX += lean.pitch;
+    // A flinch.
+    if (k > 0.45) p.gaspT = Math.max(p.gaspT, 0.35);
+    // A word, now and then (recorded lines only: "Hey!", "Excuse me?!"; dialogue.ts).
+    if (k > 0.3 && !this.fighting(p) && this.time - this.lastTouchLine > 3 && Math.random() < 0.2 + 0.6 * k) {
+      if (this.d.react(p, 'pushed') > 0) this.lastTouchLine = this.time;
+    }
+    // Repeatedly pawing at someone's face wears thin.
+    if (k > 0.6) this.provoke(p, 'pushed', 0.2);
+  }
+
   /** What a blow looks and sounds like on someone: the thud (or the clap), the head turning, a red cheek. */
-  private hitFx(p: Person, zone: Zone, power: number, v: THREE.Vector3, blocked: boolean, slap: boolean) {
+  private hitFx(p: Person, zone: Zone, power: number, v: THREE.Vector3, blocked: boolean, slap: boolean, cheek?: 0 | 1) {
     const at = zone === 'head' ? this.headOf(p, this.v2) : this.v2.set(p.pos.x, p.pos.y + 1.2 * (p.look.height / 1.75), p.pos.z);
-    this.d.sound.play(slap ? 'slap' : blocked ? 'block' : 'punch', at, {
-      volume: slap ? 0.9 + power * 0.5 : 0.8 + power * 0.6,
-      rate: (slap ? 1.0 : 0.85) + Math.random() * 0.15,
-    });
+    if (slap && !blocked)
+      // A smack: louder, sharper and carrying further the harder it lands.
+      this.d.sound.play('slap', at, { volume: 0.75 + power * 0.85, rate: 0.9 + power * 0.25 + Math.random() * 0.06, ref: 1.6 + power });
+    else
+      this.d.sound.play(slap ? 'slap' : blocked ? 'block' : 'punch', at, {
+        volume: slap ? 0.9 + power * 0.5 : 0.8 + power * 0.6,
+        rate: (slap ? 1.0 : 0.85) + Math.random() * 0.15,
+      });
     if (blocked) {
       this.remoteBy.get(p)?.puppet.blockNow();
       return;
@@ -393,11 +434,13 @@ export class Fights {
     const across = -v.x * Math.cos(p.yaw) + v.z * Math.sin(p.yaw);
     if (zone === 'head') {
       if (slap) {
-        p.snapY += -Math.sign(across || 1) * (0.45 + 0.35 * power);
-        p.snapX += 0.05;
-        p.blush = 6;
-        // A hand going to their left came from their right: that cheek.
-        p.blushSide = across < 0 ? 1 : 0;
+        // The head snaps the way the hand was going, further the harder (people.ts springs it back).
+        const sn = slapSnap(v, p.yaw, power);
+        p.snapY += sn.yaw;
+        p.snapX += sn.pitch;
+        // The cheek that took it goes red (faces.ts), longer the harder.
+        p.blush = Math.max(p.blush, 3 + 5 * power);
+        p.blushSide = cheek ?? sn.side;
       } else {
         // (A fighter's flinch clip snaps the head back already: a touch more on top.)
         const k = p.fight ? 0.4 : 1;
@@ -603,6 +646,7 @@ export class Fights {
     if (e.target instanceof HTMLInputElement || this.d.player.inXR) return;
     if (e.code === 'KeyH') this.blockKey = true;
     if (e.code === 'KeyF' && !e.repeat && !this.d.handsBusy()) this.deskPunch();
+    if (e.code === 'KeyY' && !e.repeat && this.d.player.seated?.id !== 'piano') this.deskSlap();
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
@@ -675,6 +719,38 @@ export class Fights {
       .normalize()
       .multiplyScalar(3);
     this.hitPerson(p, 0.65, pitch > -0.25 ? 'head' : 'body', this.v1);
+  }
+
+  /** Someone to slap on a screen: a guest right in front of you (null if there's no one). */
+  slapTarget(): Person | null {
+    return this.target(1.1);
+  }
+
+  /**
+   * A slap on a screen (Y, the Slap button on a phone): an open hand across the
+   * face of whoever's right in front of you, a guest or (boxing.ts) a friend,
+   * with the same outcome as one in VR: the smack, the head snapping away, the
+   * red cheek, the outrage.
+   */
+  deskSlap() {
+    if (this.you.out || this.deskCool > 0) return;
+    this.deskCool = PUNCH_COOL;
+    const p = this.target(1.1);
+    if (!p) {
+      if (this.boxing?.deskSlap()) return;
+      this.session?.emit('jab', { s: 'r' });
+      this.d.sound.playLocal('whoosh', 0.4, 1.3);
+      return;
+    }
+    this.session?.emit('jab', { s: 'r' });
+    // Your right hand, swung across their face from your right to your left: their left cheek (slapSnap works it out).
+    const me = this.d.player.feet();
+    const fx = p.pos.x - me.x,
+      fz = p.pos.z - me.z;
+    const l = Math.hypot(fx, fz) || 1;
+    // Your left, facing them, is (fz, -fx) (yaw = atan2(x, z)): the hand goes that way, and a little forward.
+    this.v1.set(((fz * 3.2 + fx * 1.2) / l), 0, ((-fx * 3.2 + fz * 1.2) / l));
+    this.hitPerson(p, 0.55, 'head', this.v1, true);
   }
 
   // ---------------------------------------------------------------------------
@@ -1216,6 +1292,7 @@ export class Fights {
     const s = this.session;
     const v = this.v3.set(Number(d.dx) || 0, 0, Number(d.dz) || 0);
     const slap = !!d.sl;
+    const cheek = d.cs === 0 || d.cs === 1 ? d.cs : undefined;
     const owner = typeof d.o === 'string' ? d.o : '';
     if (s && owner === s.selfId) {
       // Our fight: we apply it.
@@ -1225,7 +1302,7 @@ export class Fights {
       const blow: Blow = { zone, power, slap, blocked };
       const r = lf.brawl.hit(blow, rnd);
       this.afterHit(lf, blow, r);
-      this.hitFx(lf.p, zone, power, v, blocked, slap);
+      this.hitFx(lf.p, zone, power, v, blocked, slap, cheek);
       return;
     }
     const p = owner
@@ -1234,7 +1311,7 @@ export class Fights {
         : this.remote.get(`${owner}:${i}`)?.p
       : this.resolve(i, this.d.crowd.people[i]?.role ?? 'wander', fr.person?.pos.x ?? 0, fr.person?.pos.z ?? 0);
     if (!p) return;
-    this.hitFx(p, zone, power, v, blocked, slap);
+    this.hitFx(p, zone, power, v, blocked, slap, cheek);
   }
 
   private onKO(fr: Friend, d: Record<string, unknown>) {

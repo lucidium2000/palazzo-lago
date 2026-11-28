@@ -41,7 +41,7 @@ import { PokerPlay } from './pokerplay';
 import { PokerSync } from './net/pokersync';
 import { SlotRows } from './decor';
 import { money, type GameContext } from './game';
-import { Hands } from './hands';
+import { Hands, type Hand } from './hands';
 import { Hud, type NavItem } from './hud';
 import { Interaction } from './interaction';
 import { Drink, Lounge } from './lounge';
@@ -86,6 +86,7 @@ import { Boxing } from './net/boxing';
 import { NpcSync } from './net/npcsync';
 import { Fights } from './fight/fights';
 import { Bodies, friendShove } from './bodies';
+import { SlapDetector, sampleHands } from './fight/slap';
 import { avatarLook } from './net/avatars';
 import { Piano } from './piano';
 import { Hints, type HintArcade } from './hints';
@@ -593,11 +594,24 @@ async function main() {
     const b = crew.buddies.find((x) => x.person === p);
     return dialogue.react(p, kind, b ? { name: b.name, voice: b.voiceId } : undefined);
   };
+  // Hands on faces (fight/slap.ts): fed each frame below, read by bodies (guests) and boxing (friends).
+  const faceHits = new SlapDetector();
+  /** A fist: the grip squeezed, or (hand tracking) the fingers curled. */
+  const handIsFist = (h: Hand) => {
+    const side = h.ctrl.userData.handedness === 'left' ? 'left' : 'right';
+    if (hands.tracked(side)) {
+      const f = hands.fingerPose(side, undefined);
+      return (f[1] + f[2] + f[3] + f[4]) / 4 > 0.6;
+    }
+    const g = gripValues();
+    return (side === 'left' ? g.l : g.r) > 0.55;
+  };
   const bodies = new Bodies({
     crowd,
     world,
     player,
     hands,
+    faces: faceHits,
     onBump: (p, k, say) => {
       // They notice: a word (in their own voice, now and then across the crowd), or at least a breath.
       if (k > 0.2) fights.provoke(p, 'pushed', k);
@@ -606,13 +620,12 @@ async function main() {
     },
     // A thud you feel, a stumble, a loud ouch, and maybe a fight (fight/fights.ts).
     onPunch: (p, power, _at, zone, v) => fights.hitPerson(p, power, zone, v),
-    // An open hand across the face: a slap.
-    onSlap: (p, power, _at, v) => fights.hitPerson(p, power, 'head', v, true),
+    // An open hand (palm or back) fast into the face: a slap.
+    onSlap: (p, power, _at, v, hit) => fights.hitPerson(p, power, 'head', v, true, hit?.side),
+    // Too gentle to be a slap: a flinch, a glance, maybe a word.
+    onFaceTouch: (p, hit) => fights.touchFace(p, hit),
     fighting: (p) => fights.fighting(p),
-    isFist: (h) => {
-      const g = gripValues();
-      return (h.ctrl.userData.handedness === 'left' ? g.l : g.r) > 0.55;
-    },
+    isFist: handIsFist,
     onPushFriend: (_p, dx, dz) => pushFriend?.(dx, dz),
     onUnseat: (p, ux, uz, power) => piano?.knocked(p, ux, uz, power),
     onReseat: (p) => piano?.reseated(p),
@@ -1278,6 +1291,7 @@ async function main() {
         }
       },
       you: fights.you,
+      faces: faceHits,
     });
     fights.boxing = boxing;
     (window as unknown as { casino: Record<string, unknown> }).casino.boxing = boxing;
@@ -2011,6 +2025,10 @@ async function main() {
     camera.getWorldPosition(head);
     hands.head.copy(head);
     hands.update();
+    if (player.inXR) {
+      faceHits.beginFrame(t);
+      sampleHands(faceHits, hands, handIsFist);
+    }
     const feet = player.feet();
 
     // Which game are you at? Sitting, or standing close in VR / free mode.
@@ -2229,7 +2247,10 @@ async function main() {
       else if (player.seated) touch.setAction('Stand', () => player.stand());
       else {
         const s = nearestSeat(1.8);
-        touch.setAction(s ? (s.vp.id === 'roulette' || s.vp.id.startsWith('bj') || s.vp.id.startsWith('pk') ? 'Sit' : 'Play') : null, s ? () => player.sit(s.vp) : null);
+        if (s) touch.setAction(s.vp.id === 'roulette' || s.vp.id.startsWith('bj') || s.vp.id.startsWith('pk') ? 'Sit' : 'Play', () => player.sit(s.vp));
+        // Face to face with someone: a slap (Y on a keyboard).
+        else if (fights.slapTarget() || boxing?.canSlap()) touch.setAction('Slap', () => fights.deskSlap());
+        else touch.setAction(null, null);
       }
       touch.setJump(!player.seated && !hud.station);
     } else hud.setControls(null);

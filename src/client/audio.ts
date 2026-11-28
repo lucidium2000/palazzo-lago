@@ -358,11 +358,21 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
     const l = lp(0.08);
     return synth(ctx, 0.25, (t) => Math.sin(2 * Math.PI * 140 * t) * 0.5 * env(t, 0.001, 0.035) + l(rand()) * 1.2 * env(t, 0.001, 0.03));
   })();
-  // A slap: a crisp, bright clap (skin on skin), no low thump.
+  // A slap: a crisp, bright crack (skin on skin) with a short fleshy smack under it, no low thump.
   const slap = (() => {
     const b = hp(0.55),
-      b2 = hp(0.8);
-    return synth(ctx, 0.22, (t) => b(rand()) * 1.1 * env(t, 0.0003, 0.012) + b2(rand()) * 0.45 * env(t, 0.0004, 0.035) + Math.sin(2 * Math.PI * 1150 * t) * 0.12 * env(t, 0.0005, 0.02));
+      b2 = hp(0.8),
+      m = lp(0.3);
+    return synth(
+      ctx,
+      0.22,
+      (t) =>
+        b(rand()) * 1.15 * env(t, 0.0003, 0.011) +
+        b2(rand()) * 0.45 * env(t, 0.0004, 0.035) +
+        m(rand()) * 0.9 * env(t, 0.0004, 0.009) +
+        Math.sin(2 * Math.PI * (260 - t * 900) * t) * 0.22 * env(t, 0.0005, 0.016) +
+        Math.sin(2 * Math.PI * 1150 * t) * 0.12 * env(t, 0.0005, 0.02),
+    );
   })();
   // A punch that misses: air going past.
   const whoosh = (() => {

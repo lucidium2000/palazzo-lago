@@ -5,7 +5,7 @@ import type { Sound } from '../audio';
 import type { Hud } from '../hud';
 import type { Player } from '../player';
 import type { You } from '../fight/you';
-import { SLAP_SPEED } from '../bodies';
+import { boneFromPose, handSide, headTurn, slapSnap, type SlapDetector } from '../fight/slap';
 
 /**
  * Boxing with your friend. In VR, make a fist and throw a real punch: a fast
@@ -15,8 +15,11 @@ import { SLAP_SPEED } from '../bodies';
  * back if you stop getting hit, and if it runs out, you're knocked down for a
  * moment, then back on your feet.
  *
- * An open hand swiped across their face is a slap: a sharp clap, their head
- * turns, a sting more than damage.
+ * An open hand (palm or back) smacked into their face is a slap (measured
+ * like a guest's, fight/slap.ts): a sharp clap, their head snaps the way your
+ * hand went, a red cheek; on their side a sting, a red flare on that side of
+ * their view, their head jolted, a buzz. A sting more than damage. On a
+ * screen, Y slaps the friend right in front of you.
  *
  * Each player owns their own health (the same health as fights with guests,
  * fight/you.ts: at zero you're knocked out, fade to black, come round); the
@@ -43,6 +46,8 @@ export interface BoxingDeps {
   haptic(side: 'left' | 'right', strength: number, ms: number): void;
   /** Your health (shared with fights with guests). */
   you: You;
+  /** Hands on faces (fight/slap.ts), fed each frame by main.ts (sampleHands). */
+  faces?: SlapDetector;
 }
 
 type Zone = 'head' | 'body';
@@ -87,6 +92,40 @@ export class Boxing {
     if (e.code !== 'KeyB' || e.repeat || e.target instanceof HTMLInputElement || this.d.player.inXR) return;
     this.jab();
   };
+
+  /** The friend right in front of you (within `range` m), on a screen. */
+  private inFront(range: number): { f: Friend; to: THREE.Vector3 } | null {
+    const me = this.d.player.feet();
+    const look = new THREE.Vector3(0, 0, -1).applyQuaternion(this.d.camera.getWorldQuaternion(new THREE.Quaternion()));
+    look.y = 0;
+    look.normalize();
+    for (const f of this.d.session.friendList()) {
+      const p = f.person;
+      if (!p) continue;
+      const to = new THREE.Vector3(p.pos.x - me.x, 0, p.pos.z - me.z);
+      const dist = to.length();
+      if (dist > range || dist < 0.05 || to.normalize().dot(look) < 0.8) continue;
+      return { f, to };
+    }
+    return null;
+  }
+
+  /** Is a friend right in front of you, close enough to slap (a screen)? */
+  canSlap() {
+    return this.ko <= 0 && !!this.inFront(1.1);
+  }
+
+  /** Desktop/phone: a slap (right hand, across their face) for the friend right in front of you. Whether there was one. */
+  deskSlap(): boolean {
+    if (this.ko > 0) return false;
+    const t = this.inFront(1.1);
+    if (!t) return false;
+    this.d.session.emit('jab', { s: 'r' });
+    // Your right hand going to your left, a little forward: (to.z, -to.x) is your left facing them.
+    const dir = new THREE.Vector3(t.to.z * 3.2 + t.to.x * 1.2, 0, -t.to.x * 3.2 + t.to.z * 1.2).normalize();
+    this.land(t.f, 'head', 0.55, dir, false, null, true);
+    return true;
+  }
 
   /** Desktop/phone: a jab at the friend right in front of you. */
   jab() {
@@ -142,22 +181,32 @@ export class Boxing {
       const prev = this.prevHand.get(key) ?? now;
       this.prevHand.set(key, now);
       if (hand.held || hand.carried) continue;
-      if ((this.cool.get(key) ?? 0) > 0) continue;
       const fist = (side === 'left' ? g.l : g.r) >= 0.55;
       const v = this.d.hands.velocity(hand);
       const speed = v.length();
-      // An open hand across their face: a slap (any direction across it counts).
+      // An open hand meeting their face: a slap if it's fast into it (fight/slap.ts; once per contact).
       if (!fist) {
-        if (speed < SLAP_SPEED) continue;
+        const faces = this.d.faces;
+        if (!faces) continue;
+        const id = handSide(hand);
         for (const f of friends) {
-          const t = targets(f);
-          if (!t || distToSegment(t.head, prev, now) > HEAD_R) continue;
-          this.cool.set(key, 0.5);
-          this.land(f, 'head', THREE.MathUtils.clamp((speed - SLAP_SPEED) / 2.5 + 0.2, 0.2, 1), v.clone().normalize(), false, side, true);
+          const p = f.person;
+          const bone = p && !p.culled ? headBone(f, this.bone) : null;
+          if (!bone) continue;
+          const hit = faces.contact(id, p!, bone);
+          if (!hit) continue;
+          if (hit.kind === 'slap') {
+            this.land(f, 'head', hit.power, hit.v.clone().normalize(), false, side, true, hit.side);
+          } else if (hit.kind === 'punch') {
+            // A hand-tracked fist (no grip button): a punch to the head after all.
+            this.cool.set(key, COOLDOWN);
+            this.land(f, 'head', THREE.MathUtils.clamp((hit.v.length() - 1.6) / 4, 0.2, 1), hit.v.clone().normalize(), false, side);
+          } else if (hit.kind === 'touch') this.d.haptic(side, 0.08 + 0.17 * hit.strength, 15);
           break;
         }
         continue;
       }
+      if ((this.cool.get(key) ?? 0) > 0) continue;
       if (speed < PUNCH_SPEED) continue;
       for (const f of friends) {
         const t = targets(f);
@@ -177,39 +226,80 @@ export class Boxing {
     }
   }
 
-  /** Your punch lands on a friend (as you see it). */
-  private land(f: Friend, zone: Zone, power: number, dir: THREE.Vector3, blocked: boolean, side: 'left' | 'right' | null, slap = false) {
-    const at = targets(f)?.[zone === 'head' ? 'head' : 'chest'] ?? f.person?.pos.clone().setY(1.3);
-    if (at) this.d.sound.play(slap ? 'slap' : blocked ? 'block' : 'punch', at, { volume: 0.6 + power * 0.5, rate: 0.9 + Math.random() * 0.2 });
-    if (side) this.d.haptic(side, blocked ? 0.4 : slap ? 0.45 + power * 0.3 : 0.6 + power * 0.4, blocked || slap ? 40 : 70);
+  private bone = new THREE.Matrix4();
+
+  /** Your punch (or slap) lands on a friend (as you see it). `cheek`: a slap's side of their face (0 their left, 1 their right). */
+  private land(f: Friend, zone: Zone, power: number, dir: THREE.Vector3, blocked: boolean, side: 'left' | 'right' | null, slap = false, cheek?: 0 | 1) {
+    if (side) this.d.haptic(side, blocked ? 0.4 : slap ? 0.35 + power * 0.65 : 0.6 + power * 0.4, blocked ? 40 : slap ? 25 + 35 * power : 70);
     this.last = { id: f.id, name: f.name, t: this.time };
+    cheek = this.reel(f, zone, power, dir, blocked, slap, cheek);
+    this.d.session.emit('punch', {
+      // Who it's for (everyone else in the room just sees it).
+      to: f.id,
+      z: zone,
+      p: Math.round(power * 100) / 100,
+      b: blocked ? 1 : 0,
+      sl: slap ? 1 : 0,
+      d: dir.toArray().map((x) => Math.round(x * 100) / 100),
+      ...(slap && cheek !== undefined ? { cs: cheek } : {}),
+    });
+  }
+
+  /** A friend's avatar takes a blow (as anyone in the room sees it): the sound at them, the head snapping, a red cheek. Returns the cheek a slap hit. */
+  private reel(f: Friend, zone: Zone, power: number, dir: THREE.Vector3, blocked: boolean, slap: boolean, cheek?: 0 | 1): 0 | 1 | undefined {
+    const at = targets(f)?.[zone === 'head' ? 'head' : 'chest'] ?? f.person?.pos.clone().setY(1.3);
+    if (at) {
+      if (slap && !blocked) this.d.sound.play('slap', at, { volume: 0.75 + power * 0.85, rate: 0.9 + power * 0.25 + Math.random() * 0.06, ref: 1.6 + power });
+      else this.d.sound.play(slap ? 'slap' : blocked ? 'block' : 'punch', at, { volume: 0.6 + power * 0.5, rate: 0.9 + Math.random() * 0.2 });
+    }
     // Their avatar reels (they see the real hit on their side).
     const p = f.person;
     if (p && !blocked) {
       p.gaspT = 0.6 + power * 0.5;
       const across = -dir.x * Math.cos(p.yaw) + dir.z * Math.sin(p.yaw);
       if (slap) {
-        p.snapY += -Math.sign(across || 1) * (0.45 + 0.35 * power);
-        p.blush = 6;
-        p.blushSide = across < 0 ? 1 : 0;
+        const sn = slapSnap(dir, p.yaw, power);
+        p.snapY += sn.yaw;
+        p.snapX += sn.pitch;
+        p.blush = Math.max(p.blush, 3 + 5 * power);
+        cheek ??= sn.side;
+        p.blushSide = cheek;
       } else if (zone === 'head') {
         p.snapX += 0.25 + 0.3 * power;
         p.snapY += -Math.sign(across || 1) * 0.15 * power;
       }
     }
-    this.d.session.emit('punch', { z: zone, p: Math.round(power * 100) / 100, b: blocked ? 1 : 0, sl: slap ? 1 : 0, d: dir.toArray().map((x) => Math.round(x * 100) / 100) });
+    return cheek;
   }
 
   /** You got hit. */
   private takeHit(f: Friend, data: Record<string, unknown>) {
-    if (this.ko > 0) return;
     const zone: Zone = data.z === 'head' ? 'head' : 'body';
     const power = THREE.MathUtils.clamp(Number(data.p) || 0.5, 0.1, 1);
     const blocked = !!data.b;
     const slap = !!data.sl;
+    // Someone else in the room got it: we see it on their avatar.
+    if (typeof data.to === 'string' && data.to !== this.d.session.selfId) {
+      const victim = this.d.session.friendList().find((x) => x.id === data.to);
+      const d = Array.isArray(data.d) ? data.d.map(Number) : [];
+      if (victim) this.reel(victim, zone, power, new THREE.Vector3(d[0] || 0, d[1] || 0, d[2] || 0), blocked, slap, data.cs === 0 || data.cs === 1 ? data.cs : undefined);
+      return;
+    }
+    if (this.ko > 0) return;
     this.last = { id: f.id, name: f.name, t: this.time };
     const r = this.d.you.hurt({ zone, power, blocked, slap });
-    this.d.sound.playLocal(slap ? 'slap' : blocked ? 'block' : 'punch', blocked ? 0.6 : 0.9);
+    if (slap) {
+      // You feel it: a loud smack right at your face, a red flare on that side, your head knocked the way their hand went.
+      this.d.sound.playLocal('slap', Math.min(1.6, 0.9 + power * 0.7), 0.9 + power * 0.25);
+      const d = Array.isArray(data.d) ? data.d.map(Number) : [];
+      const dir = new THREE.Vector3(d[0] || 0, d[1] || 0, d[2] || 0);
+      const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.d.camera.getWorldQuaternion(new THREE.Quaternion()));
+      const myYaw = Math.atan2(fwd.x, fwd.z);
+      const turn = headTurn(dir, myYaw, 0.08 + 0.14 * power);
+      const cheek = data.cs === 0 || data.cs === 1 ? data.cs : turn.side;
+      this.d.you.sting(cheek === 0 ? 'left' : 'right', power);
+      this.d.player.jolt(turn.yaw, dir.x, dir.z, 0.015 + 0.025 * power);
+    } else this.d.sound.playLocal(blocked ? 'block' : 'punch', blocked ? 0.6 : 0.9);
     if (r.ko) {
       this.d.hud.toast(`${f.name} knocked you out!`, 'warn');
       this.d.session.emit('ouch', { hp: 0, ko: 1 });
@@ -228,6 +318,19 @@ export class Boxing {
   dispose() {
     removeEventListener('keydown', this.onKey);
   }
+}
+
+/** A friend's head bone (world), or one made up from where their avatar stands and how tall they are. */
+function headBone(f: Friend, out: THREE.Matrix4): THREE.Matrix4 | null {
+  const p = f.person;
+  if (!p) return null;
+  const head = p.rig?.bones?.Head;
+  if (head) {
+    head.updateWorldMatrix(true, false);
+    return out.copy(head.matrixWorld);
+  }
+  const eye = p.pos.y + (Number(f.state.hh) || 1.6) - (Number(f.state.cr) || 0);
+  return boneFromPose(out, p.pos.x, eye - 0.1, p.pos.z, p.yaw);
 }
 
 /** Where a friend's head and chest are (from their avatar's bones). */

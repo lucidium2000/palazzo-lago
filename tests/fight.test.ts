@@ -271,7 +271,7 @@ describe('brawl', () => {
 });
 
 describe('slaps', () => {
-  it('an open hand across the face is a slap above ~1.2 m/s, a touch below; a fast fist is a punch', async () => {
+  it('an open hand into the face is a slap above ~1.6 m/s, a touch below; a fast fist is a punch', async () => {
     const { faceContact, SLAP_SPEED, PUNCH_SPEED } = await import('../src/client/bodies');
     expect(faceContact(0.3, false)).toBe(null);
     expect(faceContact(0.9, false)).toBe(null);
@@ -295,7 +295,7 @@ describe('slaps', () => {
 });
 
 describe('hands on faces (VR)', () => {
-  it('an open hand swiping across a face slaps; a fist punches the head; a slow hand only touches', async () => {
+  it('an open hand swung into a face slaps; a fist punches the head; a slow hand only touches', async () => {
     const THREE = await import('three');
     const { Bodies } = await import('../src/client/bodies');
     const { Person } = await import('../src/client/people');
@@ -306,35 +306,44 @@ describe('hands on faces (VR)', () => {
     p.rig = { bones: { Head: head } } as never;
     const grip = new THREE.Group();
     const hand = { grip, ctrl: { userData: {} }, held: null, carried: null, pos: new THREE.Vector3(), index: 0 };
-    let vel = new THREE.Vector3();
     let fist = false;
     const got: string[] = [];
+    const buzz: number[] = [];
     const bodies = new Bodies({
       crowd: { people: [p], now: 0 } as never,
       world: { move: (x: number, z: number) => [x, z] } as never,
-      player: { feet: () => new THREE.Vector3(0, 0, 1), inXR: false, speed: 0, seated: null } as never,
-      hands: { hands: [hand], velocity: () => vel, onHaptic: null } as never,
+      player: { feet: () => new THREE.Vector3(0, 0, 1), inXR: true, speed: 0, seated: null } as never,
+      hands: { hands: [hand], velocity: () => new THREE.Vector3(), onHaptic: (_h: unknown, s: number) => buzz.push(s) } as never,
       isFist: () => fist,
       onSlap: (_p, power) => got.push('slap ' + power.toFixed(2)),
       onPunch: (_p, _pw, _at, zone) => got.push('punch ' + zone),
+      onFaceTouch: (_p, hit) => got.push(hit.kind),
     });
-    const at = (x: number, y: number, z: number) => {
-      grip.position.set(x, y, z);
-      grip.updateMatrixWorld(true);
-    };
-    const swipe = (v: [number, number, number], f: boolean) => {
-      vel = new THREE.Vector3(...v);
+    // The hand swung from 40 cm out at the side of the face into the cheek at `speed`, 90 frames a second.
+    const swingIn = (speed: number, f: boolean) => {
       fist = f;
-      at(0.03, 1.66, 0.1);
-      (bodies as unknown as { handPush(h: unknown): void }).handPush(hand);
-      // Let the per-person cool-down pass.
+      const from = new THREE.Vector3(0.45, 1.68, 0.05),
+        to = new THREE.Vector3(0.02, 1.68, 0.05);
+      const n = Math.ceil((from.distanceTo(to) / speed) * 90);
+      for (let i = 0; i <= n + 3; i++) {
+        grip.position.copy(from).lerp(to, Math.min(1, i / n));
+        grip.updateMatrixWorld(true);
+        bodies.update(1 / 90);
+      }
+      // Back out again (re-arms), then let the cool-downs pass.
+      for (let i = 0; i < 20; i++) {
+        grip.position.set(0.6, 1.68, 0.05);
+        grip.updateMatrixWorld(true);
+        bodies.update(1 / 90);
+      }
       bodies.update(2);
     };
-    swipe([0.3, 0, 0], false); // a touch
-    expect(got).toEqual([]);
-    swipe([2, 0, 0.2], false); // across the face, open hand
-    expect(got[0]).toMatch(/^slap/);
-    swipe([0, 0, -2.5], true); // a fist into the face
-    expect(got[1]).toBe('punch head');
+    swingIn(0.5, false); // a touch
+    expect(got).toEqual(['touch']);
+    swingIn(4, false); // a smack, open hand
+    expect(got[1]).toMatch(/^slap/);
+    expect(buzz[1]).toBeGreaterThan(buzz[0]);
+    swingIn(4, true); // a fist into the face
+    expect(got[2]).toBe('punch head');
   });
 });
