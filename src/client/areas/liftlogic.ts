@@ -6,7 +6,7 @@
  * friend who walks in late gets.
  */
 
-export type LandingId = 'casino' | 'pool' | 'promenade' | 'suite' | 'entrance';
+export type LandingId = 'casino' | 'pool' | 'promenade' | 'suite' | 'entrance' | 'bowling';
 
 export const LANDINGS: Record<LandingId, { label: string; short: string; floor: number }> = {
   pool: { label: 'Pool Deck', short: 'P', floor: 2 },
@@ -16,9 +16,11 @@ export const LANDINGS: Record<LandingId, { label: string; short: string; floor: 
   suite: { label: 'Suite 3201', short: '32', floor: 32 },
   /** The ground floor: the main lobby and the front entrance (taxis, rideshare, valet). */
   entrance: { label: 'Main Entrance', short: 'G', floor: 0 },
+  /** The lower level: Palazzo Lanes, the bowling lounge. */
+  bowling: { label: 'Palazzo Lanes', short: 'B', floor: -1 },
 };
 
-export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v === 'pool' || v === 'promenade' || v === 'suite' || v === 'entrance';
+export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v === 'pool' || v === 'promenade' || v === 'suite' || v === 'entrance' || v === 'bowling';
 
 /** Cab interior, from the door line (x) eastwards; half its width (z). */
 export const DEPTH = 2.2;
@@ -26,18 +28,18 @@ export const HALF = 0.95;
 
 /**
  * The floor panel inside the cab (metres): a brass plate on the side wall,
- * centred at shoulder height. Six rows (the five floors, top to bottom, then
+ * centred at shoulder height. Seven rows (the six floors, top to bottom, then
  * the doors), each a round button with its name beside it. Sized for a
  * fingertip: 6 cm buttons, 3 cm apart, and a 1 cm strip between rows that
  * presses nothing (a poke that lands between two rows picks neither, never
  * the wrong one).
  */
-export const PANEL_ROWS = ['suite', 'promenade', 'pool', 'casino', 'entrance', 'open'] as const;
+export const PANEL_ROWS = ['suite', 'promenade', 'pool', 'casino', 'entrance', 'bowling', 'open'] as const;
 export type PanelRow = (typeof PANEL_ROWS)[number];
 export const PANEL = {
   w: 0.26,
-  /** (Taller since the ground floor joined: rows stay 9 cm.) */
-  h: 0.64,
+  /** (Taller each time a floor joins, the ground floor and then the lanes below it: rows stay 9 cm.) */
+  h: 0.725,
   /** Centre height above the cab floor. */
   y: 1.3,
   /** The name plate at the top, and the margin at the bottom. */

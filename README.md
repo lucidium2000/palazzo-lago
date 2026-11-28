@@ -57,6 +57,22 @@ throw it. The floor is alive: guests chat in circles with
 drinks in hand, friends walk together, people stop to talk and take photos, and they mostly mind their
 own business instead of staring at you.
 
+**Palazzo Lanes (floor B):** the car's **B** button takes you down to the resort's boutique bowling
+lounge: eight glossy maple lanes under a deco fascia (the lake at night in a gilt arch over every lane),
+neon along the dividers, settees and a ball return between each pair of lanes (house balls from 8 to
+16 lb), a cocktail bar and a shoe counter. Take a ball off the return and bowl it the motion-game way.
+In VR you swing your arm and let go with the grip: the ball takes your hand's speed (scaled up a touch,
+kept on the lane, its sideways drift damped a little), and your wrist's twist (or a sideways sweep) at
+the release puts hook on it, so it skids down the oil and curves on the dry back end. Step over the
+foul line and the buzzer goes. On a screen: click a ball to take your stance, A/D (or the stick) to
+move, the mouse to aim, hold click / Space / the screen to swing back (the power meter rises and
+falls), move sideways while you hold for spin, and let go to throw. The pins are real rigid bodies
+that topple, collide and fly into the pit; the pinsetter sweeps and resets; the ball comes back up the
+return. Real ten-pin scoring (strikes, spares, the tenth frame, fouls) shows on the lane's overhead
+monitor, with STRIKE! and SPARE! and a cheer; up to four friends share a lane and take turns, the
+bowler's machine streaming the roll to the others. The regulars bowl their league games on the outer
+lanes.
+
 **The Lago Arcade:** six original upright cabinets, $1 a play: **Neon Sentinel** (fly a hover-turret
 and shoot down drone swarms diving at your three beacons; Hive motherships every fifth wave), **Prism
 Drop** (falling gem pairs, four or more shatter and chain; rock rises from below and cracks next to
@@ -134,6 +150,7 @@ to force a quality tier.
 | Food court | Click a dish on a counter's menu, click the food when it's up, F bite (X throw, Q set down) | Point at the menu and pull the trigger, grab the food, hold it to your mouth for each bite |
 | Food and drink on show | Click it (a slice on the pie, a tub in the gelato case, a bottle on the back bar, a guest's drink): it's in your hand; F bite / sip / swig, hold P to pour | Reach out and close your hand on it; out of reach (the back bar, the grill), point at it and pull the trigger and it comes to your hand |
 | Boutique | Click an item to pick it up, click the register to pay, F put it on, U take it off | Grab it, hold it to the register (or point at it), then hold shades to your eyes or a hat on your head; grab at your head to take it off |
+| Bowling | Click a ball on the return, A/D move, mouse aims, hold click or Space to swing, move sideways for spin, let go; S steps away. Consoles: JOIN / LEAVE / NEW GAME | Grab a ball (grip), walk up, swing and let go; twist your wrist at the release to hook it |
 | Grand piano | Click the pianist to push him off the bench, then sit (E, or walk onto the bench): A S D F G H J K L white keys, W E T Y U O P black, Z / X octave, Space sustain, Shift louder, Esc stand; or click / tap the keys | Shove (or punch) him off, sit on the bench: every fingertip that presses a key plays it, as hard as it came down (hand tracking: all ten; controllers: index and thumb, the whole hand when open); A / X is the sustain pedal |
 
 ## Layout
@@ -173,6 +190,11 @@ src/client/     Three.js app
                       entranceplan.ts (layout, paths, schedule; pure), entrancetraffic.ts (the cars and guests
                       on one shared wall clock; pure), entrancecars.ts (instanced low-poly cars, emissive lamps)
   entranceaudio.ts    street sound out front: city bed, idling engines, pass-bys, horns, doors, valet whistle
+  bowling/      Palazzo Lanes: plan.ts (layout; pure), score.ts (ten-pin scoring, turns; pure), sim.ts (the
+                lane's ball and rigid pins, fixed step, deterministic; pure), throw.ts (swing → ball; pure),
+                alley.ts (the room, merged), game.ts (balls, pinsetter, VR and screen bowling, monitors,
+                the regulars), audio.ts (rumble, crashes, gutter, return, buzzer; synthesized)
+  net/bowlsync.ts     lanes shared with friends: joins, the launch, the ~20 Hz ball and pin stream, the final count
   piano.ts      the playable piano: 88 keys, fingertips / typing / taps, the pianist's bench
   pianokeys.ts  keyboard layout, hit detection, fingertip strikes, voice allocation (pure)
   pianotone.ts  synthesized piano notes (pianoworker.ts renders them), pianosynth.ts plays them

@@ -120,8 +120,9 @@ describe('the Promenade floor plan', () => {
   it('lies far from everything else (its own floor)', () => {
     expect(PROM.x1).toBeLessThan(-500);
     expect(w.isInside(0, 0)).toBe(true);
-    // Nothing of the Promenade's is walkable near the casino and vice versa.
-    expect(w.isInside(-300, 0)).toBe(false);
+    // Nothing of the Promenade's is walkable near the casino and vice versa (x = -300 is Palazzo Lanes now: its own floor too).
+    expect(w.isInside(-200, 0)).toBe(false);
+    expect(w.isInside(-450, 0)).toBe(false);
   });
 });
 

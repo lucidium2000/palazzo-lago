@@ -99,6 +99,8 @@ export class Player {
   stunned = false;
   /** VR: your hands are on a game that uses the thumbsticks (the racing cabinet's wheel): no stick walking or turning. */
   anchored = false;
+  /** A game holds your feet (the bowling stance on a screen): no walking or key turning; the game moves you. */
+  held = false;
 
   get feetY() {
     return this.vs.feetY;
@@ -673,7 +675,7 @@ export class Player {
     }
     this.crouchBtn = this.inXR ? interaction.gamepads().some(({ handedness, gamepad }) => handedness === 'right' && !!gamepad.buttons[3]?.pressed) : this.keys.has('KeyC');
     // Knocked out: you stay where you are (nothing moves you, nothing turns you) until you come round.
-    if (this.stunned || (this.inXR && this.anchored)) this.speedNow = 0;
+    if (this.stunned || (this.inXR && this.anchored) || (!this.inXR && this.held)) this.speedNow = 0;
     else if (!this.inXR) this.updateDesktop(dt);
     else this.updateXR(dt, interaction);
     if (this.nudgeT > 0) this.updateNudge(dt);

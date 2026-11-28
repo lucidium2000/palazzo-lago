@@ -40,6 +40,8 @@ export function resortCells(cars: readonly CullCar[]): { cells: CullCell[]; port
     { name: 'promenade', box: [-800, -500, -200, 200, 200] },
     // The Main Entrance (porte-cochère, its lobby and lifts, the Strip): its own world, far east.
     { name: 'entrance', box: [200, 500, -400, 400, 300] },
+    // Palazzo Lanes, the bowling lounge on the lower level: its own world, out west short of the Promenade.
+    { name: 'bowling', box: [-450, -150, -200, 200, 100] },
   ];
   const [OUT, CASINO, POKER, CORRIDOR, LOBBY_, DECK_] = [0, 1, 2, 3, 4, 5];
   const portals: CullPortal[] = [
