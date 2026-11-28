@@ -251,7 +251,7 @@ describe('the decks and her set on separate buses', () => {
 describe("the DJ's record after her set", () => {
   it('starts as her slot ends, plays once through, then the house record is back (the same for everyone: the plan alone)', async () => {
     const { afterAt, cycleLength, liveSlot } = await import('../src/client/party/schedule');
-    const t = { bar: 2, liveLen: 249 };
+    const t = { bar: 2, liveLen: 249, lead: 164, after: 220 };
     const plan = { start: 1000, rev: 1, by: '1' };
     const slot = liveSlot(t),
       C = cycleLength(t);
@@ -259,9 +259,10 @@ describe("the DJ's record after her set", () => {
     expect(afterAt(1000 + slot, plan, t, 220)).toBe(0);
     expect(afterAt(1000 + slot + 100, plan, t, 220)).toBeCloseTo(100, 6);
     expect(afterAt(1000 + slot + 220.01, plan, t, 220)).toBe(-1);
-    // The next cycle too; and never into her next set.
+    // The next cycle too; and never into the night's next round (the house record from its top, `lead` before her next set).
     expect(afterAt(1000 + C + slot + 5, plan, t, 220)).toBeCloseTo(5, 6);
-    expect(afterAt(1000 + C - 0.01, plan, t, 1e6)).toBeGreaterThan(0);
+    expect(afterAt(1000 + C - t.lead - 0.01, plan, t, 1e6)).toBeGreaterThan(0);
+    expect(afterAt(1000 + C - t.lead + 0.01, plan, t, 1e6)).toBe(-1);
     expect(afterAt(1000 + C + 1, plan, t, 1e6)).toBe(-1);
     expect(afterAt(999, plan, t, 220)).toBe(-1);
   });

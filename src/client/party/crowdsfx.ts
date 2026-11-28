@@ -3,14 +3,15 @@
  * wordless whoops from men and women in the audience, a whole crowd clapping
  * together (a few dozen hands, each a hair early or late), a group "hey!"
  * shout, a roar (when she walks on, when a song ends), and a murmuring crowd
- * bed that loops under it all (party/hype.ts sets its level).
+ * bed that loops under it all (party/hype.ts sets its level). And the DJ's
+ * air horn (the sting under his call: "in one minute...").
  *
  * Built lazily the first time the party needs them (audio.ts: `crowd*` sounds),
  * mono, at the audio context's rate.
  */
 
-export type CrowdSfx = 'whooF' | 'whooM' | 'crowdClap' | 'crowdHey' | 'crowdRoar' | 'crowdBed';
-export const CROWD_SFX: CrowdSfx[] = ['whooF', 'whooM', 'crowdClap', 'crowdHey', 'crowdRoar', 'crowdBed'];
+export type CrowdSfx = 'whooF' | 'whooM' | 'crowdClap' | 'crowdHey' | 'crowdRoar' | 'crowdBed' | 'airHorn';
+export const CROWD_SFX: CrowdSfx[] = ['whooF', 'whooM', 'crowdClap', 'crowdHey', 'crowdRoar', 'crowdBed', 'airHorn'];
 
 type V3 = [number, number, number];
 
@@ -187,6 +188,44 @@ function crowdBed(sr: number): Float32Array {
   return normalize(out.subarray(0, n - fade).slice(), 0.6);
 }
 
+/**
+ * The DJ's air horn: three blasts (two short, one long), a few detuned
+ * buzzing reeds bending up into the note, a little flutter, clipped hard like a
+ * horn through a PA.
+ */
+function airHorn(sr: number, seed: number): Float32Array {
+  const rand = rng(seed);
+  const blasts: [number, number][] = [
+    [0, 0.16],
+    [0.24, 0.16],
+    [0.48, 0.95],
+  ];
+  const T = 1.6;
+  const out = new Float32Array(Math.floor(T * sr));
+  const f0 = 466 * (1 + 0.02 * rand());
+  const reeds = [1, 1.006, 0.994, 2.003].map((m, k) => ({ m, ph: Math.abs(rand()), g: k === 3 ? 0.35 : 1 }));
+  for (const [at, len] of blasts) {
+    const i0 = Math.floor(at * sr),
+      n = Math.floor(len * sr);
+    for (let i = 0; i < n && i0 + i < out.length; i++) {
+      const t = i / sr;
+      // Bends up into the note over its first 40 ms, a 9 Hz flutter.
+      const f = f0 * (0.82 + 0.18 * ramp(t, 0, 0.04)) * (1 + 0.006 * Math.sin(2 * Math.PI * 9 * t));
+      let x = 0;
+      for (const r of reeds) {
+        r.ph = (r.ph + (f * r.m) / sr) % 1;
+        x += (2 * r.ph - 1) * r.g;
+      }
+      const env = ramp(t, 0, 0.012) * (1 - ramp(t, len - 0.05, len));
+      out[i0 + i] += Math.tanh(x * 1.6) * env;
+    }
+  }
+  // A touch of the PA's ring: a short feedback comb.
+  const d = Math.floor(0.021 * sr);
+  for (let i = d; i < out.length; i++) out[i] += out[i - d] * 0.3;
+  return normalize(out, 0.9);
+}
+
 /** Every variant of a crowd sound, as raw samples (audio.ts wraps them in AudioBuffers). */
 export function renderCrowdSfx(name: CrowdSfx, sr: number): Float32Array[] {
   switch (name) {
@@ -202,5 +241,7 @@ export function renderCrowdSfx(name: CrowdSfx, sr: number): Float32Array[] {
       return [31, 32].map((s) => crowdRoar(sr, s));
     case 'crowdBed':
       return [crowdBed(sr)];
+    case 'airHorn':
+      return [airHorn(sr, 51)];
   }
 }

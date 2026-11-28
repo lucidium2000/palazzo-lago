@@ -6,7 +6,8 @@ import type { Node } from '../dialogueLines';
  * tables. One set per regular (cast.ts ids, in their own ElevenLabs voice:
  * el_<id>), for each moment of the night:
  *
- *   soon   her set is coming up: is she on yet, what she'll open with
+ *   soon   her set is coming up: the DJ's just called her ("one minute!": `minute`),
+ *          is she on yet, what she'll open with
  *   live   she's on: shouts, cheers, wordless singing along (no lyrics quoted)
  *   after  between songs and once her set's over: what a show
  *   dj     the DJ's stretch: the DJ, the lights, the pool
@@ -32,6 +33,8 @@ export const PARTY_PHASES: PartyPhase[] = ['soon', 'live', 'after', 'dj'];
 export type PartyReact = 'pushed' | 'doused' | 'hit' | 'punched';
 
 export interface ConcertSet {
+  /** The DJ's just called her: "one minute!" (said in the 'soon' phase, mostly). */
+  minute: string[];
   soon: string[];
   live: string[];
   after: string[];
@@ -52,6 +55,7 @@ export interface ConcertSet {
 
 export const CONCERT: Record<string, ConcertSet> = {
   vinnie: {
+    minute: ["One minute! You hear that? One minute, my friend!", "[shouting] Sixty seconds! Get up front, get up front!"],
     soon: ["My friend! Nixie Vale, live, at the pool. You believe this?", "Is she on yet? I been standin' here since the DJ started!", "I heard she's openin' with Chasing Dawn. Swear on my mother."],
     live: ['[shouting] NIXIE! I love you, sweetheart!', '[cheering] Whooo! Yeah!', "[shouting] Chasing Dawn! That's my song!", '[shouting] Unbelievable! UN-BE-LIEVABLE!'],
     after: ['My friend, I got chills. Look at my arms. Chills!', '[laughs] One more! One more! Come on, Nixie!'],
@@ -76,6 +80,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   dale: {
+    minute: ["One more minute, he says. Well, let's go find us a spot.", "[hollering] One minute, y'all! Here she comes!"],
     soon: ['Well, folks say this Nixie gal puts on one heck of a show.', "Any minute now, I reckon. The band's gear is all set up.", "Heard she opens with Chasing Dawn. Good name for a song."],
     live: ['[hollering] Yeehaw! Go on, Nixie!', '[whistles loudly] Whoo!', "[hollering] That's what I'm talkin' about!", "Well, I'll be. That gal can SING!"],
     after: ["Now that's a show worth stayin' up for.", '[whistles] Give that band a raise, I say.'],
@@ -100,6 +105,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   marcus: {
+    minute: ["[shouting] ONE MINUTE! Let's GOOO!", "Yo, one minute! Front row, come on, come on!"],
     soon: ['Yo, is she on yet? I need to see Nixie Vale tonight!', "I heard she's opening with Chasing Dawn. The groom's gonna freak out.", "Front row or nothing, that's the plan. Let's go!"],
     live: ["[shouting] NIXIE! NIXIE! Let's GOOO!", '[cheering] Whooo! Come on!', '[shouting] Sing it! SING IT!', '[laughs] She is unreal! Are you seeing this?!'],
     after: ['Bro. BRO. That was a whole movie.', '[laughs] My voice is gone. Totally worth it.'],
@@ -124,6 +130,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   reggie: {
+    minute: ["One minute! Oh, I say. Shall we make our way to the front?", "Sixty seconds. I'm rather nervous, actually."],
     soon: ["I'm told this Nixie Vale is rather extraordinary live.", "Is she on yet? I've been standing here for a small eternity.", "Apparently she opens with Chasing Dawn. I've been humming it all week."],
     live: ['[shouting] Bravo! BRAVO!', '[cheering] Whoo! Oh, I say!', 'Marvellous. Absolutely marvellous.', '[shouting] Encore! Well, eventually. ENCORE!'],
     after: ['I believe I have just become a fan. How embarrassing.', "That was rather magnificent, wasn't it?"],
@@ -148,6 +155,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   tommy: {
+    minute: ["One minute? Oh gosh. Okay. Okay! Where do I stand?", "[excited] One minute! I'm actually going to see her!"],
     soon: ["Is she on yet? I'm not too late, right?", "Okay, okay. I heard she's opening with Chasing Dawn. I'm so nervous. Why am I nervous?", "I've never been to a real concert. Is it okay that I'm shaking?"],
     live: ['[shouting] NIXIE! Oh my gosh, NIXIE!', '[cheering] Whooo! Ha, I did a whoo!', '[shouting] This is the best night of my life!', '[squealing] She looked at me! I think she looked at me!'],
     after: ['Did that really just happen? Was I there?', "My ears are ringing. Is that normal? That's normal, right?"],
@@ -172,6 +180,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   sal: {
+    minute: ["One minute, the man says. Now that's how you introduce a headliner.", "Sixty seconds, kid. Let's get a little closer."],
     soon: ["I sang on this Strip forty years, kid. Let's see what this Nixie's got.", 'Is she on yet? In my day, the band warmed up the room first.', 'Chasing Dawn, they tell me. Good title. Strong title.'],
     live: ['[shouting] Atta girl! Sing it, sweetheart!', "[whistles] Now THAT'S a voice!", '[shouting] Brava! BRAVA!', "Listen to that phrasing. The kid's got it."],
     after: ["I'll tell ya, kid. She's the real deal.", "Forty years on this Strip. That one's up there."],
@@ -196,6 +205,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   margo: {
+    minute: ["One minute, darlings! Out of my way, I'm going to the front.", "[laughs] Sixty seconds, honey. Fix your hair."],
     soon: ["Darling, is she on yet? I didn't do my hair for nothing.", "They say she opens with Chasing Dawn. Honey, I'm ready.", "A headliner at a pool party. Now THAT'S Vegas, sugar."],
     live: ['[shouting] Work it, darling! WORK IT!', '[cheering] Whooo! Yes, honey!', "[shouting] That's a STAR, everybody!", "Oh, she's got it, darling. She's got the sparkle."],
     after: ["Darling, that was a performance. I'm verklempt.", 'Honey, she gave us everything. Everything!'],
@@ -220,6 +230,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   priya: {
+    minute: ["One minute! Told you. Come on, I know the best spot.", "Sixty seconds. Phones charged? Good."],
     soon: ["She's on in a couple of minutes. I've been watching the stage crew.", "I heard she's opening with Chasing Dawn. Best possible opener.", 'Is she on yet? I picked this spot for the sight lines.'],
     live: ['[shouting] Nixie! Yes! YES!', '[cheering] Whooo! Okay, that was perfect!', "[shouting] Chasing Dawn! Let's GO!", "I'm filming this. I'm filming all of this."],
     after: ["Okay, that's officially the best live set I've seen this year.", "I'm already checking when her next set starts."],
@@ -244,6 +255,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   destiny: {
+    minute: ["[squealing] One minute! Girls! ONE MINUTE!", "Oh my gosh, oh my gosh, sixty seconds! Front row, let's go!"],
     soon: ['[giggles] Is she on yet? This is my bachelorette and I NEED Nixie!', "Oh my gosh, I heard she's opening with Chasing Dawn! That's our song!", "Girls! Girls! Get to the front! She's coming on!"],
     live: ["[screaming] NIXIE! I'M GETTING MARRIED!", '[squealing] Whooo! Oh my gosh!', '[shouting] I love you, Nixie!', '[singing along] Ohhh, oh-oh! [giggles]'],
     after: ["[giggles] I'm crying. Am I crying? I'm crying.", "That was the best thing that's ever happened! Besides my fiancé. Probably."],
@@ -268,6 +280,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   eleanor: {
+    minute: ["One minute, dear. I suppose we'd better make our way over.", "Sixty seconds. How very exciting."],
     soon: ['My granddaughter tells me this Nixie Vale is wonderful. We shall see, dear.', 'Is she on yet, dear? My feet are being very patient tonight.', "Chasing Dawn, I'm told. What a lovely title."],
     live: ['[delighted] Oh, bravo! Bravo, dear!', '[laughs] Oh my. Whoo! There, I said it.', 'What a voice. What a lovely voice.', '[shouting] Wonderful! Simply wonderful!'],
     after: ['Well. I may have to buy one of her records, dear.', "I haven't danced like that since nineteen seventy-four."],
@@ -292,6 +305,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   kayla: {
+    minute: ["Oh my gosh, one minute! Come on, ya, let's get closer!", "[excited] Sixty seconds! I'm so excited I could cry, ya!"],
     soon: ["Oh my gosh, is she on yet? I'm so excited, ya!", "I heard she's opening with Chasing Dawn! I've been playin' it on night shifts all year!", 'Ya, I took a nap this afternoon just for this. Worth it.'],
     live: ['[shouting] NIXIE! Oh my gosh! NIXIE!', '[cheering] Whooo! You betcha!', '[shouting] We love you, Nixie!', '[singing along] Ohhh, oh-oh-oh! [laughs]'],
     after: ['Oh my gosh, hon, I got goosebumps. Look!', "That's goin' in the vacation scrapbook, for sure!"],
@@ -316,6 +330,7 @@ export const CONCERT: Record<string, ConcertSet> = {
     },
   },
   rosa: {
+    minute: ["One minute. Mm. Let's go closer.", "Sixty seconds. Now it gets interesting."],
     soon: ["Mm. They say she's on soon.", 'Chasing Dawn first, I hear. Good choice.', "Is she on yet? No? Then I'll wait."],
     live: ['[shouting] Nixie! ¡Eso!', '[cheering] Whoo! ¡Vamos!', "Mm. She's the real thing.", '[shouting] ¡Wepa!'],
     after: ["Okay. I'm impressed. Don't tell anyone.", 'Mm. That band is tight.'],
@@ -381,9 +396,26 @@ export const NIXIE = {
   } as Record<PartyReact, string[]>,
 };
 
+/**
+ * The DJ on the mic (el_dj, over the booth's stacks): a minute and a half into
+ * "No Tomorrow" he calls her ("in one minute"), the music ducked under him. Cast
+ * from the craps stickman's ElevenLabs voice (brash, rhythmic, a barker's hype:
+ * tools/voices/eleven-cast.json el_dj), a little more style for the PA. Until
+ * the take's in, the call is a caption (the screen and VR) over an air horn.
+ */
+export const MC = {
+  id: 'dj',
+  name: 'DJ',
+  gender: 'male' as const,
+  bio: "The pool party's resident DJ, on the mic between records: a hype man's voice, big, rhythmic, all about the show.",
+  voiceHint: 'man, Brooklyn accent, energetic, fast, rhythmic, carnival barker, big hype-man announcer on a club PA',
+  /** The call, a minute before her set. */
+  call: '[excited] Ladies and gentlemen... in one minute... live on the pool stage... NIXIE VALE! Make some noise!',
+};
+
 /** Your crew out at the party (shared by Rocco, Dev and Mikey, each in his own voice). */
 export const CREW_PARTY: Record<PartyPhase, string[]> = {
-  soon: ["Boys, she's on any minute. Get to the front!", "I heard she's opening with Chasing Dawn. Let's go!", 'Is she on yet? Come on, come on!'],
+  soon: ['One minute, boys! You heard the man!', '[shouting] Sixty seconds! Front row, let\'s go!', "Boys, she's on any minute. Get to the front!", "I heard she's opening with Chasing Dawn. Let's go!", 'Is she on yet? Come on, come on!'],
   live: ["[shouting] NIXIE! Let's GO!", '[cheering] Whooo! This is insane!', 'Phones up, boys! Phones up!'],
   after: ['That was unreal. Absolutely unreal.', 'Best part of the whole trip, no question.'],
   dj: ["This DJ is killing it. We're staying out here.", 'Pool party at night, boys. This is the life.'],
@@ -416,6 +448,7 @@ export function treeLines(n: Node): { say: string[]; labels: string[] } {
 /** Everything a regular can say at the party (for recording and the tests). */
 export function concertLinesOf(set: ConcertSet): string[] {
   return [
+    ...set.minute,
     ...set.soon,
     ...set.live,
     ...set.after,

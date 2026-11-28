@@ -29,11 +29,17 @@ export function onStage(o: { ready: boolean; live: boolean; toLive: number; bar:
   return o.ready && (o.live || o.toLive <= 2 * o.bar);
 }
 
-/** Where the night is: her set coming up, on, just over (or between songs), or the DJ's stretch. */
-export function phaseAt(o: { live: boolean; song: number; toLive: number; sinceEnd: number }): PartyPhase {
+/** Her set is this close (s) when the DJ calls her ("in one minute"), unless told (`called`). */
+export const CALLED_BEFORE = 75;
+
+/**
+ * Where the night is: her set coming up (the DJ's called her: "one minute!"),
+ * on, just over (or between songs), or the DJ's stretch.
+ */
+export function phaseAt(o: { live: boolean; song: number; toLive: number; sinceEnd: number; called?: boolean }): PartyPhase {
   if (o.live) return o.song >= 0 ? 'live' : 'after';
   if (o.sinceEnd < 75) return 'after';
-  if (o.toLive < 150) return 'soon';
+  if (o.called ?? o.toLive < CALLED_BEFORE) return 'soon';
   return 'dj';
 }
 
@@ -55,8 +61,9 @@ export function concertSet(id: string): ConcertSet | null {
 export function chatterPool(id: string, phase: PartyPhase): string[] {
   const s = CONCERT[id];
   if (!s) return [];
-  // Before her set and between songs there's still the odd word about the DJ and the lights.
-  return phase === 'live' ? s.live : phase === 'dj' ? [...s.dj, ...s.soon.slice(0, 1)] : s[phase];
+  // Before her set and between songs there's still the odd word about the DJ and the lights; once
+  // the DJ's called her, it's all "one minute!" (and the odd "is she on yet?").
+  return phase === 'live' ? s.live : phase === 'dj' ? [...s.dj, ...s.soon.slice(0, 1)] : phase === 'soon' ? [...s.minute, ...s.minute, ...s.soon] : s[phase];
 }
 
 /**

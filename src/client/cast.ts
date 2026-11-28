@@ -407,6 +407,8 @@ export const SPEAKERS: { id: string; name: string; bio: string; voiceHint: strin
   { id: 'cook_noodles', name: 'Mei', bio: 'Golden Dragon Noodle Bar\'s wok master: calm, precise, dry wit, warm underneath.', voiceHint: 'woman in her thirties, calm, precise, low and dry, quietly funny, neutral American' },
   { id: 'cook_gelato', name: 'Lucia', bio: 'Dolce Vita Gelateria\'s gelataia from Bologna: sunny, sweet, playful, sprinkles in Italian.', voiceHint: 'young woman, bright, sunny, sweet, playful, light Italian accent' },
   { id: 'clerk', name: 'Simone', bio: 'The Lago Luxe boutique\'s clerk: polished, elegant, quietly witty, never pushy.', voiceHint: 'woman in her thirties, polished, elegant, smooth and low, quietly witty, refined American' },
+  // The pool party's DJ on the mic, calling her a minute before her set (party/concertlines.ts MC).
+  { id: 'dj', name: 'DJ', bio: "The pool party's resident DJ, on the mic between records: a hype man's voice, big, rhythmic, all about the show.", voiceHint: 'man, Brooklyn accent, energetic, fast, rhythmic, carnival barker, big hype-man announcer on a club PA' },
   // The pool stage's headliner, between her sets (her lines: party/concertlines.ts).
   { id: 'nixie', name: 'Nixie Vale', bio: "NIXIE VALE, the pool stage's headliner: an electropop star in her late twenties (an original character). Warm, quick, a little breathless between sets, all about the show and the people who came to see it.", voiceHint: 'young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American' },
 ];

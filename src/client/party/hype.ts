@@ -12,6 +12,7 @@ import { onStage, phaseAt } from './partytalk';
  * The concert's hype: what makes her set feel like a real show around you.
  *
  * - The crowd's sound, from the audience in front of her stage (positional):
+ *   a cheer as the DJ calls her ("in one minute": called()), then
  *   a murmuring bed that swells as her set gets close and with the song's
  *   energy; the crowd clapping together on the beat in the build-ups (and the
  *   last bars before she walks on, with a "hey!" on each bar); wordless
@@ -55,6 +56,8 @@ export interface HypeUpdate {
   into: number;
   toLive: number;
   bar: number;
+  /** The DJ's called her for this set ("in one minute"): the crowd's on "one minute!" now. */
+  called?: boolean;
   /** 0..1: how much you're out at the party. */
   presence: number;
   /** Your feet (people step aside for you). */
@@ -134,6 +137,15 @@ export class ConcertHype {
     return ps.length ? ps[Math.floor(Math.random() * ps.length)] : null;
   }
 
+  /** The DJ's just called her ("in one minute"): a cheer, whoops and hands up all over. */
+  called(here: boolean) {
+    this.energy = Math.max(this.energy, 0.6);
+    if (!here) return;
+    this.crowdSound('crowdRoar', 0.75);
+    this.burst(9, 0.5);
+    this.note('called');
+  }
+
   update(dt: number, o: HypeUpdate) {
     this.time += dt;
     const b = o.beat;
@@ -142,14 +154,14 @@ export class ConcertHype {
     if (this.d.singer) this.d.singer.hush = this.stage;
     if (this.wasLive && !o.live) this.endedAt = this.time;
     const since = this.time - this.endedAt;
-    this.phase = phaseAt({ live: o.live, song: o.song, toLive: o.toLive, sinceEnd: since });
+    this.phase = phaseAt({ live: o.live, song: o.song, toLive: o.toLive, sinceEnd: since, called: o.called });
 
     // How hard the crowd's going.
     let want: number;
     if (o.live) want = o.song >= 0 ? 0.35 + 0.6 * b.intensity + (b.part === 'chorus' ? 0.15 : 0) : 0.55;
     else if (this.stage) want = 0.85;
     else if (this.phase === 'after') want = 0.5 * Math.exp(-since / 20);
-    else if (this.phase === 'soon') want = 0.15 + 0.45 * THREE.MathUtils.clamp(1 - o.toLive / 90, 0, 1);
+    else if (this.phase === 'soon') want = 0.3 + 0.4 * THREE.MathUtils.clamp(1 - o.toLive / 75, 0, 1);
     else want = 0.1;
     want = Math.min(1, want);
     this.energy += (want - this.energy) * Math.min(1, dt * (want > this.energy ? 2 : 0.5));

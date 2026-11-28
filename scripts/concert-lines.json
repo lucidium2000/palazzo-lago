@@ -8,9 +8,9 @@
    "note": "Not cast yet: run render_eleven.py --cast (or add el_nixie to tools/voices/eleven-cast.json by hand)."
   }
  },
- "takes": 425,
- "uniqueLines": 380,
- "voices": 18,
+ "takes": 456,
+ "uniqueLines": 407,
+ "voices": 19,
  "lines": [
   {
    "id": "aa8929fa",
@@ -76,6 +76,15 @@
    "brief": "man in his thirties, dry sarcastic humour, quick, American"
   },
   {
+   "id": "f4634845",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "[shouting] Sixty seconds! Front row, let's go!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
    "id": "2cd227a2",
    "voice": "el_crew_dev",
    "character": "Dev",
@@ -100,6 +109,15 @@
    "gender": "male",
    "context": "your crew at the pool concert (soon)",
    "text": "Is she on yet? Come on, come on!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "87adba49",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "One minute, boys! You heard the man!",
    "brief": "man in his thirties, dry sarcastic humour, quick, American"
   },
   {
@@ -166,6 +184,15 @@
    "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
   },
   {
+   "id": "0ee2035f",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "[shouting] Sixty seconds! Front row, let's go!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
    "id": "ad4e0330",
    "voice": "el_crew_mikey",
    "character": "Mikey",
@@ -190,6 +217,15 @@
    "gender": "male",
    "context": "your crew at the pool concert (soon)",
    "text": "Is she on yet? Come on, come on!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "a50a3eef",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "One minute, boys! You heard the man!",
    "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
   },
   {
@@ -256,6 +292,15 @@
    "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
   },
   {
+   "id": "be0fecae",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "[shouting] Sixty seconds! Front row, let's go!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
    "id": "93516ab1",
    "voice": "el_crew_rocco",
    "character": "Rocco",
@@ -280,6 +325,15 @@
    "gender": "male",
    "context": "your crew at the pool concert (soon)",
    "text": "Is she on yet? Come on, come on!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "3a65f582",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "One minute, boys! You heard the man!",
    "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
   },
   {
@@ -487,6 +541,24 @@
    "gender": "male",
    "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
    "text": "Whoa there, partner. Folks are tryin' to see the stage.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "bcd95345",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "[hollering] One minute, y'all! Here she comes!",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "d4c3bb4e",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One more minute, he says. Well, let's go find us a spot.",
    "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
   },
   {
@@ -733,6 +805,24 @@
    "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
   },
   {
+   "id": "1f736f40",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "[squealing] One minute! Girls! ONE MINUTE!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "2c4dad31",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "Oh my gosh, oh my gosh, sixty seconds! Front row, let's go!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
    "id": "025a70df",
    "voice": "el_destiny",
    "character": "Destiny",
@@ -767,6 +857,15 @@
    "context": "to the player, walking past at the concert",
    "text": "Oh my gosh, your outfit is so concert! I love it!",
    "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "e1fa36a5",
+   "voice": "el_dj",
+   "character": "DJ",
+   "gender": "male",
+   "context": "the pool party DJ on the mic over the PA, hyping the crowd: the headliner's on in one minute (a club MC's announcement, big and rhythmic, long pauses at the dots)",
+   "text": "[excited] Ladies and gentlemen... in one minute... live on the pool stage... NIXIE VALE! Make some noise!",
+   "brief": "man, Brooklyn accent, energetic, fast, rhythmic, carnival barker, big hype-man announcer on a club PA"
   },
   {
    "id": "cde50898",
@@ -973,6 +1072,24 @@
    "gender": "female",
    "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
    "text": "Goodness! Do mind yourself, dear, I'm watching the stage.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "15c5ebad",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One minute, dear. I suppose we'd better make our way over.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "4b77c5f6",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "Sixty seconds. How very exciting.",
    "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
   },
   {
@@ -1219,6 +1336,24 @@
    "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
   },
   {
+   "id": "792399ec",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "[excited] Sixty seconds! I'm so excited I could cry, ya!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "bcef3073",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "Oh my gosh, one minute! Come on, ya, let's get closer!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
    "id": "8a08a69b",
    "voice": "el_kayla",
    "character": "Kayla",
@@ -1462,6 +1597,24 @@
    "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
   },
   {
+   "id": "65d1f796",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "[shouting] ONE MINUTE! Let's GOOO!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "72f7bf69",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "Yo, one minute! Front row, come on, come on!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
    "id": "093091b6",
    "voice": "el_marcus",
    "character": "Marcus",
@@ -1702,6 +1855,24 @@
    "gender": "female",
    "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
    "text": "Honey, nobody upstages me. Back up.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "99eea008",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "[laughs] Sixty seconds, honey. Fix your hair.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "cc3f1d4c",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One minute, darlings! Out of my way, I'm going to the front.",
    "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
   },
   {
@@ -2137,6 +2308,24 @@
    "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
   },
   {
+   "id": "10ab4e51",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One minute! Told you. Come on, I know the best spot.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "a322470f",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "Sixty seconds. Phones charged? Good.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
    "id": "619142b9",
    "voice": "el_priya",
    "character": "Priya",
@@ -2377,6 +2566,24 @@
    "gender": "male",
    "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
    "text": "Steady on, old chap. There's a concert happening.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "950fb8fb",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One minute! Oh, I say. Shall we make our way to the front?",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "ffd73aee",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "Sixty seconds. I'm rather nervous, actually.",
    "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
   },
   {
@@ -2623,6 +2830,24 @@
    "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
   },
   {
+   "id": "3f63e7ab",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One minute. Mm. Let's go closer.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "d78e06c0",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "Sixty seconds. Now it gets interesting.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
    "id": "df7fa2af",
    "voice": "el_rosa",
    "character": "Rosa",
@@ -2863,6 +3088,24 @@
    "gender": "male",
    "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
    "text": "Watch it, kid. Respect the show.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "6247d532",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One minute, the man says. Now that's how you introduce a headliner.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "b6cb74fd",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "Sixty seconds, kid. Let's get a little closer.",
    "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
   },
   {
@@ -3109,6 +3352,24 @@
    "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
   },
   {
+   "id": "9e151c28",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "[excited] One minute! I'm actually going to see her!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "012f8753",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One minute? Oh gosh. Okay. Okay! Where do I stand?",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
    "id": "161ee585",
    "voice": "el_tommy",
    "character": "Tommy",
@@ -3349,6 +3610,24 @@
    "gender": "male",
    "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
    "text": "Whoa, whoa! Easy, my friend, I'm watchin' the show!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "bbdcd79b",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "[shouting] Sixty seconds! Get up front, get up front!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "4fdb7321",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "the DJ just announced over the PA that she's on in one minute: excited, heading for the stage",
+   "text": "One minute! You hear that? One minute, my friend!",
    "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
   },
   {

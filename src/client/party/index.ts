@@ -20,7 +20,10 @@ import { PARTY_RATE, loadConcert, loadRecord } from './music';
 import { STACKS } from './pachain';
 import type { Performers } from './performers';
 import { BobDetector } from './rhythm';
-import { afterAt, cycleLength, liveSlot, makePlan, needsPlan, newer, packPlan, planTag, programAt, unpackPlan, type Plan, type Program, type Timing } from './schedule';
+import { afterAt, cycleLength, liveSlot, makePlan, needsPlan, newer, nightAt, nightTimes, packPlan, planTag, programAt, unpackPlan, type NightState, type NightTimes, type Plan, type Program, type Timing } from './schedule';
+import { MC } from './concertlines';
+import { elVoice, spoken } from '../cast';
+import { voices } from '../voices';
 import { AFTER_PLAN, DECK_B_PLAN, DJ_SET, HOUSE_PLAN, INDEX_SONGS, beatMatch, concertLength, deckArrangement, songAt, type SongPlan, type TrackPlan } from './setlist';
 import { HEADLINER, Stage, type ShowState } from './stage';
 import type { SongMaps } from './songmaps';
@@ -42,14 +45,20 @@ import { renderPartyRaw } from './track';
  * when someone at the decks fades right. Step up behind the decks and your mix
  * is what the stacks play (and what your friends hear: `dk` in your state,
  * the faders and where each record is); step away and the house record comes
- * back. Both records run off the wall clock, so a room hears the same bar.
+ * back. Both records run off the wall clock (deck A from its top as each round
+ * of the night starts), so a room hears the same bar.
  *
- * The concert: a minute or two after you come out to the pool, the headliner
- * (stage.ts) and her band (band.ts) come on for her set (concert_*.mp3, out of
- * her stage's PA: the decks' engine has a bus for each), the
- * dancers gather in front of her stage and more guests arrive (audience.ts);
- * then the DJ again for a few minutes, then her again (schedule.ts: the plan
- * rides in everyone's state as `pz`, so a room shares one running order).
+ * The night (schedule.ts: the plan rides in everyone's state as `pz`, so a
+ * room shares one running order): the first of you out at the pool starts the
+ * party, the DJ dropping "No Tomorrow" from its top; at 1:30 he calls the
+ * headliner over the booth's stacks ("in one minute...", the music ducked under
+ * him: the take in his voice, el_dj, or until it's recorded a caption over an
+ * air horn), the crowd cheers and starts drifting over to her stage
+ * (audience.ts); at 2:30 he fades the decks out, the band walks on, she walks
+ * on to a roar, and her set (concert_*.mp3) plays from her stage's PA (the
+ * decks' engine has a bus for each) while the decks stay silent; then he kicks
+ * back in with "One More Drop" (deck_c.mp3) as the crowd drifts back, and the
+ * night goes round again.
  *
  * The beat clock follows whichever is playing: the house record's measured
  * tempo and drops, or her song's tempo and sections.
@@ -67,11 +76,16 @@ import { renderPartyRaw } from './track';
 const PREFETCH_AFTER = 25000;
 /** The doors from the hotel corridor (the music leaks through them). */
 const DOORS = new THREE.Vector3(36, 0, -0.5);
-/** Fetch her music this long before her set (s), and let it go this long after (s). */
-const CONCERT_AHEAD = 60;
+/** Fetch her music this long before her set (s: before the DJ calls her), and let it go this long after (s). */
+const CONCERT_AHEAD = 100;
 const CONCERT_KEEP = 120;
 /** Deck B is let go this long after anyone was last at the decks (s). */
 const DECK_B_KEEP = 90;
+/** The night's moments, from the house record as index.json has it (the same for everyone: schedule.ts). */
+export const NIGHT_TIMES: NightTimes = nightTimes(HOUSE_PLAN.length, HOUSE_PLAN.bar);
+/** The DJ's call: the air horn, then his line this long after (s); the decks ducked to this under him. */
+const CALL_AFTER_HORN = 0.9;
+const CALL_DUCK = 0.5;
 
 export interface PartyDeps {
   scene: THREE.Scene;
@@ -94,6 +108,8 @@ export interface PartyDeps {
   travel?: (v: Viewpoint) => void;
   /** Is a spot clear for a standing guest (her audience's places)? */
   isFree?: (x: number, z: number) => boolean;
+  /** A spoken line's caption (the screen's subtitle, and in VR): the DJ's call until its take is in. */
+  say?: (who: string, text: string) => void;
 }
 
 export class Party {
@@ -115,6 +131,17 @@ export class Party {
   private stagePa: THREE.PositionalAudio[] = [];
   private filters: BiquadFilterNode[] = [];
   private playing: { ctx: number; wall: number } | null = null;
+  /** Where the night is (schedule.ts nightAt): for the curious, and the headless checks. */
+  night: NightState = nightAt(0, null, { bar: 2, liveLen: 1, lead: 1, after: 0 }, NIGHT_TIMES);
+  private calledRound = -1;
+  private toldRound = -1;
+  private wasFade = false;
+  private callUntil = -Infinity;
+  private ducked = 1;
+  private mcBus: GainNode | null = null;
+  /** The night's moments as they happened here (wall s, for the curious: window.casino.party.show.timeline). */
+  readonly timeline: { at: number; what: string }[] = [];
+  private lastPhase = '';
   /** Where the music comes from: the records, dj_set standing in for deck A, or the synthesized fallback. */
   source: 'decks' | 'dj_set' | 'synth' | null = null;
   private rendering = false;
@@ -151,7 +178,8 @@ export class Party {
   private off = [0, 0];
   private sentOff = [0, 0];
   private remote: ReturnType<typeof unpackDecks> = null;
-  private emptyFor = 0;
+  /** Seconds since anyone was at the decks (from the start: nobody, so deck A is on the night's grid at once). */
+  private emptyFor = 3;
   private prevXf = 0;
   private program: Program = { live: false, into: -1, next: Infinity, set: -1 };
   private announced = -1;
@@ -252,9 +280,9 @@ export class Party {
     return this.deskMove;
   }
 
-  /** The schedule's grid and her set's length. */
+  /** The schedule's grid, her set's length, the DJ's lead-in and his record after her (index.json's: the same for everyone). */
   timing(): Timing {
-    return { bar: this.house.bar, liveLen: Math.max(this.house.bar, concertLength(this.songs)) };
+    return { bar: HOUSE_PLAN.bar, liveLen: Math.max(HOUSE_PLAN.bar, concertLength(this.songs)), lead: NIGHT_TIMES.lead, after: AFTER_PLAN?.length ?? 0 };
   }
 
   /** Wall-clock seconds as the music hears them (the audio clock while it plays, so the lights sit on the beat). */
@@ -275,7 +303,8 @@ export class Party {
   /** What's on (for the curious and the tests: window.casino.party.show). */
   get show() {
     const p = this.program;
-    return { onAir: this.onAir, after: +this.afterInto(this.wall()).toFixed(1), afterReady: this.afterReady, plan: this.plan && { start: this.plan.start, rev: this.plan.rev }, inSec: Number.isFinite(p.next) ? +p.next.toFixed(1) : null, into: +p.into.toFixed(1), set: p.set, liveReady: this.liveReady, cycle: +cycleLength(this.timing()).toFixed(1), slot: +liveSlot(this.timing()).toFixed(1), extras: this.audience?.here ?? 0, deckB: this.bLoaded, off: this.off.map((v) => +v.toFixed(3)), remote: !!this.remote };
+    const n = this.night;
+    return { phase: n.phase, party: +n.party.toFixed(1), toSet: Number.isFinite(n.toSet) ? +n.toSet.toFixed(1) : null, gather: +n.gather.toFixed(1), fade: +n.gain.toFixed(3), round: n.round, houseAt: +this.housePos(this.wall()).toFixed(1), timeline: this.timeline.slice(-12), onAir: this.onAir, after: +this.afterInto(this.wall()).toFixed(1), afterReady: this.afterReady, plan: this.plan && { start: this.plan.start, rev: this.plan.rev }, inSec: Number.isFinite(p.next) ? +p.next.toFixed(1) : null, into: +p.into.toFixed(1), set: p.set, liveReady: this.liveReady, cycle: +cycleLength(this.timing()).toFixed(1), slot: +liveSlot(this.timing()).toFixed(1), extras: this.audience?.here ?? 0, deckB: this.bLoaded, off: this.off.map((v) => +v.toFixed(3)), remote: !!this.remote };
   }
 
   /** How much a spot is at the party (1 on the deck, a little by the doors in the corridor). */
@@ -435,8 +464,9 @@ export class Party {
     if (!this.deck) return;
     const t = this.timing();
     const on = this.liveReady && !!this.plan;
-    const after = this.afterReady && this.afterPlan && this.plan ? this.afterPlan.length : 0;
-    this.deck.setSchedule({ on: on ? 1 : 0, start: this.plan?.start ?? 0, slot: liveSlot(t), cycle: cycleLength(t), after });
+    const after = this.afterReady && this.afterPlan && this.plan ? Math.min(this.afterPlan.length, cycleLength(t) - liveSlot(t) - t.lead) : 0;
+    const N = NIGHT_TIMES;
+    this.deck.setSchedule({ on: on ? 1 : 0, start: this.plan?.start ?? 0, slot: liveSlot(t), cycle: cycleLength(t), after, fadeTo: t.lead - N.fadeAt, fadeLen: N.fadeLen });
   }
 
   /** Seconds into the DJ's after-set record at wall time `w` (-1: not on, or not loaded). */
@@ -556,11 +586,14 @@ export class Party {
     this.hearFriends();
     const W = this.wall();
     const here = w0 === 'pool';
-    if (here && !this.wasHere && needsPlan(W, this.plan, this.timing())) {
-      this.plan = makePlan(W, this.timing(), Math.random(), planTag(), Date.now());
+    // (The first of you out at the pool starts the party: "No Tomorrow" from its top, her set `lead` later.)
+    if (here && !this.wasHere && needsPlan(this.plan)) {
+      this.plan = makePlan(W, this.timing(), planTag(), Date.now());
     }
     this.wasHere = here;
     const prog = (this.program = programAt(W, this.plan, this.timing()));
+    const night = (this.night = nightAt(W, this.plan, this.timing(), NIGHT_TIMES));
+    this.logPhase(night, W);
     const sched = JSON.stringify([this.liveReady, this.afterReady, this.afterPlan?.length, this.plan?.start, this.plan?.rev, this.timing().liveLen]);
     if (sched !== this.pushedSchedule) {
       this.pushedSchedule = sched;
@@ -611,6 +644,7 @@ export class Party {
     for (const f of this.filters) f.frequency.setTargetAtTime(cutoff, ctx.currentTime, 0.08);
     // The stage mic (its PA plays from the same stacks); the music ducks while someone talks into it.
     this.mic.update(dt, you.head, !you.xr, open, cutoff);
+    this.callHer(night, W);
     if (this.playing) {
       for (const a of this.stacks) a.gain.gain.setTargetAtTime(vol * this.mic.duck, ctx.currentTime, 0.02);
       for (const a of this.stagePa) a.gain.gain.setTargetAtTime(vol * this.mic.duck, ctx.currentTime, 0.02);
@@ -623,21 +657,25 @@ export class Party {
     this.stage.update(dt, b, show, scale);
     this.band?.update(dt, b, live || (this.liveReady && prog.next < 4 * this.house.bar), live && song >= 0 ? songT : -1, live && song >= 0 ? (this.maps[song] ?? null) : null);
     if (this.audience) {
-      const t = this.timing();
-      const C = cycleLength(t),
-        slot = liveSlot(t);
-      const since = !this.liveReady || !this.plan || prog.set < 0 ? Infinity : live ? -1 : W - (this.plan.start + prog.set * C + slot);
+      // Her crowd gathers from just after the DJ's call (unless her music's just failed to load: the DJ plays on).
+      const show = this.liveReady || this.time - this.concertFailedAt > 60;
       this.friendsAt.length = 0;
       for (const q of this.d.crowd.people) if (q.driven && !q.away) this.friendsAt.push(q.pos);
-      this.audience.update(dt, { into: live ? prog.into : -1, since: live ? Infinity : since }, this.stage.singer?.pos ?? this.v3.set(43.3, 0.6, -32.4), you.feet, this.friendsAt);
+      this.audience.update(dt, { gather: show ? night.gather : -1, since: night.since }, this.stage.singer?.pos ?? this.v3.set(43.3, 0.6, -32.4), you.feet, this.friendsAt);
     }
-    this.hype.update(dt, { beat: b, onBeat: this.clock.onBeat, onBar: this.clock.onBar, ready: this.liveReady, live, song, into: prog.into, toLive: prog.next, bar: 240 / this.clock.bpm, presence: this.presence, you: you.feet });
+    const called = night.phase === 'called' || night.phase === 'fade' || night.phase === 'walkon';
+    this.hype.update(dt, { beat: b, onBeat: this.clock.onBeat, onBar: this.clock.onBar, ready: this.liveReady, live, song, into: prog.into, toLive: prog.next, bar: 240 / this.clock.bpm, called, presence: this.presence, you: you.feet });
     if (this.stage.live && this.presence > 0.5 && this.announced !== prog.set) {
       this.announced = prog.set;
       this.d.toast(`Live on the pool stage: ${HEADLINER.name}`);
     }
 
-    // The decks.
+    // The decks (and the DJ's hand on deck A's fader as he fades out for her: the audio thread fades the sound itself).
+    const fading = this.liveReady && !!this.plan;
+    this.decks.djFade = fading ? night.gain : 1;
+    this.decks.onFader = fading && (night.phase === 'fade' || (night.phase === 'called' && night.party > NIGHT_TIMES.fadeAt - 1.2));
+    if (fading && night.phase === 'fade' && !this.wasFade && this.decks.atDecks) this.d.toast(`The DJ's fading out: ${HEADLINER.name} is on next`);
+    this.wasFade = night.phase === 'fade';
     const params = this.decks.update(dt, b, { feet: you.feet, xr: you.xr });
     this.mixDecks(params, local, remote, W);
 
@@ -688,6 +726,84 @@ export class Party {
   private v2 = new THREE.Vector2();
   private v3 = new THREE.Vector3();
 
+  /**
+   * The DJ calls her (once a round, as the moment comes: everyone at the same
+   * wall time): an air horn from the booth's stacks, then his line over them
+   * (the music ducked under it), or its caption until the take's recorded. The
+   * crowd cheers. Arriving after the call, you're told how long she'll be.
+   */
+  private callHer(n: NightState, w: number) {
+    const ctx = this.d.sound.listener.context;
+    if (n.sinceCall >= 0 && n.sinceCall < 4 && this.calledRound !== n.round) {
+      this.calledRound = this.toldRound = n.round;
+      const here = this.presence > 0.05;
+      this.hype.called(here);
+      this.note(`call (${n.party.toFixed(1)} s into the night)`, w);
+      if (here) {
+        for (const a of this.stacks) if (a.parent) this.d.sound.play('airHorn', a.parent, { volume: 0.9, ref: STACKS.ref, rolloff: STACKS.rolloff });
+        const est = 0.9 + spoken(MC.call).length * 0.06;
+        this.callUntil = this.time + CALL_AFTER_HORN + (voices.duration(elVoice(MC.id), MC.call) ?? est) + 0.3;
+        const voice = elVoice(MC.id);
+        setTimeout(() => {
+          if (!voices.has(voice, MC.call)) {
+            // No take yet: a caption (on screen and in VR), never the browser's voice.
+            (this.d.say ?? ((who: string, t: string) => this.d.toast(`${who}: ${t}`)))(MC.name, spoken(MC.call));
+            return;
+          }
+          if (voices.captions) this.d.say?.(MC.name, spoken(MC.call));
+          void voices.clip(voice, MC.call).then((buf) => {
+            if (!buf || ctx.state !== 'running') return;
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(this.callBus());
+            src.start();
+          });
+        }, CALL_AFTER_HORN * 1000);
+      }
+    } else if (n.sinceCall >= 4 && n.toSet > 4 && this.toldRound !== n.round && this.presence > 0.5) {
+      this.toldRound = n.round;
+      this.d.toast(`${HEADLINER.name} takes the pool stage in ${Math.ceil(n.toSet)} s`);
+    }
+    // The music ducked under him.
+    const duck = this.time < this.callUntil ? CALL_DUCK : 1;
+    if (duck !== this.ducked && this.deck) {
+      this.ducked = duck;
+      this.deck.duck(duck);
+    }
+  }
+
+  /** His mic on the booth's stacks (their distance and muffling, not the music's limiter or duck). */
+  private callBus(): GainNode {
+    if (!this.mcBus) {
+      const ctx = this.d.sound.listener.context;
+      this.mcBus = ctx.createGain();
+      this.mcBus.gain.value = 1.4;
+      for (let i = 0; i < this.stacks.length; i++) this.mcBus.connect(this.filters[i]);
+    }
+    return this.mcBus;
+  }
+
+  /** The night's moments as they happen here (and the console, for the headless checks). */
+  private logPhase(n: NightState, w: number) {
+    if (n.phase === this.lastPhase) return;
+    const first = this.lastPhase === '';
+    this.lastPhase = n.phase;
+    this.note(`${first ? 'joined: ' : ''}${n.phase} (${n.party.toFixed(1)} s into the night, set in ${Number.isFinite(n.toSet) ? n.toSet.toFixed(1) : '-'} s)`, w);
+  }
+
+  private note(what: string, w: number) {
+    this.timeline.push({ at: +w.toFixed(2), what });
+    if (this.timeline.length > 40) this.timeline.shift();
+    console.info(`Party night @${w.toFixed(2)}: ${what}`);
+  }
+
+  /** Deck A's offset at rest: the house record at its top as this round of the night started (no plan: the wall clock's). */
+  private houseOff(): number {
+    const L = this.house.length;
+    if (!this.plan || !(L > 0)) return 0;
+    return ((-this.night.anchor % L) + L) % L;
+  }
+
   /** Where deck A (the house record) is at rest at wall time `w` (s into its loop). */
   private housePos(w: number): number {
     const L = this.house.length;
@@ -722,8 +838,12 @@ export class Party {
     } else {
       this.emptyFor += this.dt;
       this.prevXf = local.xf;
-      // Nobody at the decks: the records go back on the grid (the house record where everyone's is).
-      if (this.emptyFor > 2) this.off[0] = this.off[1] = 0;
+      // Nobody at the decks: the records go back on the grid (the house record where everyone's is:
+      // from its top when this round of the night started).
+      if (this.emptyFor > 2) {
+        this.off[0] = this.houseOff();
+        this.off[1] = 0;
+      }
       deck.set(local);
     }
     for (let i = 0; i < 2; i++)

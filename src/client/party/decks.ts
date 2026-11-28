@@ -93,6 +93,14 @@ export class Decks {
   /** Channel faders (0..1). */
   volA = 1;
   volB = 1;
+  /**
+   * The DJ's scheduled fade (schedule.ts: 1 full, 0 faded out for her set; the
+   * audio thread fades the decks itself, this is what you see): with nobody
+   * else at the decks his hand is on deck A's channel fader (`onFader`) and
+   * its cap comes down with it; faded right out, he steps back from the decks.
+   */
+  djFade = 1;
+  onFader = false;
   /** You're at the decks (0..1, eased). */
   here = 0;
   atDecks = false;
@@ -247,7 +255,8 @@ export class Decks {
 
   /** Where a fader's cap is now (world x, z). */
   capAt(f: Fader, out = this.t[3]): THREE.Vector3 {
-    const d = this.value(f) * f.travel * f.dir;
+    const v = f.id === 'volA' && !this.atDecks ? this.value(f) * this.djFade : this.value(f);
+    const d = v * f.travel * f.dir;
     return out.set(f.x0 + (f.axis === 'x' ? d : 0), CONSOLE_TOP + 0.06, f.z0 + (f.axis === 'z' ? d : 0));
   }
 
@@ -447,7 +456,8 @@ export class Decks {
     const rig = p.rig;
     const beat = this.beat;
     if (!rig || !beat) return;
-    const playing = !this.atDecks && p.moving < 0.1 && p.pos.distanceTo(this.spot) < 0.15;
+    // (Faded right out for her set: he stands back, watching her, dancing a little.)
+    const playing = !this.atDecks && p.moving < 0.1 && p.pos.distanceTo(this.spot) < 0.15 && (this.djFade > 0.001 || this.onFader);
     const sc = rig.root.scale.x;
     this.dancer.pose(rig, { beat, dt: this.dt, amount: playing ? 0.55 : 0.8, move: 'groove', arms: !playing, scale: sc, still: true });
     if (!playing) return;
@@ -463,9 +473,13 @@ export class Decks {
     L.x += 0.02 + 0.03 * Math.sin(ph * Math.PI * 0.5);
     L.z -= 0.115;
     L.y += 0.02 + 0.02 * Math.max(0, Math.sin(ph * Math.PI));
-    const ear = bar % 4 === 3 && beat.beatInBar >= 1;
+    const ear = bar % 4 === 3 && beat.beatInBar >= 1 && !this.onFader;
     const R = this.t[2];
-    if (ear) {
+    if (this.onFader) {
+      // On deck A's channel fader, pulling it down with the fade.
+      const vf = this.faders.find((f) => f.id === 'volA');
+      if (vf) R.copy(this.capAt(vf, R)).setY(CONSOLE_TOP + 0.08);
+    } else if (ear) {
       b.Head?.getWorldPosition(R);
       R.x -= 0.13 * Math.cos(p.yaw);
       R.z += 0.13 * Math.sin(p.yaw);

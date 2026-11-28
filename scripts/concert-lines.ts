@@ -11,7 +11,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { GUESTS, SPEAKERS, elVoice } from '../src/client/cast';
-import { CONCERT, CREW_PARTY, NIXIE, concertReplyLabels, treeLines, type ConcertSet } from '../src/client/party/concertlines';
+import { CONCERT, CREW_PARTY, MC, NIXIE, concertReplyLabels, treeLines, type ConcertSet } from '../src/client/party/concertlines';
 import { PLAYER_VOICES, replyLabels } from '../src/client/reactlines';
 import { lineId } from '../src/client/speech';
 
@@ -41,6 +41,7 @@ for (const ch of GUESTS) {
   if (!s) continue;
   const v = elVoice(ch.id);
   const a = (ctx: string, list: string[]) => list.forEach((t) => add(v, ch.name, ch.gender, ctx, t, ch.voiceHint));
+  a("the DJ just announced over the PA that she's on in one minute: excited, heading for the stage", s.minute);
   a('before her set: hype, is she on yet', s.soon);
   a('during her set: shouting and cheering over loud live music', s.live);
   a('between songs / after her set: buzzing', s.after);
@@ -61,6 +62,9 @@ for (const ch of GUESTS) {
   a('the headliner chatting with a fan between sets', [...NIXIE.openers.flatMap((n) => treeLines(n).say), NIXIE.how, NIXIE.cheers, NIXIE.huh, NIXIE.bye.walkedOff, NIXIE.bye.timedOut]);
   a('the headliner bumped / soaked / hit between sets: startled, still friendly', Object.values(NIXIE.react).flat());
 }
+
+// The DJ on the mic: the call, a minute before her set (over the booth's speaker stacks, the music ducked under it).
+add(elVoice(MC.id), MC.name, MC.gender, "the pool party DJ on the mic over the PA, hyping the crowd: the headliner's on in one minute (a club MC's announcement, big and rhythmic, long pauses at the dots)", MC.call, MC.voiceHint);
 
 for (const name of ['rocco', 'dev', 'mikey']) {
   const sp = SPEAKERS.find((x) => x.id === 'crew_' + name)!;

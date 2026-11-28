@@ -3,22 +3,25 @@ import { STAGE } from '../areas/pool';
 import type { Person } from '../people';
 
 /**
- * Her audience. When she comes on, the dancers on the DJ's floor make their
- * way over and gather in front of her stage, and over the next minute and a
- * half as many again arrive (walking in from the deck's east and west edges)
- * and join them, all facing her. When her set ends the newcomers drift off the
- * way they came (and are away again: not drawn, not animated) and the dancers
- * go back to the DJ's floor.
+ * Her audience. Once the DJ's called her ("in one minute"), the dancers on his
+ * floor drift over to her stage a few at a time (never all at once: each sets
+ * off at their own moment through the minute, in no particular order, at a
+ * stroll), and as many again wander in from the deck's east and west edges and
+ * join them, everyone in their place by the time the DJ's faded out, all
+ * facing her. When her set ends the newcomers drift off the way they came (and
+ * are away again: not drawn, not animated) and the dancers go back to the
+ * DJ's floor.
  *
- * Where everyone is comes from the shared clock alone (seconds into her set,
- * or since it ended: schedule.ts), each person's walk a pure function of it
- * along fixed paths, so a room sees the same crowd move the same way, and
- * someone arriving mid-set finds everyone where they'd be.
+ * Where everyone is comes from the shared clock alone (seconds since they
+ * started gathering, or since her set ended: schedule.ts nightAt), each
+ * person's walk a pure function of it along fixed paths, so a room sees the
+ * same crowd move the same way, and someone arriving late finds everyone
+ * where they'd be.
  */
 
 export interface AudienceTime {
-  /** Seconds into her set (live), else -1. */
-  into: number;
+  /** Seconds since her crowd started gathering (through her set), else -1. */
+  gather: number;
   /** Seconds since her last set ended (Infinity before her first). */
   since: number;
 }
@@ -29,7 +32,7 @@ interface Walker {
   home: THREE.Vector2;
   via: THREE.Vector2[];
   spot: THREE.Vector2;
-  /** When they set off (s into her set), and when they leave (s after it). */
+  /** When they set off (s into the gathering), and when they leave (s after her set). */
   go: number;
   back: number;
   extra: boolean;
@@ -56,10 +59,19 @@ const DRIFT_CLEAR = 0.9;
 const MAX_OFF = 3;
 const JUMP = 0.5;
 
-/** Walking pace (m/s). */
-const PACE = 1.05;
-/** The extras arrive over this long (s) after the first of them. */
-const ARRIVE_OVER = 75;
+/** Walking pace (m/s): strolling over to her stage, and heading back after. */
+const PACE = 0.85;
+const BACK_PACE = 1.05;
+/** How long they have to gather by default (s: the call to the end of the DJ's fade). */
+export const GATHER_OVER = 63;
+/** Everyone's in their place this long before the gathering's over (s). */
+const SETTLE = 2;
+/** Where in the gathering (0..1) the `k`th of `n` sets off: spread through it, in a shuffled order. */
+export function gatherOrder(k: number, n: number): number {
+  if (n <= 1) return 0;
+  // A golden-ratio stride: evenly spread through the minute, neighbours on the floor far apart in it.
+  return (k * 0.6180339887) % 1;
+}
 /** Where the extras come in: the deck's east and west edges, and the turn toward the stage from each. */
 const EAST = [new THREE.Vector2(60.2, -29.6), new THREE.Vector2(48.2, -29.3)];
 const WEST = [new THREE.Vector2(23.9, -30.6), new THREE.Vector2(38.4, -30.0)];
@@ -118,6 +130,8 @@ export class Audience {
     extras: Person[],
     free: (x: number, z: number) => boolean,
     djYaw: number,
+    /** How long they have to gather (s): from the first setting off to everyone in their place. */
+    readonly over = GATHER_OVER,
   ) {
     // The fans already in front of her stage stay where they are; everyone else gets a place.
     const near = (p: Person) => p.pos.x < STAGE.x1 + 0.5 && p.pos.z < STAGE.z1 + 1.6;
@@ -128,19 +142,22 @@ export class Audience {
       const home = new THREE.Vector2(p.pos.x, p.pos.z);
       const fan = near(p);
       const spot = fan ? home.clone() : (spots[s++] ?? home.clone());
-      this.walkers.push({ p, home, via: fan || home.x < CORNER.x ? [] : [CORNER], spot, go: 2 + k * 1.1, back: 3 + k * 1.8, extra: false, homeYaw: p.homeYaw ?? djYaw, path: [], L: 0, ox: 0, oz: 0, lastX: NaN, lastZ: NaN });
+      this.walkers.push({ p, home, via: fan || home.x < CORNER.x ? [] : [CORNER], spot, go: gatherOrder(k, dancers.length), back: 3 + k * 1.8, extra: false, homeYaw: p.homeYaw ?? djYaw, path: [], L: 0, ox: 0, oz: 0, lastX: NaN, lastZ: NaN });
     });
     extras.forEach((p, k) => {
       const spot = spots[s++];
       if (!spot) return;
       const [entry, turn] = k % 2 ? WEST : EAST;
-      this.walkers.push({ p, home: entry.clone(), via: [turn], spot, go: 8 + (k * ARRIVE_OVER) / Math.max(1, extras.length), back: 3 + k * 1.4, extra: true, homeYaw: djYaw, path: [], L: 0, ox: 0, oz: 0, lastX: NaN, lastZ: NaN });
+      this.walkers.push({ p, home: entry.clone(), via: [turn], spot, go: 0.15 + 0.85 * gatherOrder(k, extras.length), back: 3 + k * 1.4, extra: true, homeYaw: djYaw, path: [], L: 0, ox: 0, oz: 0, lastX: NaN, lastZ: NaN });
       p.away = true;
     });
     for (const w of this.walkers) {
       w.path = [w.home, ...w.via, w.spot];
       w.L = pathLength(w.path);
       w.p.placed = true;
+      // When they set off (s): their share of the gathering, early enough to be in place before it's over.
+      const latest = Math.max(0, over - SETTLE - w.L / PACE);
+      w.go = Math.min(latest, w.go * latest);
     }
   }
 
@@ -156,8 +173,8 @@ export class Audience {
       const path = w.path,
         L = w.L;
       let d: number;
-      if (t.into >= 0) d = (t.into - w.go) * PACE;
-      else if (Number.isFinite(t.since)) d = L - (t.since - w.back) * PACE;
+      if (t.gather >= 0) d = (t.gather - w.go) * PACE;
+      else if (Number.isFinite(t.since)) d = L - (t.since - w.back) * BACK_PACE;
       else d = -1;
       const at = THREE.MathUtils.clamp(d, 0, L);
       // Extras are away until they set off, and once they're back out.
@@ -206,9 +223,10 @@ export class Audience {
       w.lastZ = p.pos.z;
       let want: number;
       if (walking) {
-        want = t.into >= 0 ? heading : heading + Math.PI;
-        p.moving = PACE;
-        p.walkPhase += PACE * dt * 5.2;
+        const pace = t.gather >= 0 ? PACE : BACK_PACE;
+        want = t.gather >= 0 ? heading : heading + Math.PI;
+        p.moving = pace;
+        p.walkPhase += pace * dt * 5.2;
       } else {
         // Stepping aside (bodies.ts walks them) or strolling back to their place: a walk; else still.
         p.moving = drift > 0 && off > 0.08 ? Math.max(p.moving, DRIFT) : pushed > 0 ? p.moving : Math.max(0, p.moving - dt * 4);
@@ -234,6 +252,6 @@ export class Audience {
 
   /** Everyone (dancers and extras) and where they're headed (tests and debugging). */
   get members() {
-    return this.walkers.map((w) => ({ extra: w.extra, home: w.home.toArray(), spot: w.spot.toArray(), away: w.p.away, at: [+w.p.pos.x.toFixed(2), +w.p.pos.z.toFixed(2)] }));
+    return this.walkers.map((w) => ({ extra: w.extra, go: +w.go.toFixed(2), arrive: +(w.go + w.L / PACE).toFixed(2), home: w.home.toArray(), spot: w.spot.toArray(), away: w.p.away, at: [+w.p.pos.x.toFixed(2), +w.p.pos.z.toFixed(2)] }));
   }
 }

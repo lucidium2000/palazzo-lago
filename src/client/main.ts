@@ -756,6 +756,7 @@ async function main() {
     interaction,
     travel: (v) => player.travel(v),
     isFree: (x, z) => world.isFree(x, z, 0.24, true),
+    say: (who, text) => hud.say(who, text),
   });
   // Out on the deck everyone talks about the show (and she says nothing while she's on): party/partytalk.ts.
   dialogue.party = party.talk;
