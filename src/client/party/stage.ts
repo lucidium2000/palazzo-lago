@@ -7,8 +7,9 @@ import type { Beat } from './beat';
 import { Dancer } from './dance';
 import { Burst } from './lights';
 import { HEADLINER, LOOK_HEADLINER, SINGER_BACK, dressStar } from './performers';
-import { micFree, routineFor, songEndBar, stepAt, type At, type Step } from './routine';
-import { reachArm, type ShowPose } from './showanim';
+import { fitToVocals, micFree, routineFor, songEndBar, stepAt, type At, type Step } from './routine';
+import { frameAt, lastAt, type SongMaps } from './songmaps';
+import { reachArm, turnWorld, type ShowPose } from './showanim';
 import { INDEX_SONGS, type SongPlan } from './setlist';
 
 export { HEADLINER };
@@ -60,7 +61,12 @@ export interface ShowState {
   toLive: number;
   /** One bar now (s): she walks on two bars before her set. */
   bar: number;
+  /** Seconds into the song (as you hear it). */
+  t: number;
 }
+
+/** Moves that leave her free to sing and gesture (her free arm can emote over them). */
+const SINGING_MOVES = new Set(['Show_Sway', 'Show_HipRoll', 'Show_Iso', 'Show_Groove', 'Show_GlideL', 'Show_GlideR', 'Show_KneePop']);
 
 export interface StageDeps {
   scene: THREE.Scene;
@@ -106,6 +112,8 @@ function standGrip(b: number, left: boolean): number {
 export class Stage {
   readonly root = new THREE.Group();
   readonly singer: Person | null;
+  /** Her PA's two line arrays (where her set and the stage mic play from). */
+  readonly pa: THREE.Object3D[] = [];
   /** She's on (her set is playing and she's at the mic or out performing). */
   live = false;
   /** 0..1: the stage dark but for her follow spots (she's holding a freeze); the party's lights dim with it. */
@@ -163,6 +171,7 @@ export class Stage {
   private s = new THREE.Vector3();
   private col = new THREE.Color();
   private down = new THREE.Vector3(0, -1, 0);
+  private lv = new THREE.Vector3();
   // (Its top leans back toward her and a little to her left: the axis is up × that way.)
   private tiltAxis = new THREE.Vector3(-1, 0, -0.35).normalize();
   private crowdAt = new THREE.Vector3(STAGE.spot.x + 2.5, 0, STAGE.z1 + 2.2);
@@ -170,13 +179,49 @@ export class Stage {
   private headAt = new THREE.Vector3();
   private dressed: unknown = null;
 
-  /** Her routines, one per song, from the songs' sections. */
+  /** Her routines, one per song, from the songs' sections (and, once they're in, where she really sings). */
   setSongs(songs: (SongPlan | null)[]) {
-    this.routines = songs.map((p) => {
+    this.songPlans = songs;
+    this.routines = songs.map((p, i) => {
       if (!p) return [];
       const parts = p.info.map((b) => b.part);
-      return routineFor(parts, songEndBar(parts));
+      const r = routineFor(parts, songEndBar(parts));
+      const m = this.maps[i];
+      return m ? fitToVocals(r, m.beatVocal) : r;
     });
+  }
+  private songPlans: (SongPlan | null)[] = [];
+
+  /** A song's maps (songmaps.ts) are in: her mouth, her mic and her moves follow its vocal from now on. */
+  setMaps(i: number, m: SongMaps | null) {
+    this.maps[i] = m;
+    this.setSongs(this.songPlans);
+  }
+  private maps: (SongMaps | null)[] = [];
+  /** Her voice now: how open her mouth is (0..1) and the vowel (0..1: open "ah" .. narrow "ee"); null when she isn't singing. */
+  private voice_ = { level: 0, vowel: 0 };
+  private voicing = false;
+  /** In a sung line (or about to be), held out to the crowd in an instrumental break, seconds to her next line. */
+  private inLine = false;
+  private breakOut = 0;
+  private toLine = Infinity;
+  /** Her body singing: a breath in before a line (0..1), a held note (s, and 0..1 eased), leaning back, the free arm. */
+  private breath = 0;
+  private holdS = 0;
+  private holdK = 0;
+  private lean = 0;
+  private emote = 0;
+  private eyes = 0;
+  private lineNo = 0;
+
+  /** Her mouth as the song sings it (faces.ts), or null when she's not singing. */
+  get mouth(): { level: number; vowel: number } | null {
+    return this.voicing ? this.voice_ : null;
+  }
+
+  /** 0..1: her eyes closed (a long held note). */
+  get eyesClosed(): number {
+    return this.eyes;
   }
 
   constructor(private d: StageDeps) {
@@ -222,6 +267,35 @@ export class Stage {
     this.mic.lookAt(MIC_AIM);
     this.mic.raycast = () => {};
     this.root.add(this.mic);
+
+    // Her PA: a line array flown from the front of the truss either side of her (her set plays from
+    // these, and the stage mic: party/index.ts, stagemic.ts), five cabinets curving down toward the crowd.
+    const cabs: THREE.BufferGeometry[] = [];
+    let y = 0,
+      tilt = 0.05;
+    cabs.push(new THREE.BoxGeometry(0.66, 0.05, 0.5).translate(0, 0.05, 0));
+    for (let k = 0; k < 5; k++) {
+      const box = new THREE.BoxGeometry(0.62, 0.2, 0.42).translate(0, -0.1, 0).rotateX(tilt).translate(0, y, 0);
+      cabs.push(box);
+      y -= 0.2 * Math.cos(tilt) + 0.01;
+      tilt += 0.07 + k * 0.03;
+    }
+    const grille = new THREE.MeshStandardMaterial({ color: 0x15151a, roughness: 0.85, metalness: 0.2 });
+    for (const [k, x] of [STAGE.x0 + 0.55, STAGE.x1 - 0.55].entries()) {
+      const arr = new THREE.Mesh(mergeAll(cabs), grille);
+      arr.position.set(x, STAGE.y + 3.42, STAGE.z1 - 0.12);
+      arr.rotation.y = (k ? 1 : -1) * 0.12;
+      arr.raycast = () => {};
+      arr.name = `stage-pa-${k}`;
+      this.root.add(arr);
+      // Where the sound comes from: the middle of the array.
+      const anchor = new THREE.Object3D();
+      anchor.position.set(0, -0.5, 0.05);
+      anchor.name = `stage-pa-anchor-${k}`;
+      arr.add(anchor);
+      this.pa.push(anchor);
+    }
+    this.root.updateMatrixWorld(true);
 
     // Haze along the back of the stage (chorus), confetti from the front truss (the final pose).
     this.haze = new Burst(this.root, { count: 56, life: 5, up: 0.5, spread: 2.2, drag: 1.0, grav: -0.05, size: 0.6, flutter: 0.35, grow: 0.6, confetti: false });
@@ -320,8 +394,8 @@ export class Stage {
     // The mic: in her hand from the end of the pre-chorus to the end of the song, else on the stand.
     const inHand = this.live && !this.youHold && (this.performing ? this.at.step.hand : b.part === 'chorus' || (b.part === 'outro' && this.held > 0.5));
     this.held += ((inHand ? 1 : 0) - this.held) * Math.min(1, dt * 5);
-    // Singing (the recordings are sung all the way through: a breath at the end of each line).
-    this.sing += ((this.live ? b.voice : 0) - this.sing) * Math.min(1, dt * 12);
+    // Singing: where the recording's vocal is (songmaps.ts), else the section map's sung bars.
+    this.voiceAt(show, b, dt);
     // The stand (tilted by the trick).
     const tilt = this.performing && this.at.step.move === 'Show_StandTilt' ? standTilt(this.at.into) : 0;
     if (tilt !== this.tilt) {
@@ -357,6 +431,69 @@ export class Stage {
     this.updateBeams(b);
     this.haze.update(dt, fxScale);
     this.confetti.update(dt, fxScale);
+  }
+
+  /**
+   * Where her voice is: in a sung line or between them (the vocal map's
+   * phrases), her mouth from the vocal's envelope and vowel (closed in the
+   * gaps), a breath in just before each line, a held note's tilt, closed eyes
+   * and lean, her free arm with the vocal's intensity; and when the band plays
+   * on without her for a while, the mic out to the crowd.
+   */
+  private voiceAt(show: ShowState, b: Beat, dt: number) {
+    const m = this.live && show.song >= 0 ? (this.maps[show.song] ?? null) : null;
+    const k = (rate: number) => Math.min(1, dt * rate);
+    let sing = 0,
+      out = 0,
+      breath = 0,
+      hold = false,
+      level = 0,
+      vowel = 0.5;
+    if (m) {
+      const T = show.t;
+      const ph = m.phrases;
+      const i = lastAt(ph, T);
+      const inPh = i >= 0 && i % 2 === 0;
+      const prevEnd = inPh ? T : i >= 1 ? ph[i] : -Infinity;
+      const next = inPh ? T : i + 1 < ph.length ? ph[i + 1] : Infinity;
+      const gap = next - prevEnd;
+      this.toLine = inPh ? 0 : next - T;
+      if (inPh && !this.inLine) this.lineNo++;
+      this.inLine = inPh;
+      // The mic comes up a moment before a line and stays up through a quick breath between two.
+      sing = inPh || this.toLine < 0.4 || gap < 1.6 ? 1 : 0;
+      // A real break (the band on its own a couple of seconds or more): out to the crowd.
+      out = !inPh && gap >= 2.4 && T - prevEnd > 0.35 && this.toLine > 0.8 ? 1 : 0;
+      // A breath in over the half second before a line.
+      breath = !inPh && this.toLine < 0.5 ? 1 - this.toLine / 0.5 : 0;
+      // The jaw follows the vocal a touch ahead (it moves before the sound comes out), shut in the gaps.
+      level = frameAt(m.vocal, T + 0.03);
+      if (!inPh && this.toLine > 0.03) level *= Math.max(0, 1 - (T - prevEnd) / 0.08);
+      vowel = frameAt(m.vowel, T + 0.03);
+      hold = inPh && frameAt(m.steady, T) > 0.5 && level > 0.35;
+      this.voicing = true;
+    } else if (this.live) {
+      // No map (yet): the section map's sung bars, a natural-looking flap.
+      sing = b.voice;
+      const t = this.time;
+      level = b.voice * Math.max(0, 0.3 + 0.35 * Math.sin(t * 15) * Math.sin(t * 6.1));
+      this.toLine = Infinity;
+      this.voicing = b.voice > 0.05;
+    } else this.voicing = false;
+    this.voice_.level = level;
+    // (The vowel colour drifts rather than flickers: lips don't change shape every 10 ms.)
+    this.voice_.vowel += (vowel - this.voice_.vowel) * k(12);
+    this.sing += (sing - this.sing) * k(sing > this.sing ? 14 : 5);
+    this.breakOut += (out - this.breakOut) * k(3);
+    this.breath += (breath - this.breath) * k(breath > this.breath ? 20 : 6);
+    this.holdS = hold ? this.holdS + dt : Math.max(0, this.holdS - dt * 3);
+    const held = Math.min(1, Math.max(0, (this.holdS - 0.25) / 0.35));
+    this.holdK += (held - this.holdK) * k(4);
+    // Eyes shut on a long note; the big ones (loud, held, in a chorus) lean her back.
+    this.eyes += ((this.holdS > 0.6 ? 1 : 0) - this.eyes) * k(10);
+    const big = hold && level > 0.6 && (b.part === 'chorus' || b.section === 'drop') ? 1 : 0;
+    this.lean += (big * Math.min(1, this.holdS / 0.5) - this.lean) * k(3);
+    this.emote += ((this.inLine ? 0.35 + 0.65 * level : 0) - this.emote) * k(3);
   }
 
   /** The beat the routine's on: what happens as each step starts (and the confetti a beat into the final pose). */
@@ -571,6 +708,23 @@ export class Stage {
       lz = -fx;
     const { step, into, f } = this.at;
     const sing = this.sing;
+
+    // Her body singing, over the clip: a breath in before each line (the chest lifts, the shoulders
+    // rise), on a held note the head tilts (one way, then the other line) and the chin comes up, and
+    // on the big ones she leans back into it. (Softer over the dance-heavy moves: they own her body.)
+    const calm = SINGING_MOVES.has(step.move) ? 1 : 0.4;
+    const left = this.lv.set(lx, 0, lz);
+    const br = this.breath * calm,
+      hold = this.holdK * calm;
+    turnWorld(bones.Abdomen ?? bones.Torso, left, -0.14 * this.lean * calm);
+    turnWorld(bones.Chest, left, -0.06 * br - 0.012 * Math.sin(this.time * 1.6));
+    turnWorld(bones.ShoulderL, fwd, 0.1 * br);
+    turnWorld(bones.ShoulderR, fwd, -0.1 * br);
+    if (bones.Head) {
+      turnWorld(bones.Head, fwd, (this.lineNo % 2 ? 0.15 : -0.15) * hold);
+      turnWorld(bones.Head, left, -0.12 * hold - 0.05 * br);
+      bones.Head.getWorldPosition(headP);
+    }
     let rw = 0,
       lw = 0;
     const R = this.t[1],
@@ -583,9 +737,15 @@ export class Stage {
       rw = standGrip(into, false);
       lw = standGrip(into, true);
     } else if (this.held > 0.5) {
-      // The mic at her mouth as she sings (lower between lines), unless the move needs the arm.
-      const k = 0.4 + 0.6 * sing;
-      R.set(headP.x + fx * (0.16 + 0.08 * (1 - k)) - lx * 0.02, headP.y - 0.2 - 0.18 * (1 - k), headP.z + fz * (0.16 + 0.08 * (1 - k)) - lz * 0.02);
+      // The mic at her mouth as she sings (down at her chest between lines), unless the move needs the
+      // arm; in an instrumental break, held out to the crowd.
+      const k = sing;
+      R.set(headP.x + fx * (0.15 + 0.1 * (1 - k)) - lx * 0.02, headP.y - 0.19 - 0.3 * (1 - k), headP.z + fz * (0.15 + 0.1 * (1 - k)) - lz * 0.02);
+      if (this.breakOut > 0.01 && bones.UpperArmR) {
+        const sh = bones.UpperArmR.getWorldPosition(this.t[3]);
+        const o = this.t[4].set(sh.x + fx * 0.5 - lx * 0.08, sh.y + 0.1, sh.z + fz * 0.5 - lz * 0.08);
+        R.lerp(o, this.breakOut);
+      }
       rw = 1 - micFree(step.move, f);
     } else if (!this.youHold) {
       // At the stand: a hand on the mic as she sings.
@@ -602,6 +762,15 @@ export class Stage {
       const dir = this.t[4].copy(this.fan).sub(shoulder).normalize();
       L.set(shoulder.x + dir.x * 0.55, shoulder.y + 0.1 + dir.y * 0.3, shoulder.z + dir.z * 0.55);
       lw = 1;
+    } else if (lw < 0.01 && calm === 1 && this.emote > 0.05 && bones.UpperArmL) {
+      // Her free arm with the song: out and up as the line swells, higher on a held note, drifting.
+      const e = this.emote;
+      const sh = bones.UpperArmL.getWorldPosition(this.t[3]);
+      const out = 0.26 + 0.12 * e,
+        side = 0.2 + 0.12 * e;
+      const drift = Math.sin(this.time * 1.3) * 0.04;
+      L.set(sh.x + fx * out + lx * side, sh.y - 0.4 + 0.4 * e * (0.6 + 0.4 * this.holdK) + drift, sh.z + fz * out + lz * side);
+      lw = Math.min(0.8, e * 1.2);
     }
     // Smoothed, so the hands don't jump between the clip and a target.
     const k = this.hands.init ? 1 - Math.exp(-this.dt * 14) : 1;
@@ -632,6 +801,9 @@ export class Stage {
           // Along the forearm: from the elbow, out past the hand.
           const elbow = bones.LowerArmR.getWorldPosition(this.t[4]);
           this.mic.lookAt(elbow.sub(hand).negate().add(hand));
+        } else if (this.held > 0.5 && this.breakOut > 0.5) {
+          // Out to the crowd: the mic's head at them.
+          this.mic.lookAt(this.t[4].set(hand.x + fx * 3, hand.y - 0.6, hand.z + fz * 3));
         } else this.mic.lookAt(this.held > 0.5 ? mouth : MIC_AIM);
       }
     }
@@ -656,6 +828,10 @@ function turn(p: Person, want: number, k: number) {
   let dy = want - p.yaw;
   dy = Math.atan2(Math.sin(dy), Math.cos(dy));
   p.yaw += dy * Math.min(1, k);
+}
+
+function mergeAll(gs: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  return gs.reduce((a, b) => mergeTwo(a, b));
 }
 
 function mergeTwo(a: THREE.BufferGeometry, b: THREE.BufferGeometry): THREE.BufferGeometry {

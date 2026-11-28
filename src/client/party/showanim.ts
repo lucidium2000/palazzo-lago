@@ -142,3 +142,20 @@ export function reachArm(upper: THREE.Object3D, lower: THREE.Object3D, end: THRE
   end.getWorldPosition(_w);
   rotateWorld(lower, _from.copy(_w).sub(_e), _to.copy(_t).sub(_e));
 }
+
+const _qa = new THREE.Quaternion(),
+  _qb = new THREE.Quaternion();
+
+/**
+ * Turns a bone by `angle` about a world axis (unit), on top of its clip pose,
+ * whatever its own local axes are (the character models differ). Its children
+ * follow (their world matrices are updated).
+ */
+export function turnWorld(bone: THREE.Object3D | undefined, axis: THREE.Vector3, angle: number) {
+  if (!bone || Math.abs(angle) < 1e-5) return;
+  _qa.setFromAxisAngle(axis, angle);
+  bone.getWorldQuaternion(_qb).premultiply(_qa);
+  if (bone.parent) _qb.premultiply(bone.parent.getWorldQuaternion(_qp).invert());
+  bone.quaternion.copy(_qb).normalize();
+  bone.updateMatrixWorld(true);
+}

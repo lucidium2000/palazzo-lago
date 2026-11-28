@@ -11,8 +11,8 @@
  */
 
 /**
- * The pool's speaker stacks (the music and the stage PA play from both): each
- * stack's level, and how it carries. Inverse distance from 6 m (full level
+ * The pool's speakers (the DJ booth's stacks for the decks, the line arrays at
+ * her stage for her set and the stage mic): each one's level, and how it carries. Inverse distance from 6 m (full level
  * anywhere on the dance floor and in front of the stage), halving every
  * doubling past that, so the pool bar ~20 m off hears it ~10 dB down: a real
  * pool party, loud on the floor and still there across the deck. (Measured at

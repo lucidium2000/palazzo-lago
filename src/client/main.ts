@@ -207,7 +207,14 @@ async function main() {
   const ctx: GameContext = { scene, interaction, sound, bankroll, hud, rng: new CryptoRng(), quality };
   const crowd = new Crowd(scene, quality, world, assets.people);
   // Faces up close: lips that follow the words, blinking, eyes that look at you.
-  const faces = new Faces(crowd.group, { radius: 6, max: quality.name === 'desktop' ? 10 : 6, level: (p) => voices.mouthLevel(p) });
+  // (The headliner's face carries further, and her mouth and eyes follow her song: party/stage.ts.)
+  const faces = new Faces(crowd.group, {
+    radius: 6,
+    max: quality.name === 'desktop' ? 10 : 6,
+    level: (p) => party.mouthLevel(p) ?? voices.mouthLevel(p),
+    eyes: (p) => party.eyesClosed(p),
+    star: () => party.stage.singer,
+  });
   // Beyond the casino floor: hotel corridor, elevator lobby, pool deck, Suite 3201.
   const areas = buildAreas({ scene, quality, interaction, sound, player, world, hands, dom: renderer.domElement, toast: (t) => hud.toast(t, 'info') });
 

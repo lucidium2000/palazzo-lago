@@ -253,3 +253,66 @@ export function micFree(move: ShowMove, f: number): number {
   }
   return w;
 }
+
+/** Moves that need her whole body (she can't sing through them): they belong in the instrumental passages. */
+export const DANCE_HEAVY: ReadonlySet<ShowMove> = new Set<ShowMove>(['Show_Spin', 'Show_Spin2', 'Show_HairFlip', 'Show_Freeze', 'Show_Kick', 'Show_Hits4', 'Show_JumpFreeze', 'Show_Call']);
+/** Moves she sings through (sways, steps, hand gestures). */
+export const SING_FRIENDLY: ReadonlySet<ShowMove> = new Set<ShowMove>(['Show_Sway', 'Show_HipRoll', 'Show_Iso', 'Show_Groove', 'Show_KneePop', 'Show_GlideL', 'Show_GlideR', 'Show_ArmWave', 'Show_Sweep', 'Show_Hit']);
+
+/**
+ * A routine refitted to where she really sings (`beatVocal`: per song beat,
+ * 0..255, songmaps.ts): a dance-heavy move that lands on a sung line becomes
+ * one she can sing through (a sway, or a hand gesture out to the crowd: an arm
+ * sweep or wave for a four-beat move), and a sway of a bar or more in an
+ * instrumental passage becomes the dance (hits, a spin, a hair flip, an
+ * isolation). The big moments stay put (the pose on a chorus's downbeat, the
+ * stand trick, the final pose, the bow), as does where she is on the stage:
+ * steps keep their beats and places; only the move (and its cue) changes.
+ */
+export function fitToVocals(r: Step[], beatVocal: ArrayLike<number>): Step[] {
+  const sung = (a: number, n: number) => {
+    let s = 0,
+      c = 0;
+    for (let b = Math.floor(a); b < Math.ceil(a + n); b++) {
+      s += b >= 0 && b < beatVocal.length ? beatVocal[b] / 255 : 0;
+      c++;
+    }
+    return c ? s / c : 0;
+  };
+  const KEEP = new Set<ShowMove>(['Show_Pose', 'Show_StandTilt', 'Show_Final', 'Show_Bow']);
+  const out: Step[] = [];
+  let dances = 0;
+  for (const s of r) {
+    if (KEEP.has(s.move) || s.x0 !== s.x1) {
+      out.push(s);
+      continue;
+    }
+    const v = sung(s.at, s.beats);
+    if (DANCE_HEAVY.has(s.move) && v > 0.5) {
+      // Singing: something she can sing through, the same length.
+      const four = s.beats === 4;
+      const move: ShowMove = four ? (s.hand ? 'Show_Sweep' : 'Show_ArmWave') : 'Show_Sway';
+      out.push({ ...s, move, cue: four && s.cue === 'call' ? 'call' : undefined });
+      continue;
+    }
+    if ((s.move === 'Show_Sway' || s.move === 'Show_Groove') && s.beats >= 4 && v < 0.15) {
+      // An instrumental passage: dance it, a bar at a time (a hit to finish anything left over).
+      let at = s.at;
+      const end = s.at + s.beats;
+      while (end - at >= 4) {
+        const k = dances++ % 4;
+        if (k === 0) out.push({ ...s, move: 'Show_Hits4', at, beats: 4, cue: 'hit' });
+        else if (k === 1) {
+          out.push({ ...s, move: 'Show_Spin', at, beats: 2, cue: 'spin' });
+          out.push({ ...s, move: 'Show_HipRoll', at: at + 2, beats: 2, cue: undefined });
+        } else if (k === 2) out.push({ ...s, move: 'Show_HairFlip', at, beats: 4, cue: 'flip' });
+        else out.push({ ...s, move: 'Show_Iso', at, beats: 4, cue: undefined });
+        at += 4;
+      }
+      if (end > at) out.push({ ...s, move: 'Show_Sway', at, beats: end - at, cue: undefined });
+      continue;
+    }
+    out.push(s);
+  }
+  return out;
+}

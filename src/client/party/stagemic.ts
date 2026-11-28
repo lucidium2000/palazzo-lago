@@ -33,7 +33,7 @@ interface FriendPA {
 
 export interface StageMicDeps {
   listener: THREE.AudioListener;
-  /** The speaker stacks' anchors (the PA plays from them). */
+  /** The PA's speakers' anchors (the line arrays at her stage: the PA plays from them). */
   stacks: THREE.Object3D[];
   stage: Stage;
   hands?: Hands;
@@ -55,7 +55,7 @@ export class StageMic {
   private vad = new VoiceActivity();
   private ducker = new Ducker();
   private ctx: AudioContext;
-  /** The PA: every voice's chain feeds the bus, which plays from both stacks. */
+  /** The PA: every voice's chain feeds the bus, which plays from both speakers. */
   private bus: GainNode;
   private pa: THREE.PositionalAudio[] = [];
   private filters: BiquadFilterNode[] = [];

@@ -3,7 +3,8 @@
  *
  * The DJ plays while you arrive; a minute or two later (60..120 s) the
  * headliner comes on for his set (the concert's two songs), then the DJ again
- * for a few minutes (GAP), then him again, and so on.
+ * for a few minutes (GAP: opening with his after-set record, afterAt, then the
+ * house record), then him again, and so on.
  *
  * A Plan is just the wall-clock time his first set starts. Every set after it
  * follows at a fixed cycle (his set, rounded up to the DJ's bar, plus the
@@ -81,6 +82,20 @@ export function programAt(w: number, plan: Plan | null, t: Timing, gap = SCHEDUL
   const into = w - plan.start - set * C;
   if (into < slot) return { live: true, into, next: 0, set };
   return { live: false, into: -1, next: C - into, set };
+}
+
+/**
+ * Seconds into the DJ's record after her set (`len` s long: played once
+ * through from the end of her slot, cut short if her next set comes first) at
+ * wall time `w`, or -1 when it isn't on.
+ */
+export function afterAt(w: number, plan: Plan | null, t: Timing, len: number, gap = SCHEDULE.gap): number {
+  if (!plan || !Number.isFinite(plan.start) || !(len > 0) || w < plan.start) return -1;
+  const C = cycleLength(t, gap),
+    slot = liveSlot(t);
+  const set = Math.floor((w - plan.start) / C);
+  const into = w - plan.start - set * C - slot;
+  return into >= 0 && into < Math.min(len, C - slot) ? into : -1;
 }
 
 /** Rounds wall time `w` up to the DJ's next phrase line. */

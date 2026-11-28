@@ -128,7 +128,7 @@ export class Audience {
       const home = new THREE.Vector2(p.pos.x, p.pos.z);
       const fan = near(p);
       const spot = fan ? home.clone() : (spots[s++] ?? home.clone());
-      this.walkers.push({ p, home, via: fan || home.x < CORNER.x ? [] : [CORNER], spot, go: 2 + k * 1.1, back: 1 + k * 0.9, extra: false, homeYaw: p.homeYaw ?? djYaw, path: [], L: 0, ox: 0, oz: 0, lastX: NaN, lastZ: NaN });
+      this.walkers.push({ p, home, via: fan || home.x < CORNER.x ? [] : [CORNER], spot, go: 2 + k * 1.1, back: 3 + k * 1.8, extra: false, homeYaw: p.homeYaw ?? djYaw, path: [], L: 0, ox: 0, oz: 0, lastX: NaN, lastZ: NaN });
     });
     extras.forEach((p, k) => {
       const spot = spots[s++];
