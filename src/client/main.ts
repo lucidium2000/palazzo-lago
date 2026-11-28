@@ -590,11 +590,11 @@ async function main() {
     world,
     player,
     hands,
-    onBump: (p, k) => {
-      // They notice: a word (in their own voice), or at least a breath for the lightest brush.
+    onBump: (p, k, say) => {
+      // They notice: a word (in their own voice, now and then across the crowd), or at least a breath.
       if (k > 0.2) fights.provoke(p, 'pushed', k);
-      if (k > 0.2 && reactTo(p, 'pushed') > 0) return;
-      if (k > 0.1) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * k, rate: 1.2 + Math.random() * 0.25 });
+      if (say === 'line' && reactTo(p, 'pushed') > 0) return;
+      if (say !== 'none' && k > 0.1) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * Math.min(k, 0.6), rate: 1.2 + Math.random() * 0.25 });
     },
     // A thud you feel, a stumble, a loud ouch, and maybe a fight (fight/fights.ts).
     onPunch: (p, power, _at, zone, v) => fights.hitPerson(p, power, zone, v),

@@ -5,7 +5,7 @@ import { RADIUS } from './player';
 import type { World } from './world';
 import type { Session } from './net/session';
 import type { Hand, Hands } from './hands';
-import { BODY_R, BUMP_SPEED, PUSH_HOLD, capsuleDepth, handInto, handShove, separate, shoveDistance, shoveProgress, stepAgainst } from './push';
+import { BODY_R, BUMP_SPEED, SLIDE, SOFT, Wedge, YIELD_HOLD, YIELD_STEP, capsuleDepth, handInto, handShove, separate, shoveDistance, shoveProgress, stepAgainst, yieldDirs } from './push';
 import { knocksOffSeat, stepUnseat, unseat, UNSEAT, walking, type Unseat } from './seatshove';
 
 /**
@@ -15,6 +15,14 @@ import { knocksOffSeat, stepUnseat, unseat, UNSEAT, walking, type Unseat } from 
  * hands can push people too. Guests never end up inside each other, and a
  * friend in a two-player room gets nudged on their side (their position is
  * theirs to move): see `FriendShove`.
+ *
+ * Walking into a crowd, people make way: whoever you press into steps aside
+ * (or back) out of your path, nudging whoever they bump in turn, and if you
+ * still get wedged (trying to walk, getting nowhere, for WEDGE_T) the crowd
+ * gives: you squeeze on through, slowly, like through a concert crowd (walls
+ * and furniture stay solid: that's world.ts). Friends' avatars walking
+ * through the crowd part it the same way on this machine. Out loud, it's a
+ * line now and then across the whole crowd, gasps in between.
  */
 
 /** People who stay put however you push: seated, behind a counter or a table, at the piano. */
@@ -45,15 +53,30 @@ interface Shove {
   home: boolean;
   /** When they last made a sound about it (not a gasp every half second). */
   lastSound: number;
+  /** The motion in progress is making way (a sidestep: walking legs, no stumble). */
+  yield: boolean;
 }
+
+/** At most one spoken line (about being pushed) this often across the whole crowd (s), and a gasp this often. */
+export const LINE_GAP = 4;
+export const GASP_GAP = 0.7;
+/** How many people one push can pass on to in a frame (a path opens; the whole crowd doesn't ripple). */
+const CHAIN = 10;
+/** How far a push passes on (you → them → whoever they bump → whoever they bump). */
+const CHAIN_GEN = 2;
 
 export interface BodiesDeps {
   crowd: Crowd;
   world: World;
   player: Player;
   hands: Hands;
-  /** Someone reacts out loud (strength 0..1): a breath, a word if one's recorded. */
-  onBump?(p: Person, strength: number): void;
+  /**
+   * Someone reacts (strength 0..1), out loud as `say`s: a word if one's
+   * recorded ('line', at most one every LINE_GAP across the whole crowd), a
+   * breath ('gasp', at most one every GASP_GAP), or nothing just now ('none':
+   * it still counts, e.g. toward losing their temper).
+   */
+  onBump?(p: Person, strength: number, say: 'line' | 'gasp' | 'none'): void;
   /** A fist (or a very fast hand) landed on someone: power 0..1, where it landed, head or body, the hand's velocity. */
   onPunch?(p: Person, power: number, at: THREE.Vector3, zone: 'head' | 'body', v: THREE.Vector3): void;
   /** An open hand swiped across someone's face: power 0..1, where, the hand's velocity. */
@@ -121,6 +144,22 @@ export class Bodies {
   private hp = new THREE.Vector3();
   /** Overlapping pairs found last frame (for tests and the stats line). */
   overlaps = 0;
+  /** Stuck in a crowd: how much it gives (see Wedge). */
+  readonly wedge = new Wedge();
+  /** This frame's intended walking (metres) and its direction, and where your feet were last frame. */
+  private want = 0;
+  private wantX = 0;
+  private wantZ = 0;
+  private lastFeet = new THREE.Vector3(NaN, 0, 0);
+  private dirs = new Float32Array(6);
+  private chain = 0;
+  /** When anyone last said a line about being pushed, or gasped. */
+  private lastLine = -99;
+  private lastGasp = -99;
+  /** Counters for tests: people who made way, spoken lines, gasps. */
+  readonly yieldStats = { yields: 0, lines: 0, gasps: 0 };
+  /** Friends' avatars' positions last frame (they part the crowd too). */
+  private friendLast = new Map<Person, THREE.Vector2>();
 
   constructor(private d: BodiesDeps) {
     d.player.bodies = (x, z, dx, dz, out) => this.step(x, z, dx, dz, out);
@@ -156,7 +195,15 @@ export class Bodies {
       this.near[n] = p;
       n++;
     }
-    stepAgainst(x, z, dx, dz, RADIUS, this.flat, n, this.press, out);
+    const l = Math.hypot(dx, dz);
+    this.want += l;
+    if (l > 1e-6) {
+      this.wantX = dx / l;
+      this.wantZ = dz / l;
+    }
+    // Wedged: the crowd gives (you sink in a little, and part of your push carries on into them).
+    const sq = this.wedge.squeeze;
+    stepAgainst(x, z, dx, dz, RADIUS, this.flat, n, this.press, out, SLIDE + (0.85 - SLIDE) * sq, SOFT + 0.12 * sq, 0.55 * sq);
     for (let i = 0; i < n; i++) {
       if (this.press[i] <= 0) continue;
       this.contact[this.contactN] = this.near[i];
@@ -167,7 +214,7 @@ export class Bodies {
   private st(p: Person): Shove {
     let s = this.state.get(p);
     if (!s) {
-      s = { pushT: 0, lastPush: -9, cool: 0, dx: 0, dz: 0, dist: 0, t: 1, T: SHOVE_T, faceT: 0, faceYaw: 0, homeX: p.pos.x, homeZ: p.pos.z, home: false, lastSound: -99 };
+      s = { pushT: 0, lastPush: -9, cool: 0, dx: 0, dz: 0, dist: 0, t: 1, T: SHOVE_T, faceT: 0, faceYaw: 0, homeX: p.pos.x, homeZ: p.pos.z, home: false, lastSound: -99, yield: false };
       this.state.set(p, s);
     }
     return s;
@@ -188,16 +235,8 @@ export class Bodies {
     }
     const canMove = movable(p);
     if (canMove) {
-      if (!s.home && (p.role === 'chat' || p.role === 'watch')) {
-        s.home = true;
-        s.homeX = p.pos.x;
-        s.homeZ = p.pos.z;
-      }
-      s.dx = ux;
-      s.dz = uz;
-      s.dist = dist;
-      s.t = 0;
-      s.T = SHOVE_T + dist * 0.25;
+      this.chain = 0;
+      this.moveBy(p, ux, uz, dist, SHOVE_T + dist * 0.25, false, 0);
       // Walkers stop to take it in.
       if (p.role === 'wander' || p.role === 'waiter') p.pause = Math.max(p.pause, 1.2 + strength);
     }
@@ -213,7 +252,115 @@ export class Bodies {
     if (quiet) s.lastSound = this.time;
     else if (strength >= 0.6 || this.time - s.lastSound > 3) {
       s.lastSound = this.time;
-      this.d.onBump?.(p, strength);
+      this.voice(p, strength);
+    }
+  }
+
+  /** Someone says something about it: a line if nobody has for a while, else a gasp (if nobody just did). */
+  private voice(p: Person, strength: number) {
+    if (this.time - this.lastLine >= LINE_GAP) {
+      this.lastLine = this.lastGasp = this.time;
+      this.yieldStats.lines++;
+      this.d.onBump?.(p, strength, 'line');
+    } else if (this.time - this.lastGasp >= GASP_GAP) {
+      this.lastGasp = this.time;
+      this.yieldStats.gasps++;
+      this.d.onBump?.(p, strength, 'gasp');
+    } else this.d.onBump?.(p, strength, 'none');
+  }
+
+  /**
+   * Starts `p` moving `dist` metres along (ux, uz) over T seconds (the shove
+   * motion: quick, then easing out; a sidestep when `yielding`), and passes it
+   * on to whoever stands where they'll end up (`gen` steps from you, within
+   * CHAIN people per push), so a path opens through a packed crowd.
+   */
+  private moveBy(p: Person, ux: number, uz: number, dist: number, T: number, yielding: boolean, gen: number) {
+    const s = this.st(p);
+    if (!s.home && !p.placed && (p.role === 'chat' || p.role === 'watch')) {
+      s.home = true;
+      s.homeX = p.pos.x;
+      s.homeZ = p.pos.z;
+    }
+    s.dx = ux;
+    s.dz = uz;
+    s.dist = dist;
+    s.t = 0;
+    s.T = T;
+    s.yield = yielding;
+    if (gen >= CHAIN_GEN) return;
+    const tx = p.pos.x + ux * dist,
+      tz = p.pos.z + uz * dist;
+    const touch = BODY_R * 2 + 0.04;
+    for (const q of this.d.crowd.people) {
+      if (this.chain >= CHAIN) return;
+      if (q === p || q.away || q.culled || !movable(q)) continue;
+      const ex = q.pos.x - tx,
+        ez = q.pos.z - tz;
+      if (Math.abs(ex) > touch || Math.abs(ez) > touch) continue;
+      const e = Math.hypot(ex, ez);
+      if (e >= touch) continue;
+      const qs = this.st(q);
+      // Already on the move.
+      if (qs.t < qs.T) continue;
+      // Away from where p lands, and on along p's way.
+      let vx = (e > 1e-4 ? ex / e : ux) + ux * 0.6,
+        vz = (e > 1e-4 ? ez / e : uz) + uz * 0.6;
+      const vl = Math.hypot(vx, vz) || 1;
+      vx /= vl;
+      vz /= vl;
+      const qd = Math.min(0.4, Math.max(0.15, touch - e + 0.06));
+      this.chain++;
+      this.yieldStats.yields++;
+      if (q.role === 'wander' || q.role === 'waiter') q.pause = Math.max(q.pause, 0.8);
+      q.attendUntil = Math.max(q.attendUntil, this.d.crowd.now + 0.8);
+      this.moveBy(q, vx, vz, qd, 0.3 + qd * 0.5, true, gen + 1);
+    }
+  }
+
+  /**
+   * `p` is in the way of someone walking from (fx0, fz0) along (fx, fz): they
+   * step aside out of the path (or back, or to the other side, whichever is
+   * clear: walls and furniture first, then the fewest people), a full step,
+   * at a walk. `squeeze` (0..1: the walker is wedged) makes it a bigger step.
+   */
+  makeWay(p: Person, fx0: number, fz0: number, fx: number, fz: number, squeeze = 0, quiet = false) {
+    if (!movable(p)) return;
+    const d = yieldDirs(fx, fz, p.pos.x - fx0, p.pos.z - fz0, this.dirs);
+    const dist = YIELD_STEP * (1 + 0.35 * squeeze);
+    let best = -1,
+      bestScore = Infinity;
+    for (let c = 0; c < 3; c++) {
+      const tx = p.pos.x + d[c * 2] * dist,
+        tz = p.pos.z + d[c * 2 + 1] * dist;
+      if (!(this.d.world.isFree?.(tx, tz, 0.22, true) ?? true)) continue;
+      let crowded = 0;
+      for (const q of this.d.crowd.people) {
+        if (q === p || q.away || q.culled) continue;
+        const ex = q.pos.x - tx,
+          ez = q.pos.z - tz;
+        if (ex * ex + ez * ez < 0.45 * 0.45) crowded += movable(q) ? 1 : 3;
+      }
+      const score = crowded + c * 0.6;
+      if (score < bestScore) {
+        bestScore = score;
+        best = c;
+      }
+    }
+    // Hemmed in by walls every way: straight back (the shove stops at the wall).
+    const ux = best >= 0 ? d[best * 2] : d[2],
+      uz = best >= 0 ? d[best * 2 + 1] : d[3];
+    this.chain = 0;
+    this.yieldStats.yields++;
+    this.moveBy(p, ux, uz, dist, 0.3 + dist * 0.5, true, 0);
+    if (p.role === 'wander' || p.role === 'waiter') p.pause = Math.max(p.pause, 1.0);
+    // A glance at whoever it is; a little start if they were really squashed.
+    p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + 1.2);
+    if (squeeze > 0.5) p.gaspT = Math.max(p.gaspT, 0.2);
+    const s = this.st(p);
+    if (!quiet && this.time - s.lastSound > 3) {
+      s.lastSound = this.time;
+      this.voice(p, 0.15);
     }
   }
 
@@ -225,18 +372,38 @@ export class Bodies {
     const speed = player.speed;
     for (const s of this.state.values()) s.cool = Math.max(0, s.cool - dt);
 
+    // 0. Wedged? (Trying to walk, touching people, getting nowhere.)
+    {
+      // Progress is along the way you're trying to go (sliding sideways along someone isn't getting through).
+      const mx = feet.x - this.lastFeet.x,
+        mz = feet.z - this.lastFeet.z;
+      let got = Number.isFinite(mx) ? Math.max(0, mx * this.wantX + mz * this.wantZ) : this.want;
+      if (Math.hypot(mx, mz) > 1) got = this.want; // a teleport isn't progress (or the lack of it)
+      this.wedge.update(dt, this.want, got, this.contactN > 0);
+      this.want = 0;
+      this.lastFeet.copy(feet);
+    }
+    const squeeze = this.wedge.squeeze;
+
     // 1. You walked into people this frame: resistance already happened; now they give way.
     for (let k = 0; k < this.contactN; k++) {
       const p = this.contact[k];
       const s = this.st(p);
       const pressSpeed = this.contactPress[k] / Math.max(dt, 1e-3);
-      if (pressSpeed > 0.15) {
+      if (pressSpeed > 0.1) {
         s.pushT = this.time - s.lastPush < 0.2 ? s.pushT + dt : dt;
         s.lastPush = this.time;
       }
       if (s.cool > 0) continue;
       const bump = speed >= BUMP_SPEED;
-      if (!bump && s.pushT < PUSH_HOLD) continue;
+      if (!bump && s.pushT < YIELD_HOLD && squeeze < 0.5) continue;
+      if (!bump && movable(p)) {
+        // Walking into them: they make way (aside, out of your path), and keep doing so while you press on.
+        this.makeWay(p, feet.x, feet.z, this.wantX, this.wantZ, squeeze);
+        s.pushT = 0;
+        s.cool = Math.max(s.cool, squeeze > 0.5 ? 0.2 : 0.35);
+        continue;
+      }
       let ux = p.pos.x - feet.x,
         uz = p.pos.z - feet.z;
       const l = Math.hypot(ux, uz) || 1;
@@ -249,6 +416,9 @@ export class Bodies {
       s.cool = Math.max(s.cool, bump ? 0.9 : 0.45);
     }
     this.contactN = 0;
+
+    // 1b. Friends' avatars walking into people: they make way for them too (people here are this machine's).
+    this.friendsPart(dt);
 
     // 2. VR hands pushing into bodies.
     if (player.inXR) for (const h of this.d.hands.hands) this.handPush(h);
@@ -266,6 +436,17 @@ export class Bodies {
         p.pos.z = nz;
         // Against a wall or a table: they stop there.
         if (moved < Math.hypot(sx, sz) * 0.3) s.t = s.T;
+        if (s.yield) {
+          // Stepping aside: walking legs, turning the way they go (not a stumble).
+          const v = Math.min(1.3, (s.dist / s.T) * 1.4);
+          p.moving = Math.max(p.moving, v);
+          p.walkPhase += v * dt * 5.2;
+          turn(p, Math.atan2(s.dx, s.dz), dt * 4);
+          if (s.t >= s.T) s.yield = false;
+        }
+      } else if (!s.home && !p.placed && p.moving > 0 && p.role !== 'wander' && p.role !== 'waiter' && p.role !== 'pair') {
+        // Done stepping aside: stand.
+        p.moving = Math.max(0, p.moving - dt * 4);
       }
       if (s.faceT > 0) {
         s.faceT -= dt;
@@ -302,6 +483,11 @@ export class Bodies {
       this.zs[i] = p.pos.z;
       this.rs[i] = BODY_R;
       this.mass[i] = movable(p) ? 1 : 0;
+      // Not here (a concert-goer not arrived yet): nobody to bump.
+      if (p.away) {
+        this.rs[i] = 0;
+        this.mass[i] = 0;
+      }
     }
     let m = n;
     if (!player.seated) {
@@ -328,6 +514,34 @@ export class Bodies {
         const [nx, nz] = this.d.world.move(p.pos.x, p.pos.z, cx, cz, 0.22, true);
         p.pos.x = nx;
         p.pos.z = nz;
+      }
+    }
+  }
+
+  /** Friends' avatars (driven) walking into people part the crowd here as you do (quietly: their game voices it). */
+  private friendsPart(dt: number) {
+    const people = this.d.crowd.people;
+    for (const f of people) {
+      if (!f.driven) continue;
+      let last = this.friendLast.get(f);
+      if (!last) this.friendLast.set(f, (last = new THREE.Vector2(f.pos.x, f.pos.z)));
+      const vx = (f.pos.x - last.x) / Math.max(dt, 1e-3),
+        vz = (f.pos.z - last.y) / Math.max(dt, 1e-3);
+      last.set(f.pos.x, f.pos.z);
+      const v = Math.hypot(vx, vz);
+      if (f.away || v < 0.3 || v > 8) continue;
+      const touch = BODY_R * 2 + 0.06;
+      for (const q of people) {
+        if (q === f || q.driven || q.away || q.culled || !movable(q)) continue;
+        const ox = q.pos.x - f.pos.x,
+          oz = q.pos.z - f.pos.z;
+        if (Math.abs(ox) > touch || Math.abs(oz) > touch || ox * ox + oz * oz > touch * touch) continue;
+        // Only who's ahead of them.
+        if (ox * vx + oz * vz <= 0) continue;
+        const s = this.st(q);
+        if (s.cool > 0 || s.t < s.T) continue;
+        this.makeWay(q, f.pos.x, f.pos.z, vx, vz, 0, true);
+        s.cool = 0.4;
       }
     }
   }
@@ -453,7 +667,7 @@ export class Bodies {
   }
 
   private headP = new THREE.Vector3();
-  /** A VR hand moving into someone's body pushes them (gently) that way; a fast one punches or slaps. */
+  /** A VR hand moving into someone's body pushes them a step back that way; a fast one punches or slaps. */
   private handPush(h: Hand) {
     if (h.ctrl.userData.connected === false) return;
     h.grip.updateMatrixWorld(true);

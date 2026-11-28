@@ -862,7 +862,8 @@ export class Player {
       this.rig.position.x += hx - head.x;
       this.rig.position.z += hz - head.z;
       speed = Math.hypot(hx - head.x, hz - head.z) / Math.max(dt, 1e-4);
-      if (speed < this.speedNow * 0.3) this.speedNow = speed; // walked into something
+      // Walked into a wall or a table: stop. (Not people: you keep pressing, and they make way, bodies.ts.)
+      if (speed < (Math.hypot(dx, dz) / Math.max(dt, 1e-4)) * 0.3) this.speedNow = speed;
       if (this.water === null || this.water - this.feetY < 0.25) this.step(speed * dt, this.speedNow > WALK * 1.2, new THREE.Vector3(hx, 0, hz));
       this.current = null;
     }

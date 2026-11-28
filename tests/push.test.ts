@@ -150,13 +150,14 @@ describe('hands', () => {
     expect(capsuleDepth(0, 1.75, 0, 0, 0, 0.5, 1.4, 0.2)).toBeLessThan(0);
   });
 
-  it('only counts motion into the body, and pushes gently', () => {
+  it('only counts motion into the body, and pushes a step back, not a hit', () => {
     // Hand on the +x side of the body moving toward -x: into the body.
     expect(handInto(-1, 0, 0.15, 0)).toBeCloseTo(1);
     expect(handInto(1, 0, 0.15, 0)).toBe(0);
     expect(handInto(0, 1, 0.15, 0)).toBeCloseTo(0);
-    expect(handShove(10)).toBeLessThanOrEqual(0.22);
-    expect(handShove(1)).toBeLessThan(shoveDistance(1.45));
+    expect(handShove(10)).toBeLessThanOrEqual(0.6);
+    expect(handShove(1)).toBeGreaterThan(shoveDistance(1.45));
+    expect(handShove(10)).toBeLessThan(shoveDistance(4));
   });
 });
 

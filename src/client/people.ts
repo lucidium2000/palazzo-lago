@@ -109,6 +109,11 @@ export class Person {
   seated = false;
   /** Not here right now (a concert-goer who hasn't arrived yet, or has gone home): not drawn, not animated. */
   away = false;
+  /**
+   * Someone else keeps their place and walks them back to it after you push
+   * past (her audience: party/audience.ts), so bodies.ts doesn't.
+   */
+  placed = false;
   /** Knocked off their seat (see seatshove.ts): standing, walking about, coming back to it. */
   offSeat = false;
   /** Never knocked off their seat (a game seats them itself: the poker table). */

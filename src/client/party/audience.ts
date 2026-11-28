@@ -38,7 +38,23 @@ interface Walker {
   /** The whole way (home, via, spot) and its length. */
   path: THREE.Vector2[];
   L: number;
+  /**
+   * Pushed out of their place (someone squeezed past, bodies.ts): how far, and
+   * where this put them last frame (anything else moving them since is a push).
+   */
+  ox: number;
+  oz: number;
+  lastX: number;
+  lastZ: number;
 }
+
+/** How fast someone pushed aside drifts back to their place once you've passed (m/s). */
+const DRIFT = 0.35;
+/** They wait until you're this far from their place (m). */
+const DRIFT_CLEAR = 0.9;
+/** Never further from their place than this (m), and a jump bigger than JUMP in a frame isn't a push. */
+const MAX_OFF = 3;
+const JUMP = 0.5;
 
 /** Walking pace (m/s). */
 const PACE = 1.05;
@@ -109,23 +125,28 @@ export class Audience {
       const home = new THREE.Vector2(p.pos.x, p.pos.z);
       const fan = near(p);
       const spot = fan ? home.clone() : (spots[s++] ?? home.clone());
-      this.walkers.push({ p, home, via: fan || home.x < CORNER.x ? [] : [CORNER], spot, go: 2 + k * 1.1, back: 1 + k * 0.9, extra: false, homeYaw: p.homeYaw ?? djYaw, path: [], L: 0 });
+      this.walkers.push({ p, home, via: fan || home.x < CORNER.x ? [] : [CORNER], spot, go: 2 + k * 1.1, back: 1 + k * 0.9, extra: false, homeYaw: p.homeYaw ?? djYaw, path: [], L: 0, ox: 0, oz: 0, lastX: NaN, lastZ: NaN });
     });
     extras.forEach((p, k) => {
       const spot = spots[s++];
       if (!spot) return;
       const [entry, turn] = k % 2 ? WEST : EAST;
-      this.walkers.push({ p, home: entry.clone(), via: [turn], spot, go: 8 + (k * ARRIVE_OVER) / Math.max(1, extras.length), back: 3 + k * 1.4, extra: true, homeYaw: djYaw, path: [], L: 0 });
+      this.walkers.push({ p, home: entry.clone(), via: [turn], spot, go: 8 + (k * ARRIVE_OVER) / Math.max(1, extras.length), back: 3 + k * 1.4, extra: true, homeYaw: djYaw, path: [], L: 0, ox: 0, oz: 0, lastX: NaN, lastZ: NaN });
       p.away = true;
     });
     for (const w of this.walkers) {
       w.path = [w.home, ...w.via, w.spot];
       w.L = pathLength(w.path);
+      w.p.placed = true;
     }
   }
 
-  /** One frame: where her set is (`t`), where she is (they face her). */
-  update(dt: number, t: AudienceTime, her: THREE.Vector3) {
+  /**
+   * One frame: where her set is (`t`), where she is (they face her), and
+   * where you are (`you`: people you pushed aside wait for you to pass before
+   * they drift back to their places; any friends too, `others`).
+   */
+  update(dt: number, t: AudienceTime, her: THREE.Vector3, you?: THREE.Vector3, others: readonly { x: number; z: number }[] = []) {
     let here = 0;
     for (const w of this.walkers) {
       const p = w.p;
@@ -139,21 +160,61 @@ export class Audience {
       // Extras are away until they set off, and once they're back out.
       const gone = w.extra && d <= 0;
       if (gone !== p.away) p.away = gone;
-      if (gone) continue;
+      if (gone) {
+        w.ox = w.oz = 0;
+        w.lastX = NaN;
+        continue;
+      }
       if (w.extra) here++;
+      // Pushed since last frame (you squeezing past, someone they bumped): they stay pushed for now.
+      let pushed = 0;
+      if (Number.isFinite(w.lastX)) {
+        const jx = p.pos.x - w.lastX,
+          jz = p.pos.z - w.lastZ;
+        const j = Math.hypot(jx, jz);
+        if (j > 1e-5 && j < JUMP) {
+          w.ox += jx;
+          w.oz += jz;
+          pushed = j;
+        }
+      }
       const heading = along(path, at, this.v);
       const walking = d > 0 && d < L;
-      p.pos.x = this.v.x;
-      p.pos.z = this.v.y;
+      // Back to their place once you're (and everyone's) out of the way of it, at a stroll.
+      let off = Math.hypot(w.ox, w.oz);
+      if (off > MAX_OFF) {
+        w.ox *= MAX_OFF / off;
+        w.oz *= MAX_OFF / off;
+        off = MAX_OFF;
+      }
+      let drift = 0;
+      if (off > 1e-4 && pushed === 0) {
+        const clear = (q: { x: number; z: number }) => Math.hypot(q.x - this.v.x, q.z - this.v.y) > DRIFT_CLEAR;
+        if ((!you || clear(you)) && others.every(clear)) {
+          drift = Math.min(off, DRIFT * dt);
+          w.ox -= (w.ox / off) * drift;
+          w.oz -= (w.oz / off) * drift;
+        }
+      }
+      p.pos.x = this.v.x + w.ox;
+      p.pos.z = this.v.y + w.oz;
       p.pos.y = 0;
+      w.lastX = p.pos.x;
+      w.lastZ = p.pos.z;
       let want: number;
       if (walking) {
         want = t.into >= 0 ? heading : heading + Math.PI;
         p.moving = PACE;
         p.walkPhase += PACE * dt * 5.2;
       } else {
-        p.moving = 0;
+        // Stepping aside (bodies.ts walks them) or strolling back to their place: a walk; else still.
+        p.moving = drift > 0 && off > 0.08 ? Math.max(p.moving, DRIFT) : pushed > 0 ? p.moving : Math.max(0, p.moving - dt * 4);
         want = at >= L - 1e-6 ? Math.atan2(her.x - p.pos.x, her.z - p.pos.z) : w.homeYaw;
+        if (drift > 0 && off > 0.08) {
+          p.walkPhase += DRIFT * dt * 5.2;
+          // Walking back, not backing up: face the way (then her again).
+          if (off > 0.2) want = Math.atan2(-w.ox, -w.oz);
+        }
       }
       let dy = want - p.yaw;
       dy = Math.atan2(Math.sin(dy), Math.cos(dy));

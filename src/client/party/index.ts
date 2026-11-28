@@ -120,6 +120,8 @@ export class Party {
   readonly stage: Stage;
   readonly band: Band | null;
   readonly audience: Audience | null;
+  /** Friends' avatars this frame (her audience waits for them to pass too). */
+  private friendsAt: THREE.Vector3[] = [];
   deck: DeckAudio | null = null;
   /** The house record (deck A) and deck B as they're playing (index.json's, or measured from the files). */
   house: TrackPlan = HOUSE_PLAN;
@@ -515,7 +517,9 @@ export class Party {
       const C = cycleLength(t),
         slot = liveSlot(t);
       const since = !this.liveReady || !this.plan || prog.set < 0 ? Infinity : live ? -1 : W - (this.plan.start + prog.set * C + slot);
-      this.audience.update(dt, { into: live ? prog.into : -1, since: live ? Infinity : since }, this.stage.singer?.pos ?? this.v3.set(43.3, 0.6, -32.4));
+      this.friendsAt.length = 0;
+      for (const q of this.d.crowd.people) if (q.driven && !q.away) this.friendsAt.push(q.pos);
+      this.audience.update(dt, { into: live ? prog.into : -1, since: live ? Infinity : since }, this.stage.singer?.pos ?? this.v3.set(43.3, 0.6, -32.4), you.feet, this.friendsAt);
     }
     if (this.stage.live && this.presence > 0.5 && this.announced !== prog.set) {
       this.announced = prog.set;
