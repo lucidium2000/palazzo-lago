@@ -254,5 +254,14 @@
   "style": 0.32,
   "name": "Ivanna -  Sultry, Fun and Captivating",
   "public_owner_id": "941af4fd552205a37d16a9b27984d15aff7048f2b34d7d64062de299bb914639"
+ },
+ "el_nixie": {
+  "voice_id": "qgNVOmUjsNA8CD4Fed8D",
+  "name": "Lindsay - Conversational and Warm",
+  "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American",
+  "stability": 0.35,
+  "similarity_boost": 0.8,
+  "style": 0.45,
+  "public_owner_id": "6d2f185d7e2ab90e6d53c5bfafc13eb143b93bceb63a72ccdb2228da971747cd"
  }
 }
