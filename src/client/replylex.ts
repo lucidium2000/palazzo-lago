@@ -391,6 +391,10 @@ export const DRINK_ALIASES: Record<string, string[]> = {
   Champagne: ['champagne', 'bubbly', 'prosecco', 'sparkling wine', 'glass of bubbly', 'something sparkling', 'wine', 'a glass of wine'],
   'Virgin Mojito': ['mojito', 'virgin mojito', 'mocktail', 'something without alcohol', 'non alcoholic', 'nonalcoholic', 'no alcohol', 'alcohol free', 'something virgin'],
   'Shirley Temple': ['shirley temple', 'shirley', 'grenadine', 'something sweet', 'kiddie cocktail'],
+  // The pool bar's frozen drinks.
+  'Frozen Margarita': ['margarita', 'frozen margarita', 'marg', 'margarita on the rocks', 'something frozen', 'a frozen drink', 'slushy'],
+  'Piña Colada': ['pina colada', 'colada', 'coconut', 'something with coconut', 'something tropical', 'tropical'],
+  'Strawberry Daiquiri': ['daiquiri', 'strawberry daiquiri', 'strawberry', 'frozen strawberry', 'something fruity'],
 };
 
 /** The Promenade's dishes (promenadeplan.ts names), by what people call them. */

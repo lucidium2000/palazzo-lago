@@ -8,6 +8,7 @@ import { POSE, lookPaint } from './people';
 import { crouchLegs, hipOnSeat, leanToward, sitLegs, standLegs } from './sitpose';
 import type { Seat } from './world';
 import { bodyYaw as facing, neckPivot } from './bodyframe';
+import { DAB_SECONDS, dabWeight, poseDab } from './dab';
 
 /**
  * Your own body in VR: the character you picked, standing under your headset
@@ -44,6 +45,8 @@ export class SelfBody {
   /** Called when you change character (to re-tint your hands). */
   onSkin: ((c: THREE.Color) => void) | null = null;
   private avatar = -1;
+  /** Seconds left in a dab with a friend (dab.ts). */
+  private dabLeft = 0;
   readonly root = new THREE.Group();
   /** Dancing (party/index.ts): bends the knees and sways the hips after the clip, before the arms reach your hands. */
   onDance: ((rig: { root: THREE.Object3D; bones: Record<string, THREE.Object3D | undefined> }, yaw: number, dt: number) => void) | null = null;
@@ -51,6 +54,20 @@ export class SelfBody {
   constructor(scene: THREE.Scene) {
     scene.add(this.root);
     this.root.visible = false;
+  }
+
+  /**
+   * You dabbed with a friend. In VR your arms are your real ones (they keep
+   * following your controllers) and your head is the headset: so only the body
+   * below the neck leans into the elbow, the comfortable part of the pose.
+   */
+  dab() {
+    this.dabLeft = DAB_SECONDS;
+  }
+
+  /** How far into a dab you are (0..1), for the screen players' camera nod (main.ts). */
+  get dabbing() {
+    return dabWeight(this.dabLeft);
   }
 
   /** Wears the character at AVATARS[i]. */
@@ -82,6 +99,7 @@ export class SelfBody {
    */
   update(dt: number, o: { on: boolean; head: THREE.Vector3; dir: THREE.Vector3; up?: THREE.Vector3; floorY: number; hands: { l: THREE.Vector3 | null; r: THREE.Vector3 | null }; poses: { l: FingerPose; r: FingerPose }; wrists?: { l: { p: THREE.Vector3; q: THREE.Quaternion } | null; r: { p: THREE.Vector3; q: THREE.Quaternion } | null }; speed: number; swim?: number; seat?: Seat | null; eyeY?: number; crouch?: number }) {
     this.root.visible = o.on && !!this.rig;
+    this.dabLeft = Math.max(0, this.dabLeft - dt);
     const rig = this.rig;
     if (!o.on || !rig) return;
     const female = this.kind.startsWith('female');
@@ -167,6 +185,12 @@ export class SelfBody {
     }
     // Crouching: hips down, knees bent, feet still on the floor.
     if (sit === 0 && this.swimBlend < 0.05 && crouch > 0.005) crouchLegs(rig.root, b, this.bodyYaw, crouch, o.speed > 0.2);
+    // Dabbing: the chest leans into the tucked elbow (the arms still reach your real hands, next).
+    const dab = this.dabbing;
+    if (dab > 0 && this.swimBlend < 0.05) {
+      poseDab(b, this.bodyYaw, sc, dab, { arms: false, head: false, lean: 0.18 });
+      rig.root.updateMatrixWorld(true);
+    }
     const left = new THREE.Vector3(Math.cos(this.bodyYaw), 0, -Math.sin(this.bodyYaw));
     for (const [side, S, dir] of [['l', 'L', 1], ['r', 'R', -1]] as const) {
       const w0 = o.wrists?.[side];

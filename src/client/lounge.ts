@@ -11,7 +11,8 @@ import { randomLook, staffLook } from './people';
 import type { Player } from './player';
 import { marble, onyx, radial, toTexture, wood } from './textures';
 import { SEAT_R, type World } from './world';
-import { BAR_MENU, BarMenuCard, buildVrMenu, DRINKS, PREP_TIME, SportsTicker, TIP, type DrinkKind } from './bar';
+import { BARS, BarMenuCard, buildVrMenu, DRINKS, PREP_TIME, SportsTicker, TIP, type BarId, type DrinkKind } from './bar';
+import { lagoCounter, ROUND_TOP, roundCounter, type Counter } from './barcounter';
 import type { Listener } from './listen';
 import { matchMenu, menuVocabulary, yesNo } from './understand';
 import { DRINK_ALIASES } from './replylex';
@@ -42,17 +43,47 @@ export type DrinkEvent =
   | { k: 'take'; id: string }
   | { k: 'put'; id: string; p: number[] }
   | { k: 'throw'; id?: string; kind: number; level: number; p: number[]; q: number[]; v: number[] }
-  | { k: 'order'; kind: number; z: number }
+  /** `z`: the spot along the counter (Bar Lago's z, the angle round the pool bar); `bar`: which bar (Bar Lago if left out). */
+  | { k: 'order'; kind: number; z: number; bar?: BarId }
   | { k: 'sip' }
   /** A new glass in the world (taken off a table display or out of a guest's hand): `from` names where (stock.ts). */
   | { k: 'spawn'; id: string; kind: number; level: number; p: number[]; from?: string };
 
 const drink = (name: string) => DRINKS.find((d) => d.name === name)!;
-const BAR_X = -15.0;
-/** Where the bartender pours (their side of the counter) and where drinks wait for you. */
-const POUR_X = BAR_X - 0.2;
-const SERVE_X = BAR_X + 0.32;
-const TAP_Z = 11.6;
+/** Bar Lago's counter: where the bartender pours, where drinks wait for you, the taps. */
+const LAGO = lagoCounter();
+const POUR_X = LAGO.pourAt(0).x;
+const TAP_Z = LAGO.tapSpot!;
+
+/**
+ * A bar you can order at (Bar Lago, the pool bar): its counter, its bartender,
+ * its menus, and the drink she's making (one at a time; friends' orders queue).
+ */
+interface Station {
+  c: Counter;
+  title: string;
+  menu: DrinkKind[];
+  bartender: Person | null;
+  /** The spot along the counter she's heading for. */
+  work: number;
+  /** The drink being made: the glass fills on the bartender's side, then slides to you. */
+  pour: { kind: DrinkKind; s: number; pourS: number; t: number; total: number; glass: Drink; forNpc: boolean } | null;
+  slide: { drink: Drink; from: THREE.Vector3; to: THREE.Vector3; t: number; forNpc: boolean; s: number } | null;
+  /** Her bottle (or shaker) and the stream of the pour. */
+  bottle: THREE.Group;
+  stream: THREE.Mesh;
+  card: BarMenuCard;
+  vrMenu: CanvasPanel;
+  /** Regulars on her stools (their spots), who order now and then. */
+  patrons: number[];
+  npcOrderIn: number;
+  npcDrinks: Map<number, Drink>;
+  /** Friends' orders waiting while she finishes another drink, and where the last one was served. */
+  friendOrders: { kind: DrinkKind; s: number }[];
+  friendServe: number | null;
+  /** Your order, waiting while she finishes someone else's drink. */
+  yours: { kind: DrinkKind; s: number } | null;
+}
 
 const glassMat = new THREE.MeshPhysicalMaterial({
   color: 0xffffff,
@@ -171,9 +202,10 @@ export class Drink {
       pint: [[0, 0], [0.034, 0], [0.035, 0.006], [0.045, 0.15], [0.043, 0.15], [0.033, 0.012], [0, 0.012]],
       shot: [[0, 0], [0.022, 0], [0.023, 0.004], [0.026, 0.06], [0.024, 0.06], [0.019, 0.01], [0, 0.01]],
       cup: [[0, 0], [0.03, 0], [0.031, 0.004], [0.04, 0.125], [0.038, 0.125], [0.029, 0.006], [0, 0.006]],
+      hurricane: [[0, 0], [0.034, 0], [0.034, 0.006], [0.01, 0.014], [0.008, 0.04], [0.03, 0.06], [0.038, 0.1], [0.031, 0.14], [0.036, 0.18], [0.042, 0.205], [0.04, 0.205], [0.034, 0.18], [0.029, 0.14], [0.036, 0.1], [0.028, 0.062], [0, 0.046]],
     };
     const pts = profile[kind.glass].map(([r, y]) => new THREE.Vector2(r, y));
-    this.topR = { rocks: 0.04, flute: 0.026, martini: 0.055, coupe: 0.055, pint: 0.042, shot: 0.024, cup: 0.038 }[kind.glass];
+    this.topR = { rocks: 0.04, flute: 0.026, martini: 0.055, coupe: 0.055, pint: 0.042, shot: 0.024, cup: 0.038, hurricane: 0.04 }[kind.glass];
     const glass = new THREE.Mesh(new THREE.LatheGeometry(pts, 20), kind.glass === 'cup' ? cupMat(kind.cup ?? 0xf2f2f2) : glassMat);
     if (kind.glass !== 'cup') glass.renderOrder = 2;
     this.group.add(glass);
@@ -185,11 +217,13 @@ export class Drink {
       pint: () => [new THREE.CylinderGeometry(0.042, 0.033, 1, 18).translate(0, 0.5, 0), 0.013, 0.13],
       shot: () => [new THREE.CylinderGeometry(0.023, 0.019, 1, 14).translate(0, 0.5, 0), 0.011, 0.05],
       cup: () => [new THREE.CylinderGeometry(0.037, 0.029, 1, 16).translate(0, 0.5, 0), 0.008, 0.115],
+      hurricane: () => [new THREE.CylinderGeometry(0.032, 0.026, 1, 16).translate(0, 0.5, 0), 0.05, 0.19],
     };
     const [geo, bottom, top] = shapes[kind.glass]();
     this.liquidBottom = bottom;
     this.liquidTop = top;
-    this.liquid = new THREE.Mesh(geo, liquidMat(kind.liquid));
+    // Frozen drinks are a thick slush: opaque, not see-through.
+    this.liquid = new THREE.Mesh(geo, liquidMat(kind.liquid, !kind.frozen));
     this.liquid.renderOrder = 1;
     this.group.add(this.liquid);
     if (kind.ice) {
@@ -211,7 +245,13 @@ export class Drink {
         liquidMat(kind.garnish, false),
       );
       if (kind.glass === 'martini') g.position.set(0.01, 0.135, 0);
-      else {
+      else if (kind.glass === 'hurricane') {
+        g.position.set(0.036, 0.2, 0);
+        g.rotation.set(0, 0, -1.2);
+      } else if (kind.glass === 'coupe') {
+        g.position.set(0.05, 0.135, 0);
+        g.rotation.set(0, 0, -1.2);
+      } else {
         g.position.set(0.04, 0.085, 0);
         g.rotation.set(0, 0, -1.2);
       }
@@ -249,8 +289,13 @@ export class Lounge {
   pianoLoop: THREE.PositionalAudio | null = null;
   /** The back bar's shelves of bottles (one instanced draw; stock.ts makes each one takeable). */
   backBottles: THREE.InstancedMesh | null = null;
-  private bartender: Person | null = null;
-  private bartenderZ = 9;
+  /** The bars you can order at (Bar Lago; the pool bar once the pool's built: addPoolBar). */
+  private stations = new Map<BarId, Station>();
+  private get lago(): Station {
+    return this.stations.get('lago')!;
+  }
+  /** The bar whose menu is up (or was last), and the spot along its counter. */
+  private menuAt: Station | null = null;
   private waiting: Drink | null = null;
   /** The drink you are carrying on desktop. */
   private desktopDrink: Drink | null = null;
@@ -261,19 +306,9 @@ export class Lounge {
   onTip: (() => void) | null = null;
   onRound: (() => void) | null = null;
   private roundPending = 0;
-  /** The drink being made: the glass fills on the bartender's side, then slides to you. */
-  private pour: { kind: DrinkKind; z: number; pourZ: number; t: number; total: number; glass: Drink; forNpc: boolean } | null = null;
-  private slide: { drink: Drink; from: THREE.Vector3; to: THREE.Vector3; t: number; forNpc: boolean } | null = null;
-  private bottle: THREE.Group;
-  private stream: THREE.Mesh;
-  private menuCard = new BarMenuCard();
-  private vrMenu: CanvasPanel;
   private ticker = new SportsTicker();
   private menuZ = 9;
   private tipped = 0;
-  private npcOrderIn = 18;
-  private npcDrinks = new Map<number, Drink>();
-  private patronZ: number[] = [];
   /** The glass in your VR hand, if any. */
   private vrHeld: Drink | null = null;
   private cheersCooldown = 0;
@@ -307,32 +342,10 @@ export class Lounge {
 
   constructor(private d: LoungeDeps) {
     d.scene.add(this.bar, this.piano);
-    // The bartender's bottle (or shaker) and the stream of the pour.
-    this.bottle = new THREE.Group();
-    const bottleBody = new THREE.Mesh(
-      new THREE.LatheGeometry([[0, 0], [0.03, 0], [0.031, 0.16], [0.012, 0.21], [0.01, 0.25], [0, 0.25]].map(([r, y]) => new THREE.Vector2(r, y)), 12),
-      new THREE.MeshStandardMaterial({ color: 0x2a5a1a, roughness: 0.1, transparent: true, opacity: 0.9, envMapIntensity: 2 }),
-    );
-    bottleBody.rotation.x = Math.PI / 2;
-    this.bottle.add(bottleBody);
-    this.bottle.visible = false;
-    this.stream = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.005, 1, 6, 1, true).translate(0, -0.5, 0), new THREE.MeshStandardMaterial({ color: 0xffaa44, transparent: true, opacity: 0.75, roughness: 0.1 }));
-    this.stream.visible = false;
-    this.stream.raycast = () => {};
-    d.scene.add(this.stream);
     addEventListener('keyup', (e) => {
       if (e.code === 'KeyP') this.pouringDesktop = false;
     });
-    this.vrMenu = buildVrMenu(
-      (k) => this.order(this.menuZ, k),
-      () => this.tipBartender(),
-      () => (this.pour ? `Making your ${this.pour.kind.name}…` : this.waiting ? 'Your drink is on the bar' : 'Point at a drink and pull the trigger'),
-    );
-    this.vrMenu.mesh.visible = false;
-    this.vrMenu.register(d.interaction);
-    d.scene.add(this.vrMenu.mesh);
-    this.menuCard.onPick = (k) => this.order(this.menuZ, k);
-    this.menuCard.onTip = () => this.tipBartender();
+    this.stations.set('lago', this.makeStation(LAGO));
     this.buildBar();
     this.buildSeating();
     this.buildPiano();
@@ -348,6 +361,131 @@ export class Lounge {
   // ---------------------------------------------------------------------------
   // Bar Lago
   // ---------------------------------------------------------------------------
+
+  /** A bar's working parts: her bottle and pour stream, its menus (a card on screens, a panel on the top in VR). */
+  private makeStation(c: Counter, bartender: Person | null = null): Station {
+    const { title, menu } = BARS[c.id];
+    const bottle = new THREE.Group();
+    const bottleBody = new THREE.Mesh(
+      new THREE.LatheGeometry([[0, 0], [0.03, 0], [0.031, 0.16], [0.012, 0.21], [0.01, 0.25], [0, 0.25]].map(([r, y]) => new THREE.Vector2(r, y)), 12),
+      new THREE.MeshStandardMaterial({ color: 0x2a5a1a, roughness: 0.1, transparent: true, opacity: 0.9, envMapIntensity: 2 }),
+    );
+    bottleBody.rotation.x = Math.PI / 2;
+    bottle.add(bottleBody);
+    bottle.visible = false;
+    const stream = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.005, 1, 6, 1, true).translate(0, -0.5, 0), new THREE.MeshStandardMaterial({ color: 0xffaa44, transparent: true, opacity: 0.75, roughness: 0.1 }));
+    stream.visible = false;
+    stream.raycast = () => {};
+    this.d.scene.add(stream);
+    // (The VR menu draws its status line as it's built, before the station exists.)
+    let made: Station | null = null;
+    const st: Station = {
+      c,
+      title,
+      menu,
+      bartender,
+      work: c.clamp(c.id === 'lago' ? 9 : 0),
+      pour: null,
+      slide: null,
+      bottle,
+      stream,
+      card: new BarMenuCard(title, menu, c.id === 'lago' ? 'bar-menu' : `bar-menu-${c.id}`),
+      vrMenu: buildVrMenu(
+        (k) => this.order(this.menuZ, k, c.id),
+        () => this.tipBartender(c.id),
+        () => (made?.pour && !made.pour.forNpc ? `Making your ${made.pour.kind.name}…` : this.waiting ? 'Your drink is on the bar' : 'Point at a drink and pull the trigger'),
+        menu,
+        title,
+      ),
+      patrons: [],
+      npcOrderIn: 18,
+      npcDrinks: new Map(),
+      friendOrders: [],
+      friendServe: null,
+      yours: null,
+    };
+    made = st;
+    st.vrMenu.mesh.visible = false;
+    st.vrMenu.register(this.d.interaction);
+    this.d.scene.add(st.vrMenu.mesh);
+    st.card.onPick = (k) => this.order(this.menuZ, k, c.id);
+    st.card.onTip = () => this.tipBartender(c.id);
+    return st;
+  }
+
+  /** The bartender walks along (or round) her side of the counter to the spot she's working, and wipes it down now and then. */
+  private tend(st: Station, p: Person, dt: number) {
+    const w = st.c.workAt(st.work);
+    const dx = w.x - p.pos.x,
+      dz = w.z - p.pos.z;
+    const dist = Math.hypot(dx, dz);
+    const v = Math.min(1, dist * 2);
+    if (dist > 1e-3) {
+      const step = Math.min(dist, v * dt);
+      p.pos.x += (dx / dist) * step;
+      p.pos.z += (dz / dist) * step;
+    }
+    p.moving = v;
+    p.walkPhase += v * dt * 5;
+    if (st.c.id !== 'lago') {
+      // Round the island: she keeps facing out over the counter.
+      const a = st.c.spotAt(p.pos.x, p.pos.z);
+      const yaw = st.c.workAt(a).yaw;
+      p.yaw = yaw;
+      p.homeYaw = yaw;
+    }
+    if (p.action <= 0 && Math.random() < 0.002) {
+      p.actionKind = 'wipe';
+      p.action = 3;
+    }
+  }
+
+  /**
+   * The pool bar becomes a bar you can order at: the same menus (its poolside
+   * list), the same bartender's lines, drinks made and served on its round
+   * counter. `bartender`: the pool's bartender (areas/poolguests.ts adds her).
+   */
+  addPoolBar(bar: { x: number; z: number; r: number }, bartender: Person | null) {
+    if (this.stations.has('pool')) return;
+    const c = roundCounter('pool', bar);
+    const st = this.makeStation(c, bartender);
+    this.stations.set('pool', st);
+    if (bartender) {
+      // She starts facing the deck (toward the pool), and works round the ring from there.
+      st.work = c.spotAt(bartender.pos.x, bartender.pos.z);
+      bartender.onUpdate = (p, dt) => this.tend(st, p, dt);
+    }
+    // Regulars on the stools order now and then too.
+    for (const p of this.d.crowd.people) {
+      if (p.role !== 'patron') continue;
+      const d = Math.hypot(p.pos.x - bar.x, p.pos.z - bar.z);
+      if (d > ROUND_TOP.outer && d < ROUND_TOP.outer + 0.7) st.patrons.push(c.spotAt(p.pos.x, p.pos.z));
+    }
+    st.npcOrderIn = 25;
+    // Ordering: point at / click the counter top (a thin ring; glasses standing on it stay clickable).
+    const ring = new THREE.Mesh(new THREE.RingGeometry(ROUND_TOP.inner, ROUND_TOP.outer + 0.02, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ visible: false }));
+    ring.position.set(bar.x, ROUND_TOP.y + 0.006, bar.z);
+    this.d.scene.add(ring);
+    this.d.interaction.register({
+      object: ring,
+      kind: 'button',
+      enabled: () => !this.d.player.inXR,
+      label: () => (this.makingMine() ? 'Your drink is being made…' : this.waiting ? 'Your drink is on the bar' : 'Order a drink · see the pool bar menu'),
+      onSelect: (e) => this.openMenu(c.spotAt(e.hit.point.x, e.hit.point.z), 'pool'),
+    });
+  }
+
+  /** Whether you're standing at a bar's counter (where you can order), and which. */
+  barAt(x: number, z: number): BarId | null {
+    for (const st of this.stations.values()) if (st.c.near(x, z)) return st.c.id;
+    return null;
+  }
+
+  /** Is your own drink being made (at any bar)? */
+  private makingMine(): Station | null {
+    for (const st of this.stations.values()) if (st.yours || (st.pour && !st.pour.forNpc) || (st.slide && !st.slide.forNpc)) return st;
+    return null;
+  }
 
   private buildBar() {
     const { world, crowd } = this.d;
@@ -445,7 +583,7 @@ export class Lounge {
       if (i === 0 || i === 3) return; // regulars sit here
       this.seats.push({ id: `bar-stool-${i}`, label: 'Bar stool', position: new THREE.Vector3(x + 0.62, 0, z), yaw: Math.PI / 2, pitch: -0.28, eye: 1.42, back: 0 });
     });
-    this.patronZ = [stoolZ[0], stoolZ[3]];
+    this.lago.patrons = [stoolZ[0], stoolZ[3]];
     // Sportsbook TV hanging over the near end of the bar.
     this.ticker.group.position.set(x - 0.15, 2.55, z0 + 0.35);
     this.ticker.group.rotation.y = Math.PI / 2;
@@ -477,20 +615,9 @@ export class Lounge {
     world.addBox(-16.5, zc, 2.6, len + 0.2, 0, 'bar');
 
     // Bartender and a few regulars.
-    this.bartender = crowd.add('bartender', staffLook('bar'), new THREE.Vector3(-16.0, 0, 9), Math.PI / 2);
-    if (this.bartender) {
-      this.bartender.onUpdate = (p, dt) => {
-        const dz = this.bartenderZ - p.pos.z;
-        const v = THREE.MathUtils.clamp(dz * 2, -1, 1);
-        p.pos.z += v * dt;
-        p.moving = Math.abs(v);
-        p.walkPhase += Math.abs(v) * dt * 5;
-        if (p.action <= 0 && Math.random() < 0.002) {
-          p.actionKind = 'wipe';
-          p.action = 3;
-        }
-      };
-    }
+    const lago = this.lago;
+    lago.bartender = crowd.add('bartender', staffLook('bar'), new THREE.Vector3(-16.0, 0, 9), Math.PI / 2);
+    if (lago.bartender) lago.bartender.onUpdate = (p, dt) => this.tend(lago, p, dt);
     for (const z of [stoolZ[0], stoolZ[3]]) {
       const pat = crowd.add('patron', randomLook(), new THREE.Vector3(x + 0.62, 0, z), -Math.PI / 2);
       if (pat) {
@@ -566,14 +693,16 @@ export class Lounge {
       object: counterHit,
       kind: 'button',
       enabled: () => !this.d.player.inXR,
-      label: () => (this.pour || this.slide ? 'Your drink is being made…' : this.waiting ? 'Your drink is on the bar' : 'Order a drink · see the menu'),
-      onSelect: (e) => this.openMenu(e.hit.point.z),
+      label: () => (this.makingMine() ? 'Your drink is being made…' : this.waiting ? 'Your drink is on the bar' : 'Order a drink · see the menu'),
+      onSelect: (e) => this.openMenu(e.hit.point.z, 'lago'),
     });
   }
 
-  /** Opens the menu (screens) for a spot along the bar; the bartender greets you. */
-  openMenu(z: number) {
-    if (this.pour || this.slide) {
+  /** Opens a bar's menu (screens) for a spot along its counter; the bartender greets you. */
+  openMenu(z: number, bar: BarId = 'lago') {
+    const st = this.stations.get(bar);
+    if (!st) return;
+    if (this.makingMine()) {
       this.d.hud.toast('Your drink is being made…', 'info');
       return;
     }
@@ -581,16 +710,38 @@ export class Lounge {
       this.d.hud.toast('Your drink is waiting on the bar', 'info');
       return;
     }
-    this.menuZ = THREE.MathUtils.clamp(z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
-    this.bartenderZ = this.menuZ;
-    this.greet(this.tipped > 0 ? BARTENDER_LINES.regular : BARTENDER_LINES.hello);
-    this.menuCard.show();
+    for (const o of this.stations.values()) if (o !== st) o.card.close();
+    this.menuAt = st;
+    this.menuZ = st.c.clamp(z);
+    st.work = this.menuZ;
+    this.greet(this.tipped > 0 ? BARTENDER_LINES.regular : BARTENDER_LINES.hello, false, st);
+    st.card.show();
     this.listenForOrder();
   }
 
   /** Is a menu up (the card on screens, the panel on the bar in VR)? */
   get menuOpen() {
-    return this.menuCard.open || this.vrMenu.mesh.visible;
+    for (const st of this.stations.values()) if (st.card.open || st.vrMenu.mesh.visible) return true;
+    return false;
+  }
+
+  /** The bar you'd order from now: the one whose menu is up, else the counter you're standing at, else the nearest bartender's. */
+  private stationForYou(): Station {
+    if (this.menuOpen && this.menuAt) return this.menuAt;
+    const f = this.d.player.feet();
+    const at = this.barAt(f.x, f.z);
+    if (at) return this.stations.get(at)!;
+    let best = this.lago,
+      bd = Infinity;
+    for (const st of this.stations.values()) {
+      const b = st.bartender;
+      const dist = b ? b.pos.distanceTo(f) : Infinity;
+      if (dist < bd) {
+        bd = dist;
+        best = st;
+      }
+    }
+    return best;
   }
 
   /**
@@ -599,14 +750,22 @@ export class Lounge {
    * drink on the menu.
    */
   voiceOrder(heard: string): boolean {
-    const m = matchMenu(heard, BAR_MENU.map((d) => d.name), DRINK_ALIASES);
+    const st = this.stationForYou();
+    let menu = st.menu;
+    let m = matchMenu(heard, menu.map((d) => d.name), DRINK_ALIASES);
+    if (m === null) {
+      // Not on this bar's menu, but the other bar's: she has the bottles, she'll make it.
+      menu = DRINKS.filter((d) => !d.offMenu);
+      m = matchMenu(heard, menu.map((d) => d.name), DRINK_ALIASES);
+      if (m === 'surprise') m = null;
+    }
     if (m === null) return false;
-    const pool = BAR_MENU.filter((d) => d.alcohol > 0);
-    const kind = m === 'surprise' ? pool[Math.floor(Math.random() * pool.length)] : BAR_MENU[m];
+    const pool = menu.filter((d) => d.alcohol > 0);
+    const kind = m === 'surprise' ? pool[Math.floor(Math.random() * pool.length)] : menu[m];
     const f = this.d.player.feet();
-    const z = this.menuOpen ? this.menuZ : THREE.MathUtils.clamp(f.z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
-    this.menuCard.close();
-    this.order(z, kind);
+    const z = this.menuOpen && this.menuAt === st ? this.menuZ : st.c.spotAt(f.x, f.z);
+    st.card.close();
+    this.order(z, kind, st.c.id);
     return true;
   }
 
@@ -615,12 +774,13 @@ export class Lounge {
     const l = this.listener;
     if (!l?.enabled) return;
     const id = ++this.orderListen;
+    const menu = (this.menuAt ?? this.lago).menu;
     setTimeout(() => {
-      if (id !== this.orderListen || !this.menuOpen || this.pour || this.slide || this.waiting || l.state !== 'idle') return;
+      if (id !== this.orderListen || !this.menuOpen || this.makingMine() || this.waiting || l.state !== 'idle') return;
       this.orderListening = true;
-      void l.listen(menuVocabulary(BAR_MENU.map((d) => d.name), DRINK_ALIASES), 8).then((heard) => {
+      void l.listen(menuVocabulary(menu.map((d) => d.name), DRINK_ALIASES), 8).then((heard) => {
         if (id === this.orderListen) this.orderListening = false;
-        if (id !== this.orderListen || !heard || !this.menuOpen || this.pour || this.slide || this.waiting) return;
+        if (id !== this.orderListen || !heard || !this.menuOpen || this.makingMine() || this.waiting) return;
         if (this.voiceOrder(heard)) return;
         if (yesNo(heard) === 'no') return;
         this.d.hud.toast('Say a drink from the menu (or pick one)', 'info');
@@ -633,9 +793,9 @@ export class Lounge {
   onLine: ((p: Person, l: { text: string; voice: string; alt?: string; who: string }) => void) | null = null;
 
   /** The bartender talks to you (her own voice, from behind the bar). */
-  private greet(line: string, force = false) {
+  private greet(line: string, force = false, st: Station = this.lago) {
     if (!force && voiceArbiter.busy()) return;
-    const b = this.bartender;
+    const b = st.bartender;
     if (b) this.onLine?.(b, { text: line, voice: elVoice('bartender'), alt: STAFF.bartender, who: 'Bartender' });
     const dur = voices.talk({ who: 'Bartender', text: line, voice: elVoice('bartender'), alt: STAFF.bartender, at: b ? mouthOf(b) : null, priority: true, group: 'bartender', fallback: { pitch: 1.1, rate: 1.02, voice: 2 } });
     if (b) this.d.crowd.speak(b, dur);
@@ -643,8 +803,10 @@ export class Lounge {
   }
 
   /** Orders a drink: Strip prices plus a tip. (Cocktail servers comp you only while you gamble.) */
-  order(z: number, kind: DrinkKind = DRINKS[0]) {
-    if (this.pour || this.slide || this.waiting) {
+  order(z: number, kind: DrinkKind = DRINKS[0], bar: BarId = 'lago') {
+    const st = this.stations.get(bar);
+    if (!st) return;
+    if (this.makingMine() || this.waiting) {
       this.d.hud.toast(this.waiting ? 'Your drink is waiting on the bar' : 'Your drink is being made…', 'info');
       return;
     }
@@ -656,38 +818,44 @@ export class Lounge {
     this.d.bankroll.debit(cost, 'bet', 'bar');
     if (this.orderListening) this.listener?.stop();
     this.orderListen++;
-    this.startPour(kind, THREE.MathUtils.clamp(z, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4), false);
-    this.onDrinkEvent?.({ k: 'order', kind: DRINKS.indexOf(kind), z: Math.round(z * 100) / 100 });
-    this.greet(orderLine(kind.name, kind.prep), true);
+    const s = st.c.clamp(z);
+    this.menuAt = st;
+    // She may be finishing a regular's (or a friend's) drink: yours is next.
+    if (st.pour || st.slide) st.yours = { kind, s };
+    else this.startPour(st, kind, s, false);
+    this.onDrinkEvent?.({ k: 'order', kind: DRINKS.indexOf(kind), z: Math.round(s * 100) / 100, ...(bar !== 'lago' ? { bar } : {}) });
+    this.greet(kind.line ?? orderLine(kind.name, kind.prep), true, st);
     this.onOrder?.();
   }
 
   /** The bartender makes a drink: walks over, shakes or pours, the glass fills, then slides it along. */
-  private startPour(kind: DrinkKind, z: number, forNpc: boolean) {
-    const pourZ = kind.prep === 'tap' ? TAP_Z : z;
+  private startPour(st: Station, kind: DrinkKind, s: number, forNpc: boolean) {
+    const c = st.c;
+    const pourS = kind.prep === 'tap' && c.tapSpot !== null ? c.tapSpot : s;
     const total = PREP_TIME[kind.prep] * (this.tipped > 0 ? 0.75 : 1);
     const glass = new Drink(kind);
     glass.setLevel(0);
-    glass.group.position.set(POUR_X, Lounge.TOP, pourZ);
+    glass.group.position.copy(c.pourAt(pourS));
     this.d.scene.add(glass.group);
-    this.pour = { kind, z, pourZ, t: 0, total, glass, forNpc };
-    this.bartenderZ = pourZ;
-    if (this.bartender) {
-      this.bartender.actionKind = 'pour';
-      this.bartender.action = total;
-      const wrist = this.bartender.rig?.bones['WristR'];
+    st.pour = { kind, s, pourS, t: 0, total, glass, forNpc };
+    st.work = pourS;
+    const bt = st.bartender;
+    if (bt) {
+      bt.actionKind = 'pour';
+      bt.action = total;
+      const wrist = bt.rig?.bones['WristR'];
       if (wrist && kind.prep !== 'tap') {
-        wrist.add(this.bottle);
-        this.bottle.position.set(0, 0.08, 0.04);
-        this.bottle.visible = true;
-        const body = this.bottle.children[0] as THREE.Mesh;
+        wrist.add(st.bottle);
+        st.bottle.position.set(0, 0.08, 0.04);
+        st.bottle.visible = true;
+        const body = st.bottle.children[0] as THREE.Mesh;
         const m = body.material as THREE.MeshStandardMaterial;
         m.color.set(kind.prep === 'shake' ? 0xc8ccd2 : kind.alcohol ? 0x6a3a0a : 0x2a5a1a);
         m.metalness = kind.prep === 'shake' ? 1 : 0;
       }
     }
-    (this.stream.material as THREE.MeshStandardMaterial).color.set(kind.prep === 'tap' ? 0xe8b040 : kind.liquid);
-    const at = new THREE.Vector3(POUR_X, Lounge.TOP + 0.2, pourZ);
+    (st.stream.material as THREE.MeshStandardMaterial).color.set(kind.prep === 'tap' ? 0xe8b040 : kind.liquid);
+    const at = c.pourAt(pourS).add(new THREE.Vector3(0, 0.2, 0));
     if (kind.prep === 'shake') this.d.sound.play('shaker', at, { volume: forNpc ? 0.35 : 0.7 });
     setTimeout(() => this.d.sound.play('pour', at, { volume: forNpc ? 0.4 : 0.8 }), total * 450);
   }
@@ -700,22 +868,23 @@ export class Lounge {
     }
     this.d.bankroll.debit(80, 'bet', 'bar');
     this.roundPending = 2.6;
-    if (this.bartender) {
-      this.bartender.actionKind = 'pour';
-      this.bartender.action = 2.6;
+    const bt = this.lago.bartender;
+    if (bt) {
+      bt.actionKind = 'pour';
+      bt.action = 2.6;
     }
-    this.d.sound.play('shaker', new THREE.Vector3(-16, 1.2, this.bartenderZ), { volume: 0.7 });
+    this.d.sound.play('shaker', new THREE.Vector3(-16, 1.2, this.lago.work), { volume: 0.7 });
     this.d.hud.toast('“A round for the gentlemen, coming right up.”', 'info');
   }
 
   /** The finished glass arrives in front of you (or a regular). */
-  private served(drink: Drink, forNpc: boolean, z: number) {
+  private served(st: Station, drink: Drink, forNpc: boolean, z: number) {
     this.d.sound.play('clink', drink.group, { volume: 0.6 });
     if (forNpc) {
       // The last glass at that spot goes (unless someone picked it up or it's flying).
-      const old = this.npcDrinks.get(z);
+      const old = st.npcDrinks.get(z);
       if (old && old.group.parent === this.d.scene && !this.d.throwables.flying(old.group)) old.group.removeFromParent();
-      this.npcDrinks.set(z, drink);
+      st.npcDrinks.set(z, drink);
       // Guests' drinks on the bar can be picked up too.
       this.makeTakeable(drink);
       return;
@@ -726,16 +895,18 @@ export class Lounge {
   }
 
   /** $5 in the tip cup: the bartender remembers you (faster drinks, warmer welcome). */
-  tipBartender() {
+  tipBartender(bar: BarId = 'lago') {
+    const st = this.stations.get(bar) ?? this.lago;
     if (!this.d.bankroll.canAfford(5)) {
       this.d.hud.toast('Not enough chips to tip', 'warn');
       return;
     }
     this.d.bankroll.debit(5, 'bet', 'tip');
     this.tipped++;
-    this.d.sound.play('chip', new THREE.Vector3(Lounge.COUNTER_X + 0.22, Lounge.TOP, Lounge.COUNTER_Z1 - 0.35), { volume: 0.7 });
-    this.greet(this.tipped === 1 ? BARTENDER_LINES.tip1 : BARTENDER_LINES.tipMore);
-    if (this.bartender) this.bartender.cheer = 0.8;
+    const at = bar === 'lago' ? new THREE.Vector3(Lounge.COUNTER_X + 0.22, Lounge.TOP, Lounge.COUNTER_Z1 - 0.35) : st.c.serveAt(st.work);
+    this.d.sound.play('chip', at, { volume: 0.7 });
+    this.greet(this.tipped === 1 ? BARTENDER_LINES.tip1 : BARTENDER_LINES.tipMore, false, st);
+    if (st.bartender) st.bartender.cheer = 0.8;
   }
 
   /**
@@ -924,28 +1095,30 @@ export class Lounge {
       this.throwDrink(dr, new THREE.Vector3().fromArray(e.v), true);
     } else if (e.k === 'order') {
       const kind = DRINKS[e.kind];
-      if (!kind) return;
-      const z = THREE.MathUtils.clamp(Number(e.z) || 9, Lounge.COUNTER_Z0 + 0.4, Lounge.COUNTER_Z1 - 0.4);
+      const st = this.stations.get(e.bar === 'pool' ? 'pool' : 'lago');
+      if (!kind || !st) return;
+      const n = Number(e.z);
+      const s = st.c.clamp(Number.isFinite(n) ? n : st.work);
       // The bartender may be pouring yours: theirs is next (never skipped).
-      if (this.pour || this.slide) this.friendOrders.push({ kind, z });
+      if (st.pour || st.slide) st.friendOrders.push({ kind, s });
       else {
-        this.friendServeZ = z;
-        this.startPour(kind, z, true);
+        st.friendServe = s;
+        this.startPour(st, kind, s, true);
       }
     }
   }
 
-  private friendServeZ: number | null = null;
-  /** Friends' orders waiting while the bartender finishes another drink. */
-  private friendOrders: { kind: DrinkKind; z: number }[] = [];
-
-  /** Your friend picked up the drink they ordered: it leaves the counter here. */
-  friendPickedUp() {
-    if (this.friendServeZ === null) return;
-    const dr = this.npcDrinks.get(this.friendServeZ);
-    if (dr && dr.group.parent === this.d.scene) dr.group.removeFromParent();
-    this.npcDrinks.delete(this.friendServeZ);
-    this.friendServeZ = null;
+  /** Your friend picked up the drink they ordered (`kind`, if known): it leaves the counter here. */
+  friendPickedUp(kind?: number) {
+    for (const st of this.stations.values()) {
+      if (st.friendServe === null) continue;
+      const dr = st.npcDrinks.get(st.friendServe);
+      if (kind !== undefined && dr && DRINKS.indexOf(dr.kind) !== kind) continue;
+      if (dr && dr.group.parent === this.d.scene) dr.group.removeFromParent();
+      st.npcDrinks.delete(st.friendServe);
+      st.friendServe = null;
+      return;
+    }
   }
 
   /** The drink you're holding (for your friend's view): kind, level, which hand. */
@@ -1380,6 +1553,12 @@ export class Lounge {
     return true;
   }
 
+  /** Desktop: is a guest with a glass close enough for G to clink with? */
+  clinkable(): boolean {
+    const feet = this.d.player.feet();
+    return this.d.crowd.people.some((p) => p.prop === 'glass' && !!p.rig && p.pos.distanceTo(feet) < 1.6);
+  }
+
   /** The clink: sound, 'Cheers!', both of you take a sip. Also called when your friend clinks yours. */
   cheers(at: THREE.Vector3, with_?: Person, fromFriend = false) {
     if (this.cheersCooldown > 0) return;
@@ -1408,7 +1587,7 @@ export class Lounge {
   debugLineup() {
     DRINKS.forEach((k, i) => {
       const d = new Drink(k);
-      d.group.position.set(SERVE_X - 0.05, Lounge.TOP, Lounge.COUNTER_Z0 + 0.6 + i * 0.32);
+      d.group.position.copy(LAGO.serveAt(Lounge.COUNTER_Z0 + 0.6 + i * 0.32)).add(new THREE.Vector3(-0.05, 0, 0));
       this.d.scene.add(d.group);
     });
   }
@@ -1425,18 +1604,26 @@ export class Lounge {
   }
 
   update(dt: number) {
-    if (this.friendOrders.length && !this.pour && !this.slide) {
-      const o = this.friendOrders.shift()!;
-      this.friendServeZ = o.z;
-      this.startPour(o.kind, o.z, true);
+    for (const st of this.stations.values()) {
+      if (st.yours && !st.pour && !st.slide) {
+        const o = st.yours;
+        st.yours = null;
+        this.startPour(st, o.kind, o.s, false);
+      } else if (st.friendOrders.length && !st.pour && !st.slide) {
+        const o = st.friendOrders.shift()!;
+        st.friendServe = o.s;
+        this.startPour(st, o.kind, o.s, true);
+      }
     }
     this.time += dt;
     this.sipCooldown = Math.max(0, this.sipCooldown - dt);
     this.cheersCooldown = Math.max(0, this.cheersCooldown - dt);
     this.ticker.update(dt);
-    this.updatePour(dt);
+    for (const st of this.stations.values()) {
+      this.updatePour(st, dt);
+      this.updateBarLife(st, dt);
+    }
     this.updateVrMenu();
-    this.updateBarLife(dt);
     this.updateTipsy(dt);
     // VR: bring your glass to a guest's glass to clink.
     if (this.vrHeld) {
@@ -1454,7 +1641,7 @@ export class Lounge {
     if (this.roundPending > 0) {
       this.roundPending -= dt;
       if (this.roundPending <= 0) {
-        this.d.sound.play('clink', new THREE.Vector3(-14.7, 1.15, this.bartenderZ), { volume: 0.9 });
+        this.d.sound.play('clink', new THREE.Vector3(-14.7, 1.15, this.lago.work), { volume: 0.9 });
         this.d.hud.toast('Round served. Cheers!', 'win');
         this.onRound?.();
       }
@@ -1474,8 +1661,8 @@ export class Lounge {
     }
   }
 
-  private updatePour(dt: number) {
-    const po = this.pour;
+  private updatePour(st: Station, dt: number) {
+    const po = st.pour;
     if (po) {
       po.t += dt;
       const k = po.t / po.total;
@@ -1484,73 +1671,89 @@ export class Lounge {
       const fill = THREE.MathUtils.clamp((k - fillStart) / (0.95 - fillStart), 0, 1);
       po.glass.setLevel(fill);
       const pouring = fill > 0 && fill < 1;
-      this.stream.visible = pouring;
+      st.stream.visible = pouring;
       if (pouring) {
         const top = po.glass.group.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.15 * fill + 0.02, 0));
         let src: THREE.Vector3;
-        if (po.kind.prep === 'tap') src = new THREE.Vector3(POUR_X + 0.03, Lounge.TOP + 0.26, po.pourZ);
-        else if (this.bottle.visible) src = this.bottle.localToWorld(new THREE.Vector3(0, 0, 0.25));
+        if (po.kind.prep === 'tap') src = st.c.tapAt(po.pourS);
+        else if (st.bottle.visible) src = st.bottle.localToWorld(new THREE.Vector3(0, 0, 0.25));
         else src = top.clone().add(new THREE.Vector3(0, 0.25, 0));
         if (src.distanceTo(top) > 0.6) src = top.clone().add(new THREE.Vector3(-0.08, 0.25, 0));
-        this.stream.position.copy(src);
+        st.stream.position.copy(src);
         const dir = top.clone().sub(src);
-        this.stream.scale.set(1, dir.length(), 1);
-        this.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir.normalize());
+        st.stream.scale.set(1, dir.length(), 1);
+        st.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir.normalize());
       }
       if (po.t >= po.total) {
-        this.pour = null;
-        this.stream.visible = false;
-        this.bottle.visible = false;
-        this.bottle.removeFromParent();
-        const to = new THREE.Vector3(po.forNpc ? BAR_X + 0.28 : SERVE_X, Lounge.TOP, po.z);
-        this.slide = { drink: po.glass, from: po.glass.group.position.clone(), to, t: 0, forNpc: po.forNpc };
-        this.bartenderZ = po.z;
+        st.pour = null;
+        st.stream.visible = false;
+        st.bottle.visible = false;
+        st.bottle.removeFromParent();
+        const to = st.c.serveAt(po.s, po.forNpc);
+        st.slide = { drink: po.glass, from: po.glass.group.position.clone(), to, t: 0, forNpc: po.forNpc, s: po.s };
+        st.work = po.s;
         this.d.sound.play('chip', po.glass.group, { volume: 0.35, rate: 0.5 });
       }
     }
-    const sl = this.slide;
+    const sl = st.slide;
     if (sl) {
       sl.t += dt / (sl.from.distanceTo(sl.to) > 1 ? 1.1 : 0.5);
       const e = 1 - (1 - Math.min(1, sl.t)) ** 3;
       sl.drink.group.position.lerpVectors(sl.from, sl.to, e);
       if (sl.t >= 1) {
-        this.slide = null;
-        this.served(sl.drink, sl.forNpc, sl.to.z);
+        st.slide = null;
+        this.served(st, sl.drink, sl.forNpc, sl.s);
       }
     }
   }
 
-  /** VR: the menu stands on the bar in front of you when you walk up. */
+  /** VR: the menu stands on the bar in front of you when you walk up (at Bar Lago, or round the pool bar). */
   private updateVrMenu() {
-    const m = this.vrMenu.mesh;
     const xr = this.d.player.inXR;
     const f = this.d.player.feet();
-    const near = xr && f.x > Lounge.COUNTER_X + 0.3 && f.x < Lounge.COUNTER_X + 2.0 && f.z > Lounge.COUNTER_Z0 && f.z < Lounge.COUNTER_Z1;
-    const show = near && !this.pour && !this.slide && !this.waiting;
-    if (show && !m.visible) {
-      this.menuZ = THREE.MathUtils.clamp(f.z, Lounge.COUNTER_Z0 + 0.5, Lounge.COUNTER_Z1 - 0.5);
-      this.bartenderZ = this.menuZ;
-      m.position.set(Lounge.COUNTER_X + 0.02, Lounge.TOP + 0.36, this.menuZ);
-      m.rotation.set(0, Math.PI / 2, 0);
-      m.rotateX(-0.25);
-      this.greet(this.tipped > 0 ? BARTENDER_LINES.regularShort : BARTENDER_LINES.hello);
-      this.vrMenu.redraw();
+    const busy = !!this.makingMine() || !!this.waiting;
+    for (const st of this.stations.values()) {
+      const m = st.vrMenu.mesh;
+      const near = xr && st.c.near(f.x, f.z);
+      const show = near && !busy;
+      if (show && !m.visible) {
+        this.menuAt = st;
+        this.menuZ = st.c.spotAt(f.x, f.z);
+        st.work = this.menuZ;
+        const at = st.c.menuAt(this.menuZ);
+        m.position.copy(at.pos);
+        m.rotation.set(0, at.yaw, 0);
+        m.rotateX(-0.25);
+        this.greet(this.tipped > 0 ? BARTENDER_LINES.regularShort : BARTENDER_LINES.hello, false, st);
+        st.vrMenu.redraw();
+        m.visible = show;
+        this.listenForOrder();
+      }
+      // Walking round the pool bar: the panel follows you along the counter.
+      if (show && st.c.gap(st.c.spotAt(f.x, f.z), this.menuZ) > 0.9 && this.menuAt === st) {
+        this.menuZ = st.c.spotAt(f.x, f.z);
+        st.work = this.menuZ;
+        const at = st.c.menuAt(this.menuZ);
+        m.position.copy(at.pos);
+        m.rotation.set(0, at.yaw, 0);
+        m.rotateX(-0.25);
+      }
       m.visible = show;
-      this.listenForOrder();
     }
-    m.visible = show;
   }
 
   /** Life at the bar: the bartender makes drinks for the regulars too. */
-  private updateBarLife(dt: number) {
-    if (this.pour || this.slide) return;
-    this.npcOrderIn -= dt;
-    if (this.npcOrderIn > 0) return;
-    this.npcOrderIn = 22 + Math.random() * 25;
-    const z = this.patronZ[Math.floor(Math.random() * this.patronZ.length)];
+  private updateBarLife(st: Station, dt: number) {
+    if (st.pour || st.slide) return;
+    st.npcOrderIn -= dt;
+    if (st.npcOrderIn > 0) return;
+    st.npcOrderIn = 22 + Math.random() * 25;
+    const z = st.patrons[Math.floor(Math.random() * st.patrons.length)];
     if (z === undefined) return;
-    const choices = DRINKS.filter((d) => d.section !== 'Mocktails' && !d.offMenu);
-    this.startPour(choices[Math.floor(Math.random() * choices.length)], z, true);
+    // Not while you're ordering: she's yours.
+    if (this.menuOpen && this.menuAt === st) return;
+    const choices = st.menu.filter((d) => d.section !== 'Mocktails');
+    this.startPour(st, choices[Math.floor(Math.random() * choices.length)], z, true);
   }
 
   /** Several drinks in, the room sways a little (screens only; never in VR, for comfort). */

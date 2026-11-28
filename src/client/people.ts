@@ -5,6 +5,7 @@ import { spawnCharacter, type PeopleLib } from './assets';
 import type { Paint, Surface } from './peopleshade';
 import { FINGER, orientHand, reach, setFingers } from './net/embody';
 import { lieLegs, sitLegs, standLegs } from './sitpose';
+import { DAB_HEAD, dabAngles, dabWeight } from './dab';
 import { fightAim, fightHandoff, fightMix, type FightPose } from './fightanim';
 import { dry, linkRoutes, pathTo } from './routes';
 import { promenadeShare } from './areas/promenadeplan';
@@ -89,6 +90,8 @@ export class Person {
   moving = 0;
   /** Seconds left in a cheer / reaction. */
   cheer = 0;
+  /** Seconds left in a dab (a friend's avatar dabbing with you: dab.ts). */
+  dabT = 0;
   gaspT = 0;
   action = 0;
   actionKind: 'none' | 'tap' | 'sip' | 'reach' | 'pour' | 'wipe' | 'offer' = 'none';
@@ -753,6 +756,7 @@ export class Crowd {
         p.snapY = Math.abs(p.snapY) < 0.003 ? 0 : p.snapY * k;
       }
       p.cheer = Math.max(0, p.cheer - dt);
+      p.dabT = Math.max(0, p.dabT - dt);
       p.gaspT = Math.max(0, p.gaspT - dt);
       p.laughT = Math.max(0, p.laughT - dt);
       if (p.action > 0) p.action = Math.max(0, p.action - dt);
@@ -1472,7 +1476,11 @@ export class Crowd {
     this.set('shirt', i, 0, L.dress ? this.nm().makeScale(0, 0, 0) : torso);
     const neck = this.nm().copy(torso).multiply(this.m.makeTranslation(0, TORSO - 0.02, 0));
     this.set('neck', i, 0, neck);
-    const head = this.nm().copy(neck).multiply(this.m.makeTranslation(0, 0.05, 0)).multiply(this.rot(-p.headPitch - cheer * 0.25, p.headYaw, 0));
+    const dab = dabWeight(p.dabT);
+    const head = this.nm()
+      .copy(neck)
+      .multiply(this.m.makeTranslation(0, 0.05, 0))
+      .multiply(this.rot(THREE.MathUtils.lerp(-p.headPitch - cheer * 0.25, DAB_HEAD[0], dab), THREE.MathUtils.lerp(p.headYaw, DAB_HEAD[1], dab), 0));
     this.set('head', i, 0, head);
     if (L.hairStyle === 'bald') this.set('hair', i, 0, this.nm().makeScale(0, 0, 0));
     else if (L.hairStyle === 'long') this.set('hair', i, 0, this.nm().copy(head).multiply(this.m.makeTranslation(0, -0.06, -0.01)).multiply(this.m.makeScale(1.05, 1.6, 1.08)));
@@ -1561,7 +1569,13 @@ export class Crowd {
         ua = THREE.MathUtils.lerp(ua, -2.7 + Math.sin(time * 14 + side) * 0.15, cheer);
         fa = THREE.MathUtils.lerp(fa, -0.3, cheer);
         roll = THREE.MathUtils.lerp(roll, 0.35 * side, cheer);
-      } else if (p.gaspT > 0) {
+      }
+      if (dab > 0) {
+        const [dua, dfa, droll] = dabAngles(right, side);
+        ua = THREE.MathUtils.lerp(ua, dua, dab);
+        fa = THREE.MathUtils.lerp(fa, dfa, dab);
+        roll = THREE.MathUtils.lerp(roll, droll, dab);
+      } else if (cheer <= 0 && p.gaspT > 0) {
         const g = Math.min(1, p.gaspT * 3);
         ua = THREE.MathUtils.lerp(ua, -1.2, g);
         fa = THREE.MathUtils.lerp(fa, -1.6, g);

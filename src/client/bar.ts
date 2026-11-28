@@ -7,13 +7,16 @@ import { CanvasPanel, GOLD, GOLD_LIGHT, roundRect, SERIF } from './panel';
  */
 
 /** `cup`: a food court soda cup (opaque paper, `cup` is its colour). */
-export type GlassShape = 'coupe' | 'flute' | 'rocks' | 'martini' | 'pint' | 'shot' | 'cup';
+export type GlassShape = 'coupe' | 'flute' | 'rocks' | 'martini' | 'pint' | 'shot' | 'cup' | 'hurricane';
+
+/** The bars you can order at: Bar Lago in the casino, and the round bar out by the pool. */
+export type BarId = 'lago' | 'pool';
 
 export interface DrinkKind {
   name: string;
   /** What you pay at the bar (a $2 tip is added at the register). */
   price: number;
-  section: 'Cocktails' | 'Beer' | 'Whiskey' | 'Shots' | 'Champagne' | 'Mocktails' | 'Food court';
+  section: 'Cocktails' | 'Beer' | 'Frozen' | 'Whiskey' | 'Shots' | 'Champagne' | 'Mocktails' | 'Food court';
   liquid: number;
   glass: GlassShape;
   garnish?: number;
@@ -27,6 +30,16 @@ export interface DrinkKind {
   cup?: number;
   /** Not on Bar Lago's menu (the food court's sodas, on the Promenade's tables). */
   offMenu?: boolean;
+  /** On the pool bar's menu, not Bar Lago's (the frozen drinks; ask for one by name and either bartender makes it). */
+  poolOnly?: boolean;
+  /** Blended with ice: a thick, opaque slush in the glass. */
+  frozen?: boolean;
+  /**
+   * What the bartender says when you order it, if not the usual "<name>, coming
+   * right up" (those are recorded per drink: a drink without its own recording
+   * gets one of her general lines).
+   */
+  line?: string;
 }
 
 export const TIP = 2;
@@ -45,6 +58,10 @@ export const DRINKS: DrinkKind[] = [
   { name: 'Champagne', price: 24, section: 'Champagne', liquid: 0xf2d88a, glass: 'flute', alcohol: 1, prep: 'pour' },
   { name: 'Virgin Mojito', price: 10, section: 'Mocktails', liquid: 0xb8e090, glass: 'rocks', garnish: 0x3a8a2a, ice: true, alcohol: 0, prep: 'stir' },
   { name: 'Shirley Temple', price: 10, section: 'Mocktails', liquid: 0xe8404a, glass: 'flute', garnish: 0xb0101a, alcohol: 0, prep: 'pour' },
+  // The pool bar's frozen drinks (after Bar Lago's menu: it lists the drinks before them).
+  { name: 'Frozen Margarita', price: 16, section: 'Frozen', liquid: 0xcde87a, glass: 'coupe', garnish: 0x7ac043, frozen: true, alcohol: 1.2, prep: 'shake', poolOnly: true, line: "Coming right up. You'll like this one." },
+  { name: 'Piña Colada', price: 16, section: 'Frozen', liquid: 0xf4ecd2, glass: 'hurricane', garnish: 0xf2c030, frozen: true, alcohol: 1.2, prep: 'shake', poolOnly: true, line: 'Good choice. One sec.' },
+  { name: 'Strawberry Daiquiri', price: 16, section: 'Frozen', liquid: 0xe8344a, glass: 'hurricane', garnish: 0xd01a2a, frozen: true, alcohol: 1, prep: 'shake', poolOnly: true, line: "Coming right up. You'll like this one." },
   // The food court's fountain drinks (on the Promenade's tables, by the diners' plates). Always last: indices are sent to friends.
   { name: 'Cola', price: 4, section: 'Food court', liquid: 0x3a1a0a, glass: 'cup', cup: 0xb8101a, ice: true, alcohol: 0, prep: 'pour', offMenu: true },
   { name: 'Lemonade', price: 4, section: 'Food court', liquid: 0xf6e890, glass: 'cup', cup: 0xe8b040, ice: true, alcohol: 0, prep: 'pour', offMenu: true },
@@ -53,7 +70,18 @@ export const DRINKS: DrinkKind[] = [
 ];
 
 /** What Bar Lago serves (its menus list these). */
-export const BAR_MENU = DRINKS.filter((d) => !d.offMenu);
+export const BAR_MENU = DRINKS.filter((d) => !d.offMenu && !d.poolOnly);
+
+/** What the pool bar serves: frozen drinks, beer, a few cocktails, a shot, bubbly and the mocktails. */
+export const POOL_MENU = ['Frozen Margarita', 'Piña Colada', 'Strawberry Daiquiri', 'Lager on tap', 'Hazy IPA', 'Lago Spritz', 'Tequila shot', 'Champagne', 'Virgin Mojito', 'Shirley Temple'].map(
+  (n) => DRINKS.find((d) => d.name === n)!,
+);
+
+/** Each bar's name and menu. */
+export const BARS: Record<BarId, { title: string; menu: DrinkKind[] }> = {
+  lago: { title: 'Bar Lago', menu: BAR_MENU },
+  pool: { title: 'Pool Bar', menu: POOL_MENU },
+};
 
 /** Seconds the bartender takes, by method. */
 export const PREP_TIME: Record<DrinkKind['prep'], number> = { shake: 4.2, stir: 3.4, pour: 2.4, tap: 3.0 };
@@ -63,15 +91,15 @@ export const PREP_TIME: Record<DrinkKind['prep'], number> = { shake: 4.2, stir: 
 // ---------------------------------------------------------------------------
 
 const CSS = `
-#bar-menu{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,560px);max-height:min(86vh,640px);overflow-y:auto;
+.bar-menu{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,560px);max-height:min(86vh,640px);overflow-y:auto;
  background:rgba(18,12,8,.96);border:1.5px solid #d8b25a;border-radius:18px;padding:18px 20px;color:#ecdfc2;z-index:30;font-family:Georgia,serif;display:none}
-#bar-menu.on{display:block}
-#bar-menu h3{margin:0 0 2px;text-align:center;font-style:italic;font-size:30px;color:#f6d98a}
-#bar-menu .sub{text-align:center;font-size:13px;color:#b9a77e;margin-bottom:10px}
-#bar-menu h4{margin:12px 0 4px;font-size:14px;letter-spacing:.12em;color:#d8b25a;text-transform:uppercase}
-#bar-menu button.item{display:flex;width:100%;justify-content:space-between;align-items:center;margin:4px 0;padding:9px 14px;border-radius:12px;font-size:16px;text-align:left}
-#bar-menu button.item .sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:10px;vertical-align:-1px;border:1px solid rgba(255,255,255,.4)}
-#bar-menu .row{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.bar-menu.on{display:block}
+.bar-menu h3{margin:0 0 2px;text-align:center;font-style:italic;font-size:30px;color:#f6d98a}
+.bar-menu .sub{text-align:center;font-size:13px;color:#b9a77e;margin-bottom:10px}
+.bar-menu h4{margin:12px 0 4px;font-size:14px;letter-spacing:.12em;color:#d8b25a;text-transform:uppercase}
+.bar-menu button.item{display:flex;width:100%;justify-content:space-between;align-items:center;margin:4px 0;padding:9px 14px;border-radius:12px;font-size:16px;text-align:left}
+.bar-menu button.item .sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:10px;vertical-align:-1px;border:1px solid rgba(255,255,255,.4)}
+.bar-menu .row{display:flex;gap:8px;justify-content:center;margin-top:12px}
 `;
 
 export class BarMenuCard {
@@ -80,19 +108,28 @@ export class BarMenuCard {
   onTip: (() => void) | null = null;
   onClose: (() => void) | null = null;
 
-  constructor() {
-    const style = document.createElement('style');
-    style.textContent = CSS;
-    document.head.appendChild(style);
+  private static styled = false;
+  /** The order the card lists its drinks in (keys 1–9 pick from these). */
+  private listed: DrinkKind[] = [];
+
+  constructor(title = 'Bar Lago', menu: DrinkKind[] = BAR_MENU, id = 'bar-menu') {
+    if (!BarMenuCard.styled) {
+      BarMenuCard.styled = true;
+      const style = document.createElement('style');
+      style.textContent = CSS;
+      document.head.appendChild(style);
+    }
     this.el = document.createElement('div');
-    this.el.id = 'bar-menu';
+    this.el.id = id;
+    this.el.className = 'bar-menu';
     document.body.appendChild(this.el);
-    const sections = [...new Set(BAR_MENU.map((d) => d.section))];
-    let html = `<h3>Bar Lago</h3><div class="sub">Prices plus a $${TIP} tip · keys 1–9 to order fast · Esc to close</div>`;
+    const sections = [...new Set(menu.map((d) => d.section))];
+    let html = `<h3>${title}</h3><div class="sub">Prices plus a $${TIP} tip · keys 1–9 to order fast · Esc to close</div>`;
     let n = 0;
     for (const s of sections) {
       html += `<h4>${s}</h4>`;
-      for (const d of BAR_MENU.filter((x) => x.section === s)) {
+      for (const d of menu.filter((x) => x.section === s)) {
+        this.listed.push(d);
         const hex = '#' + new THREE.Color(d.liquid).getHexString();
         html += `<button class="item" data-i="${DRINKS.indexOf(d)}"><span><span class="sw" style="background:${hex}"></span>${++n <= 9 ? `<b>${n}</b> · ` : ''}${d.name}</span><span>$${d.price}</span></button>`;
       }
@@ -115,11 +152,12 @@ export class BarMenuCard {
       if (!this.open) return;
       if (e.key === 'Escape') this.close();
       const k = Number(e.key);
-      if (k >= 1 && k <= 9 && DRINKS[k - 1]) {
+      const d = k >= 1 && k <= 9 ? this.listed[k - 1] : undefined;
+      if (d) {
         e.preventDefault();
         e.stopImmediatePropagation();
         this.close();
-        this.onPick?.(DRINKS[k - 1]);
+        this.onPick?.(d);
       }
     }, true);
   }
@@ -144,7 +182,7 @@ export class BarMenuCard {
 // VR menu: a panel standing on the bar top in front of you
 // ---------------------------------------------------------------------------
 
-export function buildVrMenu(onPick: (k: DrinkKind) => void, onTip: () => void, status: () => string): CanvasPanel {
+export function buildVrMenu(onPick: (k: DrinkKind) => void, onTip: () => void, status: () => string, menu: DrinkKind[] = BAR_MENU, title = 'Bar Lago'): CanvasPanel {
   const p = new CanvasPanel(0.62, 900, 1040, { transparent: true, doubleSided: false });
   p.background = (ctx) => {
     roundRect(ctx, 4, 4, p.pxW - 8, p.pxH - 8, 30);
@@ -156,14 +194,14 @@ export function buildVrMenu(onPick: (k: DrinkKind) => void, onTip: () => void, s
     ctx.fillStyle = GOLD_LIGHT;
     ctx.textAlign = 'center';
     ctx.font = `italic 600 54px ${SERIF}`;
-    ctx.fillText('Bar Lago', p.pxW / 2, 70);
+    ctx.fillText(title, p.pxW / 2, 70);
     ctx.font = `italic 26px ${SERIF}`;
     ctx.fillStyle = '#cbb991';
     ctx.fillText(status(), p.pxW / 2, 112);
   };
   const cols = 2;
   const bw = (p.pxW - 60 - 12) / cols;
-  BAR_MENU.forEach((d, i) =>
+  menu.forEach((d, i) =>
     p.add({
       id: `d${i}`,
       x: 30 + (i % cols) * (bw + 12),
