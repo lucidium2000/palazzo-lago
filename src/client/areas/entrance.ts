@@ -42,7 +42,7 @@ import { EntranceSound } from '../entranceaudio';
 export * from './entranceplan';
 
 /**
- * The front entrance: the lobby's elevator landing (floor G), its glass
+ * The front entrance: the lobby's elevator landing (floor L, the Lobby), its glass
  * doors, and outside, the porte-cochère. A grand lit canopy on gilded
  * columns over the driveway, warm uplights, the revolving door, the valet
  * stand, bell carts, potted palms, a fountain on the planter island; the taxi
@@ -168,6 +168,7 @@ function groundLight(): THREE.CanvasTexture {
   for (let x = CANOPY.x0 + 2; x < CANOPY.x1; x += 4) for (let z = 1.8; z < CANOPY.z1; z += 4) pool(x, z, 2.4, '255,214,160', 0.28);
   // The lobby's glow through the glass, and the doors.
   for (let x = L.x0 + 1; x < L.x1; x += 1.5) pool(x, 0.4, 2.6, '255,220,170', 0.22);
+  for (const d of SLIDE_DOORS) pool(d.x, 0.9, 2.4, '255,236,190', 0.45);
   // Uplights at the columns, the fountain's glow, lamp posts.
   for (const [x, z] of COLUMNS) pool(x, z, 3.2, '255,196,120', 0.45);
   pool(FOUNTAIN.x, FOUNTAIN.z, 5.5, '180,215,255', 0.35);
@@ -434,6 +435,8 @@ export interface EntranceArea {
   connect(net: { emit(k: string, d?: unknown): void; on(k: string, fn: (f: unknown, d: Record<string, unknown>) => void): void }): void;
   /** Open/close a car's door as a player (you). */
   toggleDoor(key: string): void;
+  /** How far open each automatic sliding door in the facade is (0..1, SLIDE_DOORS order). */
+  readonly slideOpen: readonly number[];
 }
 
 export function buildEntrance(deps: {
@@ -467,7 +470,8 @@ export function buildEntrance(deps: {
   const soil = new THREE.MeshStandardMaterial({ color: 0x1c1a12, roughness: 1 });
   const hedge = new THREE.MeshStandardMaterial({ color: 0x23472a, roughness: 0.9, emissive: 0x0a1c0c, emissiveIntensity: 0.55 });
   const flowers = new THREE.MeshStandardMaterial({ color: 0xd4708a, roughness: 0.8, emissive: 0x3a1420, emissiveIntensity: 0.5 });
-  const glass = new THREE.MeshStandardMaterial({ color: 0xcfe0ea, transparent: true, opacity: 0.16, roughness: 0.03, metalness: 0.6, envMapIntensity: 1.6, depthWrite: false, side: THREE.DoubleSide });
+  // Clear glass, barely reflective: you see the lit lobby through it (a mirror-like facade read as a wall).
+  const glass = new THREE.MeshStandardMaterial({ color: 0xdfeef4, transparent: true, opacity: 0.1, roughness: 0.05, metalness: 0.1, envMapIntensity: 0.45, depthWrite: false, side: THREE.DoubleSide });
   const bronze = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, metalness: 0.9, roughness: 0.35, envMapIntensity: 1.2 });
   const blackMetal = new THREE.MeshStandardMaterial({ color: 0x141414, metalness: 0.6, roughness: 0.45 });
   const lantern = m.glow(0xffd8a0, 1.7);
@@ -573,15 +577,28 @@ export function buildEntrance(deps: {
       const y = 1.12 + Math.sqrt(Math.max(0, 0.42 - r * r)) * 0.75;
       b.add(bloom, blooms[k % 3], M(LOBBY_URN.x + Math.cos(a) * r, y, LOBBY_URN.z + Math.sin(a) * r, 0, 0.8 + (k % 4) * 0.12));
     }
+    // Each lift in a dark marble surround (portal and call button) under a lit cove, so the cars
+    // stand out from the silk wall like the other landings' banks.
+    for (const z of ENT_CARS.zs) {
+      // (Round the doorway, not over it: the car's doors sit just behind the wall line.)
+      const [z0, z1] = [z - 1.13, z + 1.37];
+      b.box(m.darkMarble, L.x1 - 0.02, 1.5, (z0 + z - 0.8) / 2, 0.03, 3.0, z - 0.8 - z0);
+      b.box(m.darkMarble, L.x1 - 0.02, 1.5, (z1 + z + 0.8) / 2, 0.03, 3.0, z1 - z - 0.8);
+      b.box(m.darkMarble, L.x1 - 0.02, 2.8, z, 0.03, 0.4, 1.6);
+      b.box(m.glow(0xffe6b8, 1.8), L.x1 - 0.1, 3.02, z + 0.12, 0.16, 0.05, 2.4);
+    }
     // Sign over the lifts.
-    signs.add(3.2, 0.36, 640, 72, M(L.x1 - 0.04, 3.1, (ENT_CARS.zs[0] + ENT_CARS.zs[1]) / 2, -Math.PI / 2), (g, w2, h2) => {
+    signs.add(4.2, 0.4, 1260, 120, M(L.x1 - 0.04, 3.5, (ENT_CARS.zs[0] + ENT_CARS.zs[1]) / 2, -Math.PI / 2), (g, w2, h2) => {
       g.fillStyle = '#1a120a';
       g.fillRect(0, 0, w2, h2);
       g.fillStyle = '#e8c878';
-      g.font = `italic 600 40px ${SERIF}`;
+      const text = 'Elevators  ·  Room · Promenade · Casino / Pool · Bowling';
+      let px = 64;
+      g.font = `italic 600 ${px}px ${SERIF}`;
+      while (px > 24 && g.measureText(text).width > w2 - 30) g.font = `italic 600 ${--px}px ${SERIF}`;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.fillText('Elevators  ·  Casino · Pool · Promenade · Suites', w2 / 2, h2 / 2 + 2);
+      g.fillText(text, w2 / 2, h2 / 2 + 2);
     });
   }
 
@@ -600,7 +617,12 @@ export function buildEntrance(deps: {
     for (const [x0, x1] of segs) glassSeg(x0, x1, 0, doorH + 0.1);
     glassSeg(L.x0, L.x1, doorH + 0.1, L.h + 0.4);
     // Gilt mullions and the transom.
-    for (let x = L.x0; x <= L.x1 + 0.01; x += 1.5) b.box(bronze, x, (L.h + 0.4) / 2, FACADE_Z, 0.08, L.h + 0.4, 0.14);
+    // (Above the doorways only: a mullion standing in a door opening was a post you walked through.)
+    const inOpening = (x: number) => SLIDE_DOORS.some((d) => Math.abs(x - d.x) < d.half + 0.2) || Math.abs(x - REVOLVING.x) < REVOLVING.r + 0.1;
+    for (let x = L.x0; x <= L.x1 + 0.01; x += 1.5) {
+      if (inOpening(x)) b.box(bronze, x, (doorH + 0.1 + L.h + 0.4) / 2, FACADE_Z, 0.08, L.h + 0.4 - doorH - 0.1, 0.14);
+      else b.box(bronze, x, (L.h + 0.4) / 2, FACADE_Z, 0.08, L.h + 0.4, 0.14);
+    }
     b.box(bronze, (L.x0 + L.x1) / 2, doorH + 0.1, FACADE_Z, L.x1 - L.x0, 0.12, 0.18);
     // Stone either side and above (the podium), with pilasters and a cornice.
     const H = 12;
@@ -613,7 +635,18 @@ export function buildEntrance(deps: {
       b.box(m.gold, x, 0.5, FACADE_Z + 0.42, 0.95, 0.06, 0.05);
     }
     b.box(m.cream, 300, H + 0.25, FACADE_Z + 0.3, SIDEWALK.x1 - SIDEWALK.x0 + 8, 0.5, 0.8);
-    b.box(facadeStone, 300, H / 2, -16, SIDEWALK.x1 - SIDEWALK.x0 + 8, H, 32);
+    // The podium's bulk behind the facade, round the lobby (not through it: a solid block there
+    // filled the glass from outside, so the doors looked like a stone wall you'd walk through).
+    {
+      const xa = SIDEWALK.x0 - 4,
+        xb = SIDEWALK.x1 + 4,
+        zBack = -32,
+        zl = L.z0 - 0.1;
+      b.box(facadeStone, (xa + xb) / 2, H / 2, (zBack + zl) / 2, xb - xa, H, zl - zBack);
+      b.box(facadeStone, (xa + L.x0 - 0.1) / 2, H / 2, zl / 2, L.x0 - 0.1 - xa, H, -zl);
+      const xe = L.x1 + 2.9;
+      b.box(facadeStone, (xe + xb) / 2, H / 2, zl / 2, xb - xe, H, -zl);
+    }
     // Lit windows on the podium's upper floor (above the canopy) and shop windows either side below.
     for (let x = SIDEWALK.x0 + 1; x < SIDEWALK.x1 - 1; x += 3) b.box(m.glow(0xffcf8a, 0.7), x, 9.4, FACADE_Z + 0.03, 1.7, 1.9, 0.02);
     for (const [x0, x1] of [
@@ -637,6 +670,58 @@ export function buildEntrance(deps: {
       g.textBaseline = 'middle';
       g.fillText('P A L A Z Z O   L A G O', w2 / 2, h2 / 2 + 6);
     });
+  }
+
+  // --- The way in: each sliding door framed in gilt, lit from a lintel, signed ---------------------
+  {
+    const doorH = 2.7;
+    const lintelGlow = m.glow(0xfff0d0, 2.4);
+    for (const d of SLIDE_DOORS) {
+      const jx = d.half + 0.09;
+      // Gilt jambs (proud of the glass on both faces, clear of the doorway) and a deep lit lintel.
+      for (const s of [-1, 1]) b.box(m.gold, d.x + s * jx, doorH / 2, FACADE_Z, 0.16, doorH, 0.46);
+      b.box(m.gold, d.x, doorH + 0.1, FACADE_Z + 0.12, 2 * jx + 0.16, 0.2, 0.7);
+      // Light strips under the lintel either side of the glass (they light the threshold).
+      for (const dz of [0.32, -0.2]) b.box(lintelGlow, d.x, doorH - 0.005, FACADE_Z + dz, 2 * d.half - 0.1, 0.012, 0.1);
+      // A dark threshold mat each side, so the gap reads on the ground too.
+      b.box(m.darkMarble, d.x, 0.006, FACADE_Z + 0.95, 2 * d.half, 0.012, 1.3);
+      b.box(m.darkMarble, d.x, 0.008, FACADE_Z - 0.95, 2 * d.half, 0.012, 1.3);
+      // The sign above: "Hotel Lobby · Elevators", an arrow pointing in (lit gold on black, both faces).
+      for (const [dz, ry] of [
+        [0.48, 0],
+        [-0.24, Math.PI],
+      ] as const) {
+        const inside = dz < 0;
+        signs.add(2.3, 0.5, 736, 160, M(d.x, doorH + 0.5, FACADE_Z + dz, ry), (g, w2, h2) => {
+          g.fillStyle = '#0e0a06';
+          g.fillRect(0, 0, w2, h2);
+          g.strokeStyle = '#d8b060';
+          g.lineWidth = 6;
+          g.strokeRect(5, 5, w2 - 10, h2 - 10);
+          g.fillStyle = '#f6dc98';
+          g.textBaseline = 'middle';
+          g.textAlign = 'left';
+          // The arrow (drawn: a font may not have the glyph): up = straight through these doors.
+          const ax = 70,
+            ay = h2 / 2;
+          g.beginPath();
+          g.moveTo(ax, ay - 44);
+          g.lineTo(ax - 36, ay - 6);
+          g.lineTo(ax - 13, ay - 6);
+          g.lineTo(ax - 13, ay + 44);
+          g.lineTo(ax + 13, ay + 44);
+          g.lineTo(ax + 13, ay - 6);
+          g.lineTo(ax + 36, ay - 6);
+          g.closePath();
+          g.fill();
+          g.font = `600 58px ${SERIF}`;
+          g.fillText(inside ? 'Taxis · Rideshare' : 'Hotel Lobby', 130, h2 / 2 - 28);
+          g.font = `600 46px ${SERIF}`;
+          g.fillStyle = '#e8c878';
+          g.fillText(inside ? 'Valet · The Strip' : 'Elevators', 130, h2 / 2 + 34);
+        });
+      }
+    }
   }
 
   // --- The revolving door (it turns) and the sliding doors ---------------------------------------
@@ -664,7 +749,18 @@ export function buildEntrance(deps: {
     root.add(revolve);
   }
   const slidePanels = new THREE.InstancedMesh(new THREE.BoxGeometry(1.0, 2.62, 0.03), glass, 4);
-  const slideFrames = new THREE.InstancedMesh(mergeGeometries([new THREE.BoxGeometry(1.0, 0.06, 0.05).translate(0, 1.28, 0), new THREE.BoxGeometry(1.0, 0.06, 0.05).translate(0, -1.28, 0), new THREE.BoxGeometry(0.05, 2.6, 0.05).translate(0.48, 0, 0), new THREE.BoxGeometry(0.05, 2.6, 0.05).translate(-0.48, 0, 0)])!, bronze, 4);
+  // Gilt frames, with a gilt band at hand height across the glass (so the moving panels show).
+  const slideFrames = new THREE.InstancedMesh(
+    mergeGeometries([
+      new THREE.BoxGeometry(1.0, 0.07, 0.05).translate(0, 1.275, 0),
+      new THREE.BoxGeometry(1.0, 0.1, 0.05).translate(0, -1.26, 0),
+      new THREE.BoxGeometry(0.06, 2.6, 0.05).translate(0.47, 0, 0),
+      new THREE.BoxGeometry(0.06, 2.6, 0.05).translate(-0.47, 0, 0),
+      new THREE.BoxGeometry(0.9, 0.05, 0.04).translate(0, -0.3, 0),
+    ])!,
+    m.gold,
+    4,
+  );
   for (const x of [slidePanels, slideFrames]) {
     x.raycast = () => {};
     x.frustumCulled = false;
@@ -983,6 +1079,7 @@ export function buildEntrance(deps: {
     populate: () => ({ doorman: null, valets: [], guests: new Map(), people: [] }),
     connect: () => {},
     toggleDoor: () => {},
+    slideOpen,
   };
   area.traffic = new Traffic(area.now());
   const traffic = area.traffic;
@@ -1131,7 +1228,8 @@ export function buildEntrance(deps: {
     const walkers = [feet, ...deps.others(), ...traffic.guests.map((g) => traffic.guestPose(g, t)).filter((p) => !p.hidden)];
     let moved = false;
     SLIDE_DOORS.forEach((d, i) => {
-      const want = walkers.some((p) => Math.abs(p.x - d.x) < 1.6 && Math.abs(p.z - FACADE_Z) < 2.2) ? 1 : 0;
+      // (Wide enough that you see them part as you walk up, well before you reach them.)
+      const want = walkers.some((p) => Math.abs(p.x - d.x) < 1.9 && Math.abs(p.z - FACADE_Z) < 3.4) ? 1 : 0;
       const v = THREE.MathUtils.clamp(slideOpen[i] + Math.sign(want - slideOpen[i]) * dt * 1.6, 0, 1);
       if (v !== slideOpen[i]) {
         slideOpen[i] = v;

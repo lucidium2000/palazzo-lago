@@ -6,7 +6,7 @@
  *
  * Like the suite and the Promenade it lives far from the casino in the world
  * (east, x ≈ 300, out of the camera's range of everything else), reached only
- * by elevator ("G", the ground floor).
+ * by elevator ("L", the Lobby: the ground floor).
  *
  *    z = -8.5 ┌──────────── Main lobby (elevator landing) ─────────║ cars (east wall, x = 307)
  *             │   console            chandelier                   ║
