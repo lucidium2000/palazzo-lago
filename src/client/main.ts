@@ -93,6 +93,7 @@ import { PianoSync } from './net/pianosync';
 import { BowlSync } from './net/bowlsync';
 import { Stock } from './stock';
 import { setOutDisplays } from './stockdisplays';
+import { concertSet, silent } from './party/partytalk';
 
 const SAVE_KEY = 'palazzo-lago.bankroll.v1';
 
@@ -594,7 +595,7 @@ async function main() {
       // They notice: a word (in their own voice, now and then across the crowd), or at least a breath.
       if (k > 0.2) fights.provoke(p, 'pushed', k);
       if (say === 'line' && reactTo(p, 'pushed') > 0) return;
-      if (say !== 'none' && k > 0.1) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * Math.min(k, 0.6), rate: 1.2 + Math.random() * 0.25 });
+      if (say !== 'none' && k > 0.1 && !silent(p)) sound.play('gasp', p.pos, { volume: 0.1 + 0.3 * Math.min(k, 0.6), rate: 1.2 + Math.random() * 0.25 });
     },
     // A thud you feel, a stumble, a loud ouch, and maybe a fight (fight/fights.ts).
     onPunch: (p, power, _at, zone, v) => fights.hitPerson(p, power, zone, v),
@@ -749,6 +750,11 @@ async function main() {
     travel: (v) => player.travel(v),
     isFree: (x, z) => world.isFree(x, z, 0.24, true),
   });
+  // Out on the deck everyone talks about the show (and she says nothing while she's on): party/partytalk.ts.
+  dialogue.party = party.talk;
+  crew.party = party.talk;
+  dialogue.whoop = (at, female, volume) => party.hype.whoop(at, female, volume);
+  lounge.partyToast = (p) => (party.talk.at(p.pos.x, p.pos.z) && !p.performer ? (concertSet(dialogue.character(p).id)?.cheers ?? null) : null);
 
   // A living floor: friends chatting in circles (drinks in hand), people snapping
   // photos of the glass ceiling and the fountains, and pairs strolling together.

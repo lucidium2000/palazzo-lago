@@ -11,6 +11,8 @@ import { Band } from './band';
 import { BeatClock, SYNTH_SET, beatAt, plainArrangement, type Arrangement, type Beat } from './beat';
 import { DESK_MOVES, Dancer, MOVE_NAMES, type Move } from './dance';
 import { DeckAudio } from './deckaudio';
+import { ConcertHype } from './hype';
+import type { PartyTalk } from './partytalk';
 import { packDecks, unpackDecks } from './deckwire';
 import { Decks } from './decks';
 import { PartyLights, type PoolLights } from './lights';
@@ -150,6 +152,10 @@ export class Party {
   drops = 0;
   /** The stage's mic: step up and you're on the PA (stagemic.ts). */
   readonly mic: StageMic;
+  /** The crowd's hype around her set: its sound, hands and phones up, the fans at the back (hype.ts). */
+  readonly hype: ConcertHype;
+  /** The party as the guests' chatter sees it (partytalk.ts: dialogue.ts and crew.ts). */
+  readonly talk: PartyTalk;
 
   constructor(private d: PartyDeps) {
     this.lights = new PartyLights(d.scene, d.dj, d.lights, d.poles);
@@ -167,7 +173,7 @@ export class Party {
       p.onPose = (q) => {
         if (!q.rig || q.moving > 0.2) return;
         const b = this.clock.now;
-        dancer.pose(q.rig, { beat: b, dt: this.dt, amount: 1, move: dancer.moveFor(b), arms: true, handsUp: q.cheer > 0 ? Math.min(1, q.cheer * 2) : 0, scale: q.rig.root.scale.x });
+        dancer.pose(q.rig, { beat: b, dt: this.dt, amount: 1, move: dancer.moveFor(b), arms: true, handsUp: q.cheer > 0 ? Math.min(1, q.cheer * 2) : 0, scale: q.rig.root.scale.x, film: q.prop === 'phone' && q.photo ? 1 : 0 });
       };
     };
     for (const [k, p] of [...d.dancers, ...extras].entries()) {
@@ -176,6 +182,9 @@ export class Party {
       dance(p, dancer);
     }
     this.audience = d.dancers.length || extras.length ? new Audience(d.dancers, extras, d.isFree ?? (() => true), Math.PI) : null;
+    this.hype = new ConcertHype({ scene: d.scene, sound: d.sound, crowd: d.crowd, audience: this.audience, singer: this.stage.singer, band: d.performers?.band ?? [], dj: d.performers?.dj ?? null, isFree: d.isFree });
+    const at = new THREE.Vector3();
+    this.talk = { phase: () => this.hype.phase, at: (x, z) => d.where(at.set(x, 0, z)) === 'pool' };
     for (const [k, x] of [-2.6, 2.6].entries()) {
       const anchor = new THREE.Object3D();
       anchor.position.set(d.dj.x + x, 1.7, d.dj.z - 0.5);
@@ -521,6 +530,7 @@ export class Party {
       for (const q of this.d.crowd.people) if (q.driven && !q.away) this.friendsAt.push(q.pos);
       this.audience.update(dt, { into: live ? prog.into : -1, since: live ? Infinity : since }, this.stage.singer?.pos ?? this.v3.set(43.3, 0.6, -32.4), you.feet, this.friendsAt);
     }
+    this.hype.update(dt, { beat: b, onBeat: this.clock.onBeat, onBar: this.clock.onBar, ready: this.liveReady, live, song, into: prog.into, toLive: prog.next, bar: 240 / this.clock.bpm, presence: this.presence, you: you.feet });
     if (this.stage.live && this.presence > 0.5 && this.announced !== prog.set) {
       this.announced = prog.set;
       this.d.toast(`Live on the pool stage: ${HEADLINER.name}`);

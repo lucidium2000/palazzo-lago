@@ -236,6 +236,10 @@ export function addPerformers(crowd: Crowd, into: Performers) {
   const looks = [LOOK_KEYS, LOOK_DRUMS, LOOK_BASS];
   into.band = BAND.map((b, k) => crowd.add('watch', looks[k], new THREE.Vector3(b.x, STAGE.y + b.riser, b.z), b.yaw, { reserved: true }));
   for (const p of [into.dj, into.singer, ...into.band]) if (p) p.curious = false;
+  // They're working: the DJ and the band never chat; she only talks about the show, and not a word while she's on.
+  if (into.dj) into.dj.performer = 'dj';
+  if (into.singer) into.singer.performer = 'singer';
+  for (const b of into.band) if (b) b.performer = 'band';
 }
 
 /** The concert-goers (away until she's on), in their reserved share of the crowd. */

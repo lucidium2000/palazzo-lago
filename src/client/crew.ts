@@ -8,6 +8,7 @@ import type { World } from './world';
 import { CREW_LINES, CREW_VOICES, type CrewMoment, type VoiceId } from './speech';
 import { mouthOf, voices } from './voices';
 import { elVoice } from './cast';
+import { crewPartyLines, type PartyTalk } from './party/partytalk';
 
 /**
  * Your crew for the night: three buddies who stick with you, crowd around
@@ -41,6 +42,8 @@ export class Crew {
   private cooldown = 4;
   private idleIn = 30;
   private lastLine = '';
+  /** The pool party (party/index.ts): out on the deck the boys talk about the show (recorded takes only). */
+  party: PartyTalk | null = null;
 
   constructor(
     private crowd: Crowd,
@@ -169,13 +172,20 @@ export class Crew {
     if (!opts.force && (this.cooldown > 0 || Math.random() > (opts.chance ?? 1))) return;
     // Don't talk over a guest or the staff (forced lines still cut in, like friends do).
     if (!opts.force && (voiceArbiter.busy() || voices.priorityBusy)) return;
-    const lines = LINES[moment];
+    const f = this.player.feet();
+    const atParty = moment === 'idle' && !!this.party?.at(f.x, f.z);
+    const lines = atParty ? crewPartyLines(this.party!.phase()) : LINES[moment];
     let line = lines[Math.floor(Math.random() * lines.length)];
     if (line === this.lastLine) line = lines[(lines.indexOf(line) + 1) % lines.length];
     this.lastLine = line;
     // Only the boys within earshot say anything.
     const b = this.nearest();
     if (!b) return;
+    // At the party: only a recorded take (no robot voice over her show).
+    if (atParty && !voices.has(elVoice('crew_' + b.name.toLowerCase()), line) && !voices.has(b.voiceId, line)) {
+      this.idleIn = 35 + Math.random() * 30;
+      return;
+    }
     this.cooldown = 5;
     this.idleIn = 35 + Math.random() * 30;
     this.say(b, line);

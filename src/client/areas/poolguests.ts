@@ -50,8 +50,8 @@ export function populatePool(crowd: Crowd, pool: PoolArea, dancers: Person[] = [
     if (p) dancers.push(p);
   });
   // Her concert-goers, in the stage's own share of the crowd (away until she's on: party/audience.ts).
-  // (As many as the dancers they join, within the share: the audience doubles.)
-  if (performers) addConcertGoers(crowd, performers, Math.min(Crowd.concertExtras(crowd.tierPeople), Math.max(4, dancers.length)), poolLook);
+  // (The stage's whole share: more than the dancers they join, so the audience more than doubles.)
+  if (performers) addConcertGoers(crowd, performers, Crowd.concertExtras(crowd.tierPeople), poolLook);
 
   // Slow loops in the deep end.
   pool.laps.forEach((lap, k) => {

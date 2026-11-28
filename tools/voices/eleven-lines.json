@@ -1410,6 +1410,24 @@
   "p": 1
  },
  {
+  "id": "10e24237",
+  "voice": "el_crew_dev",
+  "text": "Is she on yet? Come on, come on!",
+  "p": 1
+ },
+ {
+  "id": "11cc6c1d",
+  "voice": "el_crew_dev",
+  "text": "Phones up, boys! Phones up!",
+  "p": 1
+ },
+ {
+  "id": "18da4893",
+  "voice": "el_crew_dev",
+  "text": "Pool party at night, boys. This is the life.",
+  "p": 1
+ },
+ {
   "id": "19472295",
   "voice": "el_crew_dev",
   "text": "I've got a good feeling about tonight.",
@@ -1431,6 +1449,18 @@
   "id": "2c6e04dc",
   "voice": "el_crew_dev",
   "text": "Don't touch him, he's on fire!",
+  "p": 1
+ },
+ {
+  "id": "2cd227a2",
+  "voice": "el_crew_dev",
+  "text": "Boys, she's on any minute. Get to the front!",
+  "p": 1
+ },
+ {
+  "id": "2d466bfa",
+  "voice": "el_crew_dev",
+  "text": "I heard she's opening with Chasing Dawn. Let's go!",
   "p": 1
  },
  {
@@ -1590,6 +1620,12 @@
   "p": 1
  },
  {
+  "id": "8df0dd98",
+  "voice": "el_crew_dev",
+  "text": "This DJ is killing it. We're staying out here.",
+  "p": 1
+ },
+ {
   "id": "8e84a831",
   "voice": "el_crew_dev",
   "text": "Now that's a view.",
@@ -1647,6 +1683,12 @@
   "id": "a9d92248",
   "voice": "el_crew_dev",
   "text": "Shake it off.",
+  "p": 1
+ },
+ {
+  "id": "aa8929fa",
+  "voice": "el_crew_dev",
+  "text": "Best part of the whole trip, no question.",
   "p": 1
  },
  {
@@ -1734,15 +1776,33 @@
   "p": 1
  },
  {
+  "id": "cbbb34d3",
+  "voice": "el_crew_dev",
+  "text": "[cheering] Whooo! This is insane!",
+  "p": 1
+ },
+ {
   "id": "cd96e77e",
   "voice": "el_crew_dev",
   "text": "Cheers to that.",
   "p": 1
  },
  {
+  "id": "cf47b01c",
+  "voice": "el_crew_dev",
+  "text": "That was unreal. Absolutely unreal.",
+  "p": 1
+ },
+ {
   "id": "cfd5bce3",
   "voice": "el_crew_dev",
   "text": "Red is due. I can feel it.",
+  "p": 1
+ },
+ {
+  "id": "d0f1beb5",
+  "voice": "el_crew_dev",
+  "text": "[shouting] NIXIE! Let's GO!",
   "p": 1
  },
  {
@@ -1908,6 +1968,12 @@
   "p": 1
  },
  {
+  "id": "2b560adf",
+  "voice": "el_crew_mikey",
+  "text": "Phones up, boys! Phones up!",
+  "p": 1
+ },
+ {
   "id": "2b7b26e6",
   "voice": "el_crew_mikey",
   "text": "Big tipper over here.",
@@ -1962,6 +2028,12 @@
   "p": 1
  },
  {
+  "id": "4f819259",
+  "voice": "el_crew_mikey",
+  "text": "[cheering] Whooo! This is insane!",
+  "p": 1
+ },
+ {
   "id": "4fcfc2a5",
   "voice": "el_crew_mikey",
   "text": "That's alright, next one.",
@@ -1986,6 +2058,12 @@
   "p": 1
  },
  {
+  "id": "5c4b5419",
+  "voice": "el_crew_mikey",
+  "text": "Pool party at night, boys. This is the life.",
+  "p": 1
+ },
+ {
   "id": "5ef3fbeb",
   "voice": "el_crew_mikey",
   "text": "We should hit the bar at some point.",
@@ -1998,6 +2076,12 @@
   "p": 1
  },
  {
+  "id": "64fdd42e",
+  "voice": "el_crew_mikey",
+  "text": "That was unreal. Absolutely unreal.",
+  "p": 1
+ },
+ {
   "id": "6692b1d6",
   "voice": "el_crew_mikey",
   "text": "Have you seen the fountains? We gotta go out on the terrace.",
@@ -2007,6 +2091,12 @@
   "id": "6b05ff2e",
   "voice": "el_crew_mikey",
   "text": "No way! No way!",
+  "p": 1
+ },
+ {
+  "id": "6da5382c",
+  "voice": "el_crew_mikey",
+  "text": "I heard she's opening with Chasing Dawn. Let's go!",
   "p": 1
  },
  {
@@ -2112,6 +2202,18 @@
   "p": 1
  },
  {
+  "id": "ad4e0330",
+  "voice": "el_crew_mikey",
+  "text": "Boys, she's on any minute. Get to the front!",
+  "p": 1
+ },
+ {
+  "id": "ae9239c3",
+  "voice": "el_crew_mikey",
+  "text": "[shouting] NIXIE! Let's GO!",
+  "p": 1
+ },
+ {
   "id": "b26967fd",
   "voice": "el_crew_mikey",
   "text": "Ooh, fancy.",
@@ -2154,6 +2256,12 @@
   "p": 1
  },
  {
+  "id": "c376f7f0",
+  "voice": "el_crew_mikey",
+  "text": "Best part of the whole trip, no question.",
+  "p": 1
+ },
+ {
   "id": "c6e12e62",
   "voice": "el_crew_mikey",
   "text": "[shocked] Dude! Why?! That was my good shirt!",
@@ -2187,6 +2295,12 @@
   "id": "d5124f82",
   "voice": "el_crew_mikey",
   "text": "Oof. Brutal.",
+  "p": 1
+ },
+ {
+  "id": "d699e4fd",
+  "voice": "el_crew_mikey",
+  "text": "Is she on yet? Come on, come on!",
   "p": 1
  },
  {
@@ -2235,6 +2349,12 @@
   "id": "e5ea8d36",
   "voice": "el_crew_mikey",
   "text": "There it is!",
+  "p": 1
+ },
+ {
+  "id": "e9f77612",
+  "voice": "el_crew_mikey",
+  "text": "This DJ is killing it. We're staying out here.",
   "p": 1
  },
  {
@@ -2316,6 +2436,12 @@
   "p": 1
  },
  {
+  "id": "17d750cf",
+  "voice": "el_crew_rocco",
+  "text": "Best part of the whole trip, no question.",
+  "p": 1
+ },
+ {
   "id": "1825bab6",
   "voice": "el_crew_rocco",
   "text": "[laughs] Shovin' me? Me?!",
@@ -2382,6 +2508,12 @@
   "p": 1
  },
  {
+  "id": "2de7e29f",
+  "voice": "el_crew_rocco",
+  "text": "This DJ is killing it. We're staying out here.",
+  "p": 1
+ },
+ {
   "id": "2ec65d2a",
   "voice": "el_crew_rocco",
   "text": "Hey! Okay, that was a good throw, I'll admit it.",
@@ -2421,6 +2553,12 @@
   "id": "4c5774aa",
   "voice": "el_crew_rocco",
   "text": "Ka-ching!",
+  "p": 1
+ },
+ {
+  "id": "4f544200",
+  "voice": "el_crew_rocco",
+  "text": "Is she on yet? Come on, come on!",
   "p": 1
  },
  {
@@ -2484,6 +2622,12 @@
   "p": 1
  },
  {
+  "id": "7ff6a0f0",
+  "voice": "el_crew_rocco",
+  "text": "[shouting] NIXIE! Let's GO!",
+  "p": 1
+ },
+ {
   "id": "801b2295",
   "voice": "el_crew_rocco",
   "text": "Easy there, champ!",
@@ -2532,9 +2676,21 @@
   "p": 1
  },
  {
+  "id": "93516ab1",
+  "voice": "el_crew_rocco",
+  "text": "Boys, she's on any minute. Get to the front!",
+  "p": 1
+ },
+ {
   "id": "968f601c",
   "voice": "el_crew_rocco",
   "text": "Okay, water next. I mean it.",
+  "p": 1
+ },
+ {
+  "id": "a129a260",
+  "voice": "el_crew_rocco",
+  "text": "Pool party at night, boys. This is the life.",
   "p": 1
  },
  {
@@ -2574,6 +2730,18 @@
   "p": 1
  },
  {
+  "id": "b2c7ff29",
+  "voice": "el_crew_rocco",
+  "text": "That was unreal. Absolutely unreal.",
+  "p": 1
+ },
+ {
+  "id": "b3b25d08",
+  "voice": "el_crew_rocco",
+  "text": "Phones up, boys! Phones up!",
+  "p": 1
+ },
+ {
   "id": "b9f18cfa",
   "voice": "el_crew_rocco",
   "text": "I've got a good feeling about tonight.",
@@ -2601,6 +2769,12 @@
   "id": "cbfe080b",
   "voice": "el_crew_rocco",
   "text": "Whoa!",
+  "p": 1
+ },
+ {
+  "id": "cccb16ed",
+  "voice": "el_crew_rocco",
+  "text": "I heard she's opening with Chasing Dawn. Let's go!",
   "p": 1
  },
  {
@@ -2643,6 +2817,12 @@
   "id": "ea8784a1",
   "voice": "el_crew_rocco",
   "text": "[laughs] Ow! Who threw that? Was that you?!",
+  "p": 1
+ },
+ {
+  "id": "eb68961a",
+  "voice": "el_crew_rocco",
+  "text": "[cheering] Whooo! This is insane!",
   "p": 1
  },
  {
@@ -3228,10 +3408,22 @@
   "p": 1
  },
  {
+  "id": "045c95fb",
+  "voice": "el_dale",
+  "text": "Any minute now, I reckon. The band's gear is all set up.",
+  "p": 1
+ },
+ {
   "id": "04fe5229",
   "voice": "el_dale",
   "text": "And?",
   "p": 2
+ },
+ {
+  "id": "050eaccc",
+  "voice": "el_dale",
+  "text": "Well, alright. Save your hollerin' for the stage.",
+  "p": 1
  },
  {
   "id": "054b35fe",
@@ -3360,6 +3552,12 @@
   "p": 2
  },
  {
+  "id": "1a585846",
+  "voice": "el_dale",
+  "text": "Can't hear a lick over that bass, partner. But I'm with ya.",
+  "p": 1
+ },
+ {
   "id": "1a8d6c28",
   "voice": "el_dale",
   "text": "Living large!",
@@ -3406,6 +3604,12 @@
   "voice": "el_dale",
   "text": "We passed the budget yesterday.",
   "p": 2
+ },
+ {
+  "id": "205d1d35",
+  "voice": "el_dale",
+  "text": "[hollering] That's what I'm talkin' about!",
+  "p": 1
  },
  {
   "id": "21b71c17",
@@ -3498,6 +3702,12 @@
   "p": 2
  },
  {
+  "id": "2ed53c34",
+  "voice": "el_dale",
+  "text": "You catch her last set, partner? Folks are still talkin' about it.",
+  "p": 1
+ },
+ {
   "id": "2f8edb54",
   "voice": "el_dale",
   "text": "Classic. I'm getting one of those.",
@@ -3540,6 +3750,12 @@
   "p": 2
  },
  {
+  "id": "3723e49b",
+  "voice": "el_dale",
+  "text": "That DJ's got this whole deck movin'. Even me, a little.",
+  "p": 1
+ },
+ {
   "id": "37e4bedd",
   "voice": "el_dale",
   "text": "Did you get tickets for the concert?",
@@ -3555,6 +3771,12 @@
   "id": "3ad30b2d",
   "voice": "el_dale",
   "text": "Son, in Texas, that'll get you thrown out of a bar.",
+  "p": 1
+ },
+ {
+  "id": "3b95e095",
+  "voice": "el_dale",
+  "text": "[whistles loudly] Whoo!",
   "p": 1
  },
  {
@@ -3606,6 +3828,12 @@
   "p": 2
  },
  {
+  "id": "3ff1a276",
+  "voice": "el_dale",
+  "text": "Never been to a pool party at night. Lights are somethin' else.",
+  "p": 1
+ },
+ {
   "id": "404b851f",
   "voice": "el_dale",
   "text": "The one who hit seventeen twice?",
@@ -3640,6 +3868,12 @@
   "voice": "el_dale",
   "text": "Say that again? Actually, never mind. Good luck out there!",
   "p": 2
+ },
+ {
+  "id": "465abba5",
+  "voice": "el_dale",
+  "text": "Ain't it? Like a thunderstorm with a backbeat.",
+  "p": 1
  },
  {
   "id": "46f8f18a",
@@ -3744,10 +3978,22 @@
   "p": 2
  },
  {
+  "id": "5625fedb",
+  "voice": "el_dale",
+  "text": "[groans] OW! That ain't how you dance, son!",
+  "p": 1
+ },
+ {
   "id": "566594aa",
   "voice": "el_dale",
   "text": "Perfect, thank you! Maybe see you down there.",
   "p": 2
+ },
+ {
+  "id": "56a86264",
+  "voice": "el_dale",
+  "text": "Mind the speakers, partner. They'll rattle your teeth.",
+  "p": 1
  },
  {
   "id": "5900e5ff",
@@ -3828,9 +4074,27 @@
   "p": 2
  },
  {
+  "id": "6718ab42",
+  "voice": "el_dale",
+  "text": "Heard she opens with Chasing Dawn. Good name for a song.",
+  "p": 1
+ },
+ {
   "id": "67f79bac",
   "voice": "el_dale",
   "text": "Lesson one: never bet more than your boots are worth.",
+  "p": 1
+ },
+ {
+  "id": "69ce840b",
+  "voice": "el_dale",
+  "text": "[sighs] Son, I came to hear music, not get a bath.",
+  "p": 1
+ },
+ {
+  "id": "6b16da47",
+  "voice": "el_dale",
+  "text": "Easy now. Ain't no stampede at this concert.",
   "p": 1
  },
  {
@@ -3886,6 +4150,12 @@
   "voice": "el_dale",
   "text": "A dice man. Respect.",
   "p": 2
+ },
+ {
+  "id": "71d6fa61",
+  "voice": "el_dale",
+  "text": "Well, you're in for a treat. Find yourself a good spot.",
+  "p": 1
  },
  {
   "id": "71fad165",
@@ -3948,6 +4218,12 @@
   "p": 2
  },
  {
+  "id": "7cfadddb",
+  "voice": "el_dale",
+  "text": "Well, I'll be. That gal can SING!",
+  "p": 1
+ },
+ {
   "id": "7d3ab7d5",
   "voice": "el_dale",
   "text": "[hollering] SECURITY! We got us a troublemaker!",
@@ -3972,9 +4248,21 @@
   "p": 2
  },
  {
+  "id": "805221ba",
+  "voice": "el_dale",
+  "text": "[annoyed] Quit chuckin' stuff, folks are watchin' a show.",
+  "p": 1
+ },
+ {
   "id": "80bc852a",
   "voice": "el_dale",
   "text": "[grunts] Easy now.",
+  "p": 1
+ },
+ {
+  "id": "8193f944",
+  "voice": "el_dale",
+  "text": "[annoyed] Now that's a perfectly good drink wasted, mid-song.",
   "p": 1
  },
  {
@@ -4152,6 +4440,12 @@
   "p": 2
  },
  {
+  "id": "ab6a336b",
+  "voice": "el_dale",
+  "text": "Now that's a show worth stayin' up for.",
+  "p": 1
+ },
+ {
   "id": "ae1b60f5",
   "voice": "el_dale",
   "text": "Which one?",
@@ -4210,6 +4504,12 @@
   "voice": "el_dale",
   "text": "Even with my snoring?",
   "p": 2
+ },
+ {
+  "id": "b653b512",
+  "voice": "el_dale",
+  "text": "Enjoy the show, partner.",
+  "p": 1
  },
  {
   "id": "b6c09cbe",
@@ -4314,6 +4614,12 @@
   "p": 2
  },
  {
+  "id": "c3bb3cc2",
+  "voice": "el_dale",
+  "text": "[whistles] Give that band a raise, I say.",
+  "p": 1
+ },
+ {
   "id": "c4633715",
   "voice": "el_dale",
   "text": "Two hours ago.",
@@ -4372,6 +4678,12 @@
   "voice": "el_dale",
   "text": "That's the point, honey.",
   "p": 2
+ },
+ {
+  "id": "d191771f",
+  "voice": "el_dale",
+  "text": "Fine as frog hair, partner. Waitin' on the show.",
+  "p": 1
  },
  {
   "id": "d1cafc9b",
@@ -4458,6 +4770,12 @@
   "p": 2
  },
  {
+  "id": "e1d1a31d",
+  "voice": "el_dale",
+  "text": "Whoa there, partner. Folks are tryin' to see the stage.",
+  "p": 1
+ },
+ {
   "id": "e21d95c4",
   "voice": "el_dale",
   "text": "I swear I saw a famous chef at the steakhouse.",
@@ -4482,16 +4800,34 @@
   "p": 1
  },
  {
+  "id": "e6379825",
+  "voice": "el_dale",
+  "text": "Well, folks say this Nixie gal puts on one heck of a show.",
+  "p": 1
+ },
+ {
   "id": "e78fb21b",
   "voice": "el_dale",
   "text": "You are already dressed up.",
   "p": 2
  },
  {
+  "id": "ea510271",
+  "voice": "el_dale",
+  "text": "Evenin'. Squeeze on up, plenty of room by the stage.",
+  "p": 1
+ },
+ {
   "id": "eb2d7f58",
   "voice": "el_dale",
   "text": "Don't ask.",
   "p": 2
+ },
+ {
+  "id": "eb356958",
+  "voice": "el_dale",
+  "text": "[hollering] Yeehaw! Go on, Nixie!",
+  "p": 1
  },
  {
   "id": "ecf64a5c",
@@ -4504,6 +4840,12 @@
   "voice": "el_dale",
   "text": "It's Vegas. Everything's open.",
   "p": 2
+ },
+ {
+  "id": "f03320ae",
+  "voice": "el_dale",
+  "text": "Here's to the band, partner.",
+  "p": 1
  },
  {
   "id": "f33180ab",
@@ -4848,6 +5190,12 @@
   "p": 2
  },
  {
+  "id": "025a70df",
+  "voice": "el_destiny",
+  "text": "[giggles] This DJ! I can't stop dancing! I'm getting married!",
+  "p": 1
+ },
+ {
   "id": "0361f062",
   "voice": "el_destiny",
   "text": "Somebody's having a night!",
@@ -4890,6 +5238,12 @@
   "p": 1
  },
  {
+  "id": "0d03784e",
+  "voice": "el_destiny",
+  "text": "[squealing] Whooo! Oh my gosh!",
+  "p": 1
+ },
+ {
   "id": "0e74b537",
   "voice": "el_destiny",
   "text": "You are already dressed up.",
@@ -4920,10 +5274,28 @@
   "p": 2
  },
  {
+  "id": "119e6c8e",
+  "voice": "el_destiny",
+  "text": "[singing along] Ohhh, oh-oh! [giggles]",
+  "p": 1
+ },
+ {
+  "id": "11e09b58",
+  "voice": "el_destiny",
+  "text": "[shouting] I love you, Nixie!",
+  "p": 1
+ },
+ {
   "id": "12904157",
   "voice": "el_destiny",
   "text": "Have you been up to the suites?",
   "p": 2
+ },
+ {
+  "id": "15047a11",
+  "voice": "el_destiny",
+  "text": "The best! I'm getting married AND I'm at a Nixie Vale show!",
+  "p": 1
  },
  {
   "id": "15065aad",
@@ -5004,16 +5376,46 @@
   "p": 2
  },
  {
+  "id": "25ea18f3",
+  "voice": "el_destiny",
+  "text": "Oh my gosh, I heard she's opening with Chasing Dawn! That's our song!",
+  "p": 1
+ },
+ {
+  "id": "27590bc6",
+  "voice": "el_destiny",
+  "text": "That was the best thing that's ever happened! Besides my fiancé. Probably.",
+  "p": 1
+ },
+ {
   "id": "27c969a7",
   "voice": "el_destiny",
   "text": "Want to get in the water? It is actually warm.",
   "p": 2
  },
  {
+  "id": "28b10ec0",
+  "voice": "el_destiny",
+  "text": "Girls! Girls! Get to the front! She's coming on!",
+  "p": 1
+ },
+ {
+  "id": "29e75472",
+  "voice": "el_destiny",
+  "text": "Oh my gosh, yay! I'm gonna wave it during the chorus!",
+  "p": 1
+ },
+ {
   "id": "2a21eae8",
   "voice": "el_destiny",
   "text": "Then it's not a budget, it's a suggestion.",
   "p": 2
+ },
+ {
+  "id": "2a6e0cde",
+  "voice": "el_destiny",
+  "text": "[giggles] Do you think Nixie would sign my veil? Is that weird? It's weird.",
+  "p": 1
  },
  {
   "id": "2acc8c3e",
@@ -5026,6 +5428,12 @@
   "voice": "el_destiny",
   "text": "Okay, one more hand and then dinner.",
   "p": 2
+ },
+ {
+  "id": "2cdae067",
+  "voice": "el_destiny",
+  "text": "The lights are so pretty! It's like my wedding but louder!",
+  "p": 1
  },
  {
   "id": "2ce5c9cc",
@@ -5148,6 +5556,12 @@
   "p": 2
  },
  {
+  "id": "40f744cb",
+  "voice": "el_destiny",
+  "text": "Oh my gosh, your outfit is so concert! I love it!",
+  "p": 1
+ },
+ {
   "id": "4175921c",
   "voice": "el_destiny",
   "text": "Um, excuse you?",
@@ -5226,6 +5640,12 @@
   "p": 2
  },
  {
+  "id": "4f391d2c",
+  "voice": "el_destiny",
+  "text": "[gasps] Oh my gosh! It's my bachelorette!",
+  "p": 1
+ },
+ {
   "id": "505d29d6",
   "voice": "el_destiny",
   "text": "Say that again? Actually, never mind. Good luck out there!",
@@ -5266,6 +5686,12 @@
   "voice": "el_destiny",
   "text": "Teach me your ways!",
   "p": 2
+ },
+ {
+  "id": "5363e931",
+  "voice": "el_destiny",
+  "text": "[giggles] Okay! Back to dancing!",
+  "p": 1
  },
  {
   "id": "53c336f8",
@@ -5520,6 +5946,12 @@
   "p": 2
  },
  {
+  "id": "7c5e49d1",
+  "voice": "el_destiny",
+  "text": "[giggles] Hi! Are you here for Nixie? Come dance with us!",
+  "p": 1
+ },
+ {
   "id": "7c6de454",
   "voice": "el_destiny",
   "text": "The one with the fat pigs?",
@@ -5652,9 +6084,21 @@
   "p": 2
  },
  {
+  "id": "8e2c7ca0",
+  "voice": "el_destiny",
+  "text": "[shrieks] My veil! At the concert!",
+  "p": 1
+ },
+ {
   "id": "8e41df57",
   "voice": "el_destiny",
   "text": "[annoyed] Seriously? Not the face!",
+  "p": 1
+ },
+ {
+  "id": "8f25870d",
+  "voice": "el_destiny",
+  "text": "[gasps] Ow! Who threw that at the bride?!",
   "p": 1
  },
  {
@@ -5698,6 +6142,12 @@
   "voice": "el_destiny",
   "text": "Dallas. First time here?",
   "p": 2
+ },
+ {
+  "id": "97b179b9",
+  "voice": "el_destiny",
+  "text": "[giggles] Is she on yet? This is my bachelorette and I NEED Nixie!",
+  "p": 1
  },
  {
   "id": "989349ab",
@@ -5808,6 +6258,12 @@
   "p": 2
  },
  {
+  "id": "ae2e9572",
+  "voice": "el_destiny",
+  "text": "[screaming] OW! You hit a bride! At a concert!",
+  "p": 1
+ },
+ {
   "id": "ae59b553",
   "voice": "el_destiny",
   "text": "To Vegas!",
@@ -5880,6 +6336,12 @@
   "p": 2
  },
  {
+  "id": "b853bbad",
+  "voice": "el_destiny",
+  "text": "Hey! Watch it! You just pushed the bride!",
+  "p": 1
+ },
+ {
   "id": "bcedcf21",
   "voice": "el_destiny",
   "text": "The tall one.",
@@ -5898,6 +6360,12 @@
   "p": 2
  },
  {
+  "id": "bfc46997",
+  "voice": "el_destiny",
+  "text": "[giggles] Okay, yeah. I'm still gonna try.",
+  "p": 1
+ },
+ {
   "id": "c0f8369f",
   "voice": "el_destiny",
   "text": "Woooo!",
@@ -5907,6 +6375,12 @@
   "id": "c3804b00",
   "voice": "el_destiny",
   "text": "[angry] Hey! Who threw that?!",
+  "p": 1
+ },
+ {
+  "id": "c4faad11",
+  "voice": "el_destiny",
+  "text": "Bye! See you up front!",
   "p": 1
  },
  {
@@ -5932,6 +6406,24 @@
   "voice": "el_destiny",
   "text": "It's working.",
   "p": 2
+ },
+ {
+  "id": "cb715d53",
+  "voice": "el_destiny",
+  "text": "Cheers! To Nixie, and to me getting married!",
+  "p": 1
+ },
+ {
+  "id": "ccf920b5",
+  "voice": "el_destiny",
+  "text": "[giggles] I'm crying. Am I crying? I'm crying.",
+  "p": 1
+ },
+ {
+  "id": "cdff7a2f",
+  "voice": "el_destiny",
+  "text": "[giggles] What? It's so loud! I love it!",
+  "p": 1
  },
  {
   "id": "ce90c64d",
@@ -6150,6 +6642,12 @@
   "p": 2
  },
  {
+  "id": "f436f81b",
+  "voice": "el_destiny",
+  "text": "[gasps] Excuse me! I'm trying to see Nixie!",
+  "p": 1
+ },
+ {
   "id": "f6ddbe50",
   "voice": "el_destiny",
   "text": "Excuse me, do you know where the pool party is?",
@@ -6186,6 +6684,18 @@
   "p": 1
  },
  {
+  "id": "ff73bd64",
+  "voice": "el_destiny",
+  "text": "[screaming] NIXIE! I'M GETTING MARRIED!",
+  "p": 1
+ },
+ {
+  "id": "01bb1f18",
+  "voice": "el_eleanor",
+  "text": "Very well, dear. Enjoying a concert, of all things.",
+  "p": 1
+ },
+ {
   "id": "02afa74d",
   "voice": "el_eleanor",
   "text": "Thanks!",
@@ -6202,6 +6712,12 @@
   "voice": "el_eleanor",
   "text": "It's working.",
   "p": 2
+ },
+ {
+  "id": "038338f2",
+  "voice": "el_eleanor",
+  "text": "Careful, dear. There's room for everyone at a concert.",
+  "p": 1
  },
  {
   "id": "03a1b027",
@@ -6258,6 +6774,12 @@
   "p": 2
  },
  {
+  "id": "098ced84",
+  "voice": "el_eleanor",
+  "text": "Well. I may have to buy one of her records, dear.",
+  "p": 1
+ },
+ {
   "id": "0a1476e7",
   "voice": "el_eleanor",
   "text": "Oh, you have to see the fountains from the terrace. And the suites upstairs. Wow.",
@@ -6292,6 +6814,18 @@
   "voice": "el_eleanor",
   "text": "To Vegas!",
   "p": 2
+ },
+ {
+  "id": "0f500260",
+  "voice": "el_eleanor",
+  "text": "To the music, dear.",
+  "p": 1
+ },
+ {
+  "id": "0f85055d",
+  "voice": "el_eleanor",
+  "text": "Mind the speakers, dear. They're terribly enthusiastic.",
+  "p": 1
  },
  {
   "id": "1018c556",
@@ -6330,6 +6864,12 @@
   "p": 2
  },
  {
+  "id": "14b39589",
+  "voice": "el_eleanor",
+  "text": "I haven't danced like that since nineteen seventy-four.",
+  "p": 1
+ },
+ {
   "id": "14e1bf72",
   "voice": "el_eleanor",
   "text": "Very well, thank you, dear. Winning, as it happens. I usually am.",
@@ -6358,6 +6898,12 @@
   "voice": "el_eleanor",
   "text": "Even with my snoring?",
   "p": 2
+ },
+ {
+  "id": "1baca4da",
+  "voice": "el_eleanor",
+  "text": "The young man at the turntables is rather good, isn't he?",
+  "p": 1
  },
  {
   "id": "1bb91fed",
@@ -6516,6 +7062,12 @@
   "p": 2
  },
  {
+  "id": "36c04aa0",
+  "voice": "el_eleanor",
+  "text": "[delighted] Oh, bravo! Bravo, dear!",
+  "p": 1
+ },
+ {
   "id": "384bf10b",
   "voice": "el_eleanor",
   "text": "Never let them see you count, dear.",
@@ -6570,6 +7122,12 @@
   "p": 2
  },
  {
+  "id": "4101b247",
+  "voice": "el_eleanor",
+  "text": "My granddaughter tells me this Nixie Vale is wonderful. We shall see, dear.",
+  "p": 1
+ },
+ {
   "id": "41b7bc97",
   "voice": "el_eleanor",
   "text": "Where is that machine?",
@@ -6604,6 +7162,12 @@
   "voice": "el_eleanor",
   "text": "He never knows when to stop.",
   "p": 2
+ },
+ {
+  "id": "451b7597",
+  "voice": "el_eleanor",
+  "text": "Such pretty lights, dear. Like a ballroom under the stars.",
+  "p": 1
  },
  {
   "id": "45301e5a",
@@ -6694,6 +7258,12 @@
   "voice": "el_eleanor",
   "text": "I swear I saw a famous chef at the steakhouse.",
   "p": 2
+ },
+ {
+  "id": "58581e14",
+  "voice": "el_eleanor",
+  "text": "[shouting] Wonderful! Simply wonderful!",
+  "p": 1
  },
  {
   "id": "59977ee2",
@@ -6846,6 +7416,12 @@
   "p": 2
  },
  {
+  "id": "747f66af",
+  "voice": "el_eleanor",
+  "text": "[indignant] My silk! At a concert, of all places.",
+  "p": 1
+ },
+ {
   "id": "7584fe15",
   "voice": "el_eleanor",
   "text": "[appalled] Well, I never! In all my years!",
@@ -6897,6 +7473,12 @@
   "id": "8002ecf4",
   "voice": "el_eleanor",
   "text": "Good evening.",
+  "p": 1
+ },
+ {
+  "id": "80be7436",
+  "voice": "el_eleanor",
+  "text": "Dear, would you tell me which one is the singer? The one in the shiny jacket?",
   "p": 1
  },
  {
@@ -6978,6 +7560,12 @@
   "p": 2
  },
  {
+  "id": "8b40018c",
+  "voice": "el_eleanor",
+  "text": "Is she on yet, dear? My feet are being very patient tonight.",
+  "p": 1
+ },
+ {
   "id": "8bdda8d0",
   "voice": "el_eleanor",
   "text": "Tell the bartender it's on Eleanor. She knows.",
@@ -6988,6 +7576,12 @@
   "voice": "el_eleanor",
   "text": "Keep your eyes open, it happens all night.",
   "p": 2
+ },
+ {
+  "id": "8d1ba6e6",
+  "voice": "el_eleanor",
+  "text": "[indignant] Was that thrown? At an audience? Shameful.",
+  "p": 1
  },
  {
   "id": "8d27705f",
@@ -7056,6 +7650,12 @@
   "p": 2
  },
  {
+  "id": "983f8da9",
+  "voice": "el_eleanor",
+  "text": "Quite right. Let's listen.",
+  "p": 1
+ },
+ {
   "id": "996a9853",
   "voice": "el_eleanor",
   "text": "[shouting] Help! Security, please!",
@@ -7066,6 +7666,12 @@
   "voice": "el_eleanor",
   "text": "You said that an hour ago.",
   "p": 2
+ },
+ {
+  "id": "9dec8e1d",
+  "voice": "el_eleanor",
+  "text": "Ah! Marvellous. She moves beautifully.",
+  "p": 1
  },
  {
   "id": "9e0a916d",
@@ -7146,6 +7752,12 @@
   "p": 2
  },
  {
+  "id": "a65d3c11",
+  "voice": "el_eleanor",
+  "text": "Do go closer, dear. One isn't young twice.",
+  "p": 1
+ },
+ {
   "id": "a6a46396",
   "voice": "el_eleanor",
   "text": "We're on thirty two. The view of the Strip is insane.",
@@ -7212,6 +7824,12 @@
   "p": 2
  },
  {
+  "id": "b506444f",
+  "voice": "el_eleanor",
+  "text": "[laughs] Oh my. Whoo! There, I said it.",
+  "p": 1
+ },
+ {
   "id": "b82403c5",
   "voice": "el_eleanor",
   "text": "I booked the tasting menu for nine.",
@@ -7254,10 +7872,22 @@
   "p": 2
  },
  {
+  "id": "c5fe3495",
+  "voice": "el_eleanor",
+  "text": "Oh, then I'll wait. I've waited for worse things, dear.",
+  "p": 1
+ },
+ {
   "id": "c6efae69",
   "voice": "el_eleanor",
   "text": "The tall one.",
   "p": 2
+ },
+ {
+  "id": "c70e64ae",
+  "voice": "el_eleanor",
+  "text": "[yelling] OW! Good heavens! Not at a concert!",
+  "p": 1
  },
  {
   "id": "c77f8ae7",
@@ -7296,6 +7926,12 @@
   "p": 2
  },
  {
+  "id": "cde50898",
+  "voice": "el_eleanor",
+  "text": "Chasing Dawn, I'm told. What a lovely title.",
+  "p": 1
+ },
+ {
   "id": "cde6a2cb",
   "voice": "el_eleanor",
   "text": "[yelling] OUCH! Somebody help!",
@@ -7320,6 +7956,12 @@
   "p": 1
  },
  {
+  "id": "d30a638c",
+  "voice": "el_eleanor",
+  "text": "Enjoy the music, dear.",
+  "p": 1
+ },
+ {
   "id": "d3301cbf",
   "voice": "el_eleanor",
   "text": "Sold out. We'll find something better.",
@@ -7329,6 +7971,12 @@
   "id": "d345c016",
   "voice": "el_eleanor",
   "text": "Young man, please!",
+  "p": 1
+ },
+ {
+  "id": "d3623061",
+  "voice": "el_eleanor",
+  "text": "Goodness! Do mind yourself, dear, I'm watching the stage.",
   "p": 1
  },
  {
@@ -7398,6 +8046,12 @@
   "p": 2
  },
  {
+  "id": "de30c102",
+  "voice": "el_eleanor",
+  "text": "What a voice. What a lovely voice.",
+  "p": 1
+ },
+ {
   "id": "dfe0d69d",
   "voice": "el_eleanor",
   "text": "Then I hope we never sit at the same table. For your sake, dear.",
@@ -7431,6 +8085,12 @@
   "id": "e574b608",
   "voice": "el_eleanor",
   "text": "Your mother would be ashamed of you, dear.",
+  "p": 1
+ },
+ {
+  "id": "e644d1dc",
+  "voice": "el_eleanor",
+  "text": "[appalled] During the music! Really, dear!",
   "p": 1
  },
  {
@@ -7536,16 +8196,34 @@
   "p": 2
  },
  {
+  "id": "fcd80c38",
+  "voice": "el_eleanor",
+  "text": "I'm afraid the drums have the floor, dear. Never mind.",
+  "p": 1
+ },
+ {
   "id": "006cd6f7",
   "voice": "el_kayla",
   "text": "How much?",
   "p": 2
  },
  {
+  "id": "008ba7b8",
+  "voice": "el_kayla",
+  "text": "[singing along] Ohhh, oh-oh-oh! [laughs]",
+  "p": 1
+ },
+ {
   "id": "00e46f6f",
   "voice": "el_kayla",
   "text": "Tell her you want something smoky. Trust me.",
   "p": 2
+ },
+ {
+  "id": "0144680b",
+  "voice": "el_kayla",
+  "text": "Oh my gosh, hon, I got goosebumps. Look!",
+  "p": 1
  },
  {
   "id": "01fa9bb5",
@@ -7558,6 +8236,12 @@
   "voice": "el_kayla",
   "text": "Fancy. Are we dressing up?",
   "p": 2
+ },
+ {
+  "id": "03934b26",
+  "voice": "el_kayla",
+  "text": "[shocked] Hon! My concert top!",
+  "p": 1
  },
  {
   "id": "03a7d895",
@@ -7584,10 +8268,22 @@
   "p": 2
  },
  {
+  "id": "0a262b90",
+  "voice": "el_kayla",
+  "text": "Oh, no way! Tell me when to scream, hon!",
+  "p": 1
+ },
+ {
   "id": "0aaafa1d",
   "voice": "el_kayla",
   "text": "It was twenty six dollars.",
   "p": 2
+ },
+ {
+  "id": "0ce9f838",
+  "voice": "el_kayla",
+  "text": "Oh! Easy there, hon, I'm tryin' to see the stage!",
+  "p": 1
  },
  {
   "id": "0f88dd54",
@@ -7636,6 +8332,12 @@
   "voice": "el_kayla",
   "text": "Hang in there. The night is young!",
   "p": 2
+ },
+ {
+  "id": "1c3a5a5c",
+  "voice": "el_kayla",
+  "text": "Oh, hi! Is this your first Nixie Vale show? It's mine! Can you tell?",
+  "p": 1
  },
  {
   "id": "1d06b4cc",
@@ -7788,6 +8490,12 @@
   "p": 2
  },
  {
+  "id": "342ff4ee",
+  "voice": "el_kayla",
+  "text": "That's goin' in the vacation scrapbook, for sure!",
+  "p": 1
+ },
+ {
   "id": "3485de61",
   "voice": "el_kayla",
   "text": "Winners all around.",
@@ -7842,6 +8550,12 @@
   "p": 2
  },
  {
+  "id": "4354dc57",
+  "voice": "el_kayla",
+  "text": "Ya, I took a nap this afternoon just for this. Worth it.",
+  "p": 1
+ },
+ {
   "id": "4a93cf6b",
   "voice": "el_kayla",
   "text": "A regular! What's your game?",
@@ -7851,6 +8565,12 @@
   "id": "4b22de45",
   "voice": "el_kayla",
   "text": "Oh, you're tough to impress! [laughs] Well, I love it.",
+  "p": 1
+ },
+ {
+  "id": "4c712d2e",
+  "voice": "el_kayla",
+  "text": "Ya, get your phone out for the chorus, hon!",
   "p": 1
  },
  {
@@ -7888,6 +8608,12 @@
   "voice": "el_kayla",
   "text": "A stomach ache from the buffet.",
   "p": 2
+ },
+ {
+  "id": "569f989c",
+  "voice": "el_kayla",
+  "text": "Whoa! Ya, careful, it's a concert, not a mosh pit!",
+  "p": 1
  },
  {
   "id": "56e0f2c9",
@@ -8088,6 +8814,12 @@
   "p": 2
  },
  {
+  "id": "712fee83",
+  "voice": "el_kayla",
+  "text": "[gasps] Oh, for cryin' out loud! In the middle of the show!",
+  "p": 1
+ },
+ {
   "id": "72c81d13",
   "voice": "el_kayla",
   "text": "Every fifteen minutes, I think.",
@@ -8118,6 +8850,12 @@
   "p": 2
  },
  {
+  "id": "76d1c144",
+  "voice": "el_kayla",
+  "text": "These lights, hon! It's like the northern lights but with a beat!",
+  "p": 1
+ },
+ {
   "id": "7928ae35",
   "voice": "el_kayla",
   "text": "We're on six. We see a parking lot.",
@@ -8128,6 +8866,12 @@
   "voice": "el_kayla",
   "text": "Respect. Somebody has to remember this night!",
   "p": 2
+ },
+ {
+  "id": "7cba5ff2",
+  "voice": "el_kayla",
+  "text": "[yelps] Ow! Who's throwin' things at a show?",
+  "p": 1
  },
  {
   "id": "7ce54c74",
@@ -8254,6 +8998,12 @@
   "voice": "el_kayla",
   "text": "What are you drinking? That looks good.",
   "p": 2
+ },
+ {
+  "id": "8a08a69b",
+  "voice": "el_kayla",
+  "text": "Oh, this DJ is so fun! My feet hurt and I don't even care!",
+  "p": 1
  },
  {
   "id": "8a33bd70",
@@ -8466,6 +9216,12 @@
   "p": 2
  },
  {
+  "id": "abc4b131",
+  "voice": "el_kayla",
+  "text": "[shouting] NIXIE! Oh my gosh! NIXIE!",
+  "p": 1
+ },
+ {
   "id": "ac035380",
   "voice": "el_kayla",
   "text": "You know what? Same.",
@@ -8542,6 +9298,12 @@
   "voice": "el_kayla",
   "text": "You look like you need a drink. The bar's amazing.",
   "p": 2
+ },
+ {
+  "id": "b69c05be",
+  "voice": "el_kayla",
+  "text": "[shouting] OW! Oh my gosh! At a concert?!",
+  "p": 1
  },
  {
   "id": "b90ec742",
@@ -8640,16 +9402,40 @@
   "p": 2
  },
  {
+  "id": "cd578301",
+  "voice": "el_kayla",
+  "text": "Oh my gosh, is she on yet? I'm so excited, ya!",
+  "p": 1
+ },
+ {
   "id": "cdb31aee",
   "voice": "el_kayla",
   "text": "This carpet is wild.",
   "p": 2
  },
  {
+  "id": "cebd2f97",
+  "voice": "el_kayla",
+  "text": "[shouting] We love you, Nixie!",
+  "p": 1
+ },
+ {
+  "id": "d1049a9b",
+  "voice": "el_kayla",
+  "text": "Oh, the best! First vacation in years and I'm at a concert by a pool!",
+  "p": 1
+ },
+ {
   "id": "d1a042b8",
   "voice": "el_kayla",
   "text": "Say that again? Actually, never mind. Good luck out there!",
   "p": 2
+ },
+ {
+  "id": "d5c14370",
+  "voice": "el_kayla",
+  "text": "Oh, hi there! Come on up, there's room by the stage!",
+  "p": 1
  },
  {
   "id": "d5cd7842",
@@ -8682,6 +9468,12 @@
   "p": 2
  },
  {
+  "id": "da6bfcc8",
+  "voice": "el_kayla",
+  "text": "[laughs] Sorry, hon, it's so loud! You betcha!",
+  "p": 1
+ },
+ {
   "id": "db6dd303",
   "voice": "el_kayla",
   "text": "He's playing all night. Grab a lounger before they're gone!",
@@ -8712,10 +9504,28 @@
   "p": 2
  },
  {
+  "id": "dd65d3e8",
+  "voice": "el_kayla",
+  "text": "[cheering] Whooo! You betcha!",
+  "p": 1
+ },
+ {
   "id": "ddc289e8",
   "voice": "el_kayla",
   "text": "Happy anniversary, by the way.",
   "p": 2
+ },
+ {
+  "id": "e0d7196c",
+  "voice": "el_kayla",
+  "text": "Oh, okay! Back to the music, hon.",
+  "p": 1
+ },
+ {
+  "id": "e0f49b0b",
+  "voice": "el_kayla",
+  "text": "Cheers, hon! To the show!",
+  "p": 1
  },
  {
   "id": "e123403c",
@@ -8734,6 +9544,12 @@
   "voice": "el_kayla",
   "text": "Very carefully.",
   "p": 2
+ },
+ {
+  "id": "e3cf9d13",
+  "voice": "el_kayla",
+  "text": "Oh, yay! We're concert buddies now, ya?",
+  "p": 1
  },
  {
   "id": "e3f7ef17",
@@ -8782,6 +9598,12 @@
   "voice": "el_kayla",
   "text": "I hit a slot bonus on the piggy machine.",
   "p": 2
+ },
+ {
+  "id": "ebad589b",
+  "voice": "el_kayla",
+  "text": "I heard she's opening with Chasing Dawn! I've been playin' it on night shifts all year!",
+  "p": 1
  },
  {
   "id": "ebdef77b",
@@ -8850,6 +9672,12 @@
   "p": 2
  },
  {
+  "id": "f6e3dff2",
+  "voice": "el_kayla",
+  "text": "Okay, bye now! Enjoy the show!",
+  "p": 1
+ },
+ {
   "id": "f71fc012",
   "voice": "el_kayla",
   "text": "A free drink.",
@@ -8892,6 +9720,12 @@
   "p": 2
  },
  {
+  "id": "0078cddc",
+  "voice": "el_marcus",
+  "text": "Man, I'm great! Pool party, live show, best night of the trip!",
+  "p": 1
+ },
+ {
   "id": "02bdc91d",
   "voice": "el_marcus",
   "text": "Sure thing, my friend.",
@@ -8925,6 +9759,12 @@
   "id": "08792744",
   "voice": "el_marcus",
   "text": "Ayyy, what's good!",
+  "p": 1
+ },
+ {
+  "id": "093091b6",
+  "voice": "el_marcus",
+  "text": "These lights, man! It's like we're inside a music video.",
   "p": 1
  },
  {
@@ -9022,6 +9862,12 @@
   "voice": "el_marcus",
   "text": "Is this your first time in Vegas?",
   "p": 2
+ },
+ {
+  "id": "1d4df828",
+  "voice": "el_marcus",
+  "text": "[shouting] OW! Are you serious?! During the show?!",
+  "p": 1
  },
  {
   "id": "1e7cc8c6",
@@ -9126,6 +9972,12 @@
   "p": 1
  },
  {
+  "id": "2abdaf5b",
+  "voice": "el_marcus",
+  "text": "You ready to scream yourself hoarse tonight? [laughs]",
+  "p": 1
+ },
+ {
   "id": "2b3ec18b",
   "voice": "el_marcus",
   "text": "Keep your eyes open, it happens all night.",
@@ -9178,6 +10030,12 @@
   "voice": "el_marcus",
   "text": "Mike lost his shoes.",
   "p": 2
+ },
+ {
+  "id": "2f56d9da",
+  "voice": "el_marcus",
+  "text": "[laughs] Can't hear you over the bass, but I love the energy!",
+  "p": 1
  },
  {
   "id": "331f6974",
@@ -9312,6 +10170,12 @@
   "p": 2
  },
  {
+  "id": "422659bc",
+  "voice": "el_marcus",
+  "text": "Ayy, come get up front with us!",
+  "p": 1
+ },
+ {
   "id": "427fc467",
   "voice": "el_marcus",
   "text": "Lucky!",
@@ -9358,6 +10222,12 @@
   "voice": "el_marcus",
   "text": "That's the point, honey.",
   "p": 2
+ },
+ {
+  "id": "4eb1ec0f",
+  "voice": "el_marcus",
+  "text": "Catch you up front! Let's go!",
+  "p": 1
  },
  {
   "id": "51d88d73",
@@ -9444,6 +10314,18 @@
   "p": 2
  },
  {
+  "id": "6339491f",
+  "voice": "el_marcus",
+  "text": "Yo! You seen Nixie live before? Because I'm about to cry. [laughs]",
+  "p": 1
+ },
+ {
+  "id": "6477d065",
+  "voice": "el_marcus",
+  "text": "[angry] My concert outfit! Unbelievable.",
+  "p": 1
+ },
+ {
   "id": "65463eac",
   "voice": "el_marcus",
   "text": "Fair.",
@@ -9453,6 +10335,18 @@
   "id": "65bfc6ef",
   "voice": "el_marcus",
   "text": "You're paying for my dry cleaning. All of it.",
+  "p": 1
+ },
+ {
+  "id": "65f80c19",
+  "voice": "el_marcus",
+  "text": "Alright, alright, save it for the chorus!",
+  "p": 1
+ },
+ {
+  "id": "6760d0f0",
+  "voice": "el_marcus",
+  "text": "Yo, is she on yet? I need to see Nixie Vale tonight!",
   "p": 1
  },
  {
@@ -9472,6 +10366,12 @@
   "voice": "el_marcus",
   "text": "To Vegas!",
   "p": 2
+ },
+ {
+  "id": "6b1fa58e",
+  "voice": "el_marcus",
+  "text": "[cheering] Whooo! Come on!",
+  "p": 1
  },
  {
   "id": "6bcb6aee",
@@ -9510,10 +10410,28 @@
   "p": 2
  },
  {
+  "id": "6f23ec8c",
+  "voice": "el_marcus",
+  "text": "Whoa, excuse you! I'm trying to see the stage!",
+  "p": 1
+ },
+ {
   "id": "7083b4cc",
   "voice": "el_marcus",
   "text": "Don't say it like that.",
   "p": 2
+ },
+ {
+  "id": "717afa97",
+  "voice": "el_marcus",
+  "text": "[shouting] Sing it! SING IT!",
+  "p": 1
+ },
+ {
+  "id": "736c7f1c",
+  "voice": "el_marcus",
+  "text": "Front row or nothing, that's the plan. Let's go!",
+  "p": 1
  },
  {
   "id": "740dc9bb",
@@ -9526,6 +10444,12 @@
   "voice": "el_marcus",
   "text": "Pass line, take the odds, pray.",
   "p": 2
+ },
+ {
+  "id": "75707061",
+  "voice": "el_marcus",
+  "text": "[outraged] Bro! In the middle of the show?!",
+  "p": 1
  },
  {
   "id": "76aa587c",
@@ -9582,6 +10506,12 @@
   "p": 2
  },
  {
+  "id": "7fc5cdf3",
+  "voice": "el_marcus",
+  "text": "Then you know! Lead the way to the front, my guy!",
+  "p": 1
+ },
+ {
   "id": "80c91fec",
   "voice": "el_marcus",
   "text": "Thanks!",
@@ -9622,6 +10552,12 @@
   "voice": "el_marcus",
   "text": "Hang in there. The night is young!",
   "p": 2
+ },
+ {
+  "id": "88a6dfbc",
+  "voice": "el_marcus",
+  "text": "[angry] Did you just throw that? At a concert?",
+  "p": 1
  },
  {
   "id": "8ac0a000",
@@ -9726,6 +10662,18 @@
   "p": 2
  },
  {
+  "id": "9e6970bd",
+  "voice": "el_marcus",
+  "text": "I heard she's opening with Chasing Dawn. The groom's gonna freak out.",
+  "p": 1
+ },
+ {
+  "id": "a1f37151",
+  "voice": "el_marcus",
+  "text": "[shouting] NIXIE! NIXIE! Let's GOOO!",
+  "p": 1
+ },
+ {
   "id": "a217e5bf",
   "voice": "el_marcus",
   "text": "I hit a slot bonus on the piggy machine.",
@@ -9784,6 +10732,12 @@
   "voice": "el_marcus",
   "text": "You look like you need a drink. The bar's amazing.",
   "p": 2
+ },
+ {
+  "id": "ab6ce7fd",
+  "voice": "el_marcus",
+  "text": "[laughs] My voice is gone. Totally worth it.",
+  "p": 1
  },
  {
   "id": "ae4ad4f6",
@@ -9972,6 +10926,12 @@
   "p": 2
  },
  {
+  "id": "cc56d2e6",
+  "voice": "el_marcus",
+  "text": "This DJ is cooking! I'm sweating already. [laughs]",
+  "p": 1
+ },
+ {
   "id": "cd1afd19",
   "voice": "el_marcus",
   "text": "A very nice parking lot.",
@@ -10036,6 +10996,18 @@
   "voice": "el_marcus",
   "text": "So, no.",
   "p": 2
+ },
+ {
+  "id": "d72b767f",
+  "voice": "el_marcus",
+  "text": "Hey, easy, man! Everybody wants the front.",
+  "p": 1
+ },
+ {
+  "id": "d7c96ecf",
+  "voice": "el_marcus",
+  "text": "Oh, you're gonna love it. Phones up for the chorus!",
+  "p": 1
  },
  {
   "id": "d82af1d3",
@@ -10170,6 +11142,12 @@
   "p": 2
  },
  {
+  "id": "f41a1136",
+  "voice": "el_marcus",
+  "text": "To Nixie, baby! Cheers!",
+  "p": 1
+ },
+ {
   "id": "f5788779",
   "voice": "el_marcus",
   "text": "Hand blown, every flower.",
@@ -10182,10 +11160,22 @@
   "p": 2
  },
  {
+  "id": "f6159360",
+  "voice": "el_marcus",
+  "text": "[laughs] She is unreal! Are you seeing this?!",
+  "p": 1
+ },
+ {
   "id": "f759faa6",
   "voice": "el_marcus",
   "text": "Tell her you want something smoky. Trust me.",
   "p": 2
+ },
+ {
+  "id": "f922bcec",
+  "voice": "el_marcus",
+  "text": "Bro. BRO. That was a whole movie.",
+  "p": 1
  },
  {
   "id": "f99d6a28",
@@ -10254,6 +11244,18 @@
   "p": 2
  },
  {
+  "id": "01cfcf36",
+  "voice": "el_margo",
+  "text": "Darling, is she on yet? I didn't do my hair for nothing.",
+  "p": 1
+ },
+ {
+  "id": "02b84fcf",
+  "voice": "el_margo",
+  "text": "Doesn't she? Honey, I used to have a jacket like that.",
+  "p": 1
+ },
+ {
   "id": "06169cd5",
   "voice": "el_margo",
   "text": "Darling, I'm fabulous. I'm always fabulous.",
@@ -10264,6 +11266,12 @@
   "voice": "el_margo",
   "text": "A very famous-looking waiter.",
   "p": 2
+ },
+ {
+  "id": "0adf66df",
+  "voice": "el_margo",
+  "text": "A headliner at a pool party. Now THAT'S Vegas, sugar.",
+  "p": 1
  },
  {
   "id": "0b778a52",
@@ -10446,6 +11454,12 @@
   "p": 2
  },
  {
+  "id": "259fcf94",
+  "voice": "el_margo",
+  "text": "[shouting] That's a STAR, everybody!",
+  "p": 1
+ },
+ {
   "id": "2615f606",
   "voice": "el_margo",
   "text": "This pool party is insane, right?",
@@ -10510,6 +11524,12 @@
   "voice": "el_margo",
   "text": "Then it's not a budget, it's a suggestion.",
   "p": 2
+ },
+ {
+  "id": "2cc97be4",
+  "voice": "el_margo",
+  "text": "Enjoy the show, darling!",
+  "p": 1
  },
  {
   "id": "2d088eb8",
@@ -10614,6 +11634,12 @@
   "p": 1
  },
  {
+  "id": "43eaaaed",
+  "voice": "el_margo",
+  "text": "Darling, I'm at a concert by the pool. I'm fabulous.",
+  "p": 1
+ },
+ {
   "id": "4423a38b",
   "voice": "el_margo",
   "text": "Chicago. You?",
@@ -10654,6 +11680,18 @@
   "voice": "el_margo",
   "text": "Right on. Right on.",
   "p": 2
+ },
+ {
+  "id": "49e421d3",
+  "voice": "el_margo",
+  "text": "Darling, get closer. Stars should be seen up close.",
+  "p": 1
+ },
+ {
+  "id": "4a8ea98d",
+  "voice": "el_margo",
+  "text": "Honey, nobody upstages me. Back up.",
+  "p": 1
  },
  {
   "id": "4c5d1913",
@@ -10866,6 +11904,12 @@
   "p": 1
  },
  {
+  "id": "71f1a6f0",
+  "voice": "el_margo",
+  "text": "[shrieks] Darling, this is a concert, not a car wash!",
+  "p": 1
+ },
+ {
   "id": "73c6efa6",
   "voice": "el_margo",
   "text": "Somebody's having a night!",
@@ -10914,6 +11958,12 @@
   "p": 2
  },
  {
+  "id": "79d60345",
+  "voice": "el_margo",
+  "text": "Mm. Speechless. I understand, sugar.",
+  "p": 1
+ },
+ {
   "id": "79f4232d",
   "voice": "el_margo",
   "text": "Bachelor party's at the pool later.",
@@ -10930,6 +11980,12 @@
   "voice": "el_margo",
   "text": "He's playing all night. Grab a lounger before they're gone!",
   "p": 2
+ },
+ {
+  "id": "7b59258f",
+  "voice": "el_margo",
+  "text": "Oh, she's got it, darling. She's got the sparkle.",
+  "p": 1
  },
  {
   "id": "7bc8b274",
@@ -10950,6 +12006,18 @@
   "p": 2
  },
  {
+  "id": "7fd6ca72",
+  "voice": "el_margo",
+  "text": "Honey, she gave us everything. Everything!",
+  "p": 1
+ },
+ {
+  "id": "7fdb607f",
+  "voice": "el_margo",
+  "text": "This DJ is divine, darling. I could dance all night.",
+  "p": 1
+ },
+ {
   "id": "80081964",
   "voice": "el_margo",
   "text": "I need coffee.",
@@ -10960,6 +12028,12 @@
   "voice": "el_margo",
   "text": "Remind me how much we budgeted?",
   "p": 2
+ },
+ {
+  "id": "8203cbf6",
+  "voice": "el_margo",
+  "text": "To the star of the night, darling.",
+  "p": 1
  },
  {
   "id": "8291aee6",
@@ -11040,6 +12114,12 @@
   "p": 2
  },
  {
+  "id": "8bc6a080",
+  "voice": "el_margo",
+  "text": "[angry] Who's throwing things at the audience?",
+  "p": 1
+ },
+ {
   "id": "8dfdae4f",
   "voice": "el_margo",
   "text": "In my day, this was all sawdust and cigarettes.",
@@ -11058,6 +12138,12 @@
   "p": 2
  },
  {
+  "id": "8f738c56",
+  "voice": "el_margo",
+  "text": "Darling, that was a performance. I'm verklempt.",
+  "p": 1
+ },
+ {
   "id": "91733232",
   "voice": "el_margo",
   "text": "Ha! There's a shop in the lobby. Think about it.",
@@ -11068,6 +12154,12 @@
   "voice": "el_margo",
   "text": "Again?",
   "p": 2
+ },
+ {
+  "id": "94faa7ae",
+  "voice": "el_margo",
+  "text": "Excuse me, darling! I'm watching a star!",
+  "p": 1
  },
  {
   "id": "9638392a",
@@ -11226,6 +12318,12 @@
   "p": 2
  },
  {
+  "id": "aeb07540",
+  "voice": "el_margo",
+  "text": "Darling, that jacket she wears. Sequins under the follow spot. Genius.",
+  "p": 1
+ },
+ {
   "id": "af8bfccc",
   "voice": "el_margo",
   "text": "Now THAT is a showstopper!",
@@ -11260,6 +12358,12 @@
   "voice": "el_margo",
   "text": "Pass line, take the odds, pray.",
   "p": 2
+ },
+ {
+  "id": "b4ffa7c7",
+  "voice": "el_margo",
+  "text": "They say she opens with Chasing Dawn. Honey, I'm ready.",
+  "p": 1
  },
  {
   "id": "b6ed3202",
@@ -11382,6 +12486,12 @@
   "p": 2
  },
  {
+  "id": "cb2f53d1",
+  "voice": "el_margo",
+  "text": "Oh, the voice too, sugar. But the sparkle helps.",
+  "p": 1
+ },
+ {
   "id": "ce2c5bac",
   "voice": "el_margo",
   "text": "Small world. You winning?",
@@ -11436,6 +12546,12 @@
   "p": 1
  },
  {
+  "id": "dd78b1df",
+  "voice": "el_margo",
+  "text": "[shouting] Work it, darling! WORK IT!",
+  "p": 1
+ },
+ {
   "id": "ddeba51e",
   "voice": "el_margo",
   "text": "Have you tried the new piggy bank slot?",
@@ -11445,6 +12561,12 @@
   "id": "ddfbd8dc",
   "voice": "el_margo",
   "text": "Never chase your losses, never trust a man in a fedora, and always tip the bartender. [laughs]",
+  "p": 1
+ },
+ {
+  "id": "e1456b03",
+  "voice": "el_margo",
+  "text": "Love the energy, sugar. Save some for the chorus.",
   "p": 1
  },
  {
@@ -11502,6 +12624,18 @@
   "p": 2
  },
  {
+  "id": "ec3e9cfa",
+  "voice": "el_margo",
+  "text": "[cheering] Whooo! Yes, honey!",
+  "p": 1
+ },
+ {
+  "id": "ec63f3f0",
+  "voice": "el_margo",
+  "text": "[shrieking] OW! Not the face! The lights are on me!",
+  "p": 1
+ },
+ {
   "id": "eeaf7433",
   "voice": "el_margo",
   "text": "Nothing wrong with that. Good luck!",
@@ -11520,10 +12654,22 @@
   "p": 2
  },
  {
+  "id": "f1984887",
+  "voice": "el_margo",
+  "text": "Darling, I can't hear a thing over the band. Isn't it heaven?",
+  "p": 1
+ },
+ {
   "id": "f1f2e12d",
   "voice": "el_margo",
   "text": "Ha, totally. Vegas, am I right?",
   "p": 2
+ },
+ {
+  "id": "f2cf6c32",
+  "voice": "el_margo",
+  "text": "[outraged] My gown! In front of the stage?!",
+  "p": 1
  },
  {
   "id": "f311f853",
@@ -11556,6 +12702,12 @@
   "p": 2
  },
  {
+  "id": "f7954bb5",
+  "voice": "el_margo",
+  "text": "Look at those lights, honey. Somebody knows how to stage a show.",
+  "p": 1
+ },
+ {
   "id": "f7a523ed",
   "voice": "el_margo",
   "text": "The pool party's going till two.",
@@ -11584,6 +12736,132 @@
   "voice": "el_margo",
   "text": "Did you see that guy win on roulette earlier? Straight up, thirty five to one!",
   "p": 2
+ },
+ {
+  "id": "00a1fc71",
+  "voice": "el_nixie",
+  "text": "Hey! Are you having fun out there? I can see everybody from up here.",
+  "p": 1
+ },
+ {
+  "id": "1135cea8",
+  "voice": "el_nixie",
+  "text": "Amazing! A little nervous. That's how you know it's gonna be good.",
+  "p": 1
+ },
+ {
+  "id": "11eddaf3",
+  "voice": "el_nixie",
+  "text": "[shouting] OW! Security! I have a show to do!",
+  "p": 1
+ },
+ {
+  "id": "130f2a26",
+  "voice": "el_nixie",
+  "text": "We're back on in a few. Don't go anywhere!",
+  "p": 1
+ },
+ {
+  "id": "1c66b84f",
+  "voice": "el_nixie",
+  "text": "[yelps] Ow! Hey, save the throwing for the confetti!",
+  "p": 1
+ },
+ {
+  "id": "32d709b9",
+  "voice": "el_nixie",
+  "text": "Cheers! To a great show tonight!",
+  "p": 1
+ },
+ {
+  "id": "435b5e96",
+  "voice": "el_nixie",
+  "text": "Hey! Thanks for coming out tonight!",
+  "p": 1
+ },
+ {
+  "id": "438530a0",
+  "voice": "el_nixie",
+  "text": "Hi! Any requests? Just kidding, it's always Chasing Dawn. [laughs]",
+  "p": 1
+ },
+ {
+  "id": "5cd124b7",
+  "voice": "el_nixie",
+  "text": "Easy! Let me get back to the band, okay?",
+  "p": 1
+ },
+ {
+  "id": "5e42e635",
+  "voice": "el_nixie",
+  "text": "[gasps] My stage jacket! I'm on soon!",
+  "p": 1
+ },
+ {
+  "id": "74a9bec8",
+  "voice": "el_nixie",
+  "text": "See you out front!",
+  "p": 1
+ },
+ {
+  "id": "9478a659",
+  "voice": "el_nixie",
+  "text": "Me too. It never gets old, singing it for you guys.",
+  "p": 1
+ },
+ {
+  "id": "a1dd8fc9",
+  "voice": "el_nixie",
+  "text": "Sorry, it's so loud back here! Catch me after the set!",
+  "p": 1
+ },
+ {
+  "id": "af4b2fb0",
+  "voice": "el_nixie",
+  "text": "[shocked] Oh no, not before the show!",
+  "p": 1
+ },
+ {
+  "id": "b6968471",
+  "voice": "el_nixie",
+  "text": "Save your voice for Chasing Dawn, okay?",
+  "p": 1
+ },
+ {
+  "id": "b89dcfa5",
+  "voice": "el_nixie",
+  "text": "You guys sound amazing out there. I can hear you from back here!",
+  "p": 1
+ },
+ {
+  "id": "c5719f87",
+  "voice": "el_nixie",
+  "text": "Aw, thank you! Wait till you hear the next set.",
+  "p": 1
+ },
+ {
+  "id": "d14c1278",
+  "voice": "el_nixie",
+  "text": "Okay, I gotta warm up. Enjoy the show!",
+  "p": 1
+ },
+ {
+  "id": "d26c9b4b",
+  "voice": "el_nixie",
+  "text": "After the set, I promise! Come find me by the stage.",
+  "p": 1
+ },
+ {
+  "id": "e65c2751",
+  "voice": "el_nixie",
+  "text": "[laughs] I'll ask the band. No promises!",
+  "p": 1
+ },
+ {
+  "id": "f4b18b22",
+  "voice": "el_nixie",
+  "text": "Whoa! Careful, I'm on in a few minutes!",
+  "p": 1
  },
  {
   "id": "01d007dd",
@@ -11620,6 +12898,12 @@
   "voice": "el_priya",
   "text": "You just don't know when to stop.",
   "p": 2
+ },
+ {
+  "id": "0e3246f7",
+  "voice": "el_priya",
+  "text": "[shouting] Nixie! Yes! YES!",
+  "p": 1
  },
  {
   "id": "0f45449f",
@@ -11676,6 +12960,12 @@
   "p": 2
  },
  {
+  "id": "177759fd",
+  "voice": "el_priya",
+  "text": "Okay, that's officially the best live set I've seen this year.",
+  "p": 1
+ },
+ {
   "id": "186bfcfa",
   "voice": "el_priya",
   "text": "How are you doing tonight?",
@@ -11686,6 +12976,12 @@
   "voice": "el_priya",
   "text": "Chicago. You?",
   "p": 2
+ },
+ {
+  "id": "18e83d55",
+  "voice": "el_priya",
+  "text": "Smart. Better mix. I'll think about it.",
+  "p": 1
  },
  {
   "id": "193df215",
@@ -11808,6 +13104,12 @@
   "p": 2
  },
  {
+  "id": "32fde883",
+  "voice": "el_priya",
+  "text": "Excuse me! You just blocked my shot of the stage.",
+  "p": 1
+ },
+ {
   "id": "347c35a5",
   "voice": "el_priya",
   "text": "Past the slots, on the left.",
@@ -11862,6 +13164,12 @@
   "p": 2
  },
  {
+  "id": "3bab32dd",
+  "voice": "el_priya",
+  "text": "Great. Excellent sight lines, perfect sound. Optimal night.",
+  "p": 1
+ },
+ {
   "id": "3bc07ffa",
   "voice": "el_priya",
   "text": "Is the pool open?",
@@ -11910,6 +13218,12 @@
   "p": 2
  },
  {
+  "id": "3f3d25cc",
+  "voice": "el_priya",
+  "text": "Right, back to the show.",
+  "p": 1
+ },
+ {
   "id": "3f95f8c1",
   "voice": "el_priya",
   "text": "Sure thing, my friend.",
@@ -11922,10 +13236,22 @@
   "p": 2
  },
  {
+  "id": "42f406e8",
+  "voice": "el_priya",
+  "text": "These lights are synced to the beat. I checked.",
+  "p": 1
+ },
+ {
   "id": "44100884",
   "voice": "el_priya",
   "text": "Dry heat, though.",
   "p": 2
+ },
+ {
+  "id": "4416874b",
+  "voice": "el_priya",
+  "text": "[angry] Did you just throw that? I'm filming!",
+  "p": 1
  },
  {
   "id": "45a4c115",
@@ -12048,6 +13374,12 @@
   "p": 2
  },
  {
+  "id": "5f4d65ce",
+  "voice": "el_priya",
+  "text": "Phones up for the chorus. You'll want the video.",
+  "p": 1
+ },
+ {
   "id": "5f83cf56",
   "voice": "el_priya",
   "text": "Wow. Okay. You and my friends can have a group chat.",
@@ -12082,6 +13414,12 @@
   "voice": "el_priya",
   "text": "How much?",
   "p": 2
+ },
+ {
+  "id": "619142b9",
+  "voice": "el_priya",
+  "text": "The DJ is mixing so clean. Not one beat out of place.",
+  "p": 1
  },
  {
   "id": "6357564e",
@@ -12138,6 +13476,24 @@
   "p": 1
  },
  {
+  "id": "6f524c96",
+  "voice": "el_priya",
+  "text": "[cheering] Whooo! Okay, that was perfect!",
+  "p": 1
+ },
+ {
+  "id": "700d5d8e",
+  "voice": "el_priya",
+  "text": "[angry] Unbelievable. Mid-chorus.",
+  "p": 1
+ },
+ {
+  "id": "704274b3",
+  "voice": "el_priya",
+  "text": "Hey! I was holding this spot!",
+  "p": 1
+ },
+ {
   "id": "735994e4",
   "voice": "el_priya",
   "text": "Never split tens. Never.",
@@ -12156,6 +13512,12 @@
   "p": 2
  },
  {
+  "id": "7eebb035",
+  "voice": "el_priya",
+  "text": "Sorry, the bass is drowning you out. I'll assume yes.",
+  "p": 1
+ },
+ {
   "id": "7f431e6e",
   "voice": "el_priya",
   "text": "I'm telling you, the dealer at table four is cold.",
@@ -12166,6 +13528,12 @@
   "voice": "el_priya",
   "text": "Up three hundred on blackjack. Down four on craps.",
   "p": 2
+ },
+ {
+  "id": "80fa5ce7",
+  "voice": "el_priya",
+  "text": "To a perfect set. Cheers.",
+  "p": 1
  },
  {
   "id": "82a91cef",
@@ -12204,10 +13572,22 @@
   "p": 2
  },
  {
+  "id": "86cfebbf",
+  "voice": "el_priya",
+  "text": "[shouting] Chasing Dawn! Let's GO!",
+  "p": 1
+ },
+ {
   "id": "86d8b220",
   "voice": "el_priya",
   "text": "I'm cutting myself off after this one.",
   "p": 2
+ },
+ {
+  "id": "8705c12c",
+  "voice": "el_priya",
+  "text": "[outraged] My phone! I was recording!",
+  "p": 1
  },
  {
   "id": "87a14a14",
@@ -12219,6 +13599,12 @@
   "id": "87a8ca9d",
   "voice": "el_priya",
   "text": "Right?! The blue one when it gets fat? Chef's kiss.",
+  "p": 1
+ },
+ {
+  "id": "88604913",
+  "voice": "el_priya",
+  "text": "Okay, enjoy the set!",
   "p": 1
  },
  {
@@ -12294,6 +13680,12 @@
   "p": 2
  },
  {
+  "id": "95a90cce",
+  "voice": "el_priya",
+  "text": "I heard she's opening with Chasing Dawn. Best possible opener.",
+  "p": 1
+ },
+ {
   "id": "95e55d00",
   "voice": "el_priya",
   "text": "I booked the tasting menu for nine.",
@@ -12334,6 +13726,12 @@
   "voice": "el_priya",
   "text": "I need coffee.",
   "p": 2
+ },
+ {
+  "id": "a1e2eeb0",
+  "voice": "el_priya",
+  "text": "I'm already checking when her next set starts.",
+  "p": 1
  },
  {
   "id": "a27669c0",
@@ -12588,6 +13986,18 @@
   "p": 2
  },
  {
+  "id": "cb344e1d",
+  "voice": "el_priya",
+  "text": "Is she on yet? I picked this spot for the sight lines.",
+  "p": 1
+ },
+ {
+  "id": "cbbfa3ff",
+  "voice": "el_priya",
+  "text": "She's on in a couple of minutes. I've been watching the stage crew.",
+  "p": 1
+ },
+ {
   "id": "cbcb53a2",
   "voice": "el_priya",
   "text": "Tell her you want something smoky. Trust me.",
@@ -12642,6 +14052,12 @@
   "p": 2
  },
  {
+  "id": "d18114b7",
+  "voice": "el_priya",
+  "text": "Front and centre is the best sound. Trust me, I checked.",
+  "p": 1
+ },
+ {
   "id": "d1cd199f",
   "voice": "el_priya",
   "text": "[laughs] Totally. Wait, what?",
@@ -12675,6 +14091,12 @@
   "id": "d638227f",
   "voice": "el_priya",
   "text": "[groans] Oh my god, that actually hurt!",
+  "p": 1
+ },
+ {
+  "id": "d849becf",
+  "voice": "el_priya",
+  "text": "Quick question. Front row or the middle? I'm optimising the experience.",
   "p": 1
  },
  {
@@ -12730,6 +14152,12 @@
   "voice": "el_priya",
   "text": "A regular! What's your game?",
   "p": 2
+ },
+ {
+  "id": "e2f964e7",
+  "voice": "el_priya",
+  "text": "[shouting] OW! Are you insane?! There's a show on!",
+  "p": 1
  },
  {
   "id": "e3ac3034",
@@ -12852,6 +14280,12 @@
   "p": 2
  },
  {
+  "id": "f6ec9d7c",
+  "voice": "el_priya",
+  "text": "I'm filming this. I'm filming all of this.",
+  "p": 1
+ },
+ {
   "id": "f76dc3d6",
   "voice": "el_priya",
   "text": "[shouting] SECURITY! Can someone get security, please?!",
@@ -12912,6 +14346,12 @@
   "p": 2
  },
  {
+  "id": "fd4cbd2f",
+  "voice": "el_priya",
+  "text": "Agreed. Higher energy, worse sound, worth it.",
+  "p": 1
+ },
+ {
   "id": "fdd75c2a",
   "voice": "el_priya",
   "text": "The pool party's going till two.",
@@ -12948,6 +14388,12 @@
   "p": 2
  },
  {
+  "id": "00d95915",
+  "voice": "el_reggie",
+  "text": "Splendid. I shall hold my position, then.",
+  "p": 1
+ },
+ {
   "id": "02317219",
   "voice": "el_reggie",
   "text": "Pass line, take the odds, pray.",
@@ -12976,6 +14422,12 @@
   "voice": "el_reggie",
   "text": "I have no idea what you just said, but I like your energy.",
   "p": 2
+ },
+ {
+  "id": "0676c929",
+  "voice": "el_reggie",
+  "text": "[appalled] In the middle of the show! Have you no manners?",
+  "p": 1
  },
  {
   "id": "06c47446",
@@ -13026,6 +14478,12 @@
   "p": 1
  },
  {
+  "id": "101c3449",
+  "voice": "el_reggie",
+  "text": "Mind the speakers, old chap. One's ears are precious.",
+  "p": 1
+ },
+ {
   "id": "10a9a59b",
   "voice": "el_reggie",
   "text": "I just watched a lady win twelve grand on a penny slot.",
@@ -13068,6 +14526,12 @@
   "p": 2
  },
  {
+  "id": "13e8f699",
+  "voice": "el_reggie",
+  "text": "Ah, well. The suspense is half the fun, I suppose.",
+  "p": 1
+ },
+ {
   "id": "15d2f9e9",
   "voice": "el_reggie",
   "text": "Nice jacket.",
@@ -13096,6 +14560,12 @@
   "voice": "el_reggie",
   "text": "Lost both.",
   "p": 2
+ },
+ {
+  "id": "17adbda7",
+  "voice": "el_reggie",
+  "text": "Forgive me, but do you know when Miss Vale comes on?",
+  "p": 1
  },
  {
   "id": "188413f2",
@@ -13212,10 +14682,22 @@
   "p": 2
  },
  {
+  "id": "3165f62e",
+  "voice": "el_reggie",
+  "text": "Ah. Saving your voice. Very wise.",
+  "p": 1
+ },
+ {
   "id": "323d7c3b",
   "voice": "el_reggie",
   "text": "Or two.",
   "p": 2
+ },
+ {
+  "id": "33370e94",
+  "voice": "el_reggie",
+  "text": "Enjoy the concert.",
+  "p": 1
  },
  {
   "id": "34be2e63",
@@ -13300,6 +14782,18 @@
   "voice": "el_reggie",
   "text": "Then that's where I'm headed. Good luck!",
   "p": 2
+ },
+ {
+  "id": "488014af",
+  "voice": "el_reggie",
+  "text": "[shouting] Bravo! BRAVO!",
+  "p": 1
+ },
+ {
+  "id": "49c85444",
+  "voice": "el_reggie",
+  "text": "Apparently she opens with Chasing Dawn. I've been humming it all week.",
+  "p": 1
  },
  {
   "id": "4b00e252",
@@ -13500,6 +14994,12 @@
   "p": 2
  },
  {
+  "id": "6447fb62",
+  "voice": "el_reggie",
+  "text": "Marvellous. Absolutely marvellous.",
+  "p": 1
+ },
+ {
   "id": "651a0d10",
   "voice": "el_reggie",
   "text": "Remarkable ceiling. Utterly unnecessary. I love it.",
@@ -13530,6 +15030,12 @@
   "p": 2
  },
  {
+  "id": "6b1e2179",
+  "voice": "el_reggie",
+  "text": "Do find a spot near the front, the sound is glorious.",
+  "p": 1
+ },
+ {
   "id": "6dcfd11d",
   "voice": "el_reggie",
   "text": "No worries. I'll follow the music.",
@@ -13557,6 +15063,12 @@
   "id": "6fc189a6",
   "voice": "el_reggie",
   "text": "Quite. Well, carry on.",
+  "p": 1
+ },
+ {
+  "id": "718a3e42",
+  "voice": "el_reggie",
+  "text": "Splendid, thank you. Waiting for the headliner, like a proper fan.",
   "p": 1
  },
  {
@@ -13590,10 +15102,22 @@
   "p": 2
  },
  {
+  "id": "785ade0f",
+  "voice": "el_reggie",
+  "text": "[indignant] You've soaked my blazer, mid-chorus.",
+  "p": 1
+ },
+ {
   "id": "78666035",
   "voice": "el_reggie",
   "text": "You know what? Same.",
   "p": 2
+ },
+ {
+  "id": "789f0ce3",
+  "voice": "el_reggie",
+  "text": "These lights are quite something. Like a very elegant thunderstorm.",
+  "p": 1
  },
  {
   "id": "78a83f9b",
@@ -13608,16 +15132,40 @@
   "p": 2
  },
  {
+  "id": "79d779f5",
+  "voice": "el_reggie",
+  "text": "To the band. Cheers.",
+  "p": 1
+ },
+ {
   "id": "7a5d833b",
   "voice": "el_reggie",
   "text": "Ha! Famous last words. Good luck!",
   "p": 2
  },
  {
+  "id": "7a98dc3f",
+  "voice": "el_reggie",
+  "text": "That was rather magnificent, wasn't it?",
+  "p": 1
+ },
+ {
   "id": "7b3632a2",
   "voice": "el_reggie",
   "text": "Thanks, it's rented.",
   "p": 2
+ },
+ {
+  "id": "7c30c72f",
+  "voice": "el_reggie",
+  "text": "[indignant] Was that thrown at me? At a concert?",
+  "p": 1
+ },
+ {
+  "id": "7d89ce1b",
+  "voice": "el_reggie",
+  "text": "I'm told this Nixie Vale is rather extraordinary live.",
+  "p": 1
  },
  {
   "id": "7f46f7df",
@@ -13764,6 +15312,12 @@
   "p": 2
  },
  {
+  "id": "9b5d3928",
+  "voice": "el_reggie",
+  "text": "Is she on yet? I've been standing here for a small eternity.",
+  "p": 1
+ },
+ {
   "id": "9d36737c",
   "voice": "el_reggie",
   "text": "The magician. My cousin saw it, said it's unreal.",
@@ -13848,6 +15402,12 @@
   "p": 1
  },
  {
+  "id": "a937be8a",
+  "voice": "el_reggie",
+  "text": "[yelling] OUCH! This is a concert, not a brawl!",
+  "p": 1
+ },
+ {
   "id": "a9ca1585",
   "voice": "el_reggie",
   "text": "It's midnight.",
@@ -13918,6 +15478,12 @@
   "voice": "el_reggie",
   "text": "Last year it was a waiter.",
   "p": 2
+ },
+ {
+  "id": "b5e14a83",
+  "voice": "el_reggie",
+  "text": "[cheering] Whoo! Oh, I say!",
+  "p": 1
  },
  {
   "id": "b69d1202",
@@ -14052,6 +15618,12 @@
   "p": 2
  },
  {
+  "id": "d4d6a85c",
+  "voice": "el_reggie",
+  "text": "I say! Some of us are trying to watch the stage.",
+  "p": 1
+ },
+ {
   "id": "d52426cd",
   "voice": "el_reggie",
   "text": "Respect. Somebody has to remember this night!",
@@ -14074,6 +15646,12 @@
   "voice": "el_reggie",
   "text": "Don't say it like that.",
   "p": 2
+ },
+ {
+  "id": "ddcc6ae3",
+  "voice": "el_reggie",
+  "text": "I believe I have just become a fan. How embarrassing.",
+  "p": 1
  },
  {
   "id": "de800458",
@@ -14172,6 +15750,12 @@
   "p": 2
  },
  {
+  "id": "ebed0189",
+  "voice": "el_reggie",
+  "text": "The DJ is splendid. I may even attempt to dance.",
+  "p": 1
+ },
+ {
   "id": "ec50efc7",
   "voice": "el_reggie",
   "text": "Hang in there. The night is young!",
@@ -14220,10 +15804,22 @@
   "p": 2
  },
  {
+  "id": "f28f065d",
+  "voice": "el_reggie",
+  "text": "Steady on, old chap. There's a concert happening.",
+  "p": 1
+ },
+ {
   "id": "f34bc4e2",
   "voice": "el_reggie",
   "text": "Text the group, we're at the bar.",
   "p": 2
+ },
+ {
+  "id": "f3cf99e1",
+  "voice": "el_reggie",
+  "text": "Terribly sorry, the music's rather loud. I'll assume you agree.",
+  "p": 1
  },
  {
   "id": "f5503d22",
@@ -14284,6 +15880,12 @@
   "voice": "el_reggie",
   "text": "What time is the show?",
   "p": 2
+ },
+ {
+  "id": "fe6d8fe8",
+  "voice": "el_reggie",
+  "text": "[shouting] Encore! Well, eventually. ENCORE!",
+  "p": 1
  },
  {
   "id": "0001e216",
@@ -14352,10 +15954,22 @@
   "p": 2
  },
  {
+  "id": "0a9163c6",
+  "voice": "el_rosa",
+  "text": "[shouting] Nixie! ¡Eso!",
+  "p": 1
+ },
+ {
   "id": "0b054395",
   "voice": "el_rosa",
   "text": "I hit a slot bonus on the piggy machine.",
   "p": 2
+ },
+ {
+  "id": "0c9f23c0",
+  "voice": "el_rosa",
+  "text": "Chasing Dawn first, I hear. Good choice.",
+  "p": 1
  },
  {
   "id": "0daa6049",
@@ -14470,6 +16084,12 @@
   "voice": "el_rosa",
   "text": "I'm telling you, the dealer at table four is cold.",
   "p": 2
+ },
+ {
+  "id": "1ebbd372",
+  "voice": "el_rosa",
+  "text": "Good answer. Get closer, then.",
+  "p": 1
  },
  {
   "id": "1f0840ff",
@@ -14634,6 +16254,12 @@
   "p": 2
  },
  {
+  "id": "451dbdc6",
+  "voice": "el_rosa",
+  "text": "Go closer. The sound is better up front.",
+  "p": 1
+ },
+ {
   "id": "458b4de9",
   "voice": "el_rosa",
   "text": "[laughs softly] Then keep your face still, cariño.",
@@ -14676,6 +16302,12 @@
   "p": 1
  },
  {
+  "id": "50956193",
+  "voice": "el_rosa",
+  "text": "Mm. Enjoy the show, cariño.",
+  "p": 1
+ },
+ {
   "id": "50b78fb8",
   "voice": "el_rosa",
   "text": "Up three hundred on blackjack. Down four on craps.",
@@ -14715,6 +16347,18 @@
   "id": "51f27b47",
   "voice": "el_rosa",
   "text": "Ask the staff. I only know where the cards are.",
+  "p": 1
+ },
+ {
+  "id": "524afa7d",
+  "voice": "el_rosa",
+  "text": "The DJ is good. Not great. Good.",
+  "p": 1
+ },
+ {
+  "id": "53323fc2",
+  "voice": "el_rosa",
+  "text": "Mm. The music's louder than you. That's fine.",
   "p": 1
  },
  {
@@ -14802,6 +16446,12 @@
   "p": 2
  },
  {
+  "id": "61069868",
+  "voice": "el_rosa",
+  "text": "[cold] During the song. Really.",
+  "p": 1
+ },
+ {
   "id": "6276bc2a",
   "voice": "el_rosa",
   "text": "At night? Is the pool even open?",
@@ -14862,6 +16512,12 @@
   "p": 2
  },
  {
+  "id": "71a59244",
+  "voice": "el_rosa",
+  "text": "Mm. Stay for her. You'll see.",
+  "p": 1
+ },
+ {
   "id": "71f8eb2f",
   "voice": "el_rosa",
   "text": "Your cousin thinks everything is unreal.",
@@ -14890,6 +16546,12 @@
   "voice": "el_rosa",
   "text": "Ha! There's a shop in the lobby. Think about it.",
   "p": 2
+ },
+ {
+  "id": "7ba68717",
+  "voice": "el_rosa",
+  "text": "You came for her, or for the pool?",
+  "p": 1
  },
  {
   "id": "7bb07430",
@@ -14934,10 +16596,22 @@
   "p": 2
  },
  {
+  "id": "8206b72a",
+  "voice": "el_rosa",
+  "text": "[shouting] ¡Wepa!",
+  "p": 1
+ },
+ {
   "id": "8243bf59",
   "voice": "el_rosa",
   "text": "You said that an hour ago.",
   "p": 2
+ },
+ {
+  "id": "82e8c35e",
+  "voice": "el_rosa",
+  "text": "Good. Quiet nights are overrated.",
+  "p": 1
  },
  {
   "id": "83066188",
@@ -14970,6 +16644,12 @@
   "p": 2
  },
  {
+  "id": "86fdce1a",
+  "voice": "el_rosa",
+  "text": "Careful. I'm watching the show.",
+  "p": 1
+ },
+ {
   "id": "884dec0c",
   "voice": "el_rosa",
   "text": "To Vegas!",
@@ -14982,10 +16662,22 @@
   "p": 2
  },
  {
+  "id": "8af4af7c",
+  "voice": "el_rosa",
+  "text": "Mm. That band is tight.",
+  "p": 1
+ },
+ {
   "id": "8baf7536",
   "voice": "el_rosa",
   "text": "Want to get in the water? It is actually warm.",
   "p": 2
+ },
+ {
+  "id": "8bc8e16d",
+  "voice": "el_rosa",
+  "text": "[sharp] OW! ¡Oye! Not during the show!",
+  "p": 1
  },
  {
   "id": "8d92fafd",
@@ -15016,6 +16708,12 @@
   "voice": "el_rosa",
   "text": "Third. Can't stay away.",
   "p": 2
+ },
+ {
+  "id": "931f508d",
+  "voice": "el_rosa",
+  "text": "[cold] You throw things at a concert? Mm.",
+  "p": 1
  },
  {
   "id": "95125392",
@@ -15064,6 +16762,12 @@
   "voice": "el_rosa",
   "text": "It was twenty six dollars.",
   "p": 2
+ },
+ {
+  "id": "99d9087b",
+  "voice": "el_rosa",
+  "text": "Mm. She's the real thing.",
+  "p": 1
  },
  {
   "id": "9b030f53",
@@ -15118,6 +16822,12 @@
   "voice": "el_rosa",
   "text": "Somebody's having a night!",
   "p": 2
+ },
+ {
+  "id": "a6b3e4ec",
+  "voice": "el_rosa",
+  "text": "Okay. I'm impressed. Don't tell anyone.",
+  "p": 1
  },
  {
   "id": "a8932e6c",
@@ -15178,6 +16888,12 @@
   "voice": "el_rosa",
   "text": "Text the group, we're at the bar.",
   "p": 2
+ },
+ {
+  "id": "b05f7f0d",
+  "voice": "el_rosa",
+  "text": "Ciao. Enjoy the show.",
+  "p": 1
  },
  {
   "id": "b20e9e53",
@@ -15336,6 +17052,12 @@
   "p": 2
  },
  {
+  "id": "cd8298c4",
+  "voice": "el_rosa",
+  "text": "Is she on yet? No? Then I'll wait.",
+  "p": 1
+ },
+ {
   "id": "cfa40abf",
   "voice": "el_rosa",
   "text": "It's midnight.",
@@ -15358,6 +17080,12 @@
   "voice": "el_rosa",
   "text": "The magician. My cousin saw it, said it's unreal.",
   "p": 2
+ },
+ {
+  "id": "d1e8052b",
+  "voice": "el_rosa",
+  "text": "Mm. Push me again and you'll watch from the pool.",
+  "p": 1
  },
  {
   "id": "d3c781e0",
@@ -15408,6 +17136,18 @@
   "p": 2
  },
  {
+  "id": "de66a02e",
+  "voice": "el_rosa",
+  "text": "Mm. Watch the stage.",
+  "p": 1
+ },
+ {
+  "id": "df7fa2af",
+  "voice": "el_rosa",
+  "text": "Nice lights. Somebody here has taste.",
+  "p": 1
+ },
+ {
   "id": "e17daff3",
   "voice": "el_rosa",
   "text": "Pass line, take the odds, pray.",
@@ -15424,6 +17164,12 @@
   "voice": "el_rosa",
   "text": "Have you tried the new piggy bank slot?",
   "p": 2
+ },
+ {
+  "id": "e399cddf",
+  "voice": "el_rosa",
+  "text": "Mm. They say she's on soon.",
+  "p": 1
  },
  {
   "id": "e501386d",
@@ -15495,6 +17241,12 @@
   "id": "ef79d6f6",
   "voice": "el_rosa",
   "text": "They're watching the cameras. Smile.",
+  "p": 1
+ },
+ {
+  "id": "efcc909b",
+  "voice": "el_rosa",
+  "text": "[annoyed] Ay, cariño. Not at a concert.",
   "p": 1
  },
  {
@@ -15612,6 +17364,12 @@
   "p": 1
  },
  {
+  "id": "fb17c0f5",
+  "voice": "el_rosa",
+  "text": "[cheering] Whoo! ¡Vamos!",
+  "p": 1
+ },
+ {
   "id": "fb3c8b99",
   "voice": "el_rosa",
   "text": "Let's finish these first.",
@@ -15622,6 +17380,12 @@
   "voice": "el_rosa",
   "text": "A stomach ache from the buffet.",
   "p": 2
+ },
+ {
+  "id": "ff160a45",
+  "voice": "el_rosa",
+  "text": "Salud. To the singer.",
+  "p": 1
  },
  {
   "id": "ff1bb5db",
@@ -15744,6 +17508,12 @@
   "p": 2
  },
  {
+  "id": "159519b1",
+  "voice": "el_sal",
+  "text": "Get up close, kid. You gotta feel a voice like that.",
+  "p": 1
+ },
+ {
   "id": "19b3e1d4",
   "voice": "el_sal",
   "text": "Have you seen the bathrooms?",
@@ -15784,6 +17554,18 @@
   "voice": "el_sal",
   "text": "The tall one.",
   "p": 2
+ },
+ {
+  "id": "20155261",
+  "voice": "el_sal",
+  "text": "I sang on this Strip forty years, kid. Let's see what this Nixie's got.",
+  "p": 1
+ },
+ {
+  "id": "219e2c87",
+  "voice": "el_sal",
+  "text": "Hey. Easy. People are listenin' here.",
+  "p": 1
  },
  {
   "id": "2311e065",
@@ -15990,6 +17772,12 @@
   "p": 2
  },
  {
+  "id": "3d7f33e2",
+  "voice": "el_sal",
+  "text": "Listen to that phrasing. The kid's got it.",
+  "p": 1
+ },
+ {
   "id": "3fa930c0",
   "voice": "el_sal",
   "text": "[shouting] Security! Now!",
@@ -16044,6 +17832,18 @@
   "p": 2
  },
  {
+  "id": "45319e78",
+  "voice": "el_sal",
+  "text": "To the band, kid.",
+  "p": 1
+ },
+ {
+  "id": "454b327d",
+  "voice": "el_sal",
+  "text": "[roaring] OW! Not during the song, kid!",
+  "p": 1
+ },
+ {
   "id": "48b18d05",
   "voice": "el_sal",
   "text": "Hey! Fancy seeing you here.",
@@ -16056,9 +17856,21 @@
   "p": 2
  },
  {
+  "id": "4b89702b",
+  "voice": "el_sal",
+  "text": "Chasing Dawn, they tell me. Good title. Strong title.",
+  "p": 1
+ },
+ {
   "id": "4eca8bfe",
   "voice": "el_sal",
   "text": "They don't build them like this anymore. Oh wait, they just did.",
+  "p": 1
+ },
+ {
+  "id": "4f31efc2",
+  "voice": "el_sal",
+  "text": "Good. You'll never hear a song the same way again.",
   "p": 1
  },
  {
@@ -16074,10 +17886,22 @@
   "p": 2
  },
  {
+  "id": "51a3a152",
+  "voice": "el_sal",
+  "text": "[shouting] Brava! BRAVA!",
+  "p": 1
+ },
+ {
   "id": "5312d7d4",
   "voice": "el_sal",
   "text": "No worries. Have a good one!",
   "p": 2
+ },
+ {
+  "id": "57fe2cf5",
+  "voice": "el_sal",
+  "text": "I'll tell ya, kid. She's the real deal.",
+  "p": 1
  },
  {
   "id": "58c92b87",
@@ -16090,6 +17914,12 @@
   "voice": "el_sal",
   "text": "That's a system?",
   "p": 2
+ },
+ {
+  "id": "5dc6a82f",
+  "voice": "el_sal",
+  "text": "Still kickin', kid. Watchin' the new generation do it right.",
+  "p": 1
  },
  {
   "id": "61fd3524",
@@ -16140,10 +17970,22 @@
   "p": 2
  },
  {
+  "id": "6888c9b6",
+  "voice": "el_sal",
+  "text": "This DJ fella. No band, no horns. But the kids love it.",
+  "p": 1
+ },
+ {
   "id": "6912bbdd",
   "voice": "el_sal",
   "text": "A very famous-looking waiter.",
   "p": 2
+ },
+ {
+  "id": "69a7590c",
+  "voice": "el_sal",
+  "text": "Quiet one. Good. Listen to the music.",
+  "p": 1
  },
  {
   "id": "6a075e9c",
@@ -16162,6 +18004,12 @@
   "voice": "el_sal",
   "text": "To Vegas!",
   "p": 2
+ },
+ {
+  "id": "6d79ff42",
+  "voice": "el_sal",
+  "text": "[shouting] Atta girl! Sing it, sweetheart!",
+  "p": 1
  },
  {
   "id": "6f8f439f",
@@ -16212,6 +18060,12 @@
   "p": 2
  },
  {
+  "id": "7e7eab36",
+  "voice": "el_sal",
+  "text": "[angry] You throwin' things at a show? In my day, they'd toss you out.",
+  "p": 1
+ },
+ {
   "id": "7ea831ca",
   "voice": "el_sal",
   "text": "When's the next one?",
@@ -16222,6 +18076,12 @@
   "voice": "el_sal",
   "text": "Teach me your ways!",
   "p": 2
+ },
+ {
+  "id": "7fb1b77e",
+  "voice": "el_sal",
+  "text": "Enjoy the show, kid.",
+  "p": 1
  },
  {
   "id": "7fb3686b",
@@ -16264,6 +18124,12 @@
   "voice": "el_sal",
   "text": "Then that's where I'm headed. Good luck!",
   "p": 2
+ },
+ {
+  "id": "82f61da8",
+  "voice": "el_sal",
+  "text": "You know what makes a great singer, kid? Breath. Watch how she breathes.",
+  "p": 1
  },
  {
   "id": "83c436e6",
@@ -16398,6 +18264,12 @@
   "p": 2
  },
  {
+  "id": "9675dd58",
+  "voice": "el_sal",
+  "text": "[cold] Forty-year-old suit. At a concert. Unbelievable.",
+  "p": 1
+ },
+ {
   "id": "9718569a",
   "voice": "el_sal",
   "text": "Keep your eyes open, it happens all night.",
@@ -16446,6 +18318,12 @@
   "p": 1
  },
  {
+  "id": "9ebd8018",
+  "voice": "el_sal",
+  "text": "Eh, can't hear ya over the drums, kid. Good drums, though.",
+  "p": 1
+ },
+ {
   "id": "9fe3d2fc",
   "voice": "el_sal",
   "text": "That's what I like to hear. Where's the action?",
@@ -16485,6 +18363,12 @@
   "id": "a3486b58",
   "voice": "el_sal",
   "text": "Salud, kid.",
+  "p": 1
+ },
+ {
+  "id": "a447deb1",
+  "voice": "el_sal",
+  "text": "Respect the band, kid. They make her sound that good.",
   "p": 1
  },
  {
@@ -16614,6 +18498,12 @@
   "p": 2
  },
  {
+  "id": "c1bf928d",
+  "voice": "el_sal",
+  "text": "[whistles] Now THAT'S a voice!",
+  "p": 1
+ },
+ {
   "id": "c1e8ddc3",
   "voice": "el_sal",
   "text": "I'm telling you, the dealer at table four is cold.",
@@ -16630,6 +18520,12 @@
   "voice": "el_sal",
   "text": "It's working.",
   "p": 2
+ },
+ {
+  "id": "c58a7e90",
+  "voice": "el_sal",
+  "text": "[growls] In the middle of a song? You got no class, kid.",
+  "p": 1
  },
  {
   "id": "c62a2ef6",
@@ -16668,6 +18564,12 @@
   "p": 1
  },
  {
+  "id": "cdbfb1bf",
+  "voice": "el_sal",
+  "text": "Watch it, kid. Respect the show.",
+  "p": 1
+ },
+ {
   "id": "cdd6dd09",
   "voice": "el_sal",
   "text": "A stomach ache from the buffet.",
@@ -16692,6 +18594,12 @@
   "p": 2
  },
  {
+  "id": "d207fc0b",
+  "voice": "el_sal",
+  "text": "Is she on yet? In my day, the band warmed up the room first.",
+  "p": 1
+ },
+ {
   "id": "d20ec90f",
   "voice": "el_sal",
   "text": "How much?",
@@ -16714,6 +18622,12 @@
   "voice": "el_sal",
   "text": "Did you get tickets for the concert?",
   "p": 2
+ },
+ {
+  "id": "d33a572e",
+  "voice": "el_sal",
+  "text": "Ha! Fair enough. Dance, then. That's what it's for.",
+  "p": 1
  },
  {
   "id": "d344b92b",
@@ -16800,6 +18714,12 @@
   "p": 1
  },
  {
+  "id": "df30ecac",
+  "voice": "el_sal",
+  "text": "Lights like these, I'd have killed for 'em in my day.",
+  "p": 1
+ },
+ {
   "id": "dfe273da",
   "voice": "el_sal",
   "text": "A free drink.",
@@ -16863,6 +18783,12 @@
   "id": "e9977a91",
   "voice": "el_sal",
   "text": "Later, sure. I'll be here. I'm always here.",
+  "p": 1
+ },
+ {
+  "id": "e9d0dcfa",
+  "voice": "el_sal",
+  "text": "Forty years on this Strip. That one's up there.",
   "p": 1
  },
  {
@@ -17814,10 +19740,22 @@
   "p": 2
  },
  {
+  "id": "02b1374b",
+  "voice": "el_tommy",
+  "text": "I've never been to a real concert. Is it okay that I'm shaking?",
+  "p": 1
+ },
+ {
   "id": "03ab2eef",
   "voice": "el_tommy",
   "text": "Enjoy it, seriously!",
   "p": 2
+ },
+ {
+  "id": "03f65fc5",
+  "voice": "el_tommy",
+  "text": "[yelling] OW! Why?! I'm just here for the music!",
+  "p": 1
  },
  {
   "id": "03fd62c5",
@@ -17880,6 +19818,12 @@
   "p": 1
  },
  {
+  "id": "0e2214d3",
+  "voice": "el_tommy",
+  "text": "Okay. Okay! I'm staying right here then.",
+  "p": 1
+ },
+ {
   "id": "0e964e9b",
   "voice": "el_tommy",
   "text": "Alright, enjoy your night!",
@@ -17908,6 +19852,18 @@
   "voice": "el_tommy",
   "text": "She started it.",
   "p": 2
+ },
+ {
+  "id": "161ee585",
+  "voice": "el_tommy",
+  "text": "Is it okay if I dance? Like, is anyone watching? Okay. Okay.",
+  "p": 1
+ },
+ {
+  "id": "162eaedc",
+  "voice": "el_tommy",
+  "text": "My ears are ringing. Is that normal? That's normal, right?",
+  "p": 1
  },
  {
   "id": "19a16d25",
@@ -17940,10 +19896,22 @@
   "p": 2
  },
  {
+  "id": "1d7bf268",
+  "voice": "el_tommy",
+  "text": "Is she on yet? I'm not too late, right?",
+  "p": 1
+ },
+ {
   "id": "1dc22245",
   "voice": "el_tommy",
   "text": "Two hours ago.",
   "p": 2
+ },
+ {
+  "id": "1f2496a8",
+  "voice": "el_tommy",
+  "text": "Did that really just happen? Was I there?",
+  "p": 1
  },
  {
   "id": "21ee8dfa",
@@ -17956,6 +19924,12 @@
   "voice": "el_tommy",
   "text": "You love casinos.",
   "p": 2
+ },
+ {
+  "id": "23951408",
+  "voice": "el_tommy",
+  "text": "[groans] My concert shirt! I just bought it!",
+  "p": 1
  },
  {
   "id": "23b02d88",
@@ -18072,6 +20046,12 @@
   "p": 2
  },
  {
+  "id": "36507e67",
+  "voice": "el_tommy",
+  "text": "[shouting] This is the best night of my life!",
+  "p": 1
+ },
+ {
   "id": "38df2328",
   "voice": "el_tommy",
   "text": "The odds on that are terrible, by the way.",
@@ -18156,6 +20136,12 @@
   "p": 2
  },
  {
+  "id": "474903fc",
+  "voice": "el_tommy",
+  "text": "Dude! I almost missed the chorus!",
+  "p": 1
+ },
+ {
   "id": "47a0bfaf",
   "voice": "el_tommy",
   "text": "It was twenty six dollars.",
@@ -18189,6 +20175,12 @@
   "id": "4a2b56b7",
   "voice": "el_tommy",
   "text": "To... to fun!",
+  "p": 1
+ },
+ {
+  "id": "4a74d132",
+  "voice": "el_tommy",
+  "text": "[yelps] Ow! Who threw that? I'm trying to watch!",
   "p": 1
  },
  {
@@ -18258,6 +20250,12 @@
   "p": 2
  },
  {
+  "id": "5528738a",
+  "voice": "el_tommy",
+  "text": "[shouting] NIXIE! Oh my gosh, NIXIE!",
+  "p": 1
+ },
+ {
   "id": "5546761d",
   "voice": "el_tommy",
   "text": "I'm telling you, the dealer at table four is cold.",
@@ -18280,6 +20278,12 @@
   "voice": "el_tommy",
   "text": "Cheers!",
   "p": 2
+ },
+ {
+  "id": "5a75adc5",
+  "voice": "el_tommy",
+  "text": "Whoa! Sorry! Wait, you pushed me. I'm trying to see!",
+  "p": 1
  },
  {
   "id": "5b85a3a3",
@@ -18312,6 +20316,12 @@
   "p": 2
  },
  {
+  "id": "61c315fd",
+  "voice": "el_tommy",
+  "text": "Is this a good spot? It feels like a good spot.",
+  "p": 1
+ },
+ {
   "id": "63a2aa35",
   "voice": "el_tommy",
   "text": "It's supposed to keep you awake.",
@@ -18322,6 +20332,12 @@
   "voice": "el_tommy",
   "text": "How do they even clean that?",
   "p": 2
+ },
+ {
+  "id": "66e08274",
+  "voice": "el_tommy",
+  "text": "Okay, bye! Enjoy the show!",
+  "p": 1
  },
  {
   "id": "681dc3a9",
@@ -18408,6 +20424,12 @@
   "p": 2
  },
  {
+  "id": "768499a2",
+  "voice": "el_tommy",
+  "text": "Oh, okay. I'll just, um, watch the stage.",
+  "p": 1
+ },
+ {
   "id": "76aed6b3",
   "voice": "el_tommy",
   "text": "Chicago. You?",
@@ -18436,6 +20458,12 @@
   "voice": "el_tommy",
   "text": "Remind me how much we budgeted?",
   "p": 2
+ },
+ {
+  "id": "7c0f6373",
+  "voice": "el_tommy",
+  "text": "The lights are so cool. I'm taking a video for my mom.",
+  "p": 1
  },
  {
   "id": "7ea87f60",
@@ -18576,6 +20604,12 @@
   "p": 1
  },
  {
+  "id": "9118ce1c",
+  "voice": "el_tommy",
+  "text": "[shocked] Dude! I was filming!",
+  "p": 1
+ },
+ {
   "id": "9128e525",
   "voice": "el_tommy",
   "text": "Mike lost his shoes.",
@@ -18600,10 +20634,22 @@
   "p": 2
  },
  {
+  "id": "94dd475c",
+  "voice": "el_tommy",
+  "text": "Cheers! To my first concert!",
+  "p": 1
+ },
+ {
   "id": "94f9f096",
   "voice": "el_tommy",
   "text": "Dallas. First time here?",
   "p": 2
+ },
+ {
+  "id": "957a5a95",
+  "voice": "el_tommy",
+  "text": "Good! Great! I'm at a concert! Me! At a concert!",
+  "p": 1
  },
  {
   "id": "993e9a82",
@@ -18696,6 +20742,12 @@
   "p": 2
  },
  {
+  "id": "a474c216",
+  "voice": "el_tommy",
+  "text": "Okay, okay. I heard she's opening with Chasing Dawn. I'm so nervous. Why am I nervous?",
+  "p": 1
+ },
+ {
   "id": "a476717a",
   "voice": "el_tommy",
   "text": "Even with my snoring?",
@@ -18732,6 +20784,12 @@
   "p": 2
  },
  {
+  "id": "ad2c2812",
+  "voice": "el_tommy",
+  "text": "Um, hi. Do you know if she does an encore? I really, really hope so.",
+  "p": 1
+ },
+ {
   "id": "afd6aa27",
   "voice": "el_tommy",
   "text": "Okay, one more hand and then dinner.",
@@ -18748,6 +20806,12 @@
   "voice": "el_tommy",
   "text": "Last year it was a waiter.",
   "p": 2
+ },
+ {
+  "id": "b72b60a2",
+  "voice": "el_tommy",
+  "text": "Hi! Are you here for Nixie too? Me too!",
+  "p": 1
  },
  {
   "id": "b7ec57ea",
@@ -18834,6 +20898,12 @@
   "p": 2
  },
  {
+  "id": "c43d004f",
+  "voice": "el_tommy",
+  "text": "[cheering] Whooo! Ha, I did a whoo!",
+  "p": 1
+ },
+ {
   "id": "c4cf8a50",
   "voice": "el_tommy",
   "text": "You said that an hour ago.",
@@ -18910,6 +20980,12 @@
   "voice": "el_tommy",
   "text": "Text the group, we're at the bar.",
   "p": 2
+ },
+ {
+  "id": "cf97b936",
+  "voice": "el_tommy",
+  "text": "Oh no. Okay. I'll just cheer really loud, then.",
+  "p": 1
  },
  {
   "id": "cfe4eab1",
@@ -19044,6 +21120,12 @@
   "p": 2
  },
  {
+  "id": "e6c3df34",
+  "voice": "el_tommy",
+  "text": "Sorry, what? It's so loud! Ha. I love it.",
+  "p": 1
+ },
+ {
   "id": "e7d661d3",
   "voice": "el_tommy",
   "text": "No way! Drinks are on you, then!",
@@ -19126,6 +21208,12 @@
   "voice": "el_tommy",
   "text": "Red or black, the classic.",
   "p": 2
+ },
+ {
+  "id": "f63387d7",
+  "voice": "el_tommy",
+  "text": "[squealing] She looked at me! I think she looked at me!",
+  "p": 1
  },
  {
   "id": "f6a1ede5",
@@ -19260,6 +21348,12 @@
   "p": 2
  },
  {
+  "id": "19327458",
+  "voice": "el_vinnie",
+  "text": "Me? I'm at a Nixie Vale show at a pool party. I'm in heaven, my friend!",
+  "p": 1
+ },
+ {
   "id": "1c1a0b3b",
   "voice": "el_vinnie",
   "text": "Nice jacket.",
@@ -19326,6 +21420,18 @@
   "p": 2
  },
  {
+  "id": "2443d342",
+  "voice": "el_vinnie",
+  "text": "Salute! To Nixie!",
+  "p": 1
+ },
+ {
+  "id": "247df6b9",
+  "voice": "el_vinnie",
+  "text": "Eh, you're savin' your voice for the show. Smart.",
+  "p": 1
+ },
+ {
   "id": "254dd8a8",
   "voice": "el_vinnie",
   "text": "Then that's where I'm headed. Good luck!",
@@ -19336,6 +21442,12 @@
   "voice": "el_vinnie",
   "text": "Best weekend in years.",
   "p": 2
+ },
+ {
+  "id": "2afc3e8b",
+  "voice": "el_vinnie",
+  "text": "Go get up front, my friend! Enjoy the show!",
+  "p": 1
  },
  {
   "id": "2cd12c5f",
@@ -19356,15 +21468,33 @@
   "p": 2
  },
  {
+  "id": "305284c5",
+  "voice": "el_vinnie",
+  "text": "[shocked] Are you kiddin' me?! In the middle of the concert?!",
+  "p": 1
+ },
+ {
   "id": "310c541c",
   "voice": "el_vinnie",
   "text": "We should go out on the terrace for the fountains.",
   "p": 2
  },
  {
+  "id": "325e8338",
+  "voice": "el_vinnie",
+  "text": "[angry] Hey! Who's throwin' stuff at a concert?!",
+  "p": 1
+ },
+ {
   "id": "32f2ee10",
   "voice": "el_vinnie",
   "text": "You did not just throw a drink on me. You did NOT.",
+  "p": 1
+ },
+ {
+  "id": "352bd8ad",
+  "voice": "el_vinnie",
+  "text": "Hey! No cuttin', pal! I been here since the DJ!",
   "p": 1
  },
  {
@@ -19396,6 +21526,12 @@
   "voice": "el_vinnie",
   "text": "Small world. You winning?",
   "p": 2
+ },
+ {
+  "id": "39d22bd9",
+  "voice": "el_vinnie",
+  "text": "My friend, I got chills. Look at my arms. Chills!",
+  "p": 1
  },
  {
   "id": "3a31a442",
@@ -19614,6 +21750,12 @@
   "p": 2
  },
  {
+  "id": "5e12d5c0",
+  "voice": "el_vinnie",
+  "text": "[shouting] Chasing Dawn! That's my song!",
+  "p": 1
+ },
+ {
   "id": "5e8dcd23",
   "voice": "el_vinnie",
   "text": "Your loss! It's perfect.",
@@ -19644,10 +21786,22 @@
   "p": 2
  },
  {
+  "id": "610a8f65",
+  "voice": "el_vinnie",
+  "text": "Ah, stick around. Five minutes in, you'll be a fan. Trust me.",
+  "p": 1
+ },
+ {
   "id": "61c51153",
   "voice": "el_vinnie",
   "text": "A free drink.",
   "p": 2
+ },
+ {
+  "id": "63899e6c",
+  "voice": "el_vinnie",
+  "text": "[yelling] OW! I'm here to see a show, not be in one!",
+  "p": 1
  },
  {
   "id": "640ea458",
@@ -19734,10 +21888,22 @@
   "p": 2
  },
  {
+  "id": "725ad83d",
+  "voice": "el_vinnie",
+  "text": "My friend! You here for Nixie? Tell me you're here for Nixie.",
+  "p": 1
+ },
+ {
   "id": "73fe6182",
   "voice": "el_vinnie",
   "text": "You too!",
   "p": 2
+ },
+ {
+  "id": "76ad8de2",
+  "voice": "el_vinnie",
+  "text": "Whoa, whoa! Easy, my friend, I'm watchin' the show!",
+  "p": 1
  },
  {
   "id": "76cde874",
@@ -19762,6 +21928,18 @@
   "voice": "el_vinnie",
   "text": "Have you seen the bathrooms?",
   "p": 2
+ },
+ {
+  "id": "7a169d8c",
+  "voice": "el_vinnie",
+  "text": "Look at these lights, my friend! It's like a spaceship landed.",
+  "p": 1
+ },
+ {
+  "id": "7c36523a",
+  "voice": "el_vinnie",
+  "text": "My friend! Nixie Vale, live, at the pool. You believe this?",
+  "p": 1
  },
  {
   "id": "7c8f98ec",
@@ -19830,6 +22008,12 @@
   "p": 2
  },
  {
+  "id": "830f3b1b",
+  "voice": "el_vinnie",
+  "text": "Get up front, my friend! You gotta see her up close!",
+  "p": 1
+ },
+ {
   "id": "832201e7",
   "voice": "el_vinnie",
   "text": "No worries. Have a good one!",
@@ -19872,6 +22056,12 @@
   "p": 1
  },
  {
+  "id": "8bb5aace",
+  "voice": "el_vinnie",
+  "text": "Is she on yet? I been standin' here since the DJ started!",
+  "p": 1
+ },
+ {
   "id": "8bba72b3",
   "voice": "el_vinnie",
   "text": "Dallas. First time here?",
@@ -19894,6 +22084,12 @@
   "voice": "el_vinnie",
   "text": "Hey there! Having a good night?",
   "p": 2
+ },
+ {
+  "id": "9131c14b",
+  "voice": "el_vinnie",
+  "text": "[shouting] Unbelievable! UN-BE-LIEVABLE!",
+  "p": 1
  },
  {
   "id": "9147d01b",
@@ -19974,6 +22170,12 @@
   "p": 2
  },
  {
+  "id": "a34fee12",
+  "voice": "el_vinnie",
+  "text": "Ha! I can't hear nothin' over this bass. Whatever you said, I agree!",
+  "p": 1
+ },
+ {
   "id": "a3ccf0a1",
   "voice": "el_vinnie",
   "text": "Ha! Fair enough. Cheers!",
@@ -19984,6 +22186,12 @@
   "voice": "el_vinnie",
   "text": "Want to get in the water? It is actually warm.",
   "p": 2
+ },
+ {
+  "id": "a62162da",
+  "voice": "el_vinnie",
+  "text": "I heard she's openin' with Chasing Dawn. Swear on my mother.",
+  "p": 1
  },
  {
   "id": "a72f4c01",
@@ -20056,6 +22264,12 @@
   "voice": "el_vinnie",
   "text": "Very carefully.",
   "p": 2
+ },
+ {
+  "id": "af682b12",
+  "voice": "el_vinnie",
+  "text": "You feel that bass? Right in the chest, my friend!",
+  "p": 1
  },
  {
   "id": "af6fe79c",
@@ -20172,6 +22386,12 @@
   "p": 2
  },
  {
+  "id": "bd429da5",
+  "voice": "el_vinnie",
+  "text": "I knew it! You got taste. Get up front with me!",
+  "p": 1
+ },
+ {
   "id": "be5f0616",
   "voice": "el_vinnie",
   "text": "Sold out. We'll find something better.",
@@ -20199,6 +22419,12 @@
   "id": "bfae800c",
   "voice": "el_vinnie",
   "text": "Me? I'm up, I'm down, I'm havin' the time of my life! [laughs]",
+  "p": 1
+ },
+ {
+  "id": "c0fee9a3",
+  "voice": "el_vinnie",
+  "text": "[angry] The suit! At a concert! What's wrong with you?!",
   "p": 1
  },
  {
@@ -20388,6 +22614,18 @@
   "p": 2
  },
  {
+  "id": "e31cbec8",
+  "voice": "el_vinnie",
+  "text": "[shouting] NIXIE! I love you, sweetheart!",
+  "p": 1
+ },
+ {
+  "id": "e339260b",
+  "voice": "el_vinnie",
+  "text": "This DJ's got the whole deck jumpin', huh?",
+  "p": 1
+ },
+ {
   "id": "e6e32926",
   "voice": "el_vinnie",
   "text": "Don't say it like that.",
@@ -20416,6 +22654,12 @@
   "voice": "el_vinnie",
   "text": "Did you see that guy at roulette?",
   "p": 2
+ },
+ {
+  "id": "ecd79d0e",
+  "voice": "el_vinnie",
+  "text": "[cheering] Whooo! Yeah!",
+  "p": 1
  },
  {
   "id": "edb5bf1d",
@@ -20482,6 +22726,12 @@
   "voice": "el_vinnie",
   "text": "Pass line, take the odds, pray.",
   "p": 2
+ },
+ {
+  "id": "fb4eace1",
+  "voice": "el_vinnie",
+  "text": "[laughs] One more! One more! Come on, Nixie!",
+  "p": 1
  },
  {
   "id": "fbdf780e",
@@ -21054,6 +23304,12 @@
   "p": 1
  },
  {
+  "id": "04b7f7b0",
+  "voice": "el_you_f",
+  "text": "First time",
+  "p": 1
+ },
+ {
   "id": "0523a353",
   "voice": "el_you_f",
   "text": "Not really",
@@ -21096,9 +23352,21 @@
   "p": 1
  },
  {
+  "id": "17ee549f",
+  "voice": "el_you_f",
+  "text": "A little weird",
+  "p": 1
+ },
+ {
   "id": "19e5426e",
   "voice": "el_you_f",
   "text": "Just watching",
+  "p": 1
+ },
+ {
+  "id": "19eb7813",
+  "voice": "el_you_f",
+  "text": "The middle",
   "p": 1
  },
  {
@@ -21132,6 +23400,12 @@
   "p": 1
  },
  {
+  "id": "2559f098",
+  "voice": "el_you_f",
+  "text": "Your show is amazing",
+  "p": 1
+ },
+ {
   "id": "25ec7f08",
   "voice": "el_you_f",
   "text": "No, it's a big night",
@@ -21144,15 +23418,45 @@
   "p": 1
  },
  {
+  "id": "28ccd0d6",
+  "voice": "el_you_f",
+  "text": "Front row",
+  "p": 1
+ },
+ {
   "id": "31b0e557",
   "voice": "el_you_f",
   "text": "It's beautiful",
   "p": 1
  },
  {
+  "id": "3be1ae00",
+  "voice": "el_you_f",
+  "text": "She looks amazing",
+  "p": 1
+ },
+ {
   "id": "3cefd432",
   "voice": "el_you_f",
   "text": "Surprise me",
+  "p": 1
+ },
+ {
+  "id": "3d46a94f",
+  "voice": "el_you_f",
+  "text": "That's her",
+  "p": 1
+ },
+ {
+  "id": "3dc277d7",
+  "voice": "el_you_f",
+  "text": "Yeah, amazing",
+  "p": 1
+ },
+ {
+  "id": "418131d0",
+  "voice": "el_you_f",
+  "text": "I think so",
   "p": 1
  },
  {
@@ -21165,6 +23469,24 @@
   "id": "51aa4770",
   "voice": "el_you_f",
   "text": "Totally okay",
+  "p": 1
+ },
+ {
+  "id": "51ee5389",
+  "voice": "el_you_f",
+  "text": "Just here to dance",
+  "p": 1
+ },
+ {
+  "id": "543a2495",
+  "voice": "el_you_f",
+  "text": "Not weird",
+  "p": 1
+ },
+ {
+  "id": "547f84b8",
+  "voice": "el_you_f",
+  "text": "I'll watch",
   "p": 1
  },
  {
@@ -21246,6 +23568,12 @@
   "p": 1
  },
  {
+  "id": "71886b46",
+  "voice": "el_you_f",
+  "text": "Mine too",
+  "p": 1
+ },
+ {
   "id": "7615fa1a",
   "voice": "el_you_f",
   "text": "Yes",
@@ -21276,9 +23604,27 @@
   "p": 1
  },
  {
+  "id": "839efa95",
+  "voice": "el_you_f",
+  "text": "Any minute now",
+  "p": 1
+ },
+ {
   "id": "8cebc5e1",
   "voice": "el_you_f",
   "text": "The DJ is great",
+  "p": 1
+ },
+ {
+  "id": "8fa837c9",
+  "voice": "el_you_f",
+  "text": "Love that song",
+  "p": 1
+ },
+ {
+  "id": "8fa8762e",
+  "voice": "el_you_f",
+  "text": "Just the party",
   "p": 1
  },
  {
@@ -21408,6 +23754,12 @@
   "p": 1
  },
  {
+  "id": "bee50b3a",
+  "voice": "el_you_f",
+  "text": "Big fan",
+  "p": 1
+ },
+ {
   "id": "bf392803",
   "voice": "el_you_f",
   "text": "What's popular?",
@@ -21429,6 +23781,12 @@
   "id": "c3d89f18",
   "voice": "el_you_f",
   "text": "Isn't it late for a pool?",
+  "p": 1
+ },
+ {
+  "id": "c525df13",
+  "voice": "el_you_f",
+  "text": "I'm here for the music",
   "p": 1
  },
  {
@@ -21474,6 +23832,12 @@
   "p": 1
  },
  {
+  "id": "dc278497",
+  "voice": "el_you_f",
+  "text": "She's not on yet",
+  "p": 1
+ },
+ {
   "id": "dca79c10",
   "voice": "el_you_f",
   "text": "Craps",
@@ -21510,15 +23874,45 @@
   "p": 1
  },
  {
+  "id": "eb96ac12",
+  "voice": "el_you_f",
+  "text": "Seen her before",
+  "p": 1
+ },
+ {
   "id": "ed59c880",
   "voice": "el_you_f",
   "text": "What's hitting tonight?",
   "p": 1
  },
  {
+  "id": "f2378e4d",
+  "voice": "el_you_f",
+  "text": "For the pool",
+  "p": 1
+ },
+ {
   "id": "f561384c",
   "voice": "el_you_f",
   "text": "No",
+  "p": 1
+ },
+ {
+  "id": "f578c6ed",
+  "voice": "el_you_f",
+  "text": "Not sure",
+  "p": 1
+ },
+ {
+  "id": "f57f100d",
+  "voice": "el_you_f",
+  "text": "For her",
+  "p": 1
+ },
+ {
+  "id": "f7001b62",
+  "voice": "el_you_f",
+  "text": "Can I get a picture?",
   "p": 1
  },
  {
@@ -21552,9 +23946,27 @@
   "p": 1
  },
  {
+  "id": "ffc2cb45",
+  "voice": "el_you_f",
+  "text": "Play it twice!",
+  "p": 1
+ },
+ {
   "id": "057d9bc6",
   "voice": "el_you_m",
   "text": "It's double zero",
+  "p": 1
+ },
+ {
+  "id": "088dbb9c",
+  "voice": "el_you_m",
+  "text": "That's her",
+  "p": 1
+ },
+ {
+  "id": "099c0ebb",
+  "voice": "el_you_m",
+  "text": "Your show is amazing",
   "p": 1
  },
  {
@@ -21564,9 +23976,21 @@
   "p": 1
  },
  {
+  "id": "0e921211",
+  "voice": "el_you_m",
+  "text": "Just the party",
+  "p": 1
+ },
+ {
   "id": "0f0163fd",
   "voice": "el_you_m",
   "text": "I didn't bring a suit",
+  "p": 1
+ },
+ {
+  "id": "1472e3f9",
+  "voice": "el_you_m",
+  "text": "Can I get a picture?",
   "p": 1
  },
  {
@@ -21600,6 +24024,12 @@
   "p": 1
  },
  {
+  "id": "2500de0e",
+  "voice": "el_you_m",
+  "text": "Love that song",
+  "p": 1
+ },
+ {
   "id": "2568d722",
   "voice": "el_you_m",
   "text": "Missed it",
@@ -21612,9 +24042,33 @@
   "p": 1
  },
  {
+  "id": "289a12b7",
+  "voice": "el_you_m",
+  "text": "Big fan",
+  "p": 1
+ },
+ {
   "id": "28cbbdc0",
   "voice": "el_you_m",
   "text": "The DJ is great",
+  "p": 1
+ },
+ {
+  "id": "2f13df6b",
+  "voice": "el_you_m",
+  "text": "Seen her before",
+  "p": 1
+ },
+ {
+  "id": "32788188",
+  "voice": "el_you_m",
+  "text": "The middle",
+  "p": 1
+ },
+ {
+  "id": "333fc061",
+  "voice": "el_you_m",
+  "text": "She looks amazing",
   "p": 1
  },
  {
@@ -21645,6 +24099,36 @@
   "id": "46fecc03",
   "voice": "el_you_m",
   "text": "Just watching",
+  "p": 1
+ },
+ {
+  "id": "476f664b",
+  "voice": "el_you_m",
+  "text": "I think so",
+  "p": 1
+ },
+ {
+  "id": "487de922",
+  "voice": "el_you_m",
+  "text": "Not sure",
+  "p": 1
+ },
+ {
+  "id": "4deab5aa",
+  "voice": "el_you_m",
+  "text": "Any minute now",
+  "p": 1
+ },
+ {
+  "id": "53c9c27e",
+  "voice": "el_you_m",
+  "text": "For the pool",
+  "p": 1
+ },
+ {
+  "id": "5741bfa3",
+  "voice": "el_you_m",
+  "text": "I'll watch",
   "p": 1
  },
  {
@@ -21750,6 +24234,12 @@
   "p": 1
  },
  {
+  "id": "80392451",
+  "voice": "el_you_m",
+  "text": "Mine too",
+  "p": 1
+ },
+ {
   "id": "808542b3",
   "voice": "el_you_m",
   "text": "Sure you did",
@@ -21822,6 +24312,12 @@
   "p": 1
  },
  {
+  "id": "94bc1037",
+  "voice": "el_you_m",
+  "text": "Front row",
+  "p": 1
+ },
+ {
   "id": "954e6c81",
   "voice": "el_you_m",
   "text": "Isn't it late for a pool?",
@@ -21831,6 +24327,18 @@
   "id": "9c18c8d3",
   "voice": "el_you_m",
   "text": "No, I'm good",
+  "p": 1
+ },
+ {
+  "id": "9d185c66",
+  "voice": "el_you_m",
+  "text": "Just here to dance",
+  "p": 1
+ },
+ {
+  "id": "9de61010",
+  "voice": "el_you_m",
+  "text": "A little weird",
   "p": 1
  },
  {
@@ -21930,9 +24438,21 @@
   "p": 1
  },
  {
+  "id": "c157b166",
+  "voice": "el_you_m",
+  "text": "Play it twice!",
+  "p": 1
+ },
+ {
   "id": "c394fa69",
   "voice": "el_you_m",
   "text": "Just have fun",
+  "p": 1
+ },
+ {
+  "id": "c582eff4",
+  "voice": "el_you_m",
+  "text": "Not weird",
   "p": 1
  },
  {
@@ -21984,9 +24504,21 @@
   "p": 1
  },
  {
+  "id": "e044a3a0",
+  "voice": "el_you_m",
+  "text": "She's not on yet",
+  "p": 1
+ },
+ {
   "id": "e0baee54",
   "voice": "el_you_m",
   "text": "What's the minimum?",
+  "p": 1
+ },
+ {
+  "id": "e3504e67",
+  "voice": "el_you_m",
+  "text": "First time",
   "p": 1
  },
  {
@@ -21999,6 +24531,12 @@
   "id": "e515a643",
   "voice": "el_you_m",
   "text": "Not yet",
+  "p": 1
+ },
+ {
+  "id": "e5992bbc",
+  "voice": "el_you_m",
+  "text": "I'm here for the music",
   "p": 1
  },
  {
@@ -22017,6 +24555,12 @@
   "id": "ecda276e",
   "voice": "el_you_m",
   "text": "It's alright",
+  "p": 1
+ },
+ {
+  "id": "edb9d102",
+  "voice": "el_you_m",
+  "text": "Yeah, amazing",
   "p": 1
  },
  {
@@ -22047,6 +24591,12 @@
   "id": "fb086482",
   "voice": "el_you_m",
   "text": "Down the hall, past the elevators",
+  "p": 1
+ },
+ {
+  "id": "fe9241c8",
+  "voice": "el_you_m",
+  "text": "For her",
   "p": 1
  },
  {

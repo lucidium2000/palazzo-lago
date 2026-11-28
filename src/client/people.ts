@@ -178,6 +178,10 @@ export class Person {
   culled = false;
   /** Staff with a voice of their own (an id in SPEAKERS, cast.ts: the Promenade's cooks and clerk). */
   speaker: string | null = null;
+  /** One of the pool party's performers (party/performers.ts): they don't chat like guests. */
+  performer: 'singer' | 'band' | 'dj' | null = null;
+  /** Performing right now (on stage, at the decks): not a word, only physical reactions (party/partytalk.ts). */
+  hush = false;
   /** Talking with you: looks at you until then. */
   attendUntil = 0;
   /** Saying a line (outside a circle): talking gestures until then. */
@@ -536,7 +540,8 @@ export class Crowd {
   }
 
   static concertExtras(people: number) {
-    return people >= 60 ? 12 : people >= 40 ? 10 : 8;
+    // (More than doubling her audience: the deck behind them fills with backcrowd.ts's instanced fans too.)
+    return people >= 60 ? 20 : people >= 50 ? 16 : people >= 40 ? 13 : 10;
   }
 
   static poolShare(people: number) {

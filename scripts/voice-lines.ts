@@ -218,6 +218,15 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
   for (const [who, set] of Object.entries(REACTIONS)) for (const list of Object.values(set)) for (const t of list) addEl(elVoice(who), t);
   // Your own replies, out loud.
   for (const pv of Object.values(PLAYER_VOICES)) for (const t of replyLabels()) addEl(elVoice(pv), t);
+  // The pool party (party/concertlines.ts; scripts/concert-lines.json): the show's lines in each regular's voice,
+  // NIXIE VALE between her sets, the crew out there, and your replies in those conversations.
+  {
+    const { CONCERT, CREW_PARTY, NIXIE, concertLinesOf, concertReplyLabels, nixieLines } = await import('../src/client/party/concertlines');
+    for (const [id, set] of Object.entries(CONCERT)) for (const t of concertLinesOf(set)) addEl(elVoice(id), t);
+    for (const t of nixieLines()) addEl(elVoice(NIXIE.id), t);
+    for (const name of ['rocco', 'dev', 'mikey']) for (const list of Object.values(CREW_PARTY)) for (const t of list) addEl(elVoice('crew_' + name), t);
+    for (const pv of Object.values(PLAYER_VOICES)) for (const t of concertReplyLabels()) addEl(elVoice(pv), t);
+  }
   const elLines = [...el.values()].sort((x, y) => (x.voice + x.id).localeCompare(y.voice + y.id));
   writeFileSync('tools/voices/eleven-lines.json', JSON.stringify(elLines, null, 1));
   const chars = elLines.reduce((n, l) => n + l.text.length, 0);

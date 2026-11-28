@@ -87,6 +87,7 @@ async function machine(id: string, seedBase: number) {
     character: (p: InstanceType<typeof Person>) => ({ id: ['sal', 'vinnie', 'marcus', 'dale'][Math.floor(p.seed) % 4], name: ['Sal', 'Vinnie', 'Marcus', 'Dale'][Math.floor(p.seed) % 4], gender: 'male' }),
     voiceOf: () => 'el_bartender',
     voicesOf: () => ['el_x', 'am_x'],
+    angryLines: () => ({ lines: [], voice: 'el_x', alt: 'am_x' }),
   };
   const fights = new Fights({
     crowd: crowd as never,

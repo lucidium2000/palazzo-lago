@@ -69,16 +69,19 @@ const CORNER = new THREE.Vector2(46.9, -29.2);
 /** Places in front of her stage, best first (the middle of the front rows), clear of `free`'s obstacles. */
 export function audienceSpots(free: (x: number, z: number) => boolean, avoid: THREE.Vector2[] = []): THREE.Vector2[] {
   const out: { v: THREE.Vector2; score: number }[] = [];
-  const rows = [STAGE.z1 + 1.0, STAGE.z1 + 1.85, STAGE.z1 + 2.7];
+  // Packed in at the front (shoulder to shoulder against the stage), a little looser further back;
+  // the fans at the back of the deck are backcrowd.ts's.
+  const rows = [STAGE.z1 + 0.9, STAGE.z1 + 1.5, STAGE.z1 + 2.15, STAGE.z1 + 2.85];
+  const gap = [0.6, 0.64, 0.7, 0.76];
   const mid = STAGE.spot.x;
   rows.forEach((z, r) => {
-    for (let k = -5; k <= 5; k++) {
-      const x = mid + k * 0.82 + (r % 2 ? 0.41 : 0);
-      if (x < STAGE.x0 + 0.3 || x > STAGE.x1 + 0.2) continue;
-      const v = new THREE.Vector2(x, z + ((k * 37 + r * 11) % 7) * 0.03);
-      if (avoid.some((a) => a.distanceTo(v) < 0.62)) continue;
+    for (let k = -8; k <= 8; k++) {
+      const x = mid + k * gap[r] + (r % 2 ? gap[r] / 2 : 0);
+      if (x < STAGE.x0 + 0.1 || x > STAGE.x1 + 0.2) continue;
+      const v = new THREE.Vector2(x, z + ((k * 37 + r * 11) % 7) * 0.025);
+      if (avoid.some((a) => a.distanceTo(v) < 0.56)) continue;
       if (!free(v.x, v.y)) continue;
-      out.push({ v, score: r * 1.2 + Math.abs(x - mid) * 0.5 });
+      out.push({ v, score: r * 1.1 + Math.abs(x - mid) * 0.42 });
     }
   });
   return out.sort((a, b) => a.score - b.score).map((o) => o.v);
@@ -222,6 +225,11 @@ export class Audience {
       p.homeYaw = p.yaw;
     }
     this.here = here;
+  }
+
+  /** Everyone in her audience (the dancers and the extras). */
+  get people(): Person[] {
+    return this.walkers.map((w) => w.p);
   }
 
   /** Everyone (dancers and extras) and where they're headed (tests and debugging). */

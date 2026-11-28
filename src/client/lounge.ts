@@ -1559,6 +1559,9 @@ export class Lounge {
     return this.d.crowd.people.some((p) => p.prop === 'glass' && !!p.rig && p.pos.distanceTo(feet) < 1.6);
   }
 
+  /** A guest's toast at the pool party (party/concertlines.ts), or null away from it (main.ts sets it). */
+  partyToast: ((p: Person) => string | null) | null = null;
+
   /** The clink: sound, 'Cheers!', both of you take a sip. Also called when your friend clinks yours. */
   cheers(at: THREE.Vector3, with_?: Person, fromFriend = false) {
     if (this.cheersCooldown > 0) return;
@@ -1567,11 +1570,13 @@ export class Lounge {
     if (with_) {
       const female = (with_.look.kind ?? '').startsWith('female') || !!with_.look.dress;
       const ch = characterFor(with_.seed, female);
-      const pool = Math.random() < 0.7 ? ch.cheers : CHEERS_LINES;
+      // Out at the pool party: a toast to the show (recorded takes only, never the robot voice).
+      const party = this.partyToast?.(with_) ?? null;
+      const pool = party ? [party] : Math.random() < 0.7 ? ch.cheers : CHEERS_LINES;
       const text = pool[Math.floor(Math.random() * pool.length)];
       const alt = voices.pick(text, ch.fallback, guestVoice(with_.seed, female));
       this.onLine?.(with_, { text, voice: elVoice(ch.id), alt, who: ch.name });
-      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt, at: mouthOf(with_), priority: true });
+      const dur = voices.talk({ who: ch.name, text, voice: elVoice(ch.id), alt, at: mouthOf(with_), priority: true, recordedOnly: !!party, captionFallback: !party });
       this.d.crowd.speak(with_, dur);
     } else if (voices.captions) this.d.hud.say('You', 'Cheers!');
     if (with_) {

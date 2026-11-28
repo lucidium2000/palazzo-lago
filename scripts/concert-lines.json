@@ -1,0 +1,3841 @@
+{
+ "about": "New pool-party / concert lines to record with ElevenLabs (eleven_v3: [tags] are performance directions, not words). Each take goes to public/voices/<voice>/<id>.mp3 and into public/voices/index.json (tools/voices/render_eleven.py does both; scripts/voice-lines.ts lists these in tools/voices/eleven-lines.json). The game picks a take up as soon as it is in the index; until then these lines are bubbles and wordless whoops, never browser TTS.",
+ "newVoice": {
+  "el_nixie": {
+   "character": "Nixie Vale",
+   "gender": "female",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American",
+   "note": "Not cast yet: run render_eleven.py --cast (or add el_nixie to tools/voices/eleven-cast.json by hand)."
+  }
+ },
+ "takes": 425,
+ "uniqueLines": 380,
+ "voices": 18,
+ "lines": [
+  {
+   "id": "aa8929fa",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (after)",
+   "text": "Best part of the whole trip, no question.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "cf47b01c",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (after)",
+   "text": "That was unreal. Absolutely unreal.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "18da4893",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (dj)",
+   "text": "Pool party at night, boys. This is the life.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "8df0dd98",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (dj)",
+   "text": "This DJ is killing it. We're staying out here.",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "cbbb34d3",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "[cheering] Whooo! This is insane!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "d0f1beb5",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "[shouting] NIXIE! Let's GO!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "11cc6c1d",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "Phones up, boys! Phones up!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "2cd227a2",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "Boys, she's on any minute. Get to the front!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "2d466bfa",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "I heard she's opening with Chasing Dawn. Let's go!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "10e24237",
+   "voice": "el_crew_dev",
+   "character": "Dev",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "Is she on yet? Come on, come on!",
+   "brief": "man in his thirties, dry sarcastic humour, quick, American"
+  },
+  {
+   "id": "c376f7f0",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (after)",
+   "text": "Best part of the whole trip, no question.",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "64fdd42e",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (after)",
+   "text": "That was unreal. Absolutely unreal.",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "5c4b5419",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (dj)",
+   "text": "Pool party at night, boys. This is the life.",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "e9f77612",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (dj)",
+   "text": "This DJ is killing it. We're staying out here.",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "4f819259",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "[cheering] Whooo! This is insane!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "ae9239c3",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "[shouting] NIXIE! Let's GO!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "2b560adf",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "Phones up, boys! Phones up!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "ad4e0330",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "Boys, she's on any minute. Get to the front!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "6da5382c",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "I heard she's opening with Chasing Dawn. Let's go!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "d699e4fd",
+   "voice": "el_crew_mikey",
+   "character": "Mikey",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "Is she on yet? Come on, come on!",
+   "brief": "young man, sweet, excitable, a little high-pitched, goofy, American"
+  },
+  {
+   "id": "17d750cf",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (after)",
+   "text": "Best part of the whole trip, no question.",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "b2c7ff29",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (after)",
+   "text": "That was unreal. Absolutely unreal.",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "a129a260",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (dj)",
+   "text": "Pool party at night, boys. This is the life.",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "2de7e29f",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (dj)",
+   "text": "This DJ is killing it. We're staying out here.",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "eb68961a",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "[cheering] Whooo! This is insane!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "7ff6a0f0",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "[shouting] NIXIE! Let's GO!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "b3b25d08",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (live)",
+   "text": "Phones up, boys! Phones up!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "93516ab1",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "Boys, she's on any minute. Get to the front!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "cccb16ed",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "I heard she's opening with Chasing Dawn. Let's go!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "4f544200",
+   "voice": "el_crew_rocco",
+   "character": "Rocco",
+   "gender": "male",
+   "context": "your crew at the pool concert (soon)",
+   "text": "Is she on yet? Come on, come on!",
+   "brief": "man in his thirties, loud, booming, Boston or Chicago, big laugh"
+  },
+  {
+   "id": "045c95fb",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Any minute now, I reckon. The band's gear is all set up.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "6718ab42",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Heard she opens with Chasing Dawn. Good name for a song.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "e6379825",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Well, folks say this Nixie gal puts on one heck of a show.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "c3bb3cc2",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "[whistles] Give that band a raise, I say.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "ab6a336b",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "Now that's a show worth stayin' up for.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "465abba5",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Ain't it? Like a thunderstorm with a backbeat.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "1a585846",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Can't hear a lick over that bass, partner. But I'm with ya.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "b653b512",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Enjoy the show, partner.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "d191771f",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Fine as frog hair, partner. Waitin' on the show.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "f03320ae",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Here's to the band, partner.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "050eaccc",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Well, alright. Save your hollerin' for the stage.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "71d6fa61",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Well, you're in for a treat. Find yourself a good spot.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "2ed53c34",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "You catch her last set, partner? Folks are still talkin' about it.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "8193f944",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[annoyed] Now that's a perfectly good drink wasted, mid-song.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "69ce840b",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[sighs] Son, I came to hear music, not get a bath.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "205d1d35",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[hollering] That's what I'm talkin' about!",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "eb356958",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[hollering] Yeehaw! Go on, Nixie!",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "3b95e095",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[whistles loudly] Whoo!",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "7cfadddb",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "Well, I'll be. That gal can SING!",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "805221ba",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[annoyed] Quit chuckin' stuff, folks are watchin' a show.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "5625fedb",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[groans] OW! That ain't how you dance, son!",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "6b16da47",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Easy now. Ain't no stampede at this concert.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "e1d1a31d",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Whoa there, partner. Folks are tryin' to see the stage.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "3ff1a276",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "Never been to a pool party at night. Lights are somethin' else.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "3723e49b",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "That DJ's got this whole deck movin'. Even me, a little.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "ea510271",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Evenin'. Squeeze on up, plenty of room by the stage.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "56a86264",
+   "voice": "el_dale",
+   "character": "Dale",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Mind the speakers, partner. They'll rattle your teeth.",
+   "brief": "older man, thick Texas drawl, deep, slow and relaxed, warm and folksy"
+  },
+  {
+   "id": "97b179b9",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "[giggles] Is she on yet? This is my bachelorette and I NEED Nixie!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "28b10ec0",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Girls! Girls! Get to the front! She's coming on!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "25ea18f3",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Oh my gosh, I heard she's opening with Chasing Dawn! That's our song!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "ccf920b5",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "[giggles] I'm crying. Am I crying? I'm crying.",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "27590bc6",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "That was the best thing that's ever happened! Besides my fiancé. Probably.",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "2a6e0cde",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "[giggles] Do you think Nixie would sign my veil? Is that weird? It's weird.",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "bfc46997",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "[giggles] Okay, yeah. I'm still gonna try.",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "5363e931",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "[giggles] Okay! Back to dancing!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "cdff7a2f",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "[giggles] What? It's so loud! I love it!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "c4faad11",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Bye! See you up front!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "cb715d53",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Cheers! To Nixie, and to me getting married!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "29e75472",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh my gosh, yay! I'm gonna wave it during the chorus!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "15047a11",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "The best! I'm getting married AND I'm at a Nixie Vale show!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "4f391d2c",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[gasps] Oh my gosh! It's my bachelorette!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "8e2c7ca0",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[shrieks] My veil! At the concert!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "ff73bd64",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[screaming] NIXIE! I'M GETTING MARRIED!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "11e09b58",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] I love you, Nixie!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "119e6c8e",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[singing along] Ohhh, oh-oh! [giggles]",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "0d03784e",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[squealing] Whooo! Oh my gosh!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "8f25870d",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[gasps] Ow! Who threw that at the bride?!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "ae2e9572",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[screaming] OW! You hit a bride! At a concert!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "f436f81b",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "[gasps] Excuse me! I'm trying to see Nixie!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "b853bbad",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Hey! Watch it! You just pushed the bride!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "025a70df",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "[giggles] This DJ! I can't stop dancing! I'm getting married!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "2cdae067",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "The lights are so pretty! It's like my wedding but louder!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "7c5e49d1",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "[giggles] Hi! Are you here for Nixie? Come dance with us!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "40f744cb",
+   "voice": "el_destiny",
+   "character": "Destiny",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Oh my gosh, your outfit is so concert! I love it!",
+   "brief": "young woman, bubbly, high energy, giggly, Southern Californian, a little tipsy"
+  },
+  {
+   "id": "cde50898",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Chasing Dawn, I'm told. What a lovely title.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "8b40018c",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Is she on yet, dear? My feet are being very patient tonight.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "4101b247",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "My granddaughter tells me this Nixie Vale is wonderful. We shall see, dear.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "14b39589",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "I haven't danced like that since nineteen seventy-four.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "098ced84",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "Well. I may have to buy one of her records, dear.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "9dec8e1d",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Ah! Marvellous. She moves beautifully.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "80be7436",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Dear, would you tell me which one is the singer? The one in the shiny jacket?",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "d30a638c",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Enjoy the music, dear.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "fcd80c38",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "I'm afraid the drums have the floor, dear. Never mind.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "c5fe3495",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, then I'll wait. I've waited for worse things, dear.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "983f8da9",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Quite right. Let's listen.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "0f500260",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "To the music, dear.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "01bb1f18",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Very well, dear. Enjoying a concert, of all things.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "e644d1dc",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[appalled] During the music! Really, dear!",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "747f66af",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[indignant] My silk! At a concert, of all places.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "36c04aa0",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[delighted] Oh, bravo! Bravo, dear!",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "b506444f",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[laughs] Oh my. Whoo! There, I said it.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "58581e14",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Wonderful! Simply wonderful!",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "de30c102",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "What a voice. What a lovely voice.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "8d1ba6e6",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[indignant] Was that thrown? At an audience? Shameful.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "c70e64ae",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[yelling] OW! Good heavens! Not at a concert!",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "038338f2",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Careful, dear. There's room for everyone at a concert.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "d3623061",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Goodness! Do mind yourself, dear, I'm watching the stage.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "451b7597",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "Such pretty lights, dear. Like a ballroom under the stars.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "1baca4da",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "The young man at the turntables is rather good, isn't he?",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "a65d3c11",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Do go closer, dear. One isn't young twice.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "0f85055d",
+   "voice": "el_eleanor",
+   "character": "Eleanor",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Mind the speakers, dear. They're terribly enthusiastic.",
+   "brief": "older woman, refined British accent, elegant, calm, low, dry humour"
+  },
+  {
+   "id": "ebad589b",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "I heard she's opening with Chasing Dawn! I've been playin' it on night shifts all year!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "cd578301",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Oh my gosh, is she on yet? I'm so excited, ya!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "4354dc57",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Ya, I took a nap this afternoon just for this. Worth it.",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "0144680b",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "Oh my gosh, hon, I got goosebumps. Look!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "342ff4ee",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "That's goin' in the vacation scrapbook, for sure!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "da6bfcc8",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "[laughs] Sorry, hon, it's so loud! You betcha!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "e0f49b0b",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Cheers, hon! To the show!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "1c3a5a5c",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, hi! Is this your first Nixie Vale show? It's mine! Can you tell?",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "0a262b90",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, no way! Tell me when to scream, hon!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "e0d7196c",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, okay! Back to the music, hon.",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "d1049a9b",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, the best! First vacation in years and I'm at a concert by a pool!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "e3cf9d13",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, yay! We're concert buddies now, ya?",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "f6e3dff2",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Okay, bye now! Enjoy the show!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "712fee83",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[gasps] Oh, for cryin' out loud! In the middle of the show!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "03934b26",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[shocked] Hon! My concert top!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "dd65d3e8",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[cheering] Whooo! You betcha!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "abc4b131",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] NIXIE! Oh my gosh! NIXIE!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "cebd2f97",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] We love you, Nixie!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "008ba7b8",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[singing along] Ohhh, oh-oh-oh! [laughs]",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "7cba5ff2",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[yelps] Ow! Who's throwin' things at a show?",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "b69c05be",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[shouting] OW! Oh my gosh! At a concert?!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "0ce9f838",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Oh! Easy there, hon, I'm tryin' to see the stage!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "569f989c",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Whoa! Ya, careful, it's a concert, not a mosh pit!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "8a08a69b",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "Oh, this DJ is so fun! My feet hurt and I don't even care!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "76d1c144",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "These lights, hon! It's like the northern lights but with a beat!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "d5c14370",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Oh, hi there! Come on up, there's room by the stage!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "4c712d2e",
+   "voice": "el_kayla",
+   "character": "Kayla",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Ya, get your phone out for the chorus, hon!",
+   "brief": "woman in her thirties, Minnesota / Midwestern accent, warm, friendly, cheerful"
+  },
+  {
+   "id": "736c7f1c",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Front row or nothing, that's the plan. Let's go!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "9e6970bd",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "I heard she's opening with Chasing Dawn. The groom's gonna freak out.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "6760d0f0",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Yo, is she on yet? I need to see Nixie Vale tonight!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "ab6ce7fd",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "[laughs] My voice is gone. Totally worth it.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "f922bcec",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "Bro. BRO. That was a whole movie.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "2f56d9da",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "[laughs] Can't hear you over the bass, but I love the energy!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "65f80c19",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Alright, alright, save it for the chorus!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "4eb1ec0f",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Catch you up front! Let's go!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "0078cddc",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Man, I'm great! Pool party, live show, best night of the trip!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "d7c96ecf",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, you're gonna love it. Phones up for the chorus!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "7fc5cdf3",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Then you know! Lead the way to the front, my guy!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "f41a1136",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "To Nixie, baby! Cheers!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "6339491f",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Yo! You seen Nixie live before? Because I'm about to cry. [laughs]",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "6477d065",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[angry] My concert outfit! Unbelievable.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "75707061",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[outraged] Bro! In the middle of the show?!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "6b1fa58e",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[cheering] Whooo! Come on!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "f6159360",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[laughs] She is unreal! Are you seeing this?!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "a1f37151",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] NIXIE! NIXIE! Let's GOOO!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "717afa97",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Sing it! SING IT!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "88a6dfbc",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[angry] Did you just throw that? At a concert?",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "1d4df828",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[shouting] OW! Are you serious?! During the show?!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "d72b767f",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Hey, easy, man! Everybody wants the front.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "6f23ec8c",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Whoa, excuse you! I'm trying to see the stage!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "093091b6",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "These lights, man! It's like we're inside a music video.",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "cc56d2e6",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "This DJ is cooking! I'm sweating already. [laughs]",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "422659bc",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Ayy, come get up front with us!",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "2abdaf5b",
+   "voice": "el_marcus",
+   "character": "Marcus",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "You ready to scream yourself hoarse tonight? [laughs]",
+   "brief": "young adult man, Atlanta / Southern American, smooth, energetic, charismatic, laughs a lot"
+  },
+  {
+   "id": "0adf66df",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "A headliner at a pool party. Now THAT'S Vegas, sugar.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "01cfcf36",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Darling, is she on yet? I didn't do my hair for nothing.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "b4ffa7c7",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "They say she opens with Chasing Dawn. Honey, I'm ready.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "8f738c56",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "Darling, that was a performance. I'm verklempt.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "7fd6ca72",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "Honey, she gave us everything. Everything!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "f1984887",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Darling, I can't hear a thing over the band. Isn't it heaven?",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "43eaaaed",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Darling, I'm at a concert by the pool. I'm fabulous.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "aeb07540",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Darling, that jacket she wears. Sequins under the follow spot. Genius.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "02b84fcf",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Doesn't she? Honey, I used to have a jacket like that.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "2cc97be4",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Enjoy the show, darling!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "79d60345",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Mm. Speechless. I understand, sugar.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "cb2f53d1",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, the voice too, sugar. But the sparkle helps.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "8203cbf6",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "To the star of the night, darling.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "f2cf6c32",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[outraged] My gown! In front of the stage?!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "71f1a6f0",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[shrieks] Darling, this is a concert, not a car wash!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "ec3e9cfa",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[cheering] Whooo! Yes, honey!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "259fcf94",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] That's a STAR, everybody!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "dd78b1df",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Work it, darling! WORK IT!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "7b59258f",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "Oh, she's got it, darling. She's got the sparkle.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "8bc6a080",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[angry] Who's throwing things at the audience?",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "ec63f3f0",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[shrieking] OW! Not the face! The lights are on me!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "94faa7ae",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Excuse me, darling! I'm watching a star!",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "4a8ea98d",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Honey, nobody upstages me. Back up.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "f7954bb5",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "Look at those lights, honey. Somebody knows how to stage a show.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "7fdb607f",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "This DJ is divine, darling. I could dance all night.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "49e421d3",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Darling, get closer. Stars should be seen up close.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "e1456b03",
+   "voice": "el_margo",
+   "character": "Margo",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Love the energy, sugar. Save some for the chorus.",
+   "brief": "older woman, husky smoky voice, sassy, confident, theatrical, classic American"
+  },
+  {
+   "id": "435b5e96",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner between her sets, greeting a fan backstage-side of the stage (never while performing)",
+   "text": "Hey! Thanks for coming out tonight!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "b6968471",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner between her sets, greeting a fan backstage-side of the stage (never while performing)",
+   "text": "Save your voice for Chasing Dawn, okay?",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "130f2a26",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner between her sets, greeting a fan backstage-side of the stage (never while performing)",
+   "text": "We're back on in a few. Don't go anywhere!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "b89dcfa5",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner between her sets, greeting a fan backstage-side of the stage (never while performing)",
+   "text": "You guys sound amazing out there. I can hear you from back here!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "5e42e635",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner bumped / soaked / hit between sets: startled, still friendly",
+   "text": "[gasps] My stage jacket! I'm on soon!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "af4b2fb0",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner bumped / soaked / hit between sets: startled, still friendly",
+   "text": "[shocked] Oh no, not before the show!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "11eddaf3",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner bumped / soaked / hit between sets: startled, still friendly",
+   "text": "[shouting] OW! Security! I have a show to do!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "1c66b84f",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner bumped / soaked / hit between sets: startled, still friendly",
+   "text": "[yelps] Ow! Hey, save the throwing for the confetti!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "5cd124b7",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner bumped / soaked / hit between sets: startled, still friendly",
+   "text": "Easy! Let me get back to the band, okay?",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "f4b18b22",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner bumped / soaked / hit between sets: startled, still friendly",
+   "text": "Whoa! Careful, I'm on in a few minutes!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "e65c2751",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "[laughs] I'll ask the band. No promises!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "d26c9b4b",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "After the set, I promise! Come find me by the stage.",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "1135cea8",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "Amazing! A little nervous. That's how you know it's gonna be good.",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "c5719f87",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "Aw, thank you! Wait till you hear the next set.",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "32d709b9",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "Cheers! To a great show tonight!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "00a1fc71",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "Hey! Are you having fun out there? I can see everybody from up here.",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "438530a0",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "Hi! Any requests? Just kidding, it's always Chasing Dawn. [laughs]",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "9478a659",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "Me too. It never gets old, singing it for you guys.",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "d14c1278",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "Okay, I gotta warm up. Enjoy the show!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "74a9bec8",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "See you out front!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "a1dd8fc9",
+   "voice": "el_nixie",
+   "character": "Nixie Vale",
+   "gender": "female",
+   "context": "the headliner chatting with a fan between sets",
+   "text": "Sorry, it's so loud back here! Catch me after the set!",
+   "brief": "young woman in her late twenties, bright, warm, a little husky, energetic pop singer, neutral American"
+  },
+  {
+   "id": "95a90cce",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "I heard she's opening with Chasing Dawn. Best possible opener.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "cb344e1d",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Is she on yet? I picked this spot for the sight lines.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "cbbfa3ff",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "She's on in a couple of minutes. I've been watching the stage crew.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "a1e2eeb0",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "I'm already checking when her next set starts.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "177759fd",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "Okay, that's officially the best live set I've seen this year.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "fd4cbd2f",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Agreed. Higher energy, worse sound, worth it.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "3bab32dd",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Great. Excellent sight lines, perfect sound. Optimal night.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "88604913",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Okay, enjoy the set!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "d849becf",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Quick question. Front row or the middle? I'm optimising the experience.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "3f3d25cc",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Right, back to the show.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "18e83d55",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Smart. Better mix. I'll think about it.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "7eebb035",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Sorry, the bass is drowning you out. I'll assume yes.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "80fa5ce7",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "To a perfect set. Cheers.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "700d5d8e",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[angry] Unbelievable. Mid-chorus.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "8705c12c",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[outraged] My phone! I was recording!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "6f524c96",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[cheering] Whooo! Okay, that was perfect!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "86cfebbf",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Chasing Dawn! Let's GO!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "0e3246f7",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Nixie! Yes! YES!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "f6ec9d7c",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "I'm filming this. I'm filming all of this.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "4416874b",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[angry] Did you just throw that? I'm filming!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "e2f964e7",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[shouting] OW! Are you insane?! There's a show on!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "32fde883",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Excuse me! You just blocked my shot of the stage.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "704274b3",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Hey! I was holding this spot!",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "619142b9",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "The DJ is mixing so clean. Not one beat out of place.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "42f406e8",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "These lights are synced to the beat. I checked.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "d18114b7",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Front and centre is the best sound. Trust me, I checked.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "5f4d65ce",
+   "voice": "el_priya",
+   "character": "Priya",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Phones up for the chorus. You'll want the video.",
+   "brief": "woman in her thirties, Californian American, crisp, fast, confident, playful"
+  },
+  {
+   "id": "49c85444",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Apparently she opens with Chasing Dawn. I've been humming it all week.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "7d89ce1b",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "I'm told this Nixie Vale is rather extraordinary live.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "9b5d3928",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Is she on yet? I've been standing here for a small eternity.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "ddcc6ae3",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "I believe I have just become a fan. How embarrassing.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "7a98dc3f",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "That was rather magnificent, wasn't it?",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "13e8f699",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Ah, well. The suspense is half the fun, I suppose.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "3165f62e",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Ah. Saving your voice. Very wise.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "33370e94",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Enjoy the concert.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "17adbda7",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Forgive me, but do you know when Miss Vale comes on?",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "718a3e42",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Splendid, thank you. Waiting for the headliner, like a proper fan.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "00d95915",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Splendid. I shall hold my position, then.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "f3cf99e1",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Terribly sorry, the music's rather loud. I'll assume you agree.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "79d779f5",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "To the band. Cheers.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "0676c929",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[appalled] In the middle of the show! Have you no manners?",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "785ade0f",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[indignant] You've soaked my blazer, mid-chorus.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "b5e14a83",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[cheering] Whoo! Oh, I say!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "488014af",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Bravo! BRAVO!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "fe6d8fe8",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Encore! Well, eventually. ENCORE!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "6447fb62",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "Marvellous. Absolutely marvellous.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "7c30c72f",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[indignant] Was that thrown at me? At a concert?",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "a937be8a",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[yelling] OUCH! This is a concert, not a brawl!",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "d4d6a85c",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "I say! Some of us are trying to watch the stage.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "f28f065d",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Steady on, old chap. There's a concert happening.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "ebed0189",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "The DJ is splendid. I may even attempt to dance.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "789f0ce3",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "These lights are quite something. Like a very elegant thunderstorm.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "6b1e2179",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Do find a spot near the front, the sound is glorious.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "101c3449",
+   "voice": "el_reggie",
+   "character": "Reginald",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Mind the speakers, old chap. One's ears are precious.",
+   "brief": "middle-aged man, upper-class British (RP) accent, dry, witty, measured, refined"
+  },
+  {
+   "id": "0c9f23c0",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Chasing Dawn first, I hear. Good choice.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "cd8298c4",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Is she on yet? No? Then I'll wait.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "e399cddf",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "before her set: hype, is she on yet",
+   "text": "Mm. They say she's on soon.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "8af4af7c",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "Mm. That band is tight.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "a6b3e4ec",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "between songs / after her set: buzzing",
+   "text": "Okay. I'm impressed. Don't tell anyone.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "b05f7f0d",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Ciao. Enjoy the show.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "1ebbd372",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Good answer. Get closer, then.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "82e8c35e",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Good. Quiet nights are overrated.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "71a59244",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Mm. Stay for her. You'll see.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "53323fc2",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Mm. The music's louder than you. That's fine.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "de66a02e",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Mm. Watch the stage.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "ff160a45",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Salud. To the singer.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "7ba68717",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "You came for her, or for the pool?",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "efcc909b",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[annoyed] Ay, cariño. Not at a concert.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "61069868",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[cold] During the song. Really.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "fb17c0f5",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[cheering] Whoo! ¡Vamos!",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "8206b72a",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] ¡Wepa!",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "0a9163c6",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Nixie! ¡Eso!",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "99d9087b",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "Mm. She's the real thing.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "931f508d",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[cold] You throw things at a concert? Mm.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "8bc8e16d",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[sharp] OW! ¡Oye! Not during the show!",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "86fdce1a",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Careful. I'm watching the show.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "d1e8052b",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Mm. Push me again and you'll watch from the pool.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "df7fa2af",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "Nice lights. Somebody here has taste.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "524afa7d",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "The DJ is good. Not great. Good.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "451dbdc6",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Go closer. The sound is better up front.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "50956193",
+   "voice": "el_rosa",
+   "character": "Rosa",
+   "gender": "female",
+   "context": "to the player, walking past at the concert",
+   "text": "Mm. Enjoy the show, cariño.",
+   "brief": "woman in her forties, slight Cuban-American Miami accent, low, cool, slow, mysterious"
+  },
+  {
+   "id": "4b89702b",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Chasing Dawn, they tell me. Good title. Strong title.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "20155261",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "I sang on this Strip forty years, kid. Let's see what this Nixie's got.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "d207fc0b",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Is she on yet? In my day, the band warmed up the room first.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "e9d0dcfa",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "Forty years on this Strip. That one's up there.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "57fe2cf5",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "I'll tell ya, kid. She's the real deal.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "9ebd8018",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Eh, can't hear ya over the drums, kid. Good drums, though.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "7fb1b77e",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Enjoy the show, kid.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "4f31efc2",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Good. You'll never hear a song the same way again.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "d33a572e",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Ha! Fair enough. Dance, then. That's what it's for.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "69a7590c",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Quiet one. Good. Listen to the music.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "5dc6a82f",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Still kickin', kid. Watchin' the new generation do it right.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "45319e78",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "To the band, kid.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "82f61da8",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "You know what makes a great singer, kid? Breath. Watch how she breathes.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "9675dd58",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[cold] Forty-year-old suit. At a concert. Unbelievable.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "c58a7e90",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[growls] In the middle of a song? You got no class, kid.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "6d79ff42",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Atta girl! Sing it, sweetheart!",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "51a3a152",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Brava! BRAVA!",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "c1bf928d",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[whistles] Now THAT'S a voice!",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "3d7f33e2",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "Listen to that phrasing. The kid's got it.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "7e7eab36",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[angry] You throwin' things at a show? In my day, they'd toss you out.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "454b327d",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[roaring] OW! Not during the song, kid!",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "219e2c87",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Hey. Easy. People are listenin' here.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "cdbfb1bf",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Watch it, kid. Respect the show.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "df30ecac",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "Lights like these, I'd have killed for 'em in my day.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "6888c9b6",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "This DJ fella. No band, no horns. But the kids love it.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "159519b1",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Get up close, kid. You gotta feel a voice like that.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "a447deb1",
+   "voice": "el_sal",
+   "character": "Sal",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Respect the band, kid. They make her sound that good.",
+   "brief": "elderly man, classic Vegas crooner, smooth deep baritone, warm, theatrical, old New York"
+  },
+  {
+   "id": "02b1374b",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "I've never been to a real concert. Is it okay that I'm shaking?",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "1d7bf268",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Is she on yet? I'm not too late, right?",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "a474c216",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Okay, okay. I heard she's opening with Chasing Dawn. I'm so nervous. Why am I nervous?",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "1f2496a8",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "Did that really just happen? Was I there?",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "162eaedc",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "My ears are ringing. Is that normal? That's normal, right?",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "94dd475c",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Cheers! To my first concert!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "957a5a95",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Good! Great! I'm at a concert! Me! At a concert!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "cf97b936",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh no. Okay. I'll just cheer really loud, then.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "768499a2",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Oh, okay. I'll just, um, watch the stage.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "66e08274",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Okay, bye! Enjoy the show!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "0e2214d3",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Okay. Okay! I'm staying right here then.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "e6c3df34",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Sorry, what? It's so loud! Ha. I love it.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "ad2c2812",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Um, hi. Do you know if she does an encore? I really, really hope so.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "23951408",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[groans] My concert shirt! I just bought it!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "9118ce1c",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[shocked] Dude! I was filming!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "c43d004f",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[cheering] Whooo! Ha, I did a whoo!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "5528738a",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] NIXIE! Oh my gosh, NIXIE!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "36507e67",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] This is the best night of my life!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "f63387d7",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[squealing] She looked at me! I think she looked at me!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "4a74d132",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[yelps] Ow! Who threw that? I'm trying to watch!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "03f65fc5",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[yelling] OW! Why?! I'm just here for the music!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "474903fc",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Dude! I almost missed the chorus!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "5a75adc5",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Whoa! Sorry! Wait, you pushed me. I'm trying to see!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "161ee585",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "Is it okay if I dance? Like, is anyone watching? Okay. Okay.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "7c0f6373",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "The lights are so cool. I'm taking a video for my mom.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "b72b60a2",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Hi! Are you here for Nixie too? Me too!",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "61c315fd",
+   "voice": "el_tommy",
+   "character": "Tommy",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Is this a good spot? It feels like a good spot.",
+   "brief": "young man, Midwestern American, nasal, nervous and fast, earnest, a bit nerdy"
+  },
+  {
+   "id": "a62162da",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "I heard she's openin' with Chasing Dawn. Swear on my mother.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "8bb5aace",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "Is she on yet? I been standin' here since the DJ started!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "7c36523a",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "before her set: hype, is she on yet",
+   "text": "My friend! Nixie Vale, live, at the pool. You believe this?",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "fb4eace1",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "[laughs] One more! One more! Come on, Nixie!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "39d22bd9",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "between songs / after her set: buzzing",
+   "text": "My friend, I got chills. Look at my arms. Chills!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "610a8f65",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Ah, stick around. Five minutes in, you'll be a fan. Trust me.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "247df6b9",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Eh, you're savin' your voice for the show. Smart.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "2afc3e8b",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Go get up front, my friend! Enjoy the show!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "a34fee12",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Ha! I can't hear nothin' over this bass. Whatever you said, I agree!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "bd429da5",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "I knew it! You got taste. Get up front with me!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "19327458",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Me? I'm at a Nixie Vale show at a pool party. I'm in heaven, my friend!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "725ad83d",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "My friend! You here for Nixie? Tell me you're here for Nixie.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "2443d342",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "conversation with the player at the concert (over loud music)",
+   "text": "Salute! To Nixie!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "c0fee9a3",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[angry] The suit! At a concert! What's wrong with you?!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "305284c5",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "drink thrown on them at the concert: outraged",
+   "text": "[shocked] Are you kiddin' me?! In the middle of the concert?!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "ecd79d0e",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[cheering] Whooo! Yeah!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "5e12d5c0",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Chasing Dawn! That's my song!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "e31cbec8",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] NIXIE! I love you, sweetheart!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "9131c14b",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "during her set: shouting and cheering over loud live music",
+   "text": "[shouting] Unbelievable! UN-BE-LIEVABLE!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "325e8338",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "hit by something thrown at the concert: angry",
+   "text": "[angry] Hey! Who's throwin' stuff at a concert?!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "63899e6c",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "punched at the concert: a loud yell of pain",
+   "text": "[yelling] OW! I'm here to see a show, not be in one!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "352bd8ad",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Hey! No cuttin', pal! I been here since the DJ!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "76ad8de2",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "pushed by the player in the crowd: annoyed, trying to see the stage",
+   "text": "Whoa, whoa! Easy, my friend, I'm watchin' the show!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "7a169d8c",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "Look at these lights, my friend! It's like a spaceship landed.",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "e339260b",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "the DJ's stretch: the DJ, the lights, the pool",
+   "text": "This DJ's got the whole deck jumpin', huh?",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "830f3b1b",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "Get up front, my friend! You gotta see her up close!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "af682b12",
+   "voice": "el_vinnie",
+   "character": "Vinnie",
+   "gender": "male",
+   "context": "to the player, walking past at the concert",
+   "text": "You feel that bass? Right in the chest, my friend!",
+   "brief": "middle-aged man, New Jersey / New York Italian-American accent, raspy, big and warm, fast talker"
+  },
+  {
+   "id": "17ee549f",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "A little weird",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "839efa95",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Any minute now",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "bee50b3a",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Big fan",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "f7001b62",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Can I get a picture?",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "04b7f7b0",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "First time",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "f57f100d",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "For her",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "f2378e4d",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "For the pool",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "28ccd0d6",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Front row",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "418131d0",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "I think so",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "547f84b8",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "I'll watch",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "c525df13",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "I'm here for the music",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "51ee5389",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Just here to dance",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "8fa8762e",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Just the party",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "8fa837c9",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Love that song",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "71886b46",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Mine too",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "f578c6ed",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Not sure",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "543a2495",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Not weird",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "ffc2cb45",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Play it twice!",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "eb96ac12",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Seen her before",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "3be1ae00",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "She looks amazing",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "dc278497",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "She's not on yet",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "3d46a94f",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "That's her",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "19eb7813",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "The middle",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "3dc277d7",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Yeah, amazing",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "2559f098",
+   "voice": "el_you_f",
+   "character": "You",
+   "gender": "female",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Your show is amazing",
+   "brief": "woman in her thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "9de61010",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "A little weird",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "4deab5aa",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Any minute now",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "289a12b7",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Big fan",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "1472e3f9",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Can I get a picture?",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "e3504e67",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "First time",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "fe9241c8",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "For her",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "53c9c27e",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "For the pool",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "94bc1037",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Front row",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "476f664b",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "I think so",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "5741bfa3",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "I'll watch",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "e5992bbc",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "I'm here for the music",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "9d185c66",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Just here to dance",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "0e921211",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Just the party",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "2500de0e",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Love that song",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "80392451",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Mine too",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "487de922",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Not sure",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "c582eff4",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Not weird",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "c157b166",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Play it twice!",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "2f13df6b",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Seen her before",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "333fc061",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "She looks amazing",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "e044a3a0",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "She's not on yet",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "088dbb9c",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "That's her",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "32788188",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "The middle",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "edb9d102",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Yeah, amazing",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  },
+  {
+   "id": "099c0ebb",
+   "voice": "el_you_m",
+   "character": "You",
+   "gender": "male",
+   "context": "the player's reply in a conversation at the concert",
+   "text": "Your show is amazing",
+   "brief": "man in his thirties, natural, friendly, relaxed, neutral American"
+  }
+ ]
+}

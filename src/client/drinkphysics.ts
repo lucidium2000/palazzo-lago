@@ -5,6 +5,7 @@ import type { Hands } from './hands';
 import type { Crowd, Person } from './people';
 import type { Sound } from './audio';
 import type { World } from './world';
+import { silent } from './party/partytalk';
 
 /**
  * Drinks obey physics:
@@ -287,7 +288,8 @@ export class DrinkPhysics {
     this.flinchCool.set(p, this.time + 1.2);
     p.gaspT = 0.9;
     p.attendUntil = this.d.crowd.now + 3;
-    this.d.sound.play('gasp', p.pos.clone().setY(p.pos.y + 1.5), { volume: 0.5 });
+    // (Not a sound from a performer mid-show: partytalk.ts.)
+    if (!silent(p)) this.d.sound.play('gasp', p.pos.clone().setY(p.pos.y + 1.5), { volume: 0.5 });
     this.d.throwables.spill(new THREE.Vector3(p.pos.x + (Math.random() - 0.5) * 0.3, this.d.world.groundAt(p.pos.x, p.pos.z), p.pos.z + (Math.random() - 0.5) * 0.3), color, 0.05);
     if (mine) this.d.douse?.(p, color);
     if (mine) this.d.react?.(p, kind);

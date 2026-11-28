@@ -4,6 +4,7 @@ import { decodeAudio } from './musicload';
 import { arrangement, detectSections, plainArrangement, type Arrangement } from './party/beat';
 import { TRACKS } from './party/setlist';
 import type { MeasuredTrack } from './party/beat';
+import { CROWD_SFX, renderCrowdSfx, type CrowdSfx } from './party/crowdsfx';
 
 /**
  * The game's sound. Most effects are synthesized in code at startup; a few
@@ -60,6 +61,7 @@ type SoundName =
   | 'crunch'
   | 'munch'
   | 'adlib'
+  | CrowdSfx
   | SampleName;
 
 /** Recorded effects (public/audio/<name>.mp3) and the synthesized sound that stands in for each until it's loaded. */
@@ -89,7 +91,7 @@ function bell(f: number, t: number, decay = 0.4) {
   return (Math.sin(2 * Math.PI * f * t) + 0.35 * Math.sin(2 * Math.PI * f * 2.01 * t) + 0.15 * Math.sin(2 * Math.PI * f * 3.02 * t)) * env(t, 0.004, decay);
 }
 
-type Buffers = Record<Exclude<SoundName, SampleName>, AudioBuffer> & { variants: Partial<Record<SoundName, AudioBuffer[]>> };
+type Buffers = Record<Exclude<SoundName, SampleName | CrowdSfx>, AudioBuffer> & { variants: Partial<Record<SoundName, AudioBuffer[]>> };
 
 function buildBuffers(ctx: BaseAudioContext): Buffers {
   // One-pole filters, stateful per buffer.
@@ -553,7 +555,7 @@ const AMB_FLOOR = 0.115;
 /** The recorded room under the procedural floor (floor_loop.mp3), mixed low. */
 const AMB_ROOM = 0.06;
 
-const pick = (b: Buffers, name: Exclude<SoundName, SampleName>) => {
+const pick = (b: Buffers, name: Exclude<SoundName, SampleName | CrowdSfx>) => {
   const v = b.variants[name];
   return v ? v[Math.floor(Math.random() * v.length)] : b[name];
 };
@@ -668,7 +670,27 @@ export class Sound {
       const s = name as SampleName;
       return this.samples[s] ?? pick(this.ensure(), SAMPLES[s]);
     }
-    return pick(this.ensure(), name as Exclude<SoundName, SampleName>);
+    if ((CROWD_SFX as string[]).includes(name)) {
+      const v = this.crowdVariants(name as CrowdSfx);
+      return v[Math.floor(Math.random() * v.length)];
+    }
+    return pick(this.ensure(), name as Exclude<SoundName, SampleName | CrowdSfx>);
+  }
+
+  /** The concert crowd's sounds (party/crowdsfx.ts): synthesized the first time the party wants them. */
+  private crowdBufs = new Map<CrowdSfx, AudioBuffer[]>();
+  private crowdVariants(name: CrowdSfx): AudioBuffer[] {
+    let v = this.crowdBufs.get(name);
+    if (!v) {
+      const ctx = this.listener.context;
+      v = renderCrowdSfx(name, ctx.sampleRate).map((d) => {
+        const b = ctx.createBuffer(1, d.length, ctx.sampleRate);
+        b.getChannelData(0).set(d);
+        return b;
+      });
+      this.crowdBufs.set(name, v);
+    }
+    return v;
   }
 
   /** Whether a recorded effect is loaded (else its stand-in plays). */

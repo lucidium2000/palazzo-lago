@@ -96,6 +96,8 @@ export interface PoseOpts {
   dip?: number;
   /** No stepping or spinning (your own body in VR, or anyone in the water). */
   still?: boolean;
+  /** 0..1: filming on a phone in the right hand (held up in front at eye level, the other arm still dancing). */
+  film?: number;
 }
 
 export class Dancer {
@@ -245,6 +247,8 @@ export class Dancer {
       const want = this.tmp[2];
       armTarget(want, move, side === 'l', beat, ph, e, this.style);
       if (handsUp > 0) want.lerp(this.tmp[3].set(0.16 + 0.08 * Math.sin(ph * Math.PI + (side === 'l' ? 0 : 1)), 0.58, 0.06), handsUp);
+      const film = side === 'r' ? clamp01(o.film ?? 0) : 0;
+      if (film > 0) want.lerp(this.tmp[3].set(-0.06, 0.16 + 0.015 * Math.sin(ph * Math.PI), 0.44), film);
       const h = this.hands[side];
       h.lerp(want, k);
       const shoulder = upper.getWorldPosition(this.tmp[3]);
@@ -264,7 +268,7 @@ export class Dancer {
         .addScaledVector(UP, -0.6 + 0.3 * high)
         .addScaledVector(fw, -0.3)
         .addScaledVector(left, (0.45 + 0.3 * high) * dir);
-      reach(upper, lower, end, target, pole, Math.min(1, e * 1.6 + handsUp));
+      reach(upper, lower, end, target, pole, Math.min(1, e * 1.6 + handsUp + film));
     }
   }
 }

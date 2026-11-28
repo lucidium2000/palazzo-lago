@@ -8,7 +8,6 @@ import type { Sound } from '../audio';
 import type { Hud } from '../hud';
 import type { Dialogue } from '../dialogue';
 import type { ReactKind } from '../reactlines';
-import { REACTIONS } from '../reactlines';
 import { SPEAKERS } from '../cast';
 import { mouthOf, voices } from '../voices';
 import type { VoiceId } from '../speech';
@@ -269,7 +268,8 @@ export class Fights {
 
   /** You got physical with someone (a shove, a splash, a thrown thing). */
   provoke(p: Person, kind: Provocation, power = 0.5) {
-    if (p.driven || this.you.out) return;
+    // The pool party's performers don't fight back (they're working): they flinch and carry on.
+    if (p.driven || this.you.out || p.performer) return;
     if (this.local.has(p)) return;
     const r = this.remoteBy.get(p);
     if (r) return;
@@ -449,7 +449,7 @@ export class Fights {
   // ---------------------------------------------------------------------------
 
   private start(p: Person, talker: boolean, quiet = false): Local | null {
-    if (this.local.has(p) || this.remoteBy.has(p) || p.driven || p.role === 'buddy') return null;
+    if (this.local.has(p) || this.remoteBy.has(p) || p.driven || p.role === 'buddy' || p.performer) return null;
     const temper = this.angerOf(p).t;
     const brawl = new Brawl(temper, talker);
     const home = this.standUp(p);
@@ -934,11 +934,8 @@ export class Fights {
   /** Line in their own voice (a recorded angry one), and the same on friends' machines. */
   private sayAngry(f: Local) {
     const p = f.p;
-    const [voice, alt] = this.d.dialogue.voicesOf(p);
-    const id = voice.replace(/^el_/, '');
-    const sets = REACTIONS[id];
-    if (!sets) return;
-    const pool = [...(sets.doused ?? []), ...(sets.hit ?? [])].filter((l) => voices.has(voice, l) || voices.has(alt, l));
+    // (At the pool party: about the show.)
+    const { lines: pool, voice, alt } = this.d.dialogue.angryLines(p);
     if (!pool.length) {
       this.d.react(p, 'pushed');
       return;

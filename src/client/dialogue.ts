@@ -13,6 +13,8 @@ import { characterFor, elVoice, SPEAKERS, spoken, type Character } from './cast'
 import type { Listener } from './listen';
 import { mouthOf, voices } from './voices';
 import { PLAYER_STANDIN, PLAYER_VOICES, REACTIONS, type ReactKind } from './reactlines';
+import { NIXIE, type PartyPhase } from './party/concertlines';
+import { chatterGap, chatterPool, concertSet, partyReactions, partySafe, silent, whoopShare, type PartyTalk } from './party/partytalk';
 
 /**
  * Who's speaking out loud right now. One voice at a time across the whole
@@ -54,6 +56,8 @@ interface Scene {
   cast: Person[];
   turn: number;
   nextAt: number;
+  /** At the party: lines about the show, recorded takes only (never the robot voice). */
+  party?: boolean;
 }
 
 interface Convo {
@@ -65,6 +69,8 @@ interface Convo {
   ending: boolean;
   /** Times you've talked about something else (asked their name, said hi...) while the replies were up. */
   side: number;
+  /** At the party (the show's lines; recorded takes only). */
+  party: boolean;
 }
 
 export interface DialogueDeps {
@@ -125,6 +131,13 @@ export class Dialogue {
   onProvoke: ((p: Person) => void) | null = null;
   /** The last thing understood from your voice (tests and debugging). */
   lastHeard: { heard: string; reply?: string; intent?: Intent } | null = null;
+  /**
+   * The pool party (party/index.ts sets it): out on the deck everyone talks about the show, in
+   * recorded takes only; the performers keep quiet while they perform (party/partytalk.ts).
+   */
+  party: PartyTalk | null = null;
+  /** A wordless whoop from someone in the crowd (the party's hype: party/hype.ts), for a shout with no take yet. */
+  whoop: ((at: THREE.Vector3, female: boolean, volume: number) => void) | null = null;
 
   constructor(private d: DialogueDeps) {
     this.chips = document.createElement('div');
@@ -150,7 +163,7 @@ export class Dialogue {
 
   /** Someone near `at` just won big: a guest nearby comments. */
   overheard(at: THREE.Vector3) {
-    const near = this.d.crowd.people.filter((p) => !p.driven && p.role !== 'buddy' && !p.culled && p.pos.distanceTo(at) < 5 && p !== this.convo?.npc);
+    const near = this.d.crowd.people.filter((p) => !p.driven && p.role !== 'buddy' && !p.culled && !p.performer && !this.atParty(p) && p.pos.distanceTo(at) < 5 && p !== this.convo?.npc);
     const p = near[Math.floor(Math.random() * near.length)];
     if (!p) return;
     const lines = this.isGuest(p) && Math.random() < 0.7 ? this.character(p).win : WIN_REACTIONS;
@@ -162,6 +175,7 @@ export class Dialogue {
     const feet = this.d.feet();
     const on = this.d.enabled?.() ?? true;
     this.ambient(feet);
+    this.partyChatter(dt, feet);
     this.updateConvo(dt, feet, on);
     this.updateVrReplies(dt);
     if (on) this.passBy(dt, feet);
@@ -196,10 +210,13 @@ export class Dialogue {
         continue;
       }
       if (!s && now > (this.idleUntil.get(t) ?? 0)) {
-        const pool = EXCHANGES.filter((e) => e.cast <= t.members.length);
-        const ex = pool[Math.floor(Math.random() * pool.length)];
-        const cast = [...t.members].sort(() => Math.random() - 0.5).slice(0, ex.cast);
-        s = { ex, key: EXCHANGES.indexOf(ex), cast, turn: 0, nextAt: now + 0.6 };
+        if (t.members.every((m) => this.atParty(m))) s = this.partyScene(t.members, now + 0.6);
+        else {
+          const pool = EXCHANGES.filter((e) => e.cast <= t.members.length);
+          const ex = pool[Math.floor(Math.random() * pool.length)];
+          const cast = [...t.members].sort(() => Math.random() - 0.5).slice(0, ex.cast);
+          s = { ex, key: EXCHANGES.indexOf(ex), cast, turn: 0, nextAt: now + 0.6 };
+        }
         this.prefetchScene(s);
         this.scenes.set(t, s);
       }
@@ -212,8 +229,11 @@ export class Dialogue {
       const d = p.pos.distanceTo(feet);
       let s = this.passing.get(p);
       if (!s && d < 10) {
-        const ex = PASSING[Math.floor(Math.random() * PASSING.length)];
-        s = { ex, key: 100 + PASSING.indexOf(ex), cast: [p, o], turn: 0, nextAt: now + 0.5 };
+        if (this.atParty(p) && this.atParty(o)) s = this.partyScene([p, o], now + 0.5);
+        else {
+          const ex = PASSING[Math.floor(Math.random() * PASSING.length)];
+          s = { ex, key: 100 + PASSING.indexOf(ex), cast: [p, o], turn: 0, nextAt: now + 0.5 };
+        }
         this.prefetchScene(s);
         this.passing.set(p, s);
       }
@@ -234,7 +254,8 @@ export class Dialogue {
       const recorded = voices.has(voice, text);
       let dur = voices.duration(voice, text) ?? lineTime(text);
       if (recorded && d < 9) dur = voices.talk({ who: 'Guest', text, voice, at: mouthOf(who), volume: 0.85, captionFallback: false });
-      else if (!recorded && nearest?.s === s && d < 6 && !this.convo && !voiceArbiter.busy()) this.voice(who, text, Math.max(0.2, Math.min(0.9, 1 - d / 7)), false);
+      // (At the party, a line with no take yet is a bubble, never the robot voice.)
+      else if (!recorded && !s.party && nearest?.s === s && d < 6 && !this.convo && !voiceArbiter.busy()) this.voice(who, text, Math.max(0.2, Math.min(0.9, 1 - d / 7)), false);
       this.d.crowd.speak(who, dur);
       if (d < 6.5 && (voices.captions || !recorded)) this.bubble(who, text, dur + 0.4);
       if (laugh) setTimeout(() => s.cast.forEach((m) => (m.laughT = 1.2 + Math.random() * 0.4)), dur * 1000);
@@ -264,17 +285,127 @@ export class Dialogue {
     if (this.passT > 0 || this.convo || voiceArbiter.busy() || voices.priorityBusy) return;
     this.passT = 0.5;
     for (const p of this.d.crowd.people) {
-      if (!this.isGuest(p) || p.driven || p.culled || p.talk || p.chatWith) continue;
+      if (!this.isGuest(p) || p.driven || p.culled || p.talk || p.chatWith || silent(p)) continue;
       const d = Math.hypot(p.pos.x - feet.x, p.pos.z - feet.z);
       if (d > 1.9 || d < 0.4) continue;
       if (this.time < (this.quipped.get(p) ?? -1e9) + 90) continue;
       this.quipped.set(p, this.time);
       if (Math.random() > 0.35) continue;
-      const q = this.character(p).quips;
+      // At the party: about the show (she, between sets, says hello).
+      const party = this.atParty(p);
+      const q = p.performer === 'singer' ? NIXIE.greet : party ? this.partyOf(p)?.quips ?? [] : this.character(p).quips;
+      if (!q.length) continue;
       p.attendUntil = this.d.crowd.now + 2.5;
-      this.line(p, q[Math.floor(Math.random() * q.length)], { voice: true });
+      this.line(p, q[Math.floor(Math.random() * q.length)], { voice: true, quiet: party });
       return;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // The pool party: everyone talks about the show
+  // ---------------------------------------------------------------------------
+
+  /** Out on the party's deck (your crew aside). */
+  private atParty(p: Person): boolean {
+    return !!this.party && p.role !== 'buddy' && this.party.at(p.pos.x, p.pos.z);
+  }
+
+  /** A guest's lines at the party (their regular's concert set), or null for staff. */
+  private partyOf(p: Person) {
+    return this.isGuest(p) && !p.performer ? concertSet(this.character(p).id) : null;
+  }
+
+  /** Something they'd say about the show right now. */
+  private partyLine(p: Person): string | null {
+    const s = this.partyOf(p);
+    if (!s) return null;
+    const pool = chatterPool(this.character(p).id, this.party?.phase() ?? 'dj');
+    return pool[Math.floor(Math.random() * pool.length)] ?? null;
+  }
+
+  /** How they take their leave (in a conversation at the party: about the show). */
+  private byeOf(p: Person): { walkedOff: string; timedOut: string } {
+    if (this.convo?.party && p.performer === 'singer') return NIXIE.bye;
+    const show = this.convo?.party ? this.partyOf(p) : null;
+    if (show) return show.bye;
+    return this.isGuest(p) ? this.character(p).bye : CONVO_BYE;
+  }
+
+  /** A short back-and-forth between guests at the party: each says a line of their own about the show. */
+  private partyScene(members: Person[], at: number): Scene {
+    const phase: PartyPhase = this.party?.phase() ?? 'dj';
+    const cast = [...members].sort(() => Math.random() - 0.5).slice(0, Math.min(3, members.length));
+    const used = new Set<string>();
+    const turns: Exchange['turns'] = [];
+    const n = cast.length === 2 ? 2 + Math.floor(Math.random() * 2) : cast.length;
+    for (let i = 0; i < n; i++) {
+      const k = i % cast.length;
+      const pool = chatterPool(this.character(cast[k]).id, phase).filter((t) => !used.has(t));
+      const t = pool[Math.floor(Math.random() * pool.length)];
+      if (!t) break;
+      used.add(t);
+      turns.push([k, t]);
+    }
+    return { ex: { cast: cast.length, turns }, key: -1, cast, turn: 0, nextAt: at, party: true };
+  }
+
+  private chatterIn = 4;
+  /** The crowd near you: shouts, whoops and words about the show (more of them the closer she is to coming on). */
+  private partyChatter(dt: number, feet: THREE.Vector3) {
+    const party = this.party;
+    if (!party || !party.at(feet.x, feet.z)) return;
+    this.chatterIn -= dt;
+    if (this.chatterIn > 0) return;
+    const phase = party.phase();
+    this.chatterIn = chatterGap(phase) * (0.5 + Math.random());
+    const now = this.d.crowd.now;
+    const near: Person[] = [];
+    for (const p of this.d.crowd.people) {
+      if (!this.isGuest(p) || p.driven || p.culled || p.away || p.talk || p.chatWith || p.performer || p === this.convo?.npc || now < p.speakUntil) continue;
+      const d = Math.hypot(p.pos.x - feet.x, p.pos.z - feet.z);
+      if (d > 12 || d < 0.6 || !this.atParty(p)) continue;
+      near.push(p);
+    }
+    if (!near.length) return;
+    const p = near[Math.floor(Math.random() * near.length)];
+    const d = Math.hypot(p.pos.x - feet.x, p.pos.z - feet.z);
+    const female = isFemale(p);
+    const head = p.pos.clone().setY(p.pos.y + 1.65 * (p.look.height / 1.8));
+    // Mostly a wordless whoop while she's on (it's a concert), else a word.
+    if (phase !== 'dj' && Math.random() < whoopShare(phase)) {
+      this.whoop?.(head, female, 0.45);
+      p.cheer = Math.max(p.cheer, 0.9);
+      return;
+    }
+    const pool = chatterPool(this.character(p).id, phase);
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    if (!text) return;
+    const [v0, v1] = this.voicesOf(p);
+    const voice = voices.pick(text, v0, v1);
+    if (voices.has(voice, text)) {
+      if (voices.priorityBusy) return;
+      const dur = voices.talk({ who: this.title(p), text, voice, at: mouthOf(p), volume: phase === 'live' ? 1 : 0.85, captionFallback: false });
+      this.d.crowd.speak(p, dur);
+      if (voices.captions && d < 7) this.bubble(p, spoken(text), dur + 0.6);
+      return;
+    }
+    // No take yet: never the robot voice. A bubble if you're close, the talking gestures, and for a shout, a whoop.
+    const dur = lineTime(spoken(text));
+    this.d.crowd.speak(p, dur);
+    if (d < 7) this.bubble(p, spoken(text), dur + 0.6);
+    if (phase === 'live' || /\[(shouting|cheering|screaming|squealing|hollering|whistles)/i.test(text)) this.whoop?.(head, female, 0.4);
+  }
+
+  /** The angry lines someone can shout in a fight (recorded only; at the party, about the show). */
+  angryLines(p: Person): { lines: string[]; voice: VoiceId; alt: VoiceId } {
+    const [voice, alt] = this.voicesOf(p);
+    if (silent(p)) return { lines: [], voice, alt };
+    const id = voice.replace(/^el_/, '');
+    const has = (l: string) => voices.has(voice, l) || voices.has(alt, l);
+    const usual = [...(REACTIONS[id]?.doused ?? []), ...(REACTIONS[id]?.hit ?? [])];
+    const show = this.atParty(p) ? this.partyOf(p) : null;
+    const lines = show ? partyReactions([...show.react.doused, ...show.react.hit], usual, has) : usual.filter(has);
+    return { lines, voice, alt };
   }
 
   // ---------------------------------------------------------------------------
@@ -300,7 +431,9 @@ export class Dialogue {
     if (c) {
       const d = c.npc.pos.distanceTo(feet);
       c.npc.attendUntil = this.d.crowd.now + 1.5;
-      if (!on || d > 3.6) return this.endConvo(d < 6 ? (this.isGuest(c.npc) ? this.character(c.npc).bye.walkedOff : CONVO_BYE.walkedOff) : null);
+      // (She's due on stage: the chat's over, without a word.)
+      if (silent(c.npc)) return this.endConvo(null);
+      if (!on || d > 3.6) return this.endConvo(d < 6 ? this.byeOf(c.npc).walkedOff : null);
       if (this.time >= c.readyAt) {
         if (c.ending) return this.endConvo(null);
         if (c.replies && c.waitingSince === 0) {
@@ -308,7 +441,7 @@ export class Dialogue {
           this.showReplies(c.replies);
           this.listenFor(c, 2);
         }
-        if (c.replies && this.time - c.waitingSince > 15) return this.endConvo(this.isGuest(c.npc) ? this.character(c.npc).bye.timedOut : CONVO_BYE.timedOut);
+        if (c.replies && this.time - c.waitingSince > 15) return this.endConvo(this.byeOf(c.npc).timedOut);
       }
       return;
     }
@@ -325,7 +458,7 @@ export class Dialogue {
     let best: Person | null = null,
       bestScore = 0.5;
     for (const p of this.d.crowd.people) {
-      if (p.driven || p.role === 'buddy' || p.role === 'pianist' || p.speaker || p.culled || p.photo) continue;
+      if (p.driven || p.role === 'buddy' || p.role === 'pianist' || p.speaker || p.culled || p.photo || silent(p)) continue;
       const to = new THREE.Vector3(p.pos.x - feet.x, 0, p.pos.z - feet.z);
       const dist = to.length();
       const reach = p.role === 'croupier' || p.role === 'bartender' ? 3.0 : 2.2;
@@ -353,22 +486,27 @@ export class Dialogue {
 
   private startConvo(p: Person) {
     const aud = this.audience(p);
-    // Guests mostly talk like themselves (their own openers), sometimes small talk.
+    const party = this.atParty(p);
+    // Guests mostly talk like themselves (their own openers), sometimes small talk. At the party: the show.
     const own = this.isGuest(p) && (aud === 'guest' || aud === 'pool' || aud === 'bar') && Math.random() < 0.75;
-    const list = own ? this.character(p).openers : OPENERS[aud];
+    const mine = this.partyOf(p);
+    let list: Node[];
+    if (p.performer === 'singer') list = NIXIE.openers;
+    else if (party && mine) list = own ? [mine.opener] : OPENERS.pool;
+    else list = own ? this.character(p).openers : OPENERS[aud];
     const node = list[Math.floor(Math.random() * list.length)];
     this.talkedTo.set(p, this.time);
     this.prefetchTree(node, this.voiceOf(p));
     // Their circle pauses while they talk to you.
     if (p.talk) this.scenes.delete(p.talk);
-    this.convo = { npc: p, replies: null, readyAt: 0, waitingSince: 0, ending: false, side: 0 };
+    this.convo = { npc: p, replies: null, readyAt: 0, waitingSince: 0, ending: false, side: 0, party };
     this.say(node);
   }
 
   private say(node: Node) {
     const c = this.convo!;
     const text = typeof node.say === 'function' ? node.say(this.d.ctx()) : node.say;
-    const dur = this.line(c.npc, text, { voice: true, priority: true, subtitle: true });
+    const dur = this.line(c.npc, text, { voice: true, priority: true, subtitle: true, recordedOnly: c.party });
     c.readyAt = this.time + Math.min(dur, 2.2);
     c.replies = node.replies ?? null;
     c.waitingSince = 0;
@@ -429,11 +567,11 @@ export class Dialogue {
     }
     this.lastHeard = { heard };
     // Didn't catch it: roll with it.
-    const pool = this.isGuest(c.npc) && Math.random() < 0.7 ? this.character(c.npc).huh : HUH_LINES;
+    const pool = c.party ? [c.npc.performer === 'singer' ? NIXIE.huh : (this.partyOf(c.npc)?.huh ?? HUH_LINES[1])] : this.isGuest(c.npc) && Math.random() < 0.7 ? this.character(c.npc).huh : HUH_LINES;
     const huh = pool[Math.floor(Math.random() * pool.length)];
     this.hideReplies();
     c.replies = null;
-    const dur = this.line(c.npc, huh, { voice: true, priority: true });
+    const dur = this.line(c.npc, huh, { voice: true, priority: true, recordedOnly: c.party });
     const r = replies[Math.floor(Math.random() * replies.length)];
     setTimeout(() => {
       if (this.convo !== c) return;
@@ -450,6 +588,10 @@ export class Dialogue {
     const guest = this.isGuest(p);
     const ch = guest ? this.character(p) : null;
     const staff = guest ? null : this.staffId(p);
+    // At the party: their show lines for a toast and how they're doing.
+    const show = c.party && guest ? (p.performer === 'singer' ? NIXIE : this.partyOf(p)) : null;
+    if (show && it.kind === 'cheers') return this.aside(c, show.cheers);
+    if (show && it.kind === 'how') return this.aside(c, show.how);
     switch (it.kind) {
       case 'bye':
         return this.endConvo(ch ? ch.bye.walkedOff : CONVO_BYE.walkedOff);
@@ -576,7 +718,7 @@ export class Dialogue {
   private endConvo(last: string | null) {
     const c = this.convo;
     if (!c) return;
-    if (last) this.line(c.npc, last, { voice: c.npc.pos.distanceTo(this.d.feet()) < 4, priority: true });
+    if (last) this.line(c.npc, last, { voice: c.npc.pos.distanceTo(this.d.feet()) < 4, priority: true, recordedOnly: c.party });
     c.npc.attendUntil = this.d.crowd.now + 1.2;
     this.d.listener?.stop();
     this.convo = null;
@@ -587,7 +729,15 @@ export class Dialogue {
 
   /** Someone says a line: their own recorded voice from where they stand (bubble and caption if wanted). */
   /** `recordedOnly`: a line nobody has recorded yet is a caption, never the browser's voice. */
-  private line(p: Person, text: string, o: { voice?: boolean; priority?: boolean; subtitle?: boolean; recordedOnly?: boolean } = {}) {
+  private line(p: Person, text: string, o: { voice?: boolean; priority?: boolean; subtitle?: boolean; recordedOnly?: boolean; quiet?: boolean } = {}) {
+    // Performing: not a word.
+    if (silent(p)) return 0;
+    // At the party, nothing about the casino's games (a show line instead), and never the robot voice.
+    if (this.atParty(p)) {
+      if (!partySafe(text)) text = this.partyLine(p) ?? text;
+      if (!partySafe(text)) return 0;
+      o = { ...o, recordedOnly: true };
+    }
     const voice = voices.pick(text, ...this.voicesOf(p));
     const recorded = voices.has(voice, text);
     let dur = voices.duration(voice, text) ?? lineTime(text);
@@ -596,7 +746,7 @@ export class Dialogue {
       dur = voices.talk({ who: this.title(p), text, voice, at: mouthOf(p), priority: o.priority, group: o.priority ? 'convo' : undefined, captionFallback: false });
       if (o.priority) voiceArbiter.claim(dur);
     } else {
-      if (o.subtitle || o.recordedOnly) this.d.hud.say(this.title(p), spoken(text));
+      if (o.subtitle || (o.recordedOnly && !o.quiet)) this.d.hud.say(this.title(p), spoken(text));
       if (o.voice && !o.recordedOnly && (o.priority || !voiceArbiter.busy())) this.voice(p, text, 1, !!o.priority);
     }
     this.d.crowd.speak(p, dur);
@@ -615,6 +765,13 @@ export class Dialogue {
    */
   react(p: Person, kind: ReactKind, crew?: { name: string; voice: VoiceId }, say?: string): number {
     const t = this.time;
+    // Performing (she's on; the band, the DJ): no words, no gasp, just the body: a glance, a flinch, and on with the show.
+    if (silent(p)) {
+      p.attendUntil = Math.max(p.attendUntil, this.d.crowd.now + 0.9);
+      if (kind !== 'pushed') p.gaspT = Math.max(p.gaspT, 0.5);
+      this.reactCool.set(p, t + 1.2);
+      return 0.4;
+    }
     // One reaction at a time per person (a punch always gets its yell).
     if ((this.reactCool.get(p) ?? -9) > t && kind !== 'punched' && kind !== 'security') return 0;
     let id: string;
@@ -626,6 +783,10 @@ export class Dialogue {
       // Staff with their own voice (the Promenade's cooks and clerk).
       id = p.speaker;
       alt = this.voicesOf(p)[1];
+    } else if (p.performer === 'singer') {
+      // Her, between sets (only about the show).
+      id = 'nixie';
+      alt = elVoice('nixie');
     } else if (p.role === 'pianist') {
       // The pianist has no lines of his own: the roulette croupier's voice (a man in black tie), minus his table talk.
       id = 'croupier';
@@ -642,10 +803,14 @@ export class Dialogue {
       id = ch.id;
       alt = ch.fallback;
     }
-    const set = REACTIONS[id]?.[kind]?.filter((l) => p.role !== 'pianist' || !/wheel|table|play elsewhere/i.test(l));
-    if (!set?.length) return 0;
+    const has = (l: string) => voices.has(elVoice(id), l) || voices.has(alt, l);
+    // At the party (crew excepted): the show's lines (a shove from someone trying to see the stage).
+    const party = !crew && this.atParty(p) && kind !== 'security';
+    const showLines = id === 'nixie' ? (kind === 'security' ? [] : NIXIE.react[kind]) : party ? concertSet(id)?.react[kind] : undefined;
+    const set = party || id === 'nixie' ? showLines : REACTIONS[id]?.[kind]?.filter((l) => p.role !== 'pianist' || !/wheel|table|play elsewhere/i.test(l));
+    if (!set?.length && !party) return 0;
     // Recorded lines only (never the robot voice): until they're in, a gasp or a yelp.
-    const said = set.filter((l) => voices.has(elVoice(id), l) || voices.has(alt, l));
+    const said = party ? partyReactions(set, id === 'nixie' ? undefined : REACTIONS[id]?.[kind], has) : (set ?? []).filter(has);
     if (!said.length) {
       if (kind === 'pushed') return 0;
       this.onSpeak?.({ p, kind: 'gasp', text: '', voice: alt, who: this.title(p), volume: kind === 'punched' ? 1 : 0.6 });
@@ -654,7 +819,7 @@ export class Dialogue {
       return 0.8;
     }
     // `say`: a line already chosen (the same one everyone in the room hears).
-    const text = say && said.includes(say) ? say : said[Math.floor(Math.random() * said.length)];
+    const text = say && (said.includes(say) || (party && has(say) && partySafe(say))) ? say : said[Math.floor(Math.random() * said.length)];
     this.lastReaction = text;
     // Offended: whatever you were talking about is over.
     if (kind !== 'pushed' && this.convo?.npc === p) {
@@ -679,6 +844,8 @@ export class Dialogue {
    * Returns how long it lasts.
    */
   hear(l: { kind: SpokenLine['kind']; text: string; voice: string; alt?: string; who: string; volume: number }, p: Person | null, at: THREE.Vector3, speaker?: Person | null): number {
+    // Performing: not a word (whatever a friend's game played).
+    if ((p && silent(p)) || (speaker && silent(speaker))) return 0;
     const anchor = p ?? speaker ?? { pos: at, seated: false, look: { height: 1.75 } };
     if (l.kind === 'gasp') {
       this.d.sound.play('gasp', anchor.pos.clone().setY(anchor.pos.y + 1.5), { volume: l.volume, rate: l.volume >= 1 ? 0.9 : 1.1 });
@@ -724,6 +891,7 @@ export class Dialogue {
 
   /** A person's voices: their own (ElevenLabs) first, then the stand-in recorded before it. */
   voicesOf(p: Person): [VoiceId, VoiceId] {
+    if (p.performer === 'singer') return [elVoice(NIXIE.id), elVoice(NIXIE.id)];
     if (p.speaker) return [elVoice(p.speaker), (STAFF as Record<string, VoiceId>)[p.speaker] ?? STAFF.bartender];
     if (p.role === 'bartender') return [elVoice('bartender'), STAFF.bartender];
     if (p.role === 'waiter') return isFemale(p) ? [elVoice('waitress'), STAFF.waitress] : [elVoice('waiter'), STAFF.waiter];
@@ -747,7 +915,7 @@ export class Dialogue {
   private prefetchScene(s: Scene) {
     for (const [k, text] of s.ex.turns) {
       const who = s.cast[k];
-      if (who) voices.prefetch(sceneVoice(s.key, k, isFemale(who)), text);
+      if (who) voices.prefetch(s.party ? this.voiceOf(who) : sceneVoice(s.key, k, isFemale(who)), text);
     }
   }
 
@@ -758,6 +926,7 @@ export class Dialogue {
   }
 
   private title(p: Person) {
+    if (p.performer === 'singer') return NIXIE.name;
     if (p.speaker) return SPEAKERS.find((s) => s.id === p.speaker)?.name ?? 'Staff';
     if (p.role === 'croupier') return 'Dealer';
     if (p.role === 'bartender') return 'Bartender';
