@@ -309,8 +309,10 @@ const C = {
 };
 const SQUARE = 0,
   ROUND = 1,
-  GRIN = 2;
-type Shape = typeof SQUARE | typeof ROUND | typeof GRIN;
+  GRIN = 2,
+  /** A soft round wash, opaque in the middle and fading to nothing at its edge (a flushed cheek). */
+  SOFT = 3;
+type Shape = typeof SQUARE | typeof ROUND | typeof GRIN | typeof SOFT;
 const X = new THREE.Vector3(1, 0, 0),
   Y = new THREE.Vector3(0, 1, 0),
   Z = new THREE.Vector3(0, 0, 1);
@@ -318,7 +320,7 @@ const X = new THREE.Vector3(1, 0, 0),
 export class Faces {
   /** Rounded squares (eyes, lids, brows, teeth), ellipses (lips, the mouth's opening, glints), the grin's "D". */
   private meshes: THREE.InstancedMesh[] = [];
-  private counts = [0, 0, 0];
+  private counts = [0, 0, 0, 0];
   /** Per-person blink, gaze and expression state (exposed for tests). */
   readonly state = new WeakMap<Person, FaceState>();
   private radius: number;
@@ -392,6 +394,50 @@ export class Faces {
       d.lineTo(0.5 * Math.cos(a), 0.5 + Math.sin(a));
     }
     this.meshes = [mk(blob(6), this.max * 18), mk(blob(2), this.max * 5), mk(new THREE.ShapeGeometry(d), this.max)];
+    // The flush: rings of a 1 × 1 disc whose alpha falls off smoothly from the middle, drawn
+    // see-through over the skin so it reads as the skin going red, not a painted spot.
+    const soft = (() => {
+      const R = 6,
+        S = 24;
+      const pos: number[] = [0, 0, 0],
+        col: number[] = [1, 1, 1, 0.75],
+        idx: number[] = [];
+      for (let r = 1; r <= R; r++) {
+        const t = r / R;
+        const a = 0.75 * (1 - t * t * (3 - 2 * t));
+        for (let i = 0; i < S; i++) {
+          const ang = (i / S) * Math.PI * 2;
+          pos.push(0.5 * t * Math.cos(ang), 0.5 * t * Math.sin(ang), 0);
+          col.push(1, 1, 1, a);
+        }
+      }
+      const at = (r: number, i: number) => (r === 0 ? 0 : 1 + (r - 1) * S + (i % S));
+      for (let i = 0; i < S; i++) idx.push(0, at(1, i), at(1, i + 1));
+      for (let r = 1; r < R; r++)
+        for (let i = 0; i < S; i++) idx.push(at(r, i), at(r + 1, i), at(r + 1, i + 1), at(r, i), at(r + 1, i + 1), at(r, i + 1));
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, k) => (k % 3 === 2 ? 1 : 0)), 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((pos.length / 3) * 2).fill(0.5), 2));
+      g.setIndex(idx);
+      return g;
+    })();
+    const softMat = mat.clone() as THREE.MeshStandardMaterial;
+    softMat.vertexColors = true;
+    softMat.transparent = true;
+    softMat.depthWrite = false;
+    if ('map' in softMat) softMat.map = null;
+    const sm = new THREE.InstancedMesh(soft, softMat, this.max);
+    sm.frustumCulled = false;
+    sm.raycast = () => {};
+    sm.count = 0;
+    sm.visible = false;
+    sm.renderOrder = 1;
+    sm.setColorAt(0, new THREE.Color(1, 1, 1));
+    sm.name = 'faces-flush';
+    this.parent.add(sm);
+    this.meshes.push(sm);
   }
 
   /** Lays one flat piece on the face (head-bone space → world through `hm`). */
@@ -584,11 +630,12 @@ export class Faces {
             lh = lower * e.h;
           this.put(SQUARE, e.c, e.x, e.y, e.n, e.w * 1.3, lh, skin, 0, bot + lh / 2, 0.0026);
         }
-        // A slapped cheek reddens under the eye on that side.
+        // A slapped cheek flushes under the eye on that side: a soft wash of red over the skin
+        // (no edge), deepest where the hand landed and fading out across the cheek.
         if (p.blush > 0 && s === p.blushSide) {
           const k = Math.min(1, p.blush / 2);
-          this.cheek.copy(skin).lerp(C.blush, 0.55 * k);
-          this.put(ROUND, e.c, e.x, e.y, e.n, e.w * 2.1, e.h * 1.9, this.cheek, (s === 0 ? 1 : -1) * e.w * 0.35, -e.h * 2.1, 0.0009);
+          this.cheek.copy(skin).lerp(C.blush, 0.6 * k);
+          this.put(SOFT, e.c, e.x, e.y, e.n, e.w * 3.0, e.h * 2.8, this.cheek, (s === 0 ? 1 : -1) * e.w * 0.3, -e.h * 2.0, 0.0009);
         }
         // Brows lift (or come down, angry): skin over the model's brow, the brow drawn moved.
         if (Math.abs(st.brow) > 0.0004) {
