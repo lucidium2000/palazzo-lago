@@ -15,6 +15,7 @@ import {
   type PokerAction,
   PokerHand,
   type PokerStep,
+  stagedAction,
   type TableView,
   unpackPoker,
 } from '../rules/poker';
@@ -373,6 +374,55 @@ export class PokerPlay {
     this.rebuyPlaque.userData.dynamic = true;
     this.table.add(this.rebuyPlaque);
     this.targets.push({ object: this.rebuyPlaque, label: () => `Rebuy ${money(BUY_IN)}`, enabled: () => this.rebuyPlaque.visible, onSelect: () => this.rebuy() });
+    // Your betting line as a betting felt (VR): point and press it to push out one chip at a time
+    // (the chip you picked on your wallet tray), the same as at the other tables.
+    const hit = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.44).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ visible: false }));
+    hit.visible = false;
+    hit.userData.dynamic = true;
+    this.table.add(hit);
+    this.betLine = hit;
+    this.felt = {
+      object: hit,
+      kind: 'surface',
+      pokeable: true,
+      felt: true,
+      enabled: () => this.vr && this.mySeat !== null,
+      label: () => (this.isMyTurn ? `Bet ${money(this.chip)}${this.staged > 0 ? ` · ${money(this.staged)} out` : ''}` : null),
+      onSelect: (e) => {
+        this.dropChips(this.chip, e.hit.point);
+      },
+    };
+    this.targets.push(this.felt);
+  }
+
+  /** The chip a pointing finger pushes out (chosen on the wallet tray, the watch or the HUD). */
+  chip: ChipDenom = 25;
+  /** Your betting line, pressed by a pointing finger (VR). */
+  readonly felt: Interactable;
+  private betLine: THREE.Mesh;
+
+  /** Sitting in with a stack (the wallet tray deals from it while you're here). */
+  get seated(): boolean {
+    return this.mySeat !== null;
+  }
+
+  /** Chips this table plays with ($5 and up: the blinds are $5/$10). */
+  allows(d: ChipDenom): boolean {
+    return d >= SB;
+  }
+
+  /** Chips set down at a point (from the wallet tray or a fingertip): your bet if it's over your betting line on your turn. */
+  betAt(world: THREE.Vector3, amount: number): boolean {
+    return this.dropChips(amount, world);
+  }
+
+  /** Your money at this table (your stack, or the buy-in on its way to the seat), for the chip books. */
+  get myStaked(): number {
+    const k = this.mySeat;
+    if (k === null) return 0;
+    const o = this.owners.get(k);
+    if (o && o.token === this.me) return this.myStack;
+    return this.pendingBuy?.k === k ? this.pendingBuy.amount : 0;
   }
 
   // ===========================================================================
@@ -505,6 +555,7 @@ export class PokerPlay {
     this.staged = 0;
     if (k === null) {
       this.rack.visible = false;
+      this.betLine.visible = false;
       return;
     }
     const bank = this.ctx.bankroll;
@@ -521,6 +572,10 @@ export class PokerPlay {
     const rp = this.at(k, -0.19, 0.13);
     this.rack.position.set(rp.x, PK_TOP + 0.002, rp.z);
     this.rack.rotation.y = Math.atan2(s.u.x, s.u.z);
+    const bp = this.at(k, 0, -0.32, 0.001);
+    this.betLine.position.copy(bp);
+    this.betLine.rotation.y = Math.atan2(s.u.x, s.u.z);
+    this.betLine.visible = this.vr;
     const pp = this.at(k, 0.2, 0.2, 0.05);
     this.rebuyPlaque.position.copy(pp);
     this.rebuyPlaque.rotation.set(-0.7, Math.atan2(s.u.x, s.u.z), 0, 'YXZ');
@@ -1137,23 +1192,17 @@ export class PokerPlay {
     const quiet = this.clock - this.stagedAt;
     const allIn = S >= L.stack;
     const exact = L.call > 0 && S === L.call;
-    if (quiet < (allIn || exact ? 0.5 : 1.2)) return;
-    const say = (w: string) => {
-      if (this.warned === w) return;
-      this.warned = w;
-      this.ctx.toast?.(w, 'info');
-    };
-    let a: PokerAction;
-    if (allIn) a = L.maxTo ? { kind: 'allin' } : { kind: 'call' };
-    else if (L.call > 0 && S < L.call) return say(`${money(L.call - S)} more to call ${money(L.call)}`);
-    else {
-      const to = L.bet + S;
-      if (L.maxTo && to >= L.minTo) a = { kind: 'raise', to };
-      else if (L.call > 0) a = { kind: 'call' }; // more than a call but short of a raise: a call
-      else if (L.maxTo) return say(`Minimum bet is ${money(L.minTo)}`);
-      else a = { kind: 'check' };
+    // Long enough to press out chip after chip with a pointing finger (or scoop more from the tray) before it counts.
+    if (quiet < (allIn ? 0.5 : exact ? 1 : 2)) return;
+    const r = stagedAction(L, S);
+    if (!r) return;
+    if ('say' in r) {
+      if (this.warned === r.say) return;
+      this.warned = r.say;
+      this.ctx.toast?.(r.say, 'info');
+      return;
     }
-    if (this.decide(a)) this.stagedSent = true;
+    if (this.decide(r.action)) this.stagedSent = true;
   }
 
   private holdCards(pos: THREE.Vector3) {
@@ -1190,10 +1239,11 @@ export class PokerPlay {
    * (world), how open the hand is. Cupping a hand over your cards lifts them
    * for you to see; on your turn a double knock checks and a sweep folds.
    */
-  handInput(side: 'left' | 'right', tip: THREE.Vector3 | null, palm: THREE.Vector3 | null, open: number, t: number): PokerSignal | null {
+  handInput(side: 'left' | 'right', tip: THREE.Vector3 | null, palm: THREE.Vector3 | null, open: number, t: number, pointing = false): PokerSignal | null {
     const k = this.mySeat;
     const reader = this.readers[side];
-    if (k === null || !this.inHand) {
+    // A pointing finger is betting chips on the felt, not knocking it.
+    if (k === null || !this.inHand || pointing) {
       reader.reset();
       return null;
     }
@@ -1226,6 +1276,7 @@ export class PokerPlay {
   showRack(v: boolean) {
     this.vr = v;
     this.rack.visible = v && this.mySeat !== null;
+    this.betLine.visible = this.rack.visible;
   }
 
   // ===========================================================================

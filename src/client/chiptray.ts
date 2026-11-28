@@ -25,7 +25,23 @@ import { CHIP_COLORS, chipLabel, type ChipDenom } from './textures';
  * The money moves through the ChipLedger (rules/chipledger.ts), so it always
  * adds up: chips out of the tray are out of your balance until they come back
  * or go on a bet.
+ *
+ * Sitting in at a table that plays with table chips (poker: table stakes), the
+ * tray deals from your stack there instead (`stack`): same gestures, the
+ * balance over the middle is your stack, and chips let go of over your betting
+ * line are your bet; anywhere else they simply go back to the stack (they
+ * never left it: nothing moves in the wallet's books).
  */
+
+/** Table chips the tray deals from instead of your wallet (poker: your stack, while you're sitting in). */
+export interface TrayStack {
+  /** What you could still push out (your stack less chips already out). */
+  available(): number;
+  /** Chips the table plays with (others show greyed). */
+  allows(d: ChipDenom): boolean;
+  /** Chips let go of at a point: true if they went out as your bet. */
+  place(world: THREE.Vector3, amount: number): boolean;
+}
 
 export interface ChipTrayDeps {
   scene: THREE.Object3D;
@@ -50,6 +66,8 @@ export interface ChipTrayDeps {
   dropLoose(world: THREE.Vector3, v: THREE.Vector3, chips: ChipDenom[]): [string, number][] | null;
   haptic(side: 'left' | 'right', strength: number, ms: number): void;
   popups: ChipPopups;
+  /** Table chips to deal from instead of the wallet (null: the wallet). */
+  stack?(): TrayStack | null;
 }
 
 interface Carry {
@@ -58,7 +76,14 @@ interface Carry {
   mesh: THREE.InstancedMesh;
   slot: number;
   lastAdd: number;
+  /** Where the hand closed on the stack: keep it there and more chips come. */
+  at: THREE.Vector3;
+  /** From your table stack (poker), not the wallet: no money moved while carried. */
+  fromStack: boolean;
 }
+
+/** One chip per grab; keep your hand at the stack and another comes every this many seconds. */
+export const SCOOP_EVERY = 0.3;
 
 const PLATE_R = 0.085;
 const SLOT_R = 0.056;
@@ -162,22 +187,51 @@ export class ChipTray {
     return this.group.localToWorld(this.slotLocal(i).setY(h));
   }
 
+  /** The table stack the tray deals from right now (null: the wallet). */
+  get stack(): TrayStack | null {
+    return this.d.stack?.() ?? null;
+  }
+
+  /** What you could take out of the tray right now (wallet: spendable; at poker: your stack less chips in hand). */
+  available(src = this.stack): number {
+    if (!src) return this.d.ledger.spendable;
+    let out = 0;
+    for (const c of this.carries.values()) if (c.fromStack) out += this.amount(c);
+    return Math.max(0, src.available() - out);
+  }
+
+  private canTake(den: ChipDenom, src = this.stack) {
+    return (!src || src.allows(den)) && this.available(src) + 1e-9 >= den;
+  }
+
+  /** Take one chip out (from the wallet's books, or just count it out of your table stack). */
+  private takeOne(key: 'left' | 'right', den: ChipDenom, fromStack: boolean): boolean {
+    if (fromStack) return this.canTake(den);
+    return this.d.ledger.take(key, den);
+  }
+
   /** How many chips of slot i to draw (how many of it you could take, up to a short stack). */
   private visibleCount(i: number) {
     const d = this.d.denoms[i];
-    return Math.min(SHOW, Math.floor((this.d.ledger.spendable + 1e-9) / d));
+    const src = this.stack;
+    if (src && !src.allows(d)) return 0;
+    return Math.min(SHOW, Math.floor((this.available(src) + 1e-9) / d));
   }
 
   private slotGrabbable(den: ChipDenom, i: number): Grabbable {
     return {
       at: () => this.slotTop(i),
-      radius: 0.05,
-      enabled: () => this.open && this.d.ledger.spendable >= den,
+      // Measured from the pinch too (fingers on the chip, the palm a few cm back); the tray wins over a rail under it.
+      radius: 0.045,
+      pinch: true,
+      priority: 2,
+      enabled: () => this.open && this.canTake(den),
       grab: (hand) => {
         const key = hand.ctrl.userData.handedness as 'left' | 'right';
         // The hand the tray sits on can't reach into it.
         if (key !== 'right' && !this.force) return null;
-        if (!this.d.ledger.take(key, den)) {
+        const fromStack = !!this.stack;
+        if (!this.takeOne(key, den, fromStack)) {
           this.d.sound.play('denied', this.slotTop(i), { volume: 0.3 });
           return null;
         }
@@ -186,7 +240,7 @@ export class ChipTray {
         mesh.raycast = () => {};
         mesh.userData.dynamic = true;
         this.d.scene.add(mesh);
-        const c: Carry = { key, chips: [den], mesh, slot: i, lastAdd: this.clock };
+        const c: Carry = { key, chips: [den], mesh, slot: i, lastAdd: this.clock, at: this.d.hands.reach(hand), fromStack };
         this.carries.set(hand, c);
         this.fill(c);
         mesh.position.copy(this.slotTop(i));
@@ -221,9 +275,10 @@ export class ChipTray {
     const c = this.carries.get(hand);
     if (!c) return;
     c.mesh.position.copy(pos).y -= 0.01;
-    // Keep your hand at the stack: another chip every third of a second.
+    // Keep your hand where it took the chip: another one every third of a second, one at a time.
     const den = this.d.denoms[c.slot];
-    if (this.open && c.chips.length < CARRY_MAX && this.clock - c.lastAdd > 0.32 && pos.distanceTo(this.slotTop(c.slot)) < 0.05 && this.d.ledger.take(c.key, den)) {
+    const still = pos.distanceTo(c.at) < 0.04 || pos.distanceTo(this.slotTop(c.slot)) < 0.035;
+    if (this.open && c.chips.length < CARRY_MAX && this.clock - c.lastAdd >= SCOOP_EVERY && still && (!c.fromStack || this.stack) && this.takeOne(c.key, den, c.fromStack)) {
       c.chips.push(den);
       c.lastAdd = this.clock;
       this.fill(c);
@@ -262,6 +317,14 @@ export class ChipTray {
     this.carries.delete(hand);
     const amount = this.amount(c);
     const done = () => c.mesh.removeFromParent();
+    if (c.fromStack) {
+      // Table chips: over your betting line they're your bet; anywhere else they go back to your stack.
+      const src = this.stack;
+      done();
+      if (src && src.place(pos, amount)) this.d.haptic(c.key, 0.5, 35);
+      else this.welcome(pos, amount, c.key);
+      return;
+    }
     // Home: over the wallet, or over your rail at a table.
     if (this.overWallet(pos) || this.d.overRail(pos)) {
       const back = this.d.ledger.returnHand(c.key, amount);
@@ -287,10 +350,17 @@ export class ChipTray {
     done();
   }
 
-  /** Chips in your hands from the tray (for the audit): their total. */
+  /** Wallet chips in your hands from the tray (for the audit): their total. */
   get carried(): number {
     let s = 0;
-    for (const c of this.carries.values()) s += this.amount(c);
+    for (const c of this.carries.values()) if (!c.fromStack) s += this.amount(c);
+    return s;
+  }
+
+  /** Table-stack chips in your hands (poker): counted out, not yet bet. */
+  get carriedStack(): number {
+    let s = 0;
+    for (const c of this.carries.values()) if (c.fromStack) s += this.amount(c);
     return s;
   }
 
@@ -299,7 +369,7 @@ export class ChipTray {
     for (const [hand, c] of [...this.carries]) {
       this.carries.delete(hand);
       c.mesh.removeFromParent();
-      this.d.ledger.returnHand(c.key, this.amount(c));
+      if (!c.fromStack) this.d.ledger.returnHand(c.key, this.amount(c));
     }
   }
 
@@ -385,7 +455,8 @@ export class ChipTray {
     this.stacks.count = k;
     this.stacks.instanceMatrix.needsUpdate = true;
     if (this.stacks.instanceColor) this.stacks.instanceColor.needsUpdate = true;
-    this.balance.set(money(this.d.ledger.spendable));
+    const src = this.stack;
+    this.balance.set(src ? `Stack ${money(this.available(src))}` : money(this.d.ledger.spendable));
     this.drawFace();
   }
 
@@ -393,7 +464,8 @@ export class ChipTray {
     const ds = this.d.denoms;
     const sel = this.d.selected();
     const avail = ds.map((_, i) => this.visibleCount(i) > 0);
-    const key = `${sel}|${avail.join('')}`;
+    const src = this.stack;
+    const key = `${sel}|${avail.join('')}|${!!src}`;
     if (key === this.face.key) return;
     this.face.key = key;
     const g = this.face.ctx;

@@ -300,7 +300,7 @@ export class Interaction {
   private pokeCool = new Map<string, number>();
   private pokeRay = new THREE.Raycaster();
   private tmpV = new THREE.Vector3();
-  private feltBox = new Map<Interactable, THREE.Box3>();
+  private feltBox = new Map<Interactable, { box: THREE.Box3; key: string }>();
   private hovering = new Map<'left' | 'right', FeltHover>();
 
   /** What a pointing fingertip is over (a felt just under it), per hand. */
@@ -312,8 +312,12 @@ export class Interaction {
   nearFelt(tip: THREE.Vector3, margin = 0.35): boolean {
     for (const i of this.items) {
       if (!i.felt || !i.object.visible || !(i.enabled?.() ?? true)) continue;
-      let b = this.feltBox.get(i);
-      if (!b) this.feltBox.set(i, (b = new THREE.Box3().setFromObject(i.object)));
+      // Cached, and measured again only if the felt moved (poker's follows your seat).
+      const m = i.object.matrixWorld.elements;
+      const key = `${m[12].toFixed(3)},${m[13].toFixed(3)},${m[14].toFixed(3)},${m[0].toFixed(3)}`;
+      let c = this.feltBox.get(i);
+      if (!c || c.key !== key) this.feltBox.set(i, (c = { box: new THREE.Box3().setFromObject(i.object), key }));
+      const b = c.box;
       if (tip.x > b.min.x - margin && tip.x < b.max.x + margin && tip.z > b.min.z - margin && tip.z < b.max.z + margin && tip.y > b.min.y - 0.1 && tip.y < b.max.y + margin) return true;
     }
     return false;

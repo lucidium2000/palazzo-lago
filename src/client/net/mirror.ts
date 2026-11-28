@@ -224,6 +224,25 @@ export class Mirror {
       }
   }
 
+  /**
+   * Your friends' roulette layouts, for the host's croupier (rules/dealerclock.ts):
+   * is anyone betting, a signature that changes as they place chips, and
+   * whether a friend is holding chips right now (on their way to a bet).
+   */
+  rouletteOthers(): { bets: boolean; layout: string; placing: boolean } {
+    let bets = false,
+      layout = '';
+    for (const [id, l] of this.layers) {
+      const m = l.rPending ?? l.roulette.bets;
+      if (m.size) bets = true;
+      layout += `${id}:`;
+      for (const [k, v] of m) layout += `${k}=${v},`;
+      layout += ';';
+    }
+    const placing = this.d.session.friendList().some((f) => Array.isArray(f.state.hc) && Number(f.state.hc[0]) > 0);
+    return { bets, layout, placing };
+  }
+
   private get rouletteIdle() {
     return this.d.roulette.game.phase === 'betting' && this.time >= this.rHoldUntil;
   }

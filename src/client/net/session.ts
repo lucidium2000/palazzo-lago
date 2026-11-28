@@ -163,6 +163,7 @@ export class Session {
       role: d.host ? 'host' : 'guest',
       request: () => this.emit('rspin?'),
       announce: (s) => this.emit('rspin', s),
+      call: () => this.emit('rcall'),
     };
     d.craps.net = {
       role: d.host ? 'host' : 'guest',
@@ -602,9 +603,9 @@ export class Session {
     const { roulette, craps, hud } = this.d;
     if (this.wantSpin && this.time - this.wantSpin.t > 12) this.wantSpin = null;
     if (this.wantSpin && roulette.game.phase === 'betting') {
-      hud.toast(`${this.wantSpin.name} calls for the spin`, 'info');
+      hud.toast(`${this.wantSpin.name} is ready`, 'info');
       this.wantSpin = null;
-      roulette.startSpin();
+      roulette.hurry();
     }
     if (this.wantRoll && this.time - this.wantRoll.t > 12) this.wantRoll = null;
     if (this.wantRoll && craps.phase === 'betting') {
@@ -650,6 +651,10 @@ export class Session {
       case 'rspin?':
         // The wheel may still be finishing the last spin here: the call waits for it (a few seconds at most).
         if (this.host) this.wantSpin = { name: r.name, t: this.time };
+        break;
+      case 'rcall':
+        // The host's croupier called "No more bets": the spin follows.
+        if (!this.host && r.state.host && !this.spinQueue.length) this.d.roulette.remoteCall();
         break;
       case 'rspin':
         if (!this.host && r.state.host) {

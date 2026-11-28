@@ -27,7 +27,7 @@ import { connect, newCode, type Transport } from './net/transport';
 import { VrMenu } from './vrmenu';
 import { SelfBody } from './selfbody';
 import { SwimFX } from './areas/swim';
-import { OPEN, type FingerPose } from './fingers';
+import { isPointing, OPEN, type FingerPose } from './fingers';
 import { FINGER, THUMB, curlFingers, makeMouth, setFingers, setOpen } from './net/embody';
 import { bakeStatic } from './merge';
 import { resortCuller } from './resortcull';
@@ -502,12 +502,26 @@ async function main() {
     crapsBetsTimer = r.sevenOut ? 5.5 : 0;
   };
   let placeBetsTimer = 0;
+  // No SPIN button: the croupier watches the layout, calls "No more bets" when you're ready, then spins.
+  let rouletteCalledAt = -99;
+  roulette.onCall = () => {
+    rouletteCalledAt = performance.now() / 1000;
+    if (croupier) {
+      croupier.actionKind = 'reach';
+      croupier.action = 0.8;
+    }
+    if (near(roulette.group.position, 5)) croupierSays(CROUPIER_LINES.noMore);
+  };
+  // Shared room: your friends' layouts and hands count too (the host's croupier decides for everyone).
+  roulette.others = () => mirror?.rouletteOthers() ?? null;
+  roulette.placing = () => (hud.station === 'roulette' && ((chips?.tray.carried ?? 0) > 0 || roulette.rail.held > 0)) || !!mirror?.rouletteOthers().placing;
   roulette.onSpin = () => {
     if (croupier) {
       croupier.actionKind = 'reach';
       croupier.action = 1.2;
     }
-    if (near(roulette.group.position, 5)) croupierSays(CROUPIER_LINES.noMore);
+    // Said already as he called it (a spin with no call before it, e.g. catching up in a shared room, still gets the line).
+    if (near(roulette.group.position, 5) && performance.now() / 1000 - rouletteCalledAt > 6) croupierSays(CROUPIER_LINES.noMore);
     if (near(roulette.group.position, 4)) crew.react('spin', { chance: 0.35 });
   };
   roulette.onResult = (pocket, staked, returned) => {
@@ -1402,6 +1416,7 @@ async function main() {
     craps.selectChip(d);
     roulette.selectChip(d);
     for (const b of blackjacks) if (b.denoms.includes(d)) b.chip = d;
+    if (poker.allows(d)) poker.chip = d;
   };
   craps.chip = betChip;
   roulette.chip = betChip;
@@ -1410,6 +1425,7 @@ async function main() {
     const st = hud.station;
     if (st === 'craps') return craps.chip;
     if (st === 'roulette') return roulette.chip;
+    if (poker.mySeat !== null) return poker.chip;
     const bj = blackjacks.find((b) => b.mySeat !== null);
     return bj ? (bj.chip as ChipDenom) : betChip;
   };
@@ -1422,7 +1438,7 @@ async function main() {
     sound,
     inXR: () => player.inXR,
     poses: () => fingerPoses(),
-    tables: { craps, roulette, blackjacks },
+    tables: { craps, roulette, blackjacks, poker },
     betChip: () => betChip,
     setBetChip,
     chipFor: () => tableChip(),
@@ -1731,12 +1747,13 @@ async function main() {
       { id: 'rebet', label: 'Rebet', disabled: !roulette.game.canRebet, onPress: () => roulette.rebet() },
       { id: 'double', label: '×2', disabled: !betting || !has, onPress: () => roulette.double() },
       {
+        // No need to spin: the croupier does when he sees you're ready. This just tells him you are.
         id: 'spin',
-        label: betting ? 'SPIN' : '…',
-        sub: `bet ${money(roulette.game.totalBet)}`,
+        label: !betting ? '…' : roulette.bettingOpen ? 'READY' : 'NO MORE BETS',
+        sub: has ? `bet ${money(roulette.game.totalBet)} · croupier spins` : 'croupier spins',
         kind: 'primary',
-        disabled: !betting || !has,
-        onPress: () => roulette.startSpin(),
+        disabled: !roulette.bettingOpen || !has,
+        onPress: () => roulette.ready(),
       },
     ];
   };
@@ -2047,7 +2064,7 @@ async function main() {
           const open = 1 - (pose[1] + pose[2] + pose[3] + pose[4]) / 4;
           h.grip.updateMatrixWorld(true);
           const palm = h.grip.visible ? new THREE.Vector3().setFromMatrixPosition(h.grip.matrixWorld) : null;
-          poker.handInput(side, hands.fingertip(side), palm, open, t);
+          poker.handInput(side, hands.fingertip(side), palm, open, t, isPointing(pose));
         }
       }
       poker.update(dt, feet, camera);

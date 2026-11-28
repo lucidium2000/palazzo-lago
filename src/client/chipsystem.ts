@@ -3,7 +3,7 @@ import type { Bankroll, BankrollChange } from '../rules/bankroll';
 import { auditChips, ChipLedger, type AuditResult, type ChipSnapshot } from '../rules/chipledger';
 import type { Sound } from './audio';
 import type { ChipRail } from './chiprail';
-import { ChipPopups, ChipTray } from './chiptray';
+import { ChipPopups, ChipTray, type TrayStack } from './chiptray';
 import { FingerChips } from './fingerchip';
 import { isOpenHand, isPointing, type FingerPose } from './fingers';
 import type { Hands } from './hands';
@@ -37,6 +37,28 @@ export interface Table {
   readonly rail: ChipRail;
 }
 
+/**
+ * A table you sit in at with table chips (poker: table stakes). While you're
+ * sitting there the wallet tray deals from your stack, and your pointing
+ * finger bets from it on the table's betting felt.
+ */
+export interface StackTable {
+  /** Sitting in (with a stack in front of you). */
+  readonly seated: boolean;
+  /** Your stack less chips already pushed out. */
+  available(): number;
+  /** Chips that table plays with. */
+  allows(d: ChipDenom): boolean;
+  /** Chips set down at a point: true if they went out as your bet. */
+  betAt(world: THREE.Vector3, amount: number): boolean;
+  /** The felt a pointing finger bets on. */
+  readonly felt: Interactable;
+  /** Your money at that table (your stack), for the books. */
+  readonly myStaked: number;
+  /** Chips you've pushed out this turn, not yet your action (they're still in your stack). */
+  readonly staged: number;
+}
+
 export interface ChipSystemDeps {
   scene: THREE.Scene;
   camera: THREE.Camera;
@@ -47,7 +69,7 @@ export interface ChipSystemDeps {
   inXR(): boolean;
   /** Your finger poses this frame (from the controllers' sensors or hand tracking). */
   poses(): { l: FingerPose; r: FingerPose };
-  tables: { craps: Table; roulette: Table; blackjacks: (Table & { mySeat: number | null })[] };
+  tables: { craps: Table; roulette: Table; blackjacks: (Table & { mySeat: number | null })[]; poker?: StackTable };
   /** The chip you bet with (all tables) and choosing it (the tray, the watch, the rail, the HUD). */
   betChip(): ChipDenom;
   setBetChip(d: ChipDenom): void;
@@ -109,6 +131,7 @@ export class ChipSystem {
       dropLoose: (at, v, chips) => this.loose?.dropChips(at, v, chips, this.tag) ?? null,
       haptic: d.haptic,
       popups: this.popups,
+      stack: () => this.trayStack(),
     });
     for (const g of this.tray.grabbables) d.hands.register(g);
     // Rail chips let go of over the wallet go home too.
@@ -127,23 +150,43 @@ export class ChipSystem {
     // Felts: only a point presses them, and only with a chip to put down.
     d.interaction.feltGate = (side, item) => {
       const chip = d.chipFor(item);
-      if (!this.armed || this.ledger.spendable < chip) {
+      if (!this.armed || this.canBet(item) < chip) {
         this.stats.gated++;
         this.finger.hint(side, !this.armed ? 'Pick a chip · palm up' : 'Not enough chips');
         d.haptic(side, 0.1, 10);
         d.sound.playLocal('click', 0.15, 0.7);
         return false;
       }
-      this.stakedBefore = this.staked();
+      this.stakedBefore = this.pressed();
       return true;
     };
     d.interaction.onFeltPoke = (side) => {
-      if (this.staked() > this.stakedBefore + 1e-6) {
+      if (this.pressed() > this.stakedBefore + 1e-6) {
         this.stats.felt++;
         this.finger.placed(side);
         d.haptic(side, 0.6, 40);
       }
     };
+  }
+
+  private stackAdapter: TrayStack | null = null;
+
+  /** The table stack the tray deals from (poker, while you're sitting in), or null: the wallet. */
+  trayStack(): TrayStack | null {
+    const pk = this.d.tables.poker;
+    if (!pk || !pk.seated) return null;
+    return (this.stackAdapter ??= {
+      available: () => pk.available(),
+      allows: (den) => pk.allows(den),
+      place: (at, amount) => pk.betAt(at, amount),
+    });
+  }
+
+  /** What a chip pressed onto this felt would be paid from: your table stack on its felt, else your wallet. */
+  private canBet(item: Interactable | null): number {
+    const pk = this.d.tables.poker;
+    if (pk && (item === pk.felt || (item === null && pk.seated))) return this.tray.available(this.trayStack());
+    return this.ledger.spendable;
   }
 
   /** This client's tag for the loose chips it makes (unique across a room). */
@@ -155,10 +198,15 @@ export class ChipSystem {
     this.d.setBetChip(d);
   }
 
+  /** What a press on a felt changes when it takes: chips on layouts, and chips pushed out at poker. */
+  private pressed(): number {
+    return this.staked() + (this.d.tables.poker?.staged ?? 0);
+  }
+
   /** Your chips on every table's layout. */
   staked(): number {
     const t = this.d.tables;
-    return t.craps.myStaked + t.roulette.myStaked + t.blackjacks.reduce((s, b) => s + b.myStaked, 0);
+    return t.craps.myStaked + t.roulette.myStaked + t.blackjacks.reduce((s, b) => s + b.myStaked, 0) + (t.poker?.myStaked ?? 0);
   }
 
   private worth(): number {
@@ -261,7 +309,7 @@ export class ChipSystem {
           // Not while it's reaching into the tray (pointing there picks a chip).
           pointing: f.pointing && !(this.tray.open && !!f.tip && f.tip.distanceTo(this.tray.group.position) < 0.16),
           near: !!f.tip && this.d.interaction.nearFelt(f.tip),
-          denom: this.armed && this.ledger.spendable >= chip ? chip : null,
+          denom: this.armed && this.canBet(hover?.item ?? null) >= chip ? chip : null,
           hover,
         };
       }),
@@ -314,7 +362,7 @@ export class ChipSystem {
     if (at) at.wallet.sync(at.onRail);
     return {
       balance: this.d.bankroll.balance,
-      bets: { craps: t.craps.myStaked, roulette: t.roulette.myStaked, blackjack: t.blackjacks.reduce((s, b) => s + b.myStaked, 0) },
+      bets: { craps: t.craps.myStaked, roulette: t.roulette.myStaked, blackjack: t.blackjacks.reduce((s, b) => s + b.myStaked, 0), poker: t.poker?.myStaked ?? 0 },
       hand: this.ledger.inHand,
       loose: this.ledger.onTable,
       physicalHand: this.tray.carried,

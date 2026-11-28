@@ -313,6 +313,26 @@ export interface PlayerState {
   seen: number;
 }
 
+/**
+ * Chips you pushed out on your turn (VR: from the rack, your wallet tray or a
+ * pointing finger), read as an action: all you have is all in, exactly the
+ * call is a call, more is a raise to your street bet plus them (a call if it's
+ * short of a full raise), a bet when nothing is owed. A `say` result means the
+ * chips don't make an action yet (short of a call, under the minimum bet).
+ */
+export function stagedAction(L: Legal, staged: number): { action: PokerAction } | { say: string } | null {
+  const S = staged;
+  if (S <= 0) return null;
+  const usd = (n: number) => '$' + n.toLocaleString('en-US');
+  if (S >= L.stack) return { action: L.maxTo ? { kind: 'allin' } : { kind: 'call' } };
+  if (L.call > 0 && S < L.call) return { say: `${usd(L.call - S)} more to call ${usd(L.call)}` };
+  const to = L.bet + S;
+  if (L.maxTo && to >= L.minTo) return { action: { kind: 'raise', to } };
+  if (L.call > 0) return { action: { kind: 'call' } };
+  if (L.maxTo) return { say: `Minimum bet is ${usd(L.minTo)}` };
+  return { action: { kind: 'check' } };
+}
+
 export interface Legal {
   /** What it costs to stay in (0: a check is possible). Capped at the stack. */
   toCall: number;
