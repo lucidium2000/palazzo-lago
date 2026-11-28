@@ -29,7 +29,7 @@ export interface Box {
   hd: number;
   yaw: number;
   kind: string;
-  /** Furniture you can climb onto (a bed, a lounger): solid for walking guests, passable for you (its seats sit you down). */
+  /** Furniture you can climb onto (a bed, a lounger), or a ledge you can step off: solid for walking guests, passable for you. */
   soft?: boolean;
 }
 
@@ -79,6 +79,16 @@ export class World {
    * (addSeat) where you'd sit.
    */
   addFurniture(x: number, z: number, w: number, d: number, yaw = 0, kind = 'misc') {
+    this.boxes.push({ x, z, hw: w / 2, hd: d / 2, yaw, kind, soft: true });
+  }
+
+  /**
+   * A drop you can walk or jump off (a stage's open edge): solid for walking
+   * guests (they never wander off it, or onto it), passable for you. Your own
+   * climbing is the player's step-up rule: a ledge higher than a stair blocks
+   * you from below unless you're in the air above it (player.ts).
+   */
+  addLedge(x: number, z: number, w: number, d: number, yaw = 0, kind = 'ledge') {
     this.boxes.push({ x, z, hw: w / 2, hd: d / 2, yaw, kind, soft: true });
   }
 

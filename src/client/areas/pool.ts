@@ -23,7 +23,8 @@ export const DJ = { x: 50, z: -32.5 };
 /**
  * The stage: one riser 0.6 m up along the south edge, the DJ booth at its east
  * end (the decks, party/decks.ts) and the headliner's stage to the west (his
- * mic, a truss and his marquee: party/stage.ts). Steps up at the east end.
+ * mic, a truss and his marquee: party/stage.ts). Steps up at the east end; the
+ * front and the ends are a drop you can walk or jump off (and jump back up).
  */
 export const STAGE = { x0: 39.6, x1: 47, z0: -34.1, z1: -31.5, y: 0.6, mic: { x: 43.3, z: -31.95 }, spot: { x: 43.3, z: -32.42 } };
 /** The steps up to the booth (east end), 0.3 m. */
@@ -34,6 +35,16 @@ const TRUSS: [number, number][] = [
   [STAGE.x1 - 0.15, STAGE.z1 - 0.15],
   [STAGE.x0 + 0.15, STAGE.z0 + 0.15],
   [STAGE.x1 - 0.15, STAGE.z0 + 0.15],
+];
+/**
+ * Her band on the stage behind her (party/band.ts): keys on a low riser stage
+ * left, the drummer on a riser at the back in the middle, the bassist stage
+ * right. (x, z: where they stand or sit; yaw: which way they face; riser: its height.)
+ */
+export const BAND = [
+  { role: 'keys' as const, x: 41.0, z: -33.5, yaw: 0.25, riser: 0.2, w: 1.4, d: 0.9, rx: 41.05, rz: -33.55 },
+  { role: 'drums' as const, x: 43.3, z: -33.72, yaw: 0, riser: 0.25, w: 1.7, d: 1.05, rx: 43.3, rz: -33.5 },
+  { role: 'bass' as const, x: 45.55, z: -33.25, yaw: -0.3, riser: 0, w: 0, d: 0, rx: 0, rz: 0 },
 ];
 export const LIFT = { doorX: 48, zs: [-7.6, -5.0] };
 
@@ -127,13 +138,23 @@ export function registerPool(world: World) {
   world.addGround(STAGE_STEPS.x0, STAGE_STEPS.x1, STAGE_STEPS.z0, STAGE_STEPS.z1, () => STAGE.y / 2);
   const mid = (STAGE.x0 + sx1) / 2,
     w = sx1 - STAGE.x0;
-  world.addBox(mid, STAGE.z1 + 0.05, w, 0.1, 0, 'stage');
+  // The front and the two ends are open drops (0.6 m): walk or jump off onto the deck (and jump
+  // back up: a 0.45 m jump lifts your feet within a stair's height of the top). Guests and the
+  // performers never step off (or on): the ledges are solid to them. The back stays a wall.
+  world.addLedge(mid, STAGE.z1 + 0.05, w, 0.1, 0, 'stage edge');
   world.addBox(mid, STAGE.z0 - 0.05, w, 0.1, 0, 'stage');
-  world.addBox(STAGE.x0 - 0.05, (STAGE.z0 + STAGE.z1) / 2, 0.1, STAGE.z1 - STAGE.z0 + 0.2, 0, 'stage');
-  world.addBox(sx1 + 0.05, (STAGE.z0 + STAGE_STEPS.z0) / 2, 0.1, STAGE_STEPS.z0 - STAGE.z0, 0, 'stage');
+  world.addLedge(STAGE.x0 - 0.05, (STAGE.z0 + STAGE.z1) / 2, 0.1, STAGE.z1 - STAGE.z0 + 0.2, 0, 'stage edge');
+  world.addLedge(sx1 + 0.05, (STAGE.z0 + STAGE_STEPS.z0) / 2, 0.1, STAGE_STEPS.z0 - STAGE.z0, 0, 'stage edge');
   world.addBox(DJ.x, DJ.z + 0.5, 2.4, 0.7, 0, 'dj booth');
   for (const s of [-1, 1]) world.addBox(DJ.x + s * 2.6, DJ.z - 0.5, 0.9, 0.8, 0, 'dj booth');
   world.addCircle(STAGE.mic.x, STAGE.mic.z, 0.1, 'stage');
+  // Her band: the risers (step up onto them), the keyboard rig, the drum kit, the bassist.
+  for (const b of BAND) {
+    if (b.riser > 0) world.addGround(b.rx - b.w / 2, b.rx + b.w / 2, b.rz - b.d / 2, b.rz + b.d / 2, () => STAGE.y + b.riser);
+    if (b.role === 'keys') world.addBox(b.x + Math.sin(b.yaw) * 0.42, b.z + Math.cos(b.yaw) * 0.42, 1.05, 0.34, b.yaw, 'band');
+    if (b.role === 'drums') world.addBox(b.x, b.z + 0.38, 1.45, 0.95, 0, 'band');
+    world.addCircle(b.x, b.z, 0.22, 'band');
+  }
   for (const [x, z] of TRUSS) world.addCircle(x, z, 0.09, 'stage');
   // Hedges along both long sides.
   for (const x of [22.7, 61.3]) world.addBox(x, -18, 1.0, 34, 0, 'hedge');
@@ -432,7 +453,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
 
   // DJ booth with an LED wall (the moving beams, lasers and dance floor are the party's: party/lights.ts).
   b.box(m.darkMarble, DJ.x, 0.3, DJ.z - 0.3, 6, 0.6, 2.6);
-  b.box(new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3 }), DJ.x, 1.0, DJ.z + 0.5, 2.4, 0.9, 0.7);
+  b.box(new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3 }), DJ.x, 1.05, DJ.z + 0.5, 2.4, 1.0, 0.7);
   for (const s of [-1, 1]) b.box(new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.5 }), DJ.x + s * 2.6, 1.4, DJ.z - 0.5, 0.9, 2.2, 0.8);
   const ledMat = ledMaterial();
   const led = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 2.8), ledMat);
@@ -440,7 +461,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   led.raycast = () => {};
   root.add(led);
   // The headliner's stage: the riser carries on west of the booth, a truss over it, a backdrop
-  // for his marquee, a mic stand, a glowing strip along the front and steps up at the east end.
+  // for her marquee, a mic stand, a glowing strip along the front and steps up at the east end.
   b.box(m.darkMarble, (STAGE.x0 + STAGE.x1) / 2, STAGE.y / 2, (STAGE.z0 + STAGE.z1) / 2, STAGE.x1 - STAGE.x0, STAGE.y, STAGE.z1 - STAGE.z0);
   b.box(m.darkMarble, (STAGE_STEPS.x0 + STAGE_STEPS.x1) / 2, STAGE.y / 4, (STAGE_STEPS.z0 + STAGE_STEPS.z1) / 2, STAGE_STEPS.x1 - STAGE_STEPS.x0, STAGE.y / 2, STAGE_STEPS.z1 - STAGE_STEPS.z0);
   b.box(m.glow(0x9a6cff, 1.3), (STAGE.x0 + DJ.x + 3) / 2, STAGE.y - 0.05, STAGE.z1 + 0.012, DJ.x + 3 - STAGE.x0, 0.035, 0.02);
@@ -452,8 +473,10 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   // Lamps on the truss (the beams are party/stage.ts's).
   for (const x of [STAGE.x0 + 0.25, STAGE.x1 - 0.25]) b.box(truss, x, top - 0.08, STAGE.z1 - 0.2, 0.2, 0.22, 0.26);
   for (let k = 0; k < 4; k++) b.box(truss, STAGE.x0 + 1.1 + k * 1.75, top - 0.12, STAGE.z0 + 0.2, 0.22, 0.2, 0.22);
-  // The backdrop behind the marquee.
-  b.box(truss, STAGE.spot.x, STAGE.y + 1.95, STAGE.z0 + 0.06, 6.0, 2.3, 0.06);
+  // The backdrop behind the marquee (high enough to clear the band in front of it).
+  b.box(truss, STAGE.spot.x, STAGE.y + 2.35, STAGE.z0 + 0.06, 6.0, 2.3, 0.06);
+  // The band's risers (their instruments are party/band.ts's).
+  for (const r of BAND) if (r.riser > 0) b.box(m.darkMarble, r.rx, STAGE.y + r.riser / 2, r.rz, r.w, r.riser, r.d);
   // Mic stand: the weighted base (the pole and its clip are party/stage.ts's: he tilts it).
   b.add(new THREE.CylinderGeometry(0.13, 0.14, 0.025, 20), truss, M(STAGE.mic.x, STAGE.y + 0.012, STAGE.mic.z));
   const djSign = textSign('Pool Party', { width: 3.2, px: 130, sub: 'DJ  ·  TONIGHT', bg: 'rgba(10,4,20,0.85)' });

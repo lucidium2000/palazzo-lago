@@ -1,12 +1,13 @@
 // Builds the headliner's stage moves: public/assets/people/show.glb.
 //
-// Orlo Vante's choreography (party/stage.ts, party/showanim.ts): original 80s
-// pop-showman moves made from everyday dance vocabulary (knee bounces, hits on
-// the beat, shoulder isolations, knee pops, side glides, spins, a front kick,
-// a jump into a freeze, arms-up crowd calls, a lunge for the final pose, a bow)
-// and nobody's signature moves. Every move is authored here as numeric key
-// poses on the "Ultimate Modular" rig the people use (art/source/people/
-// male_suit.glb), in beats at 122 bpm (the set's tempo; the client plays each
+// Nixie Vale's choreography (party/stage.ts, party/showanim.ts): original
+// electropop moves made from everyday dance vocabulary (sways, hip rolls,
+// shoulder isolations, hits on the beat, arm waves and sweeps, hair flips, side
+// steps, spins, a freeze, arms-up crowd calls, a big pose on the drop, a lunge
+// for the final pose, a bow; and the older showman moves, kept for anyone who
+// wants them) and nobody's signature moves. Every move is authored here as
+// numeric key poses on the "Ultimate Modular" rig the people use (her body:
+// art/source/people/female_suit.glb), in beats at 122 bpm (the set's tempo; the client plays each
 // clip by the beat clock, so it follows the music exactly). Between keys the
 // numbers are eased (hits land with an accelerating ease, so they stop hard on
 // the beat), each frame is rebuilt from them (two-bone IK on legs and arms) and
@@ -27,7 +28,7 @@ import { treeOf, wp, setWorldQ, rotWorld, twoBone } from './fightrig.mjs';
 
 const FPS = 30;
 const SRC = 'art/source/anims/ual_standard.glb';
-const RIG = 'art/source/people/male_suit.glb';
+const RIG = 'art/source/people/female_suit.glb';
 const OUT_FILE = 'public/assets/people/show.glb';
 const TABLE = JSON.parse(fs.readFileSync('src/client/party/showmoves.json', 'utf8'));
 /** One beat (s) at the clips' tempo. */
@@ -170,7 +171,7 @@ const TOE = 0.12;
 
 const HANG = [0.05, -0.39, 0.03, 0.3, -0.1, -0.3];
 const BENT = [0.05, -0.2, 0.22, 0.28, -0.3, -0.2];
-/** The mic hand (his right) at his mouth. */
+/** The mic hand (her right) at her mouth. */
 const MIC = [-0.11, 0.0, 0.21, 0.3, -0.35, -0.05];
 const MIC_LOW = [-0.08, -0.12, 0.2, 0.3, -0.4, -0.1];
 const CHEST = [-0.1, -0.13, 0.19, 0.35, -0.2, 0];
@@ -536,6 +537,102 @@ const FINAL = { drop: 0.21, px: 0.06, pz: 0.03, lf: [0.3, 0.36, 22, 0, 0], rf: [
     [3.4, { ...STANCE, la: HIP }],
     [4, STANCE],
   ], { from: fin });
+}
+
+
+// --- Her moves (electropop) -------------------------------------------------------------
+
+// Sway at the stand: the hips swing side to side over two beats, a soft knee on each, the shoulders
+// and head answering, the free arm loose with the swing, the mic low between lines.
+move('Show_Sway', [[0, { ra: MIC_LOW }], [2, { ra: MIC_LOW }]], {
+  mod: (s, b) => {
+    const sw = Math.sin(Math.PI * b);
+    s.drop += 0.02 + 0.02 * bounce(b);
+    s.px += 0.05 * sw;
+    s.roll += 4 * sw;
+    s.sp = [s.sp[0] + 2 * bounce(b), s.sp[1] + 5 * sw, s.sp[2] - 7 * sw];
+    s.hd = [s.hd[0] + 4 * bounce(b) - 2, s.hd[1] - 3 * sw, s.hd[2] + 6 * sw];
+    s.la = add(add(s.la, 0, 0.05 * sw), 2, 0.05 * sw);
+    s.sh = [4 * Math.max(0, sw), 4 * Math.max(0, -sw)];
+    return s;
+  },
+});
+
+// Hip roll: the hips circle (side, back, side, front) over two beats, a hand on the hip, the shoulders rolling against them.
+move('Show_HipRoll', [[0, { la: HIP, ra: MIC_LOW }], [2, { la: HIP, ra: MIC_LOW }]], {
+  mod: (s, b) => {
+    const a = Math.PI * b;
+    s.drop += 0.035 + 0.015 * bounce(b);
+    s.px += 0.055 * Math.sin(a);
+    s.pz += 0.03 * Math.cos(a);
+    s.roll += 5 * Math.sin(a);
+    s.pitch += 3 * Math.cos(a);
+    s.sp = [s.sp[0] - 3 * Math.cos(a), s.sp[1] + 4 * Math.sin(a), s.sp[2] - 8 * Math.sin(a)];
+    s.hd = [s.hd[0] + 3 * Math.cos(a), s.hd[1], s.hd[2] + 5 * Math.sin(a)];
+    s.sh = [6 * Math.max(0, Math.cos(a)), 6 * Math.max(0, -Math.cos(a))];
+    return s;
+  },
+});
+
+// A hair flip: fold forward from the waist with a dip of the knees, the free hand sweeping through the hair,
+// then whip up and back, chin high, and settle.
+{
+  const down = { drop: 0.12, pitch: 8, sp: [34, 0, 0], hd: [26, 0, 0], la: [0.05, 0.12, 0.2, 0.3, -0.1, -0.2], ra: MIC_LOW, lk: [0.14, -0.3, 0.8], rk: [0.14, -0.3, 0.8] };
+  const up = { drop: 0.04, pitch: -4, sp: [-10, 8, 0], hd: [-24, 10, 4], la: [0.15, 0.36, -0.02, 0.35, 0, -0.3], ra: MIC, sh: [6, 2] };
+  move('Show_HairFlip', [
+    [0, { ra: MIC_LOW }],
+    [0.9, down],
+    [1.05, { ...down, drop: 0.13 }],
+    [1.4, up, 'out'],
+    [2.4, { ...up, drop: 0.06, hd: [-18, 6, 2] }],
+    [3.3, { pitch: 0, sp: [0, 0, 0], hd: [0, 0, 0], la: BENT, sh: [0, 0], drop: 0.04 }],
+    [4, { ...STANCE, ra: MIC_LOW }],
+  ], { mod: (s, b) => ((s.drop += b > 2.4 ? 0.02 * bounce(b) : 0), s) });
+}
+
+// Arm wave: the free arm up overhead, waving side to side on each beat, the body swaying under it.
+{
+  const hi = (o) => [0.05 + o, 0.4, 0.05, 0.35, 0, -0.25];
+  move('Show_ArmWave', [
+    [0, { ra: MIC }],
+    [0.3, { la: hi(0.18), sp: [-4, 0, -6], hd: [-10, 0, -4] }, 'out'],
+    [1, { la: hi(-0.12), sp: [-4, 0, 6], hd: [-10, 0, 4] }],
+    [2, { la: hi(0.18), sp: [-4, 0, -6], hd: [-10, 0, -4] }],
+    [3, { la: hi(-0.12), sp: [-4, 0, 6], hd: [-10, 0, 4] }],
+    [3.6, { la: hi(0.1), sp: [-2, 0, 0], hd: [-4, 0, 0] }],
+    [4, { ...STANCE, ra: MIC }],
+  ], {
+    mod: (s, b) => {
+      const sw = Math.sin(Math.PI * b);
+      s.drop += 0.03 * bounce(b);
+      s.px += 0.04 * sw;
+      s.roll += 3 * sw;
+      return s;
+    },
+  });
+}
+
+// Arm sweep: the free arm from across the body, out over the crowd in a wide arc, the body turning with it, and back.
+move('Show_Sweep', [
+  [0, { ra: MIC }],
+  [0.5, { yaw: -18, sp: [6, -10, 0], hd: [4, -12, 0], la: CHEST, drop: 0.07 }],
+  [2.0, { yaw: 22, sp: [-4, 16, 4], hd: [-10, 24, 0], la: [0.42, 0.12, 0.12, 0.2, -0.3, -0.3], drop: 0.04 }, 'smooth'],
+  [2.6, { la: [0.32, 0.32, 0.08, 0.3, 0, -0.3], hd: [-16, 20, 0] }],
+  [3.5, { yaw: 0, sp: [0, 0, 0], hd: [0, 0, 0], la: BENT, drop: 0.05 }],
+  [4, { ...STANCE, ra: MIC }],
+], { mod: (s, b) => ((s.drop += 0.02 * bounce(b)), s) });
+
+// The big pose on the drop: a hit into a wide stance, both arms up in a V (the mic held high), chin to the lights, held.
+{
+  const P = { drop: 0.1, lf: [0.26, 0.05, 14, 0, 0], rf: [0.26, 0.05, 14, 0, 0], sp: [-8, 0, 0], hd: [-20, 6, 0], la: UPV, ra: [0.24, 0.35, 0.06, 0.35, 0, -0.3], sh: [6, 6] };
+  move('Show_Pose', [
+    [0, { ra: MIC }],
+    [0.15, P, 'hit'],
+    [0.5, { ...P, drop: 0.12 }],
+    [3.2, { ...P, drop: 0.09, hd: [-16, 10, 0] }],
+    [3.7, { lf: [0.18, 0.06, 10, 0.04, 0], rf: [0.18, 0.06, 10, 0.04, 0], la: BENT, ra: MIC, sp: [0, 0, 0], hd: [0, 0, 0], sh: [0, 0], drop: 0.05 }],
+    [4, { ...STANCE, ra: MIC }],
+  ]);
 }
 
 

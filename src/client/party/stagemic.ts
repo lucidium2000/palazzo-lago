@@ -3,7 +3,7 @@ import type { Grabbable, Hands } from '../hands';
 import type { Session } from '../net/session';
 import type { Voice } from '../net/voice';
 import { MIC_KEEP, SELF_MONITOR, Ducker, MicProximity, VoiceActivity, canGrabMic, friendRoute, rms } from './micstate';
-import { buildPaChain, type PaChain } from './pachain';
+import { PA_VOL, STACKS, buildPaChain, type PaChain } from './pachain';
 import type { Stage } from './stage';
 
 /**
@@ -23,8 +23,6 @@ import type { Stage } from './stage';
  * (SELF_MONITOR), and not at all with "Stage mic monitor" off.
  */
 
-/** Level of the PA's voices at the stacks (the music's stacks are 0.05 each: a voice sits a little over the set). */
-const PA_VOL = 0.08;
 const MONITOR_KEY = 'palazzo-lago.stageMonitor';
 
 interface FriendPA {
@@ -80,10 +78,10 @@ export class StageMic {
       const a = new THREE.PositionalAudio(d.listener);
       // Fed from a node (no playback control), so its panner follows the stack.
       (a as { hasPlaybackControl: boolean }).hasPlaybackControl = false;
-      a.setRefDistance(5);
-      a.setRolloffFactor(1.05);
+      a.setRefDistance(STACKS.ref);
+      a.setRolloffFactor(STACKS.rolloff);
       a.setDistanceModel('inverse');
-      a.setMaxDistance(200);
+      a.setMaxDistance(STACKS.max);
       a.setVolume(0);
       a.name = 'stage-pa';
       const f = this.ctx.createBiquadFilter();

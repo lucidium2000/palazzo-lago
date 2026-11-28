@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { BeatClock, DETECT, PARTY, SYNTH_SET, arrangement, arrangementLength, beatAt, beatLen, detectSections, kickIn, loopLength, sectionOf, synthSections } from '../src/client/party/beat';
-import { DJ_BARS, DJ_ONLY, DJ_TRACK, FULL_SET, SET_BPM, SLOT_BARS } from '../src/client/party/setlist';
+import { type MeasuredTrack } from '../src/client/party/beat';
+import { DJ_SET, HOUSE_PLAN, INDEX_SONGS, TRACKS } from '../src/client/party/setlist';
+
+const DJ_TRACK = TRACKS.dj_set as MeasuredTrack;
+const DJ_BARS = detectSections(DJ_TRACK.perBar, true, 0);
 import { BobDetector } from '../src/client/party/rhythm';
 
 const B = beatLen();
@@ -129,23 +133,25 @@ describe('the real set: sections read from the measured music', () => {
     expect(bars[16].section).toBe('drop');
   });
 
-  it('runs the whole set list on one clock: the DJ, then the headliner, at the measured tempo', () => {
-    expect(SET_BPM).toBeCloseTo(121.978, 3);
-    expect(FULL_SET.bars).toHaveLength(SLOT_BARS * 2);
-    expect(DJ_ONLY.bars).toHaveLength(SLOT_BARS * 2);
-    const loop = arrangementLength(FULL_SET);
-    expect(loop).toBeCloseTo(SLOT_BARS * 2 * SB(SET_BPM), 9);
-    const c = new BeatClock(FULL_SET);
+  it("runs the house record (deck A) on its measured tempo, and her song on its own, chorus by chorus", () => {
+    expect(HOUSE_PLAN.name).toBe('deck_a');
+    expect(DJ_SET.bpm).toBeCloseTo(HOUSE_PLAN.bpm, 9);
+    expect(DJ_SET.bars).toHaveLength(HOUSE_PLAN.bars);
+    expect(arrangementLength(DJ_SET)).toBeCloseTo(HOUSE_PLAN.length, 6);
+    // The clock's beat 0 is the record's first downbeat: one beat in is one measured beat later.
+    expect(beatAt(60 / DJ_SET.bpm + 1e-6, DJ_SET).beat).toBe(1);
+    const song = INDEX_SONGS[0]!;
+    expect(song.name).toBe('concert_1');
+    const c = new BeatClock(song.arr);
     const drops: number[] = [];
-    for (let t = -0.01; t < loop + 0.5; t += 1 / 60) {
+    for (let t = -0.01; t < song.length - 0.05; t += 1 / 60) {
       c.update(t);
       if (c.onDrop) drops.push(c.now.bar);
     }
-    // The DJ's two drops, then the chorus of each song (and the DJ again, round the loop).
-    expect(drops).toEqual([0, 40, 80, 112, 0]);
-    // The clock's beat 0 is the track's first beat: one beat in is one measured beat later.
-    expect(beatAt(60 / SET_BPM + 1e-6, FULL_SET).beat).toBe(1);
-    expect(beatAt(60 / SET_BPM + 1e-6, FULL_SET).phase).toBeCloseTo(0, 4);
+    // Each chorus drops on its downbeat (bars 34, 81, 112: the song's section map).
+    expect(drops).toEqual([34, 81, 112]);
+    expect(beatAt(SB(song.bpm) * 40.5, song.arr).part).toBe('chorus');
+    expect(beatAt(SB(song.bpm) * 107.5, song.arr).part).toBe('bridge');
   });
 });
 

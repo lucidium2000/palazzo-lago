@@ -10,6 +10,19 @@
  * and the ducking listen to); `meter` taps the end of the chain.
  */
 
+/**
+ * The pool's speaker stacks (the music and the stage PA play from both): each
+ * stack's level, and how it carries. Inverse distance from 6 m (full level
+ * anywhere on the dance floor and in front of the stage), halving every
+ * doubling past that, so the pool bar ~20 m off hears it ~10 dB down: a real
+ * pool party, loud on the floor and still there across the deck. (Measured at
+ * the listener with the house record: ~-15 dBFS RMS on the dance floor, peaks
+ * under -3 dBFS; see README.)
+ */
+export const STACKS = { vol: 0.45, ref: 6, rolloff: 1, max: 200 };
+/** The stage PA's voices at the stacks: a voice sits a little over the music. */
+export const PA_VOL = STACKS.vol * 1.6;
+
 export interface PaChain {
   readonly input: GainNode;
   /** The end of the chain (its gain is this voice's level on the PA). */

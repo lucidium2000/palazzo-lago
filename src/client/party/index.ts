@@ -1,54 +1,70 @@
 import * as THREE from 'three';
 import type { Sound } from '../audio';
-import { copyMono, decodeAudio } from '../musicload';
 import type { Hands } from '../hands';
 import type { Interaction } from '../interaction';
 import type { Viewpoint } from '../player';
 import type { Session } from '../net/session';
 import type { PlayerState } from '../net/transport';
 import type { Crowd, Person } from '../people';
-import { BeatClock, SYNTH_SET, beatAt, type Beat } from './beat';
+import { Audience } from './audience';
+import { Band } from './band';
+import { BeatClock, SYNTH_SET, beatAt, plainArrangement, type Arrangement, type Beat } from './beat';
 import { DESK_MOVES, Dancer, MOVE_NAMES, type Move } from './dance';
-import { PartyLights, type PoolLights } from './lights';
 import { DeckAudio } from './deckaudio';
+import { packDecks, unpackDecks } from './deckwire';
 import { Decks } from './decks';
+import { PartyLights, type PoolLights } from './lights';
+import { PARTY_RATE, loadConcert, loadRecord } from './music';
+import { STACKS } from './pachain';
 import type { Performers } from './performers';
 import { BobDetector } from './rhythm';
-import { DJ_ONLY, FULL_SET, SET_BPM, slotLayout } from './setlist';
-import { renderScratchRecord, type RawTrack } from './song';
-import { HEADLINER, Stage } from './stage';
+import { cycleLength, liveSlot, makePlan, needsPlan, newer, packPlan, planTag, programAt, unpackPlan, type Plan, type Program, type Timing } from './schedule';
+import { DECK_B_PLAN, DJ_SET, HOUSE_PLAN, INDEX_SONGS, beatMatch, concertLength, deckArrangement, songAt, type SongPlan, type TrackPlan } from './setlist';
+import { HEADLINER, Stage, type ShowState } from './stage';
 import { StageMic } from './stagemic';
 import { renderPartyRaw } from './track';
 
 /**
- * The pool party: the DJ's set playing from the booth's speaker stacks (it
- * falls off with distance and is muffled through the building, and the
- * casino's own music ducks out as you come out to the deck), the beat clock
- * everything else follows, the lights, the guests dancing on the floor, you
- * dancing (VR: bob your head to the beat and your legs bounce, throw your
- * hands up on the drop; screen: J cycles dance moves) and your friends
- * dancing too (a tiny `dn` field in their state).
+ * The pool party: the music from the booth's speaker stacks (it falls off with
+ * distance and is muffled through the building, and the casino's own music
+ * ducks out as you come out to the deck), the beat clock everything else
+ * follows, the lights, the guests dancing on the floor, you dancing (VR: bob
+ * your head to the beat and your legs bounce, throw your hands up on the drop;
+ * screen: J cycles dance moves) and your friends dancing too (`dn`).
  *
- * Everyone in a room hears the same bar at the same time: the set's
- * position comes from the wall clock. The set list alternates the DJ's 64
- * bars (dj_set.mp3) and the headliner's two songs (orlo_*.mp3, stage.ts) on
- * that clock, through one engine: the decks (decks.ts, deckaudio.ts), which
- * you can step up to and scratch. The beat clock follows the real tracks'
- * measured tempo and first beats, and their drops, breakdowns and builds as
- * measured bar by bar (beat.ts, setlist.ts).
+ * The music: the decks (decks.ts, deckaudio.ts, scratch.ts). Deck A ("No
+ * Tomorrow", deck_a.mp3) is the house record the resident DJ plays, the
+ * crossfader resting full left; deck B ("Woo and Oh Yeah", deck_b.mp3) comes in
+ * when someone at the decks fades right. Step up behind the decks and your mix
+ * is what the stacks play (and what your friends hear: `dk` in your state,
+ * the faders and where each record is); step away and the house record comes
+ * back. Both records run off the wall clock, so a room hears the same bar.
  *
- * Loading: nothing here is fetched until you head for the pool (or the
- * casino's own music has been playing a while). The mp3s are decoded mono at
- * 32 kHz and handed to the decks' audio thread (transferred, not copied): the
- * DJ's 126 s is ~16 MB, the headliner's two songs another ~16 MB, and nothing
- * stays on the main thread. If the DJ's track can't be had, the synthesized
- * set (track.ts) plays instead, so the party is never silent.
+ * The concert: a minute or two after you come out to the pool, the headliner
+ * (stage.ts) and her band (band.ts) come on for her set (concert_*.mp3), the
+ * dancers gather in front of her stage and more guests arrive (audience.ts);
+ * then the DJ again for a few minutes, then her again (schedule.ts: the plan
+ * rides in everyone's state as `pz`, so a room shares one running order).
+ *
+ * The beat clock follows whichever is playing: the house record's measured
+ * tempo and drops, or her song's tempo and sections.
+ *
+ * Loading (all mono 32 kHz, handed to the audio thread, nothing kept here):
+ * deck A as you head for the pool (~26 MB); deck B only while someone's at the
+ * decks (released a minute and a half after); the concert from a minute before
+ * her set to two minutes after it (~32 MB). If deck A can't be had, dj_set.mp3
+ * plays instead, and failing that the synthesized set (track.ts).
  */
 
-/** Samples per second the party's tracks are kept at (mono). */
-const PARTY_RATE = 32000;
 /** Start fetching the party's music this long after the casino's started, wherever you are (ms). */
 const PREFETCH_AFTER = 25000;
+/** The doors from the hotel corridor (the music leaks through them). */
+const DOORS = new THREE.Vector3(36, 0, -0.5);
+/** Fetch her music this long before her set (s), and let it go this long after (s). */
+const CONCERT_AHEAD = 60;
+const CONCERT_KEEP = 120;
+/** Deck B is let go this long after anyone was last at the decks (s). */
+const DECK_B_KEEP = 90;
 
 export interface PartyDeps {
   scene: THREE.Scene;
@@ -65,25 +81,17 @@ export interface PartyDeps {
   /** VR hands (scratching the records) and the pointer/touch system (the decks' click target). */
   hands?: Hands;
   interaction?: Interaction;
-  /** The DJ and the headliner (added to the crowd early, with the pool's guests). */
+  /** The DJ, the headliner, her band and her extra audience (added to the crowd early, with the pool's guests). */
   performers?: Performers;
   /** Screen: walk you up to the decks. */
   travel?: (v: Viewpoint) => void;
+  /** Is a spot clear for a standing guest (her audience's places)? */
+  isFree?: (x: number, z: number) => boolean;
 }
 
-/** The pool deck's doors from the hotel corridor (the music leaks through them). */
-const DOORS = new THREE.Vector3(36, 0, -0.5);
-/**
- * Base level of each speaker stack (two of them). The stacks' panners used to
- * sit at the world origin (a PositionalAudio fed from a node never updated its
- * position), so the set reached the dance floor ~21 dB down from 50 m away;
- * now they play from the stacks, and this keeps the dance floor as loud as it was.
- */
-const STACK_VOL = 0.05;
-
 export class Party {
-  /** The beat everything follows: the whole set list (the DJ's slot, then the headliner's). */
-  readonly clock = new BeatClock(DJ_ONLY);
+  /** The beat everything follows (the house record's, or her song's while she's on). */
+  readonly clock = new BeatClock(DJ_SET);
   readonly lights: PartyLights;
   /** 0..1: how much you're at the party (casino music ducks by this). */
   presence = 0;
@@ -97,9 +105,9 @@ export class Party {
   private friends = new Map<Person, { d: Dancer; amt: number }>();
   private stacks: THREE.PositionalAudio[] = [];
   private filters: BiquadFilterNode[] = [];
-  private playing: { ctx: number; offset: number } | null = null;
-  /** Where the set's music comes from: the recordings, or the synthesized fallback. */
-  source: 'track' | 'synth' | null = null;
+  private playing: { ctx: number; wall: number } | null = null;
+  /** Where the music comes from: the records, dj_set standing in for deck A, or the synthesized fallback. */
+  source: 'decks' | 'dj_set' | 'synth' | null = null;
   private rendering = false;
   private runningFor = 0;
   private dt = 0;
@@ -107,12 +115,34 @@ export class Party {
   private cheeredDrop = -1;
   private cheeredAt = -100;
   private time = 0;
-  /** The turntables (and the resident DJ), the headliner's stage, and the engine that plays the set. */
+  /** The turntables (and the resident DJ), her stage and band, and the engine that plays it all. */
   readonly decks: Decks;
   readonly stage: Stage;
+  readonly band: Band | null;
+  readonly audience: Audience | null;
   deck: DeckAudio | null = null;
-  /** The headliner's set is rendered and in the set list. */
+  /** The house record (deck A) and deck B as they're playing (index.json's, or measured from the files). */
+  house: TrackPlan = HOUSE_PLAN;
+  deckB: TrackPlan | null = DECK_B_PLAN;
+  private houseArr: Arrangement = DJ_SET;
+  private bLoaded = false;
+  private bLoading = false;
+  private bUsedAt = -Infinity;
+  /** Her songs (index.json's until the files are in, then as measured), and whether her set's loaded. */
+  songs: (SongPlan | null)[] = INDEX_SONGS;
   liveReady = false;
+  private concertLoading = false;
+  private concertFailedAt = -Infinity;
+  /** The running order (schedule.ts): when her first set starts; the newest anyone in the room made wins. */
+  plan: Plan | null = null;
+  private wasHere = false;
+  /** The records' offsets (s) as the stacks are playing them (yours at the decks, a friend's, or the house's: 0). */
+  private off = [0, 0];
+  private sentOff = [0, 0];
+  private remote: ReturnType<typeof unpackDecks> = null;
+  private emptyFor = 0;
+  private prevXf = 0;
+  private program: Program = { live: false, into: -1, next: Infinity, set: -1 };
   private announced = -1;
   /** Drops that have landed (for the curious: window.casino.party). */
   drops = 0;
@@ -128,26 +158,32 @@ export class Party {
         (gamepad as Gamepad & { hapticActuators?: { pulse(v: number, ms: number): void }[] }).hapticActuators?.[0]?.pulse(0.45, 30);
       }
     };
-    this.stage = new Stage({ scene: d.scene, crowd: d.crowd, sound: d.sound, dancers: d.dancers, person: d.performers?.singer, djYaw: Math.PI });
-    for (const [k, p] of d.dancers.entries()) {
-      const dancer = new Dancer(p.seed + k * 7.1);
-      this.guests.set(p, dancer);
+    this.stage = new Stage({ scene: d.scene, crowd: d.crowd, sound: d.sound, person: d.performers?.singer });
+    this.band = d.performers?.band?.length ? new Band(d.scene, d.performers.band) : null;
+    const extras = d.performers?.extras ?? [];
+    const dance = (p: Person, dancer: Dancer) => {
       p.onPose = (q) => {
-        if (!q.rig) return;
+        if (!q.rig || q.moving > 0.2) return;
         const b = this.clock.now;
         dancer.pose(q.rig, { beat: b, dt: this.dt, amount: 1, move: dancer.moveFor(b), arms: true, handsUp: q.cheer > 0 ? Math.min(1, q.cheer * 2) : 0, scale: q.rig.root.scale.x });
       };
+    };
+    for (const [k, p] of [...d.dancers, ...extras].entries()) {
+      const dancer = new Dancer(p.seed + k * 7.1);
+      this.guests.set(p, dancer);
+      dance(p, dancer);
     }
+    this.audience = d.dancers.length || extras.length ? new Audience(d.dancers, extras, d.isFree ?? (() => true), Math.PI) : null;
     for (const [k, x] of [-2.6, 2.6].entries()) {
       const anchor = new THREE.Object3D();
       anchor.position.set(d.dj.x + x, 1.7, d.dj.z - 0.5);
       anchor.name = `party-stack-${k}`;
       d.scene.add(anchor);
       const a = new THREE.PositionalAudio(d.sound.listener);
-      a.setRefDistance(5);
-      a.setRolloffFactor(1.05);
+      a.setRefDistance(STACKS.ref);
+      a.setRolloffFactor(STACKS.rolloff);
       a.setDistanceModel('inverse');
-      a.setMaxDistance(200);
+      a.setMaxDistance(STACKS.max);
       // Fed from the decks' node (no playback control of its own): without this its panner never leaves the origin.
       (a as { hasPlaybackControl: boolean }).hasPlaybackControl = false;
       const f = d.sound.listener.context.createBiquadFilter();
@@ -175,25 +211,30 @@ export class Party {
     return this.deskMove;
   }
 
-  /** One slot of the set list (s): the DJ's 64 bars, or the headliner's two songs. */
-  get slot(): number {
-    return this.clock.loop / 2;
+  /** The schedule's grid and her set's length. */
+  timing(): Timing {
+    return { bar: this.house.bar, liveLen: Math.max(this.house.bar, concertLength(this.songs)) };
   }
 
-  /** Where the set list is (seconds into it: the DJ's slot, then the headliner's): the audio clock while it plays, else the wall clock. */
-  setTime(): number {
-    const period = this.clock.loop;
+  /** Wall-clock seconds as the music hears them (the audio clock while it plays, so the lights sit on the beat). */
+  wall(): number {
     if (this.playing) {
       const ctx = this.d.sound.listener.context;
       const lat = ctx.outputLatency || ctx.baseLatency || 0;
-      return (((ctx.currentTime - this.playing.ctx + this.playing.offset - lat) % period) + period) % period;
+      return ctx.currentTime - this.playing.ctx + this.playing.wall - lat;
     }
-    return (Date.now() / 1000) % period;
+    return Date.now() / 1000;
   }
 
   /** Who's playing now. */
   get onAir(): 'dj' | 'live' {
-    return this.liveReady && this.setTime() >= this.slot ? 'live' : 'dj';
+    return this.liveReady && this.program.live ? 'live' : 'dj';
+  }
+
+  /** What's on (for the curious and the tests: window.casino.party.show). */
+  get show() {
+    const p = this.program;
+    return { onAir: this.onAir, plan: this.plan && { start: this.plan.start, rev: this.plan.rev }, inSec: Number.isFinite(p.next) ? +p.next.toFixed(1) : null, into: +p.into.toFixed(1), set: p.set, liveReady: this.liveReady, cycle: +cycleLength(this.timing()).toFixed(1), slot: +liveSlot(this.timing()).toFixed(1), extras: this.audience?.here ?? 0, deckB: this.bLoaded, off: this.off.map((v) => +v.toFixed(3)), remote: !!this.remote };
   }
 
   /** How much a spot is at the party (1 on the deck, a little by the doors in the corridor). */
@@ -204,7 +245,7 @@ export class Party {
     return 0;
   }
 
-  /** The beat to dance to at a spot: the DJ's out here, the casino's groove inside. */
+  /** The beat to dance to at a spot: the party's out here, the casino's groove inside. */
   beatFor(p: THREE.Vector3): Beat {
     if (this.presenceAt(p) > 0.25) return this.clock.now;
     const t = this.d.sound.musicTime();
@@ -217,13 +258,15 @@ export class Party {
     return Number.isFinite(avg) ? headY + (avg - headY) * this.level : headY;
   }
 
-  /** Hooks the room: publish your dancing, dance your friends' avatars, share confetti. */
+  /** Hooks the room: publish your dancing, the running order and your decks; dance your friends' avatars; share confetti. */
   connect(session: Session) {
     this.session = session;
     const prev = session.extraState;
     session.extraState = () => ({
       ...(prev?.() ?? {}),
       dn: this.netState(),
+      pz: packPlan(this.plan),
+      ...(this.decks.atDecks ? { dk: packDecks({ ...this.decks.params, offA: this.off[0], offB: this.off[1] }) } : {}),
       // On the stage mic: friends route your voice through the PA (and see your mouth move even without voice chat).
       ...(this.mic.onMic ? { onMic: true, ...(session.voice.enabled ? {} : { mo: Math.round(this.mic.level * 9) }) } : {}),
     });
@@ -238,6 +281,7 @@ export class Party {
   /** You left the room. */
   disconnect() {
     this.session = null;
+    this.remote = null;
     this.mic.connect(null);
   }
 
@@ -261,10 +305,22 @@ export class Party {
     f.d.pose(p.rig, { beat: this.beatFor(p.pos), dt: this.dt, amount: f.amt, move, arms: !tracked, scale: p.rig.root.scale.x, still: m === 0 });
   }
 
+  /** The room's running order and decks, from your friends' states. */
+  private hearFriends() {
+    this.remote = null;
+    if (!this.session) return;
+    for (const { state } of this.session.friendStates()) {
+      const s = state as PlayerState & { pz?: unknown; dk?: unknown };
+      const p = unpackPlan(s.pz);
+      if (p) this.plan = newer(this.plan, p);
+      if (!this.remote) this.remote = unpackDecks(s.dk);
+    }
+  }
+
   /**
-   * Fetches the DJ's set and starts it through the decks (in time with the wall
-   * clock), then the battle record and the headliner's songs, which join the
-   * set list. The synthesized set stands in if the DJ's track can't be had.
+   * Fetches deck A and starts the decks (in time with the wall clock); her
+   * music and deck B come when they're needed. dj_set stands in for deck A,
+   * and the synthesized set for that.
    */
   private startAudio() {
     if (this.rendering) return;
@@ -272,37 +328,109 @@ export class Party {
     const ctx = this.d.sound.listener.context;
     (async () => {
       const deckP = DeckAudio.create(ctx);
-      let dj: RawTrack;
+      let rec: { plan: TrackPlan; raw: { data: Float32Array<ArrayBuffer>; sampleRate: number; loop: number } };
       try {
-        dj = await loadDjSet();
-        this.source = 'track';
+        rec = await loadRecord('deck_a');
+        this.source = 'decks';
       } catch (e) {
-        console.warn('Party: the DJ set could not be loaded, playing the synthesized set', e);
-        dj = await renderPartyRaw(PARTY_RATE);
-        this.source = 'synth';
-        this.clock.setArrangement(SYNTH_SET);
+        console.warn('Party: deck A could not be loaded, playing dj_set', e);
+        try {
+          rec = await loadRecord('dj_set');
+          this.source = 'dj_set';
+        } catch (e2) {
+          console.warn('Party: no DJ set either, playing the synthesized set', e2);
+          const raw = await renderPartyRaw(PARTY_RATE);
+          rec = { plan: { ...HOUSE_PLAN, bpm: 122, bar: 240 / 122, length: raw.loop, bars: 64, firstBeat: 0, perBar: [] }, raw };
+          this.source = 'synth';
+        }
       }
       const deck = await deckP;
+      // The decks → a limiter (the PA's protection: nothing past -1 dBFS reaches the stacks) → the stacks.
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -3;
+      lim.knee.value = 0;
+      lim.ratio.value = 20;
+      lim.attack.value = 0.002;
+      lim.release.value = 0.12;
+      deck.output.connect(lim);
       this.stacks.forEach((a, i) => {
-        deck.output.connect(this.filters[i]);
+        lim.connect(this.filters[i]);
         this.filters[i].connect(a.getOutput());
         a.setVolume(0);
       });
-      const offset = (Date.now() / 1000) % this.clock.loop;
-      deck.setTrack(0, 2, dj);
-      deck.sync(ctx.currentTime, offset);
+      this.house = rec.plan;
+      this.houseArr = this.source === 'synth' ? SYNTH_SET : rec.plan.perBar.length ? deckArrangement(rec.plan) : plainArrangement(rec.plan.bpm, rec.plan.bars);
+      this.clock.setArrangement(this.houseArr);
+      deck.setRecord(0, rec.raw);
+      const w = Date.now() / 1000;
+      deck.sync(ctx.currentTime, w);
+      deck.onOffset = (off) => {
+        // You let go of a record somewhere new (at the decks): that's where it is now.
+        if (this.decks.atDecks) {
+          this.off[0] = off[0];
+          this.off[1] = off[1];
+          this.sentOff[0] = off[0];
+          this.sentOff[1] = off[1];
+        } else this.sentOff[0] = this.sentOff[1] = NaN; // (a friend's record: put it back where they have it)
+      };
       this.deck = deck;
-      this.playing = { ctx: ctx.currentTime, offset };
-      deck.setRecord(await renderScratchRecord(PARTY_RATE, this.clock.bpm));
-      if (this.source !== 'track') return;
-      try {
-        deck.setTrack(1, 2, await loadSongs());
-        this.clock.setArrangement(FULL_SET);
-        this.liveReady = true;
-      } catch (e) {
-        console.warn("Party: the headliner's songs could not be loaded (the DJ plays on)", e);
-      }
+      this.playing = { ctx: ctx.currentTime, wall: w };
+      this.pushSchedule();
     })().catch((e) => console.warn('Party track failed', e));
+  }
+
+  /** Tells the audio thread when she's on (only once her music's in). */
+  private pushSchedule() {
+    if (!this.deck) return;
+    const t = this.timing();
+    const on = this.liveReady && !!this.plan;
+    this.deck.setSchedule({ on: on ? 1 : 0, start: this.plan?.start ?? 0, slot: liveSlot(t), cycle: cycleLength(t) });
+  }
+  private pushedSchedule = '';
+
+  /** Deck B: fetched while anyone's at the decks, let go a while after. */
+  private manageDeckB(inUse: boolean) {
+    if (!this.deck) return;
+    if (inUse) this.bUsedAt = this.time;
+    if (inUse && !this.bLoaded && !this.bLoading) {
+      this.bLoading = true;
+      loadRecord('deck_b')
+        .then(({ plan, raw }) => {
+          this.deckB = plan;
+          this.deck?.setRecord(1, raw);
+          this.deck?.setSpeed(1, beatMatch(this.house.bpm, plan.bpm));
+          this.bLoaded = true;
+        })
+        .catch((e) => console.warn('Party: deck B could not be loaded', e))
+        .finally(() => (this.bLoading = false));
+    } else if (!inUse && this.bLoaded && this.time - this.bUsedAt > DECK_B_KEEP) {
+      this.deck.setRecord(1, null);
+      this.bLoaded = false;
+    }
+  }
+
+  /** Her music: fetched a minute before her set, let go two minutes after. */
+  private manageConcert(p: Program) {
+    if (!this.deck || this.source === 'synth') return;
+    const soon = p.live || p.next < CONCERT_AHEAD;
+    if (soon && !this.liveReady && !this.concertLoading && this.time - this.concertFailedAt > 30) {
+      this.concertLoading = true;
+      loadConcert()
+        .then(({ songs, raw }) => {
+          this.songs = songs;
+          this.stage.setSongs(songs);
+          this.deck?.setLive(raw);
+          this.liveReady = true;
+        })
+        .catch((e) => {
+          console.warn("Party: the concert's music could not be loaded (the DJ plays on)", e);
+          this.concertFailedAt = this.time;
+        })
+        .finally(() => (this.concertLoading = false));
+    } else if (!soon && this.liveReady && p.next > CONCERT_KEEP && p.next < Infinity) {
+      this.deck.setLive(null);
+      this.liveReady = false;
+    }
   }
 
   /**
@@ -313,15 +441,56 @@ export class Party {
     this.dt = dt;
     this.time += dt;
     this.lastFeet.copy(you.feet);
-    const b = this.clock.update(this.setTime());
     const ctx = this.d.sound.listener.context;
+    const w0 = this.d.where(you.feet);
     if (ctx.state === 'running') {
       this.runningFor += dt;
       // Fetched as you head for the pool, or once the casino's music has been playing a while.
-      const w = this.d.where(you.feet);
       const ready = this.d.sound.musicReadyAt;
       const idle = ready >= 0 && performance.now() - ready > PREFETCH_AFTER;
-      if (this.runningFor > 1 && (w === 'pool' || w === 'hotel' || idle)) this.startAudio();
+      if (this.runningFor > 1 && (w0 === 'pool' || w0 === 'hotel' || idle)) this.startAudio();
+    }
+
+    // The running order: the room's newest plan; arriving with her next set far off, bring it closer.
+    this.hearFriends();
+    const W = this.wall();
+    const here = w0 === 'pool';
+    if (here && !this.wasHere && needsPlan(W, this.plan, this.timing())) {
+      this.plan = makePlan(W, this.timing(), Math.random(), planTag(), Date.now());
+    }
+    this.wasHere = here;
+    const prog = (this.program = programAt(W, this.plan, this.timing()));
+    const sched = JSON.stringify([this.liveReady, this.plan?.start, this.plan?.rev, this.timing().liveLen]);
+    if (sched !== this.pushedSchedule) {
+      this.pushedSchedule = sched;
+      this.pushSchedule();
+    }
+    this.manageConcert(prog);
+    const live = prog.live && this.liveReady;
+
+    // The decks: yours if you're at them, else a friend's, else the house record at rest.
+    const local = this.decks.atDecks;
+    const remote = local ? null : this.remote;
+    this.manageDeckB(local || !!remote);
+    // The beat: her song while she's on, the house record (where deck A is) otherwise.
+    let b: Beat;
+    let song = -1,
+      songBeat = 0;
+    if (live) {
+      const at = songAt(this.songs, prog.into);
+      song = at.song;
+      const sp = song >= 0 ? this.songs[song] : null;
+      if (sp) {
+        this.clock.setArrangement(sp.arr);
+        b = this.clock.update(at.t);
+        songBeat = at.t / (60 / sp.bpm);
+      } else {
+        this.clock.setArrangement(this.houseArr);
+        b = this.clock.update(this.housePos(W));
+      }
+    } else {
+      this.clock.setArrangement(this.houseArr);
+      b = this.clock.update(this.housePos(W));
     }
 
     // Where you are: the music opens up as you come out to the deck.
@@ -329,24 +498,33 @@ export class Party {
     this.presence += (pres - this.presence) * Math.min(1, dt * 2);
     const open = this.presence;
     const cutoff = 260 * Math.pow(75, open);
-    const vol = STACK_VOL * (0.05 + 0.95 * Math.pow(open, 1.5)) * (this.d.sound.musicOn ? 1 : 0);
+    const vol = STACKS.vol * (0.05 + 0.95 * Math.pow(open, 1.5)) * (this.d.sound.musicOn ? 1 : 0);
     for (const f of this.filters) f.frequency.setTargetAtTime(cutoff, ctx.currentTime, 0.08);
     // The stage mic (its PA plays from the same stacks); the music ducks while someone talks into it.
     this.mic.update(dt, you.head, !you.xr, open, cutoff);
     if (this.playing) for (const a of this.stacks) a.gain.gain.setTargetAtTime(vol * this.mic.duck, ctx.currentTime, 0.02);
 
-    // The set list: the headliner on the stage, the decks (and you on them).
-    const P = this.setTime();
+    // The stage, her band and her audience.
     const r = this.d.renderer;
     const scale = r.xr.isPresenting ? 750 : r.getDrawingBufferSize(this.v2).y / (2 * Math.tan(THREE.MathUtils.degToRad(this.d.camera.fov) / 2));
-    this.stage.update(dt, b, P, this.slot, this.liveReady, scale);
-    const params = this.decks.update(dt, b, { feet: you.feet, xr: you.xr });
-    this.deck?.set(params);
-    const set = Math.floor(Date.now() / 1000 / this.clock.loop);
-    if (this.stage.live && this.presence > 0.5 && this.announced !== set) {
-      this.announced = set;
+    const show: ShowState = { ready: this.liveReady, live, song, songBeat, toLive: prog.next, bar: 240 / this.clock.bpm };
+    this.stage.update(dt, b, show, scale);
+    this.band?.update(dt, b, live || (this.liveReady && prog.next < 4 * this.house.bar));
+    if (this.audience) {
+      const t = this.timing();
+      const C = cycleLength(t),
+        slot = liveSlot(t);
+      const since = !this.liveReady || !this.plan || prog.set < 0 ? Infinity : live ? -1 : W - (this.plan.start + prog.set * C + slot);
+      this.audience.update(dt, { into: live ? prog.into : -1, since: live ? Infinity : since }, this.stage.singer?.pos ?? this.v3.set(43.3, 0.6, -32.4));
+    }
+    if (this.stage.live && this.presence > 0.5 && this.announced !== prog.set) {
+      this.announced = prog.set;
       this.d.toast(`Live on the pool stage: ${HEADLINER.name}`);
     }
+
+    // The decks.
+    const params = this.decks.update(dt, b, { feet: you.feet, xr: you.xr });
+    this.mixDecks(params, local, remote, W);
 
     // The drop lands (where the measured drums jump), and the lights kick again half a phrase in.
     if (this.clock.onDrop) {
@@ -388,11 +566,57 @@ export class Party {
       for (const p of this.guests.keys()) if (p.pos.distanceTo(you.feet) < 7 && p.cheer < 0.4) p.cheer = 0.6;
     }
 
-    // Lights (dimmed while the headliner holds a freeze).
+    // Lights (dimmed while she holds a freeze).
     this.lights.dim = this.stage.blackout;
     this.lights.update(dt, b, scale);
   }
   private v2 = new THREE.Vector2();
+  private v3 = new THREE.Vector3();
+
+  /** Where deck A (the house record) is at rest at wall time `w` (s into its loop). */
+  private housePos(w: number): number {
+    const L = this.house.length;
+    return L > 0 ? ((((w + this.off[0]) % L) + L) % L) : 0;
+  }
+
+  /**
+   * What the decks play this frame: your hands and faders (and where you've
+   * left the records), a friend's at the decks (their faders, platters and
+   * records' places), or the house at rest (deck A, crossfader left, both
+   * records back on the wall clock's grid once the decks have been empty a moment).
+   */
+  private mixDecks(local: DeckParamsLike, mine: boolean, remote: ReturnType<typeof unpackDecks>, w: number) {
+    const deck = this.deck;
+    if (!deck) return;
+    if (mine) {
+      this.emptyFor = 0;
+      // Fading in from full left: deck B comes in on deck A's bar line (unless you've already moved it).
+      if (this.prevXf <= 0.001 && local.xf > 0.001 && local.holdB < 0.5 && Math.abs(local.rateB - 1) < 0.01 && this.deckB) {
+        const sinceBar = ((((w + this.off[0]) % this.house.bar) + this.house.bar) % this.house.bar);
+        const sp = beatMatch(this.house.bpm, this.deckB.bpm);
+        const L = this.deckB.length;
+        this.off[1] = ((((sinceBar * sp - w * sp) % L) + L) % L);
+      }
+      this.prevXf = local.xf;
+      deck.set(local);
+    } else if (remote) {
+      this.emptyFor = 0;
+      this.off[0] = remote.offA;
+      this.off[1] = remote.offB;
+      deck.set(remote);
+    } else {
+      this.emptyFor += this.dt;
+      this.prevXf = local.xf;
+      // Nobody at the decks: the records go back on the grid (the house record where everyone's is).
+      if (this.emptyFor > 2) this.off[0] = this.off[1] = 0;
+      deck.set(local);
+    }
+    for (let i = 0; i < 2; i++)
+      if (this.off[i] !== this.sentOff[i]) {
+        this.sentOff[i] = this.off[i];
+        deck.setOffset(i, this.off[i]);
+      }
+  }
 
   /** Screen dancing: the view bounces and sways with the beat (applied by the player). */
   deskBob(): { bob: number; roll: number } {
@@ -412,28 +636,4 @@ export class Party {
   }
 }
 
-/** The DJ's set as the decks want it: mono samples from its first beat, one slot long (plus a second of its start, for the wrap). */
-async function loadDjSet(): Promise<RawTrack> {
-  const L = slotLayout(SET_BPM);
-  const buf = await decodeAudio(L.dj.name, PARTY_RATE);
-  const n = Math.round(L.slot * PARTY_RATE);
-  const data = new Float32Array(n + PARTY_RATE);
-  copyMono(buf, L.dj.firstBeat, data, 0, n);
-  // It loops: the second past the end is its start again.
-  data.copyWithin(n, 0, PARTY_RATE);
-  return { data, sampleRate: PARTY_RATE, loop: L.slot };
-}
-
-/** The headliner's slot: his two songs back to back, each from its first beat, one after the other on the bar grid. */
-async function loadSongs(): Promise<RawTrack> {
-  const L = slotLayout(SET_BPM);
-  const n = Math.round(L.slot * PARTY_RATE);
-  const data = new Float32Array(n + PARTY_RATE);
-  // One at a time, so only one decoded song is held beside the slot.
-  for (const s of L.songs) {
-    const buf = await decodeAudio(s.name, PARTY_RATE);
-    const at = Math.round(s.at * PARTY_RATE);
-    copyMono(buf, s.firstBeat, data, at, Math.round(s.length * PARTY_RATE));
-  }
-  return { data, sampleRate: PARTY_RATE, loop: L.slot };
-}
+type DeckParamsLike = { rateA: number; rateB: number; holdA: number; holdB: number; xf: number; volA: number; volB: number };

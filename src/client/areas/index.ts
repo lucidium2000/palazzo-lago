@@ -130,7 +130,7 @@ export function buildAreas(deps: {
   buildHotel(scene, q, m);
   const pool = buildPool(scene, q, m);
   const dancers: Person[] = [];
-  const performers: Performers = { dj: null, singer: null };
+  const performers: Performers = { dj: null, singer: null, band: [], extras: [] };
   buildSuite(scene, q, m);
   // The arcade module fills the arcade's bays with games; until it's in, dark cabinets stand there.
   const promenade = buildPromenade(scene, q, m, { placeholders: !mountArcade });

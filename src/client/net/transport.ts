@@ -79,6 +79,10 @@ export interface PlayerState {
   /** On the pool stage's mic: friends hear their voice through the PA (party/stagemic.ts), not from their avatar. */
   onMic?: boolean;
   /** Dancing: move × 10 + how much (1-9); move 0 = legs only (a VR player's real hands do the arms). */
+  /** The pool party's running order: [her first set's start (ms), when the plan was made (ms), its tag] (party/schedule.ts). */
+  pz?: number[];
+  /** At the pool's decks: [crossfader, vol A, vol B (×1000), offsets A, B (ms), platter rates (×100), holds] (party/index.ts). */
+  dk?: number[];
   dn?: number;
   /** Fights you're driving (fight/fights.ts): per guest, [index, x, z, yaw, phase, hp, max hp, fist, head] (×100 for x/z/yaw). */
   fx?: number[] | null;
