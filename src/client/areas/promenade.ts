@@ -1031,7 +1031,15 @@ export function buildPromenade(scene: THREE.Scene, q: Quality, m: Mats, opts: { 
     b.box(new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.3, metalness: 0.4 }), r.x, c.top + 0.15, r.z + 0.04, 0.04, 0.16, 0.04);
     // Behind the counter: the shop's name and a mirror.
     signs.add(2.2, 0.5, 768, 175, at(c.x, 2.5, S.z1 - 0.05, Math.PI), goldSign('Lago Luxe', 'EST. ON THE LAKE', { bg: 'rgba(14,9,6,0.85)' }));
-    b.box(new THREE.MeshStandardMaterial({ color: 0x8a8070, metalness: 1, roughness: 0.06, envMapIntensity: 1.6 }), c.x + 2.6, 1.5, S.z1 - 0.04, 1.2, 1.9, 0.02);
+    // (The glass itself is a real reflection: shopmirror.ts. Here: its gilt frame and a dark backing.)
+    {
+      const mr = STORE_FIX.mirror;
+      b.box(m.darkMarble, mr.x, mr.y, S.z1 - 0.03, mr.w + 0.02, mr.h + 0.02, 0.02);
+      for (const s of [-1, 1]) {
+        b.box(m.gold, mr.x + s * (mr.w / 2 + 0.035), mr.y, S.z1 - 0.045, 0.07, mr.h + 0.14, 0.05);
+        b.box(m.gold, mr.x, mr.y + s * (mr.h / 2 + 0.035), S.z1 - 0.045, mr.w + 0.14, 0.07, 0.05);
+      }
+    }
     pool(c.x, c.z + 0.4, 3.0);
   }
   // Mannequins in the windows: glossy white figures, one in a fedora, one in a scarf.

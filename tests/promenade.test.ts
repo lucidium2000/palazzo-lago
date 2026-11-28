@@ -14,6 +14,7 @@ import {
   COUNTERS,
   FOOD,
   inArcade,
+  inStore,
   MERCH,
   PROM,
   PROM_CARS,
@@ -21,6 +22,7 @@ import {
   PROMENADE_SURFACES,
   servePoint,
   STORE,
+  STORE_FIX,
   storeStock,
   TABLES,
 } from '../src/client/areas/promenadeplan';
@@ -115,6 +117,17 @@ describe('the Promenade floor plan', () => {
       expect(s.x).toBeLessThan(STORE.x1);
       expect(tops.some((t) => t.kind === 'box' && t.y === s.y && Math.abs(s.x - t.x) < Math.max(t.w, t.d) / 2 + 0.01 && Math.abs(s.z - t.z) < Math.max(t.w, t.d) / 2 + 0.01)).toBe(true);
     }
+  });
+
+  it("hangs the boutique's mirror on its back wall, with room to stand in front of it", () => {
+    const mr = STORE_FIX.mirror;
+    expect(inStore(mr.x, mr.z - 0.01)).toBe(true);
+    expect(STORE.z1 - mr.z).toBeLessThan(0.1);
+    expect(mr.x - mr.w / 2).toBeGreaterThan(STORE_FIX.counter.x + STORE_FIX.counter.w / 2);
+    // Eye height falls inside it, and you can walk right up to it.
+    expect(mr.y + mr.h / 2).toBeGreaterThan(1.8);
+    expect(mr.y - mr.h / 2).toBeLessThan(0.6);
+    expect(w.isFree(mr.x, mr.z - 0.9, 0.25)).toBe(true);
   });
 
   it('lies far from everything else (its own floor)', () => {

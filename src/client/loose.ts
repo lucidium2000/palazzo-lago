@@ -153,6 +153,14 @@ export function chipValue(it: { kind: { key: string } }): number {
 }
 
 const tmpM = new THREE.Matrix4();
+const tmpV = new THREE.Vector3();
+const tmpF = new THREE.Vector3();
+const tmpP = new THREE.Vector3();
+const tmpQ = new THREE.Quaternion();
+/** Sunglasses this close in front of your eyes go on (m; see atEyes). */
+export const EYES_REACH = 0.17;
+/** Held there this long (s), or let go there. */
+const WEAR_DWELL_S = 0.25;
 const ONE = new THREE.Vector3(1, 1, 1);
 const ZERO = new THREE.Vector3(0, 0, 0);
 const tmpS = new THREE.Vector3();
@@ -893,23 +901,28 @@ export class LooseObjects {
         if (isBottle(it) && pos.distanceTo(this.d.hands.head) < 0.2 && this.swig(it)) this.d.hands.onHaptic?.(hand, 0.2, 30);
         // Food: to your mouth for a bite (and another, every second or so you hold it there).
         if (it.kind.food && this.atMouth(pos) && this.bite(it)) this.d.hands.onHaptic?.(hand, 0.3, 40);
-        // Sunglasses to your eyes, a hat on top of your head: hold it there a moment and it's on.
-        const wear = it.kind.merch ? MERCH[it.kind.merch].wear : null;
-        if (wear) {
-          const ok = wear === 'eyes' ? this.atEyes(pos) : this.onHead(pos);
-          if (!ok) this.wearDwell.delete(it);
+        // Sunglasses up to your face, a hat on top of your head: hold it there a moment (or let go) and it's on.
+        if (it.kind.merch && MERCH[it.kind.merch].wear) {
+          if (!this.wearSpot(it, pos)) this.wearDwell.delete(it);
           else {
             const t0 = this.wearDwell.get(it) ?? this.time;
             this.wearDwell.set(it, t0);
-            if (this.time - t0 > 0.35) {
+            if (this.time - t0 > WEAR_DWELL_S) {
               this.wearDwell.delete(it);
-              if (this.wear(it)) this.d.hands.onHaptic?.(hand, 0.4, 50);
+              if (this.wear(it)) this.d.hands.onHaptic?.(hand, 0.6, 60);
+              // (Couldn't: don't keep trying every frame.)
+              else this.wearDwell.set(it, Infinity);
             }
           }
         }
       },
       release: (hand, pos, carried) => {
         if (it.holder !== 'vr' || !carried) return;
+        // Let go of sunglasses at your face (a hat over your head): they snap on.
+        if (it.kind.merch && MERCH[it.kind.merch].wear && this.wearDwell.get(it) !== Infinity && this.wearSpot(it, pos) && this.wear(it)) {
+          this.d.hands.onHaptic?.(hand, 0.6, 60);
+          return;
+        }
         // A chip let go of over your wallet (the tray over your palm, your wrist, your rail) goes back in.
         const value = chipValue(it);
         if (value > 0 && this.d.absorbChip?.(value, pos.clone(), it.id)) {
@@ -977,10 +990,10 @@ export class LooseObjects {
         ? ' · F to swig · hold P to pour'
         : it.kind.food
           ? ' · F to take a bite'
-          : m && !it.paid
-            ? ` · $${MERCH[m].price}, pay at the counter`
-            : m && MERCH[m].wear
-              ? ` · F to put ${m === 'hat' ? 'it' : 'them'} on`
+          : m && MERCH[m].wear
+            ? ` · F to ${it.paid ? 'put' : 'try'} ${m === 'hat' ? 'it' : 'them'} on${it.paid ? '' : ` ($${MERCH[m].price} at the counter)`}`
+            : m && !it.paid
+              ? ` · $${MERCH[m].price}, pay at the counter`
               : '';
     this.d.hud.toast(`Holding the ${this.labelOf(it)} · X to throw · Q to set it down${extra}`, 'info');
   }
@@ -1391,7 +1404,9 @@ export class LooseObjects {
   /** You finished something (the last bite). */
   onAte: ((it: Item) => void) | null = null;
   /** Put on a hat or sunglasses: the wardrobe shows it on you (and your friends). False if it can't. */
-  onWear: ((key: MerchKey, color: number) => boolean) | null = null;
+  onWear: ((key: MerchKey, color: number, paid: boolean) => boolean) | null = null;
+  /** May you try on stock you haven't paid for yet (you're in the boutique)? */
+  canTryOn: (() => boolean) | null = null;
 
   /** How big it's drawn: food shrinks with each bite. */
   scaleOf(it: Item) {
@@ -1422,16 +1437,42 @@ export class LooseObjects {
     return Math.hypot(p.x - h.x, p.z - h.z) < 0.2 && p.y < h.y + 0.02 && p.y > h.y - 0.25;
   }
 
-  /** Up at your eyes (sunglasses)? */
-  private atEyes(p: THREE.Vector3) {
+  /**
+   * Up at your face, roughly in front of your eyes (sunglasses)? The headset is
+   * in the way of the real thing: its visor sits ~9 cm in front of your eyes and
+   * the controller's grip a hand's width further, so "at your eyes" is anywhere
+   * up to ~17 cm in front, not 3 cm.
+   */
+  atEyes(p: THREE.Vector3, reach = EYES_REACH) {
     const h = this.d.hands.head;
-    return p.distanceTo(h) < 0.13;
+    const v = tmpV.subVectors(p, h);
+    const d = v.length();
+    if (d > reach) return false;
+    if (d < 0.06) return true;
+    const fwd = this.d.camera.getWorldDirection(tmpF);
+    // In front (not behind your ear) and not way off to the side or down at your chin.
+    const ahead = v.dot(fwd);
+    const side = Math.sqrt(Math.max(0, d * d - ahead * ahead));
+    return ahead > -0.02 && side < 0.12;
   }
 
   /** On top of your head (a hat)? */
-  private onHead(p: THREE.Vector3) {
+  onHead(p: THREE.Vector3) {
     const h = this.d.hands.head;
-    return Math.hypot(p.x - h.x, p.z - h.z) < 0.16 && p.y > h.y + 0.02 && p.y < h.y + 0.35;
+    return Math.hypot(p.x - h.x, p.z - h.z) < 0.2 && p.y > h.y + 0.02 && p.y < h.y + 0.4;
+  }
+
+  /**
+   * Is the hat or the sunglasses in your hand where it goes on? Checks where
+   * the thing itself is (you bring the glasses to your face, not your palm),
+   * and the hand holding it, a little more strictly.
+   */
+  private wearSpot(it: Item, palm: THREE.Vector3) {
+    const wear = it.kind.merch ? MERCH[it.kind.merch].wear : null;
+    if (!wear) return false;
+    const at = it.proxy ? extents(it.kind.spec.shape, it.proxy.getWorldPosition(tmpP), it.proxy.getWorldQuaternion(tmpQ)).c : null;
+    if (wear === 'eyes') return (!!at && this.atEyes(at)) || this.atEyes(palm, EYES_REACH - 0.02);
+    return (!!at && this.onHead(at)) || this.onHead(palm);
   }
 
   /**
@@ -1571,15 +1612,18 @@ export class LooseObjects {
     it.hand = null;
   }
 
-  /** Put on the hat or sunglasses you're holding (paid for). */
+  /**
+   * Put on the hat or sunglasses you're holding: yours, or (in the boutique)
+   * stock you're trying on before you pay.
+   */
   wear(it: Item): boolean {
     const m = it.kind.merch;
     if (!m || !MERCH[m].wear || it.gone) return false;
-    if (!it.paid) {
-      this.d.hud.toast(`Pay for the ${this.labelOf(it)} at the counter first ($${MERCH[m].price})`, 'warn');
+    if (!it.paid && !this.canTryOn?.()) {
+      this.d.hud.toast(`Take the ${this.labelOf(it)} back into Lago Luxe to try ${m === 'hat' ? 'it' : 'them'} on ($${MERCH[m].price})`, 'warn');
       return false;
     }
-    if (!this.onWear?.(m, it.color.getHex())) return false;
+    if (!this.onWear?.(m, it.color.getHex(), it.paid)) return false;
     this.leaveHand(it);
     this.collect(it);
     this.onNet?.({ k: 'gone', id: it.id });
@@ -1587,9 +1631,9 @@ export class LooseObjects {
   }
 
   /** Took a hat or sunglasses off: it's in your hand (VR: the hand that reached for it). */
-  takeOff(key: MerchKey, color: number, hand: Hand | null): Item | null {
+  takeOff(key: MerchKey, color: number, hand: Hand | null, paid = true): Item | null {
     const at = this.d.hands.head;
-    const it = this.spawnLive(key, at.x, at.z, at.y, { color, paid: true });
+    const it = this.spawnLive(key, at.x, at.z, at.y, { color, paid });
     if (!it) return null;
     // Not straight back on: it has to leave your head first.
     this.wearDwell.set(it, Infinity);
@@ -1608,6 +1652,28 @@ export class LooseObjects {
     if (it.paid) return;
     it.paid = true;
     this.onNet?.({ k: 'paid', id: it.id });
+  }
+
+  /** Where a piece of the boutique's stock lives (the spot set out for its kind and colour). */
+  private shelfSpot(key: MerchKey, color: number) {
+    const all = storeStock().filter((s) => s.key === key);
+    return all.find((s) => s.color === color) ?? all[0] ?? null;
+  }
+
+  /** Puts a piece of the boutique's stock (unpaid) back where it lives in the shop. */
+  shelve(key: MerchKey, color: number) {
+    const s = this.shelfSpot(key, color);
+    if (s) this.spawnLive(key, s.x, s.z, s.y + 0.4, { color, yaw: s.yaw, paid: false });
+  }
+
+  /** Unpaid stock in your hand goes back on its shelf (you couldn't pay for it). */
+  backToShelf(it: Item) {
+    const m = it.kind.merch;
+    if (!m || it.gone) return;
+    this.leaveHand(it);
+    this.collect(it);
+    this.onNet?.({ k: 'gone', id: it.id });
+    this.shelve(m, it.color.getHex());
   }
 
   /** Every unpaid piece of stock in your hands. */

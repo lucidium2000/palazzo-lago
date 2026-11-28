@@ -217,7 +217,7 @@ export class Hints {
     for (const [it, h] of this.held()) {
       const wear = it.kind.merch ? MERCH[it.kind.merch].wear : null;
       if (it.kind.food && it.bites > 0) this.ask('eat', 'Hold it to your mouth', 'mouth', this.handPos(h), 0.08);
-      else if (wear && it.paid) this.ask('wear', wear === 'eyes' ? 'Hold them to your eyes to wear' : 'Hold it on your head to wear', 'wear', this.handPos(h), 0.08);
+      else if (wear) this.ask('tryon', wear === 'eyes' ? 'Hold it to your face to try it on' : 'Hold it on your head to try it on', 'wear', this.handPos(h), 0.08);
       else if (it.kind.key === 'napkin') this.ask('napkin', 'Rub to wipe', 'wipe', this.handPos(h), 0.07);
     }
     if (d.fighting()) this.ask('fight', 'Fists up to block, swing to punch', 'fist', null);
@@ -235,7 +235,7 @@ export class Hints {
     if (d.decks?.atDecks) this.ask('decks', 'Drag a record to scratch', 'record');
     const use = d.loose.deskUse();
     if (use === 'Bite') this.ask('eat', 'Press F to take a bite', 'mouth');
-    else if (use === 'Wear') this.ask('wear', 'Press F to put it on (U takes it off)', 'wear');
+    else if (use === 'Wear') this.ask('tryon', 'Press F to try it on (U takes it off)', 'wear');
     if (d.fighting()) this.ask('fight', 'Click or F to punch · hold H or right-click to block', 'fist');
   }
 
