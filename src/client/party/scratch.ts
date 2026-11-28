@@ -20,7 +20,9 @@
  * and an equal-power crossfader (full left only A, centre both, full right
  * only B). And when the headliner's on, her set (the concert's songs, on the
  * same wall clock and schedule: schedule.ts) takes over: out of its own output,
- * for the PA at her stage, while the decks' output (the booth's stacks) fades out.
+ * for the PA at her stage. Before it the DJ fades the decks out on the
+ * schedule (djGain: whatever anyone's doing at the decks), and they stay
+ * silent through her set.
  *
  * DeckDSP is written self-contained (no imports, no outside helpers): its
  * source is shipped as the AudioWorklet's module text.
@@ -126,7 +128,7 @@ export class DeckDSP {
   off: number[];
   /** The headliner's set: its samples and rate, and when it's on (schedule.ts: start, slot, cycle; wall s). */
   live: { data: Float32Array | null; sr: number };
-  sched: { on: number; start: number; slot: number; cycle: number; after?: number };
+  sched: { on: number; start: number; slot: number; cycle: number; after?: number; fadeTo?: number; fadeLen?: number };
   /** The DJ's record after each of her sets (played once through on deck A's channel from the end of her slot; `sched.after` its length, s). */
   after: { data: Float32Array | null; sr: number };
   afterAmt: number;
@@ -137,6 +139,8 @@ export class DeckDSP {
   decks: { scratch: boolean; pos: number; fade: number; oldOff: number; rate: number }[];
   gains: number[];
   liveAmt: number;
+  /** The DJ's scheduled fade on the decks as it's playing (follows djGain on the same 20 ms ramp). */
+  djAmt: number;
   /** A record let go somewhere new: its offset changed here (read and cleared by the owner). */
   changed: boolean;
   dcx: number;
@@ -163,6 +167,7 @@ export class DeckDSP {
     ];
     this.gains = [1, 0];
     this.liveAmt = 0;
+    this.djAmt = 1;
     this.changed = false;
     this.dcx = 0;
     this.dcy = 0;
@@ -211,6 +216,28 @@ export class DeckDSP {
     const n = Math.floor((w - S.start) / S.cycle);
     const into = w - S.start - n * S.cycle - S.slot;
     return into >= 0 && into < len ? into : -1;
+  }
+
+  /**
+   * The decks' scheduled level at wall time `w` (schedule.ts fadeGain): the DJ
+   * fades them out over `fadeLen` s from `fadeTo` s before her set, and they stay
+   * down through it; full again from its end (One More Drop). Only once her set's
+   * music is in (else the DJ plays on through it). A fader's curve: the square.
+   */
+  djGain(w: number) {
+    const S = this.sched;
+    const L = S.fadeLen || 0;
+    if (!S.on || !(L > 0) || !this.live.data || !(S.cycle > 0)) return 1;
+    const rel = w - S.start;
+    let to = -rel;
+    if (rel >= 0) {
+      const into = rel - Math.floor(rel / S.cycle) * S.cycle;
+      if (into < S.slot) return 0;
+      to = S.cycle - into;
+    }
+    let g = (to - ((S.fadeTo || 0) - L)) / L;
+    g = g < 0 ? 0 : g > 1 ? 1 : g;
+    return g * g;
   }
 
   readAfter(into: number) {
@@ -308,6 +335,8 @@ export class DeckDSP {
         }
         if (g > 0) mix += s * g;
       }
+      this.djAmt += Math.max(-liveStep, Math.min(liveStep, this.djGain(w) - this.djAmt));
+      mix *= this.djAmt;
       const aw = this.afterAt(w) >= 0 ? 1 : 0;
       this.afterAmt += Math.max(-liveStep, Math.min(liveStep, aw - this.afterAmt));
       const into = this.liveAt(w);

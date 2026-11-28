@@ -110,6 +110,11 @@ class Voices {
     if (this.has(voice, text)) void this.buffer(voice, lineId(voice, text));
   }
 
+  /** A recorded line's clip, decoded (null: not recorded, or it wouldn't load): to play through something else (a PA). */
+  clip(voice: VoiceId, text: string): Promise<AudioBuffer | null> {
+    return this.has(voice, text) && this.sound ? this.buffer(voice, lineId(voice, text.trim())) : Promise.resolve(null);
+  }
+
   private buffer(voice: VoiceId, id: string): Promise<AudioBuffer | null> {
     const key = `${voice}/${id}`;
     let p = this.buffers.get(key);

@@ -221,7 +221,9 @@ console.log(lines.length, 'lines;', JSON.stringify(per));
   // The pool party (party/concertlines.ts; scripts/concert-lines.json): the show's lines in each regular's voice,
   // NIXIE VALE between her sets, the crew out there, and your replies in those conversations.
   {
-    const { CONCERT, CREW_PARTY, NIXIE, concertLinesOf, concertReplyLabels, nixieLines } = await import('../src/client/party/concertlines');
+    const { CONCERT, CREW_PARTY, MC, NIXIE, concertLinesOf, concertReplyLabels, nixieLines } = await import('../src/client/party/concertlines');
+    // The DJ on the mic, calling her a minute before her set.
+    addEl(elVoice(MC.id), MC.call);
     for (const [id, set] of Object.entries(CONCERT)) for (const t of concertLinesOf(set)) addEl(elVoice(id), t);
     for (const t of nixieLines()) addEl(elVoice(NIXIE.id), t);
     for (const name of ['rocco', 'dev', 'mikey']) for (const list of Object.values(CREW_PARTY)) for (const t of list) addEl(elVoice('crew_' + name), t);

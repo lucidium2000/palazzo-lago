@@ -217,7 +217,7 @@ describe('her audience after you pass', () => {
     });
     const a = new Audience(dancers, [], () => true, Math.PI);
     const her = new THREE.Vector3(STAGE.spot.x, STAGE.y, STAGE.spot.z);
-    const t = { into: 120, since: Infinity };
+    const t = { gather: 120, since: Infinity };
     a.update(DT, t, her);
     const p = dancers[0];
     expect(p.placed).toBe(true);

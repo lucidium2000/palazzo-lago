@@ -1614,6 +1614,12 @@
   "p": 1
  },
  {
+  "id": "87adba49",
+  "voice": "el_crew_dev",
+  "text": "One minute, boys! You heard the man!",
+  "p": 1
+ },
+ {
   "id": "8ce48024",
   "voice": "el_crew_dev",
   "text": "Wait for the finale. Trust me.",
@@ -1878,6 +1884,12 @@
   "p": 1
  },
  {
+  "id": "f4634845",
+  "voice": "el_crew_dev",
+  "text": "[shouting] Sixty seconds! Front row, let's go!",
+  "p": 1
+ },
+ {
   "id": "fc84944a",
   "voice": "el_crew_dev",
   "text": "This place is unreal.",
@@ -1893,6 +1905,12 @@
   "id": "0a329ba9",
   "voice": "el_crew_mikey",
   "text": "Okay, water next. I mean it.",
+  "p": 1
+ },
+ {
+  "id": "0ee2035f",
+  "voice": "el_crew_mikey",
+  "text": "[shouting] Sixty seconds! Front row, let's go!",
   "p": 1
  },
  {
@@ -2193,6 +2211,12 @@
   "id": "9d734128",
   "voice": "el_crew_mikey",
   "text": "Hey! I'm already wobbly!",
+  "p": 1
+ },
+ {
+  "id": "a50a3eef",
+  "voice": "el_crew_mikey",
+  "text": "One minute, boys! You heard the man!",
   "p": 1
  },
  {
@@ -2532,6 +2556,12 @@
   "p": 1
  },
  {
+  "id": "3a65f582",
+  "voice": "el_crew_rocco",
+  "text": "One minute, boys! You heard the man!",
+  "p": 1
+ },
+ {
   "id": "3f636c91",
   "voice": "el_crew_rocco",
   "text": "Nice!",
@@ -2745,6 +2775,12 @@
   "id": "b9f18cfa",
   "voice": "el_crew_rocco",
   "text": "I've got a good feeling about tonight.",
+  "p": 1
+ },
+ {
+  "id": "be0fecae",
+  "voice": "el_crew_rocco",
+  "text": "[shouting] Sixty seconds! Front row, let's go!",
   "p": 1
  },
  {
@@ -4566,6 +4602,12 @@
   "p": 2
  },
  {
+  "id": "bcd95345",
+  "voice": "el_dale",
+  "text": "[hollering] One minute, y'all! Here she comes!",
+  "p": 1
+ },
+ {
   "id": "bd4e1523",
   "voice": "el_dale",
   "text": "Now ain't that somethin'.",
@@ -4708,6 +4750,12 @@
   "voice": "el_dale",
   "text": "Have you been up to the suites?",
   "p": 2
+ },
+ {
+  "id": "d4c3bb4e",
+  "voice": "el_dale",
+  "text": "One more minute, he says. Well, let's go find us a spot.",
+  "p": 1
  },
  {
   "id": "d73db973",
@@ -5358,6 +5406,12 @@
   "p": 1
  },
  {
+  "id": "1f736f40",
+  "voice": "el_destiny",
+  "text": "[squealing] One minute! Girls! ONE MINUTE!",
+  "p": 1
+ },
+ {
   "id": "2304f033",
   "voice": "el_destiny",
   "text": "Was it good?",
@@ -5428,6 +5482,12 @@
   "voice": "el_destiny",
   "text": "Okay, one more hand and then dinner.",
   "p": 2
+ },
+ {
+  "id": "2c4dad31",
+  "voice": "el_destiny",
+  "text": "Oh my gosh, oh my gosh, sixty seconds! Front row, let's go!",
+  "p": 1
  },
  {
   "id": "2cdae067",
@@ -6690,6 +6750,12 @@
   "p": 1
  },
  {
+  "id": "e1fa36a5",
+  "voice": "el_dj",
+  "text": "[excited] Ladies and gentlemen... in one minute... live on the pool stage... NIXIE VALE! Make some noise!",
+  "p": 1
+ },
+ {
   "id": "01bb1f18",
   "voice": "el_eleanor",
   "text": "Very well, dear. Enjoying a concert, of all things.",
@@ -6873,6 +6939,12 @@
   "id": "14e1bf72",
   "voice": "el_eleanor",
   "text": "Very well, thank you, dear. Winning, as it happens. I usually am.",
+  "p": 1
+ },
+ {
+  "id": "15c5ebad",
+  "voice": "el_eleanor",
+  "text": "One minute, dear. I suppose we'd better make our way over.",
   "p": 1
  },
  {
@@ -7198,6 +7270,12 @@
   "voice": "el_eleanor",
   "text": "It's Vegas. Everything's open.",
   "p": 2
+ },
+ {
+  "id": "4b77c5f6",
+  "voice": "el_eleanor",
+  "text": "Sixty seconds. How very exciting.",
+  "p": 1
  },
  {
   "id": "4d7f1e80",
@@ -8856,6 +8934,12 @@
   "p": 1
  },
  {
+  "id": "792399ec",
+  "voice": "el_kayla",
+  "text": "[excited] Sixty seconds! I'm so excited I could cry, ya!",
+  "p": 1
+ },
+ {
   "id": "7928ae35",
   "voice": "el_kayla",
   "text": "We're on six. We see a parking lot.",
@@ -9328,6 +9412,12 @@
   "voice": "el_kayla",
   "text": "Have you seen the bathrooms?",
   "p": 2
+ },
+ {
+  "id": "bcef3073",
+  "voice": "el_kayla",
+  "text": "Oh my gosh, one minute! Come on, ya, let's get closer!",
+  "p": 1
  },
  {
   "id": "bfd142ce",
@@ -10338,6 +10428,12 @@
   "p": 1
  },
  {
+  "id": "65d1f796",
+  "voice": "el_marcus",
+  "text": "[shouting] ONE MINUTE! Let's GOOO!",
+  "p": 1
+ },
+ {
   "id": "65f80c19",
   "voice": "el_marcus",
   "text": "Alright, alright, save it for the chorus!",
@@ -10425,6 +10521,12 @@
   "id": "717afa97",
   "voice": "el_marcus",
   "text": "[shouting] Sing it! SING IT!",
+  "p": 1
+ },
+ {
+  "id": "72f7bf69",
+  "voice": "el_marcus",
+  "text": "Yo, one minute! Front row, come on, come on!",
   "p": 1
  },
  {
@@ -12198,6 +12300,12 @@
   "p": 2
  },
  {
+  "id": "99eea008",
+  "voice": "el_margo",
+  "text": "[laughs] Sixty seconds, honey. Fix your hair.",
+  "p": 1
+ },
+ {
   "id": "9a19c4d5",
   "voice": "el_margo",
   "text": "The magician. My cousin saw it, said it's unreal.",
@@ -12489,6 +12597,12 @@
   "id": "cb2f53d1",
   "voice": "el_margo",
   "text": "Oh, the voice too, sugar. But the sparkle helps.",
+  "p": 1
+ },
+ {
+  "id": "cc3f1d4c",
+  "voice": "el_margo",
+  "text": "One minute, darlings! Out of my way, I'm going to the front.",
   "p": 1
  },
  {
@@ -12910,6 +13024,12 @@
   "voice": "el_priya",
   "text": "Let's finish these first.",
   "p": 2
+ },
+ {
+  "id": "10ab4e51",
+  "voice": "el_priya",
+  "text": "One minute! Told you. Come on, I know the best spot.",
+  "p": 1
  },
  {
   "id": "11f3049e",
@@ -13738,6 +13858,12 @@
   "voice": "el_priya",
   "text": "Sold out. We'll find something better.",
   "p": 2
+ },
+ {
+  "id": "a322470f",
+  "voice": "el_priya",
+  "text": "Sixty seconds. Phones charged? Good.",
+  "p": 1
  },
  {
   "id": "a421269d",
@@ -15300,6 +15426,12 @@
   "p": 2
  },
  {
+  "id": "950fb8fb",
+  "voice": "el_reggie",
+  "text": "One minute! Oh, I say. Shall we make our way to the front?",
+  "p": 1
+ },
+ {
   "id": "97bbbd16",
   "voice": "el_reggie",
   "text": "You look like you're on a heater. Up big tonight?",
@@ -15888,6 +16020,12 @@
   "p": 1
  },
  {
+  "id": "ffd73aee",
+  "voice": "el_reggie",
+  "text": "Sixty seconds. I'm rather nervous, actually.",
+  "p": 1
+ },
+ {
   "id": "0001e216",
   "voice": "el_rosa",
   "text": "Fair.",
@@ -16216,6 +16354,12 @@
   "voice": "el_rosa",
   "text": "Winners all around.",
   "p": 2
+ },
+ {
+  "id": "3f63e7ab",
+  "voice": "el_rosa",
+  "text": "One minute. Mm. Let's go closer.",
+  "p": 1
  },
  {
   "id": "408636a4",
@@ -17118,6 +17262,12 @@
   "p": 2
  },
  {
+  "id": "d78e06c0",
+  "voice": "el_rosa",
+  "text": "Sixty seconds. Now it gets interesting.",
+  "p": 1
+ },
+ {
   "id": "d8e632b9",
   "voice": "el_rosa",
   "text": "Where are you guys from?",
@@ -17928,6 +18078,12 @@
   "p": 2
  },
  {
+  "id": "6247d532",
+  "voice": "el_sal",
+  "text": "One minute, the man says. Now that's how you introduce a headliner.",
+  "p": 1
+ },
+ {
   "id": "63328cc3",
   "voice": "el_sal",
   "text": "A regular! What's your game?",
@@ -18442,6 +18598,12 @@
   "voice": "el_sal",
   "text": "Very carefully.",
   "p": 2
+ },
+ {
+  "id": "b6cb74fd",
+  "voice": "el_sal",
+  "text": "Sixty seconds, kid. Let's get a little closer.",
+  "p": 1
  },
  {
   "id": "b7327258",
@@ -19740,6 +19902,12 @@
   "p": 2
  },
  {
+  "id": "012f8753",
+  "voice": "el_tommy",
+  "text": "One minute? Oh gosh. Okay. Okay! Where do I stand?",
+  "p": 1
+ },
+ {
   "id": "02b1374b",
   "voice": "el_tommy",
   "text": "I've never been to a real concert. Is it okay that I'm shaking?",
@@ -20706,6 +20874,12 @@
   "p": 2
  },
  {
+  "id": "9e151c28",
+  "voice": "el_tommy",
+  "text": "[excited] One minute! I'm actually going to see her!",
+  "p": 1
+ },
+ {
   "id": "9e922a63",
   "voice": "el_tommy",
   "text": "A very famous-looking waiter.",
@@ -21654,6 +21828,12 @@
   "p": 2
  },
  {
+  "id": "4fdb7321",
+  "voice": "el_vinnie",
+  "text": "One minute! You hear that? One minute, my friend!",
+  "p": 1
+ },
+ {
   "id": "4ffa4921",
   "voice": "el_vinnie",
   "text": "The one with the fat pigs?",
@@ -22366,6 +22546,12 @@
   "voice": "el_vinnie",
   "text": "Salute!",
   "p": 2
+ },
+ {
+  "id": "bbdcd79b",
+  "voice": "el_vinnie",
+  "text": "[shouting] Sixty seconds! Get up front, get up front!",
+  "p": 1
  },
  {
   "id": "bc315530",

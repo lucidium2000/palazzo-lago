@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import concertJson from '../scripts/concert-lines.json?raw';
 import voiceIndex from '../public/voices/index.json?raw';
+import castJson from '../tools/voices/eleven-cast.json?raw';
+import elevenJson from '../tools/voices/eleven-lines.json?raw';
 import * as THREE from 'three';
 import { GUESTS, SPEAKERS, elVoice } from '../src/client/cast';
 import { Person, Crowd } from '../src/client/people';
 import { STAGE, POOL } from '../src/client/areas/pool';
-import { CONCERT, CREW_PARTY, GAMBLING, NIXIE, PARTY_PHASES, concertLinesOf, concertReplyLabels, nixieLines } from '../src/client/party/concertlines';
+import { CONCERT, CREW_PARTY, GAMBLING, MC, NIXIE, PARTY_PHASES, concertLinesOf, concertReplyLabels, nixieLines } from '../src/client/party/concertlines';
 import { chatterPool, onStage, partyReactions, partySafe, phaseAt, silent } from '../src/client/party/partytalk';
 import { backAt, backCount, backSpots } from '../src/client/party/backcrowd';
 import { ConcertHype } from '../src/client/party/hype';
@@ -19,6 +21,36 @@ const look = { dress: false, main: 0, second: 0, skin: 0, hair: 0, hairStyle: 's
 
 describe('the party talks about the show', () => {
   const all = [...Object.values(CONCERT).flatMap(concertLinesOf), ...nixieLines(), ...Object.values(CREW_PARTY).flat(), ...concertReplyLabels()];
+
+  it('turns to "one minute!" once the DJ has called her', () => {
+    for (const ch of GUESTS) {
+      const s = CONCERT[ch.id];
+      expect(s.minute.length, ch.id).toBeGreaterThan(0);
+      for (const t of s.minute) expect(/one (more )?minute|sixty seconds/i.test(t), t).toBe(true);
+      const pool = chatterPool(ch.id, 'soon');
+      expect(pool.filter((t) => s.minute.includes(t)).length / pool.length).toBeGreaterThan(0.5);
+      expect(chatterPool(ch.id, 'dj').some((t) => s.minute.includes(t))).toBe(false);
+    }
+    expect(CREW_PARTY.soon.some((t) => /one minute|sixty seconds/i.test(t))).toBe(true);
+  });
+
+  it('has the DJ call her a minute out, in a cast voice, ready to record (a caption until then)', () => {
+    expect(MC.call).toMatch(/one minute/i);
+    expect(MC.call).toMatch(/nixie vale/i);
+    expect(partySafe(MC.call)).toBe(true);
+    expect(SPEAKERS.find((s) => s.id === MC.id)?.voiceHint).toBe(MC.voiceHint);
+    const cast = JSON.parse(castJson) as Record<string, { voice_id: string }>;
+    expect(cast[elVoice(MC.id)]?.voice_id).toBeTruthy();
+    const v = elVoice(MC.id),
+      id = lineId(v, MC.call);
+    const rec: Record<string, Record<string, number>> = JSON.parse(voiceIndex).voices;
+    const concert = JSON.parse(concertJson) as { lines: { voice: string; id: string }[] };
+    const eleven = JSON.parse(elevenJson) as { voice: string; id: string }[];
+    if (rec[v]?.[id] === undefined) {
+      expect(concert.lines.some((l) => l.voice === v && l.id === id)).toBe(true);
+      expect(eleven.some((l) => l.voice === v && l.id === id)).toBe(true);
+    }
+  });
 
   it('has a set for every regular, every moment of the night', () => {
     for (const ch of GUESTS) {
@@ -100,8 +132,13 @@ describe('the performers say nothing while they perform', () => {
     expect(dj.hush && keys.hush).toBe(true);
     const arr = plainArrangement(128, 64);
     const step = (o: { live: boolean; toLive: number; song?: number }) =>
-      hype.update(0.1, { beat: beatAt(1, arr), onBeat: false, onBar: false, ready: true, live: o.live, song: o.song ?? (o.live ? 0 : -1), into: o.live ? 10 : -1, toLive: o.toLive, bar: 1.875, presence: 1, you: new THREE.Vector3() });
+      hype.update(0.1, { beat: beatAt(1, arr), onBeat: false, onBar: false, ready: true, live: o.live, song: o.song ?? (o.live ? 0 : -1), into: o.live ? 10 : -1, toLive: o.toLive, bar: 1.875, called: !o.live && o.toLive < 75, presence: 1, you: new THREE.Vector3() });
     step({ live: false, toLive: 120 });
+    expect(hype.phase).toBe('dj');
+    // The DJ calls her: a cheer, and the crowd's on "one minute!".
+    hype.called(true);
+    expect(hype.log).toContain('called');
+    step({ live: false, toLive: 70 });
     expect(singer.hush).toBe(false);
     expect(hype.phase).toBe('soon');
     step({ live: false, toLive: 3 });
@@ -120,7 +157,11 @@ describe('the performers say nothing while they perform', () => {
     expect(phaseAt({ live: true, song: 0, toLive: 0, sinceEnd: Infinity })).toBe('live');
     expect(phaseAt({ live: true, song: -1, toLive: 0, sinceEnd: Infinity })).toBe('after');
     expect(phaseAt({ live: false, song: -1, toLive: 200, sinceEnd: 20 })).toBe('after');
-    expect(phaseAt({ live: false, song: -1, toLive: 100, sinceEnd: Infinity })).toBe('soon');
+    // From the DJ's call ("in one minute"): told, or by the time left.
+    expect(phaseAt({ live: false, song: -1, toLive: 70, sinceEnd: Infinity })).toBe('soon');
+    expect(phaseAt({ live: false, song: -1, toLive: 100, sinceEnd: Infinity })).toBe('dj');
+    expect(phaseAt({ live: false, song: -1, toLive: 100, sinceEnd: Infinity, called: true })).toBe('soon');
+    expect(phaseAt({ live: false, song: -1, toLive: 70, sinceEnd: Infinity, called: false })).toBe('dj');
     expect(phaseAt({ live: false, song: -1, toLive: 200, sinceEnd: 200 })).toBe('dj');
   });
 });

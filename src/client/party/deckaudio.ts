@@ -151,11 +151,18 @@ registerProcessor('palazzo-decks', PalazzoDecks);
 
   /**
    * When she's on (schedule.ts): `on` 0 keeps the decks playing whatever the
-   * clock says; `after` (s, 0: none) the DJ's record from the end of each of her slots.
+   * clock says; `after` (s, 0: none) the DJ's record from the end of each of her slots;
+   * the DJ's fade on the decks, `fadeLen` s long from `fadeTo` s before each set.
    */
-  setSchedule(s: { on: number; start: number; slot: number; cycle: number; after: number }) {
+  setSchedule(s: { on: number; start: number; slot: number; cycle: number; after: number; fadeTo: number; fadeLen: number }) {
     if (this.node) this.post({ k: 'sched', s });
     else if (this.dsp) this.dsp.sched = s;
+  }
+
+  /** Ducks the decks (the booth's stacks: the DJ talking over them), 1: not at all. */
+  duck(level: number) {
+    const g = (this.output as GainNode).gain;
+    if (g) g.setTargetAtTime(level, this.ctx.currentTime, 0.12);
   }
 
   /** Wall time `w0` (s) is context time `t0`. */

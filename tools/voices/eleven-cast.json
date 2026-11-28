@@ -263,5 +263,13 @@
   "similarity_boost": 0.8,
   "style": 0.45,
   "public_owner_id": "6d2f185d7e2ab90e6d53c5bfafc13eb143b93bceb63a72ccdb2228da971747cd"
+ },
+ "el_dj": {
+  "voice_id": "kWjdIkuzqBCnHbyAOYlF",
+  "name": "Dylan - Brash and Interesting",
+  "brief": "man, Brooklyn accent, energetic, fast, rhythmic, carnival barker, big hype-man announcer on a club PA (the pool party's DJ on the mic; the stickman's voice, more style)",
+  "stability": 0.3,
+  "similarity_boost": 0.8,
+  "style": 0.6
  }
 }
