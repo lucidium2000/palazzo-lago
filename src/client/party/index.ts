@@ -337,7 +337,9 @@ export class Party {
 
     // The set list: the headliner on the stage, the decks (and you on them).
     const P = this.setTime();
-    this.stage.update(dt, b, P, this.slot, this.liveReady);
+    const r = this.d.renderer;
+    const scale = r.xr.isPresenting ? 750 : r.getDrawingBufferSize(this.v2).y / (2 * Math.tan(THREE.MathUtils.degToRad(this.d.camera.fov) / 2));
+    this.stage.update(dt, b, P, this.slot, this.liveReady, scale);
     const params = this.decks.update(dt, b, { feet: you.feet, xr: you.xr });
     this.deck?.set(params);
     const set = Math.floor(Date.now() / 1000 / this.clock.loop);
@@ -386,9 +388,8 @@ export class Party {
       for (const p of this.guests.keys()) if (p.pos.distanceTo(you.feet) < 7 && p.cheer < 0.4) p.cheer = 0.6;
     }
 
-    // Lights.
-    const r = this.d.renderer;
-    const scale = r.xr.isPresenting ? 750 : r.getDrawingBufferSize(this.v2).y / (2 * Math.tan(THREE.MathUtils.degToRad(this.d.camera.fov) / 2));
+    // Lights (dimmed while the headliner holds a freeze).
+    this.lights.dim = this.stage.blackout;
     this.lights.update(dt, b, scale);
   }
   private v2 = new THREE.Vector2();

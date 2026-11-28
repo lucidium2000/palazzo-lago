@@ -1,39 +1,52 @@
 import * as THREE from 'three';
 import type { Sound } from '../audio';
+import { assets } from '../assets';
 import type { Crowd, Person } from '../people';
 import { STAGE } from '../areas/pool';
 import type { Beat } from './beat';
-import { Dancer, type Move } from './dance';
-import { armTo } from './decks';
-import { HEADLINER, LOOK_HEADLINER, SINGER_BACK } from './performers';
-import { SLOT_BARS, SONG_BARS } from './setlist';
+import { Dancer } from './dance';
+import { Burst } from './lights';
+import { HEADLINER, LOOK_HEADLINER, SINGER_BACK, dressBelt } from './performers';
+import { micFree, songRoutine, stepAt, type At, type Step } from './routine';
+import { reachArm, type ShowPose } from './showanim';
+import { SLOT_BARS, SONG_BARS, SONG_SECTIONS } from './setlist';
 
 export { HEADLINER };
 
 /**
  * The headliner on the pool stage (the riser west of the DJ booth): ORLO
- * VANTE, an original R&B / synth-pop singer made for Palazzo Lago (name,
- * look and songs all invented here; the songs are recordings with real sung
- * vocals, orlo_*.mp3). The party alternates sets on the wall clock: the DJ's
- * 64 bars, then his 64 (two 32-bar songs), then the DJ again.
+ * VANTE, an original 80s-style pop showman made for Palazzo Lago (name, look,
+ * moves and songs all invented here, after no real artist; the songs are
+ * recordings with real sung vocals, orlo_*.mp3). The party alternates sets on
+ * the wall clock: the DJ's 64 bars, then his 64 (two 32-bar songs), then the
+ * DJ again.
  *
- * He follows each song's sections (verse, pre-chorus, chorus: setlist.ts):
- * two bars before his set he walks from the back of the stage to the mic and
- * the crowd applauds him on. He sings all the way through, a hand on the mic
- * on its stand through the verse (the other out at the end of each line),
- * reaching out higher as the pre-chorus builds; on the chorus he takes the
- * mic off the stand and steps side to side with it, pointing out at the crowd
- * as it lands and with his free hand up through its last bars. As a song's
- * music ends he lowers the mic and the pool cheers (cheer.mp3); at the end of
- * his set he waves goodbye to applause (applause.mp3). The crowd turns to
- * face him while he's on.
+ * Two bars before his set he walks from the back of the stage to the mic and
+ * grooves there while the crowd applauds him on. Then the show (routine.ts:
+ * which move on which beat; showanim.ts and scripts/build-show-anims.mjs: the
+ * moves, clips played by the beat clock): verse and pre-chorus at the mic
+ * stand, a hand on the mic as he sings, hits at the end of each line, knee pops
+ * and shoulder isolations, a trick with the stand (he tilts it back with him,
+ * lets go on the beat and catches it); the mic comes off the stand for the
+ * chorus and he takes the whole stage: a jump into a freeze on the downbeat,
+ * side glides, kicks, spins, a crowd call with his arms up, and the final pose
+ * as the music lets go, a bow, an ad-lib shout between songs. The pool cheers
+ * the big moves (crowd.react), and cheers the end of each song (cheer.mp3); at
+ * the end of his set he waves goodbye to applause (applause.mp3). The crowd
+ * turns to face him while he's on.
  *
- * The light show: a neon marquee with his name behind him (dim between sets,
- * chasing bulbs and the beat when he's on), two follow spots from the stage's
- * front truss on him and four beams fanning out from the back truss.
- * Four draws (marquee, beams, mic, and him); the stage itself is static (pool.ts).
+ * The show around him: a neon marquee with his name behind him, two follow
+ * spots from the front truss that track him across the stage, four beams
+ * fanning from the back truss; a strobe on the beat as he jumps into the
+ * chorus and lands the final pose (on the beat only: two flashes a second at
+ * most), the stage going dark but for the follow spots while he holds a freeze
+ * (the rest of the party's lights dim with it: `blackout`), a burst of haze
+ * along the back of the stage as each chorus comes in, confetti from the truss
+ * on the final pose.
+ *
+ * Draws: marquee, beams, mic, the stand's pole, him, and the haze and confetti
+ * only while they fly.
  */
-
 
 export interface StageDeps {
   scene: THREE.Scene;
@@ -49,18 +62,58 @@ export interface StageDeps {
 
 const SING = new THREE.Vector3(STAGE.spot.x, STAGE.y, STAGE.spot.z);
 const BACK = SINGER_BACK;
-/** The mic on its stand (pointing up at his mouth). */
-const MIC_ON_STAND = new THREE.Vector3(STAGE.mic.x, STAGE.y + 1.52, STAGE.mic.z - 0.07);
+/** The stand's base, and the mic on it (in the stand's frame: pointing up at his mouth). */
+const STAND = new THREE.Vector3(STAGE.mic.x, STAGE.y, STAGE.mic.z);
+const MIC_IN_STAND = new THREE.Vector3(0, 1.52, -0.07);
+/** Where his left hand takes the pole for the trick (in the stand's frame). */
+const POLE_GRIP = new THREE.Vector3(0, 1.08, -0.012);
 const MIC_AIM = new THREE.Vector3(STAGE.spot.x, STAGE.y + 1.68, STAGE.spot.z + 0.12);
+/** How far forward of the mic he stands to sing in the chorus (m; the stand's 0.47 m in front of him at the mic). */
+const CHORUS_Z = 0.08;
+/** Fastest he'll move to catch up with the routine (joining mid-song). */
+const CATCH_UP = 2.5;
+/** The fewest seconds between the crowd's cheers for his moves. */
+const CHEER_GAP = 5;
+
+/** The bar each song's music lets go (its first outro bar after the chorus): the final pose lands there. */
+function endBar(bars: { part: string }[]): number {
+  for (let i = 20; i < bars.length; i++) if (bars[i].part === 'outro') return i;
+  return bars.length - 2;
+}
+
+/** The stand trick: how far the stand leans back toward him (radians) `b` beats in. */
+function standTilt(b: number): number {
+  const ease = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+  const MAX = 0.48;
+  if (b < 0.6) return 0;
+  if (b < 1.8) return MAX * ease((b - 0.6) / 1.2);
+  if (b < 2.1) return MAX;
+  // Let go: it swings back up and over, and he catches it.
+  if (b < 2.5) return MAX - (MAX + 0.12) * ease((b - 2.1) / 0.4);
+  if (b < 3.0) return -0.12 * (1 - ease((b - 2.5) / 0.5));
+  return 0;
+}
+/** Hands on the stand during the trick (0..1): his right on the mic, `left` his left on the pole. */
+function standGrip(b: number, left: boolean): number {
+  const win = (a: number, z: number, e: number) => Math.max(0, Math.min(1, (b - a) / e, (z - b) / e));
+  return left ? win(0.4, 2.05, 0.25) : Math.max(win(0.2, 2.1, 0.25), win(2.45, 4.2, 0.12));
+}
 
 export class Stage {
   readonly root = new THREE.Group();
   readonly singer: Person | null;
-  /** He's on (his set is playing and he's at the mic). */
+  /** He's on (his set is playing and he's at the mic or out performing). */
   live = false;
+  /** 0..1: the stage dark but for his follow spots (he's holding a freeze); the party's lights dim with it. */
+  blackout = 0;
   private marquee: THREE.ShaderMaterial;
   private beams: THREE.InstancedMesh;
   private mic: THREE.Mesh;
+  /** The stand's pole and clip, turning about its base. */
+  private stand: THREE.Mesh;
+  private micOnStandAt = new THREE.Vector3();
+  private haze: Burst;
+  private confetti: Burst;
   private dancer = new Dancer(42.7);
   private beat: Beat | null = null;
   private dt = 0;
@@ -69,25 +122,47 @@ export class Stage {
   private goal = BACK;
   private goalYaw = Math.PI / 2;
   private onStage = false;
+  /** He's got to the mic this set (from then on the routine places him). */
+  private arrived = false;
   /** 0..1: the mic in his hand (chorus) rather than on the stand. */
   private held = 0;
   private sing = 0;
   private point = 0;
   private prevP = -1;
   private prevPart = '';
-  private hands = { l: new THREE.Vector3(), r: new THREE.Vector3(), init: false };
+  private hands = { l: new THREE.Vector3(), r: new THREE.Vector3(), lw: 0, rw: 0, init: false };
   /** You've lifted the mic off its stand (VR): it's in your hand, not his. */
   private youHold = false;
   /** Someone on the mic he points out to (and how long he keeps pointing). */
   private fan = new THREE.Vector3();
   private fanT = 0;
-  private t = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  // The routine.
+  private routines: Step[][] = SONG_SECTIONS.map((bars) => songRoutine(endBar(bars), SONG_BARS));
+  private at: At = { step: this.routines[0][0], i: 0, f: 0, into: 0, x: 0 };
+  /** Performing a routine now (the clips have loaded and his set is on). */
+  private performing = false;
+  private song = -1;
+  private stepKey = -1;
+  private fired = { confetti: -1, adlib: -1 };
+  private lastCheer = -100;
+  private movesReady = false;
+  private movesAsked = false;
+  private pose_: ShowPose = { move: 'Show_Groove', f: 0, own: 1 };
+  private spot = new THREE.Vector3();
+  private tilt = 0;
+  private flash = 0;
+  private t = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   private m = new THREE.Matrix4();
   private q = new THREE.Quaternion();
   private s = new THREE.Vector3();
   private col = new THREE.Color();
   private down = new THREE.Vector3(0, -1, 0);
+  // (Its top leans back toward him and a little to his left: the axis is up × that way.)
+  private tiltAxis = new THREE.Vector3(-1, 0, -0.35).normalize();
   private crowdAt = new THREE.Vector3(STAGE.spot.x + 2.5, 0, STAGE.z1 + 2.2);
+  private cheerAt = new THREE.Vector3(STAGE.spot.x + 2.5, 1.5, STAGE.z1 + 2.2);
+  private headAt = new THREE.Vector3();
+  private dressed: unknown = null;
 
   constructor(private d: StageDeps) {
     this.root.name = 'pool-stage';
@@ -111,15 +186,30 @@ export class Stage {
     this.beams.count = 0;
     this.root.add(this.beams);
 
+    // The stand's pole and clip (the base is the stage's), pivoting at the base.
+    const pole = new THREE.CylinderGeometry(0.011, 0.011, 1.44, 8).translate(0, 0.72, 0);
+    const clip = new THREE.BoxGeometry(0.02, 0.05, 0.07).translate(0, 1.47, -0.03);
+    this.stand = new THREE.Mesh(mergeTwo(pole, clip), new THREE.MeshStandardMaterial({ color: 0x2a2a31, metalness: 0.85, roughness: 0.35 }));
+    this.stand.position.copy(STAND);
+    this.stand.raycast = () => {};
+    this.stand.name = 'mic-stand';
+    this.root.add(this.stand);
+    this.stand.updateMatrixWorld(true);
+    this.micOnStandAt.copy(MIC_IN_STAND).applyMatrix4(this.stand.matrixWorld);
+
     // The mic (on the stand, or in his hand).
     const head = new THREE.SphereGeometry(0.026, 12, 8).translate(0, 0, 0.03);
     const handle = new THREE.CylinderGeometry(0.017, 0.012, 0.16, 10).rotateX(Math.PI / 2).translate(0, 0, -0.06);
     const mg = mergeTwo(head, handle);
     this.mic = new THREE.Mesh(mg, new THREE.MeshStandardMaterial({ color: 0x2a2a30, metalness: 0.8, roughness: 0.35 }));
-    this.mic.position.copy(MIC_ON_STAND);
+    this.mic.position.copy(this.micOnStandAt);
     this.mic.lookAt(MIC_AIM);
     this.mic.raycast = () => {};
     this.root.add(this.mic);
+
+    // Haze along the back of the stage (chorus), confetti from the front truss (the final pose).
+    this.haze = new Burst(this.root, { count: 56, life: 5, up: 0.5, spread: 2.2, drag: 1.0, grav: -0.05, size: 0.6, flutter: 0.35, grow: 0.6, confetti: false });
+    this.confetti = new Burst(this.root, { count: 420, life: 7.5, up: 2.6, spread: 2.4, drag: 1.7, grav: 1.2, size: 0.05, flutter: 1, grow: 0, confetti: true });
 
     // Him: waiting at the back of the stage until his set.
     this.singer = d.person ?? d.crowd.add('watch', LOOK_HEADLINER, BACK, Math.PI / 2);
@@ -153,7 +243,7 @@ export class Stage {
   returnMic() {
     this.youHold = false;
     this.root.add(this.mic);
-    this.mic.position.copy(MIC_ON_STAND);
+    this.mic.position.copy(this.micOnStandAt);
     this.mic.lookAt(MIC_AIM);
   }
 
@@ -163,11 +253,17 @@ export class Stage {
     this.fanT = 2.2;
   }
 
+  /** What he's doing (for the curious: window.casino.party.stage.now). */
+  get now() {
+    return { performing: this.performing, song: this.song, move: this.at.step.move, f: +this.at.f.toFixed(3), x: +this.at.x.toFixed(2), hand: this.at.step.hand, blackout: +this.blackout.toFixed(2) };
+  }
+
   /**
    * One frame: `P` seconds into the set list (two loops: the DJ's, then his),
-   * `ready` his track is loaded (else the DJ plays on through).
+   * `ready` his track is loaded (else the DJ plays on through); `fxScale` the
+   * points' size scale (pixels per metre at 1 m: lights.ts).
    */
-  update(dt: number, b: Beat, P: number, loop: number, ready: boolean) {
+  update(dt: number, b: Beat, P: number, loop: number, ready: boolean, fxScale = 600) {
     this.dt = dt;
     this.time += dt;
     this.beat = b;
@@ -175,12 +271,25 @@ export class Stage {
     const his = ready && P >= loop;
     // Walk on two bars before his set; off when it's over.
     this.onStage = ready && P >= loop - 2 * bar;
+    if (!this.onStage) this.arrived = false;
+    else if (this.singer && this.singer.pos.distanceTo(SING) < 0.12) this.arrived = true;
     this.goal = this.onStage ? SING : BACK;
     this.goalYaw = this.onStage ? 0 : Math.PI / 2;
-    const at = !!this.singer && this.singer.pos.distanceTo(SING) < 0.12;
-    this.live = his && (at || !this.singer);
+    this.live = his && (this.arrived || !this.singer);
+    // His stage moves: fetched once he's in the scene (the first time the party needs him).
+    if (!this.movesAsked && this.singer?.rig && ready) {
+      this.movesAsked = true;
+      void assets.loadShowClips().then((ok) => (this.movesReady = ok));
+    }
 
-    // The crowd: applause as he comes on, a cheer as each song's music ends, applause as he goes.
+    // The routine: which song, which move, where.
+    this.song = his && b.track >= 1 ? b.track - 1 : -1;
+    this.performing = this.live && this.song >= 0 && this.movesReady && !!this.singer?.rig;
+    if (this.performing) {
+      const sb = (b.bar - SLOT_BARS - this.song * SONG_BARS) * 4 + b.beatInBar + b.phase;
+      stepAt(this.routines[this.song], sb, this.at);
+      this.cues(b);
+    }
     const prev = this.prevP;
     this.prevP = P;
     const prevPart = this.prevPart;
@@ -191,43 +300,140 @@ export class Stage {
       else if (crossed(loop + SONG_BARS * bar)) this.point = 2.5;
       else if (crossed(0)) this.react('off');
       else if (his && b.part === 'outro' && prevPart !== 'outro') this.react('song');
+      // A shout as he gets to the mic.
+      if (crossed(loop - bar) && this.singer) this.adlib(0.9);
     }
     this.point = Math.max(0, this.point - dt);
     this.fanT = Math.max(0, this.fanT - dt);
 
     // The crowd faces him while he's on.
     const want = this.onStage;
+    const hx = this.singer ? this.singer.pos.x : SING.x,
+      hz = this.singer ? this.singer.pos.z : SING.z;
     for (const p of this.d.dancers) {
-      const yaw = want ? Math.atan2(SING.x - p.pos.x, SING.z - p.pos.z) : this.d.djYaw;
+      const yaw = want ? Math.atan2(hx - p.pos.x, hz - p.pos.z) : this.d.djYaw;
       let dy = yaw - p.yaw;
       dy = Math.atan2(Math.sin(dy), Math.cos(dy));
       p.yaw += dy * Math.min(1, dt * 1.5);
       p.homeYaw = p.yaw;
     }
 
-    // The mic: off the stand for the chorus (still in his hand as the song ends, back on the stand for the next verse).
-    const chorus = this.live && !this.youHold && (b.part === 'chorus' || (b.part === 'outro' && this.held > 0.5));
-    this.held += ((chorus ? 1 : 0) - this.held) * Math.min(1, dt * 5);
+    // The mic: in his hand from the end of the pre-chorus to the end of the song, else on the stand.
+    const inHand = this.live && !this.youHold && (this.performing ? this.at.step.hand : b.part === 'chorus' || (b.part === 'outro' && this.held > 0.5));
+    this.held += ((inHand ? 1 : 0) - this.held) * Math.min(1, dt * 5);
     // Singing (the recordings are sung all the way through: a breath at the end of each line).
     this.sing += ((this.live ? b.voice : 0) - this.sing) * Math.min(1, dt * 12);
+    // The stand (tilted by the trick).
+    const tilt = this.performing && this.at.step.move === 'Show_StandTilt' ? standTilt(this.at.into) : 0;
+    if (tilt !== this.tilt) {
+      this.tilt = tilt;
+      this.stand.quaternion.setFromAxisAngle(this.tiltAxis, tilt);
+      this.stand.updateMatrixWorld(true);
+      this.micOnStandAt.copy(MIC_IN_STAND).applyMatrix4(this.stand.matrixWorld);
+    }
     if (!this.youHold && (!this.singer?.rig || this.held < 0.01)) {
-      this.mic.position.copy(MIC_ON_STAND);
+      this.mic.position.copy(this.micOnStandAt);
       this.mic.lookAt(MIC_AIM);
     }
+    // What he's doing, for the mixer (people.ts plays it).
+    if (this.singer) {
+      const groove = !this.performing && this.movesReady && this.arrived && this.onStage && this.singer.moving < 0.1 && this.singer.cheer < 0.3;
+      if (this.performing || groove) {
+        const sp = this.pose_;
+        sp.move = this.performing ? this.at.step.move : 'Show_Groove';
+        sp.f = this.performing ? this.at.f : (b.beats % 2) / 2;
+        sp.own = 1;
+        this.singer.show = sp;
+      } else this.singer.show = null;
+    }
 
-    // The marquee and the beams.
+    // Lights: the strobe, the blackout, the marquee and the beams.
+    this.lightCues(b, dt);
     const u = this.marquee.uniforms;
     u.time.value = this.time;
-    u.pulse.value = b.pulse * (this.live ? 1 : 0.3);
-    u.live.value += ((this.onStage ? 1 : 0.25) - u.live.value) * Math.min(1, dt * 1.5);
+    u.pulse.value = (b.pulse * (this.live ? 1 : 0.3) + this.flash * 1.5) * (1 - 0.8 * this.blackout);
+    const lv = (this.onStage ? 1 : 0.25) * (1 - 0.85 * this.blackout);
+    u.live.value += (lv - u.live.value) * Math.min(1, dt * (this.blackout > 0.1 ? 10 : 1.5));
     u.hue.value = (Math.floor(b.bar / 8) % 2) * 0.5 + 0.08 * Math.sin(this.time * 0.2);
     this.updateBeams(b);
+    this.haze.update(dt, fxScale);
+    this.confetti.update(dt, fxScale);
+  }
+
+  /** The beat the routine's on: what happens as each step starts (and the confetti a beat into the final pose). */
+  private cues(b: Beat) {
+    const at = this.at,
+      s = at.step;
+    const key = this.song * 1000 + at.i;
+    if (key !== this.stepKey) {
+      const first = this.stepKey >= 0 && Math.floor(this.stepKey / 1000) === this.song && at.into < 1;
+      this.stepKey = key;
+      if (first) {
+        if (s.cue === 'jump') {
+          // The chorus comes in: haze along the back of the stage, the crowd goes up with him.
+          this.haze.fire(this.t[0].set(STAGE.x0 + 0.6, STAGE.y + 0.05, STAGE.z0 + 0.35), this.t[1].set(STAGE.x1 - 0.6, STAGE.y + 0.05, STAGE.z0 + 0.35), { dir: this.t[2].set(0, 0, 1), side: 0.5, floor: STAGE.y });
+          this.cheer(1, true);
+        } else if (s.cue === 'spin' && s.move === 'Show_Spin2') this.cheer(0.7);
+        else if (s.cue === 'kick' && this.routines[this.song][at.i - 1]?.move !== 'Show_Kick') this.cheer(0.6);
+        else if (s.cue === 'call') this.cheer(0.8);
+        else if (s.cue === 'trick') this.cheer(0.5);
+      }
+    }
+    // A beat into the final pose (he lands it): confetti, and the crowd goes wild.
+    if (s.cue === 'final' && at.into >= 1 && at.into < 3 && this.fired.confetti !== key) {
+      this.fired.confetti = key;
+      const y = STAGE.y + 3.35;
+      this.confetti.fire(this.t[0].set(STAGE.x0 + 1.4, y, STAGE.z1 - 0.3), this.t[1].set(STAGE.x1 - 1.4, y, STAGE.z1 - 0.3), { dir: this.t[2].set(0, 0, 1), side: 0.8, floor: 0 });
+      this.cheer(1, true);
+    }
+    // Between songs (the music's let go): a wordless shout or two.
+    if (this.fired.adlib !== key && b.voice < 0.05 && ((s.cue === 'final' && at.into >= 1.6) || (s.cue === 'bow' && at.into >= 3.2))) {
+      this.fired.adlib = key;
+      this.adlib(1);
+    }
+  }
+
+  private lightCues(b: Beat, dt: number) {
+    let dark = 0,
+      strobe = false;
+    if (this.performing) {
+      const { step, into } = this.at;
+      if (step.move === 'Show_JumpFreeze') {
+        strobe = into < 1.05;
+        dark = into > 1.15 && into < 3.5 ? 1 : 0;
+      } else if (step.move === 'Show_Freeze') dark = into > 0.12 && into < 1.6 ? 1 : 0;
+      else if (step.move === 'Show_Final') strobe = into >= 0.95 && into < 2.05;
+    }
+    // Into the dark at once, back up quickly.
+    this.blackout += (dark - this.blackout) * Math.min(1, dt * (dark ? 18 : 6));
+    // The strobe: a white flash on each beat (two a second at most), decaying fast.
+    this.flash = strobe ? Math.exp(-b.phase * 9) : Math.max(0, this.flash - dt * 6);
+  }
+
+  /** The crowd cheers a big move (`big`: whatever the gap since the last). */
+  private cheer(volume: number, big = false) {
+    if (!big && this.time - this.lastCheer < CHEER_GAP) return;
+    this.lastCheer = this.time;
+    this.d.crowd.react(this.crowdAt, 15, 'cheer');
+    this.d.sound.play('crowdCheer', this.cheerAt, { volume: 0.55 * volume, ref: 6, rolloff: 1 });
+    this.reacted.push('move');
+    if (this.reacted.length > 16) this.reacted.shift();
+  }
+
+  /** A shout from him (synthesized, wordless: audio.ts 'adlib'). */
+  private adlib(volume: number) {
+    const p = this.singer;
+    if (!p) return;
+    this.headAt.copy(p.pos).setY(p.pos.y + 1.6);
+    this.d.sound.play('adlib', this.headAt, { volume, ref: 4, rolloff: 1 });
+    this.reacted.push('adlib');
+    if (this.reacted.length > 16) this.reacted.shift();
   }
 
   /** The crowd: `on` he walks on, `song` a song's music just ended, `off` his set is over. */
   private react(what: 'on' | 'song' | 'off') {
     this.d.crowd.react(this.crowdAt, 15, 'cheer');
-    const at = this.crowdAt.clone().setY(1.5);
+    const at = this.cheerAt;
     // The crowd's out on the deck in front of the stage: it carries.
     const far = { ref: 6, rolloff: 1 };
     if (what === 'song') this.d.sound.play('crowdCheer', at, { volume: 1, ...far });
@@ -249,24 +455,32 @@ export class Stage {
       return;
     }
     let n = 0;
-    const lv = (this.marquee.uniforms.live.value as number) * (0.7 + 0.3 * b.intensity);
+    const lvl = this.marquee.uniforms.live.value as number;
+    const lv = Math.max(lvl, this.onStage ? 0.6 : 0) * (0.7 + 0.3 * b.intensity);
     const head = this.t[0];
     if (this.singer) head.copy(this.singer.pos).setY(this.singer.pos.y + 1.2);
     else head.copy(SING).setY(SING.y + 1.2);
-    // Follow spots: warm white, from the front corners of the truss.
-    for (const x of [STAGE.x0 + 0.25, STAGE.x1 - 0.25]) {
-      const src = this.t[1].set(x, STAGE.y + 3.55, STAGE.z1 - 0.2);
-      this.beam(n++, src, this.t[2].copy(head).sub(src), 0.55, this.col.setRGB(1, 0.92, 0.8).multiplyScalar(lv * 1.2));
+    // Follow spots: warm white, from the front corners of the truss, on him wherever he goes
+    // (hard white and tight when the rest goes dark).
+    const dark = this.blackout;
+    const spotR = 0.55 - 0.18 * dark;
+    for (let j = 0; j < 2; j++) {
+      const src = this.t[1].set(j ? STAGE.x1 - 0.25 : STAGE.x0 + 0.25, STAGE.y + 3.55, STAGE.z1 - 0.2);
+      this.col.setRGB(1, 0.92 + 0.08 * dark, 0.8 + 0.2 * dark).multiplyScalar(lv * 1.2 + dark * 0.9 + this.flash * 0.6);
+      this.beam(n++, src, this.t[2].copy(head).sub(src), spotR, this.col);
     }
-    // Back fans: out over the crowd, sweeping with the beat (wide on the chorus).
+    // Back fans: out over the crowd, sweeping with the beat (wide on the chorus, whipping round in a spin),
+    // white on the strobe, off in a blackout.
     const wide = b.part === 'chorus' || b.section === 'drop' ? 1 : b.section === 'build' ? 0.4 + 0.6 * b.build : 0.3;
+    const spin = this.performing && this.at.step.cue === 'spin' ? 2.5 : 1;
+    const fin = this.performing && this.at.step.cue === 'final' && this.at.into >= 1 ? 1 : 0;
     for (let k = 0; k < 4; k++) {
       const x = STAGE.x0 + 1.1 + k * 1.75;
       const src = this.t[1].set(x, STAGE.y + 3.45, STAGE.z0 + 0.15);
-      const sw = Math.sin(b.beats * Math.PI * 0.25 + k * 1.3) * 0.5 * wide + (k - 1.5) * 0.28;
-      const dir = this.t[2].set(Math.sin(sw), 0.35 + 0.25 * Math.sin(b.beats * Math.PI * 0.5 + k), 1).normalize();
+      const sw = (Math.sin(b.beats * Math.PI * 0.25 * spin + k * 1.3) * 0.5 * wide + (k - 1.5) * 0.28) * (1 - fin) + (k - 1.5) * 0.35 * fin;
+      const dir = this.t[2].set(Math.sin(sw), (0.35 + 0.25 * Math.sin(b.beats * Math.PI * 0.5 + k)) * (1 - fin) + 1.1 * fin, 1).normalize();
       const h = (0.83 + k * 0.06 + (this.marquee.uniforms.hue.value as number)) % 1;
-      this.col.setHSL(h, 0.9, 0.55).multiplyScalar(lv * (0.6 + 0.6 * b.pulse));
+      this.col.setHSL(h, 0.9 * (1 - this.flash), 0.55 + 0.3 * this.flash).multiplyScalar(lv * (0.6 + 0.6 * b.pulse + this.flash) * (1 - dark));
       this.beam(n++, src, dir.multiplyScalar(12), 0.9, this.col);
     }
     this.beams.count = n;
@@ -287,11 +501,27 @@ export class Stage {
 
   private walk(p: Person, dt: number) {
     p.pos.y = STAGE.y;
+    // The glass: a drink between sets, put down before he goes on.
+    p.prop = this.onStage ? 'none' : 'glass';
+    if (this.performing) {
+      // The routine places him (glides at their own speed; catching up if he's behind).
+      const s = this.at.step;
+      const out = s.hand ? CHORUS_Z * Math.min(1, Math.abs(this.at.x) / 0.3) : 0;
+      this.spot.set(SING.x + this.at.x, STAGE.y, SING.z + out);
+      const dx = this.spot.x - p.pos.x,
+        dz = this.spot.z - p.pos.z;
+      const dist = Math.hypot(dx, dz);
+      const k = Math.min(1, (CATCH_UP * dt) / Math.max(dist, 1e-6));
+      p.pos.x += dx * k;
+      p.pos.z += dz * k;
+      p.moving = 0;
+      turn(p, 0, dt * 8);
+      p.homeYaw = p.yaw;
+      return;
+    }
     const dx = this.goal.x - p.pos.x,
       dz = this.goal.z - p.pos.z;
     const dist = Math.hypot(dx, dz);
-    // The glass: a drink between sets, put down before he goes on.
-    p.prop = this.onStage ? 'none' : 'glass';
     if (dist > 0.04) {
       const sp = Math.min(1.1, dist * 2.5);
       p.pos.x += (dx / dist) * Math.min(dist, sp * dt);
@@ -310,73 +540,83 @@ export class Stage {
     const rig = p.rig,
       b = this.beat;
     if (!rig || !b) return;
+    if (rig !== this.dressed) {
+      this.dressed = rig;
+      dressBelt(rig);
+    }
     const sc = rig.root.scale.x;
-    const performing = this.live && p.moving < 0.1;
-    if (!performing) {
-      // Off: a little groove at the back with his drink, watching the DJ.
-      if (p.moving < 0.1) this.dancer.pose(rig, { beat: b, dt: this.dt, amount: 0.35, move: 'groove', arms: false, scale: sc, still: true });
+    if (!this.performing) {
+      // Off (or his moves haven't loaded): a little groove at the back with his drink, watching the
+      // DJ, or at the mic before his set.
+      if (p.moving < 0.1 && !p.show) this.dancer.pose(rig, { beat: b, dt: this.dt, amount: 0.35, move: 'groove', arms: false, scale: sc, still: true });
       this.hands.init = false;
       return;
     }
-    // His moves: swaying at the stand in the verse, grooving into the pre-chorus, a step with the mic on the chorus.
-    const chorus = b.part === 'chorus';
-    const move: Move = chorus ? 'step' : b.part === 'pre-chorus' ? 'groove' : 'sway';
-    this.dancer.pose(rig, { beat: b, dt: this.dt, amount: b.part === 'outro' ? 0.4 : 0.85, move, arms: false, scale: sc, still: !chorus });
     if (p.cheer > 0.3) return; // waving goodbye (the clip's wave)
     rig.root.updateMatrixWorld(true);
     const bones = rig.bones;
     const yaw = rig.root.rotation.y;
-    const fx = Math.sin(yaw),
-      fz = Math.cos(yaw);
-    // Left, from his point of view (he faces +z: his left is +x).
-    const lx = Math.cos(yaw),
-      lz = -Math.sin(yaw);
+    // His facing (the clip's spins turn him; the hands follow the head).
     const headP = this.t[0];
     if (bones.Head) bones.Head.getWorldPosition(headP);
     else headP.copy(p.pos).setY(p.pos.y + 1.65);
+    const hq = this.q;
+    (bones.Head ?? rig.root).getWorldQuaternion(hq);
+    const fwd = this.t[5].set(0, 0, 1).applyQuaternion(hq).setY(0);
+    if (fwd.lengthSq() < 1e-4) fwd.set(Math.sin(yaw), 0, Math.cos(yaw));
+    fwd.normalize();
+    const fx = fwd.x,
+      fz = fwd.z;
+    // His left.
+    const lx = fz,
+      lz = -fx;
+    const { step, into, f } = this.at;
     const sing = this.sing;
-    const ph = b.beats;
-
-    // Right hand: the mic.
-    const R = this.t[1];
-    if (this.held > 0.5) {
-      // In hand: at his mouth when he sings, down at his chest between lines.
-      const k = sing;
-      R.set(headP.x + fx * (0.11 + 0.1 * (1 - k)) - lx * 0.03, headP.y - 0.1 - 0.32 * (1 - k), headP.z + fz * (0.11 + 0.1 * (1 - k)) - lz * 0.03);
-    } else {
-      // On the stand: a hand on the mic as he sings, else resting on the pole.
-      const k = sing;
-      R.set(MIC_ON_STAND.x - lx * 0.03, MIC_ON_STAND.y - 0.08 - 0.42 * (1 - k), MIC_ON_STAND.z - 0.02);
+    let rw = 0,
+      lw = 0;
+    const R = this.t[1],
+      L = this.t[2];
+    if (step.move === 'Show_StandTilt' && !this.youHold) {
+      // The trick: hands on the stand (it leans back with him; he lets go and catches it).
+      R.copy(MIC_IN_STAND).applyMatrix4(this.stand.matrixWorld);
+      R.y -= 0.06;
+      L.copy(POLE_GRIP).applyMatrix4(this.stand.matrixWorld);
+      rw = standGrip(into, false);
+      lw = standGrip(into, true);
+    } else if (this.held > 0.5) {
+      // The mic at his mouth as he sings (lower between lines), unless the move needs the arm.
+      const k = 0.4 + 0.6 * sing;
+      R.set(headP.x + fx * (0.16 + 0.08 * (1 - k)) - lx * 0.02, headP.y - 0.2 - 0.18 * (1 - k), headP.z + fz * (0.16 + 0.08 * (1 - k)) - lz * 0.02);
+      rw = 1 - micFree(step.move, f);
+    } else if (!this.youHold) {
+      // At the stand: a hand on the mic as he sings.
+      R.copy(this.micOnStandAt);
+      R.x -= lx * 0.03;
+      R.y -= 0.08;
+      R.z -= lz * 0.03 + 0.02;
+      rw = sing * 0.85;
     }
-    // Left hand: points at the crowd as the chorus lands (and as a song ends), up through the
-    // chorus's last bars, reaching out as the pre-chorus builds and at the end of each verse line, else sways.
-    const L = this.t[2];
-    const shoulder = this.t[3];
-    (bones.UpperArmL ?? bones.Head)?.getWorldPosition(shoulder);
-    const lineEnd = b.bar % 2 === 1 && b.beatInBar >= 2;
     if (this.fanT > 0) {
       // Pointing out to whoever just stepped up to the mic.
+      const shoulder = this.t[3];
+      (bones.UpperArmL ?? bones.Head)?.getWorldPosition(shoulder);
       const dir = this.t[4].copy(this.fan).sub(shoulder).normalize();
       L.set(shoulder.x + dir.x * 0.55, shoulder.y + 0.1 + dir.y * 0.3, shoulder.z + dir.z * 0.55);
-    } else if (this.point > 0 || (chorus && b.secBar < 1)) {
-      L.set(shoulder.x + fx * 0.48 + lx * 0.22, shoulder.y + 0.16, shoulder.z + fz * 0.48 + lz * 0.22);
-    } else if (chorus && b.secLen - b.secBar <= 4 && sing > 0.3) {
-      // The big finish: his free hand up and out.
-      L.set(shoulder.x + fx * 0.25 + lx * 0.3, shoulder.y + 0.42 + 0.04 * Math.sin(ph * Math.PI), shoulder.z + fz * 0.25 + lz * 0.3);
-    } else if (sing > 0.6 && !chorus && (b.part === 'pre-chorus' || lineEnd)) {
-      const lift = 0.05 * Math.sin(ph * Math.PI * 0.5);
-      L.set(shoulder.x + fx * 0.32 + lx * 0.3, shoulder.y - 0.05 + lift + 0.14 * (b.section === 'build' ? b.build : 0), shoulder.z + fz * 0.32 + lz * 0.3);
-    } else {
-      const sw = Math.sin(ph * Math.PI);
-      L.set(shoulder.x + fx * 0.22 + lx * (0.12 + 0.05 * sw), shoulder.y - 0.36 + 0.05 * Math.abs(sw), shoulder.z + fz * 0.22 + lz * (0.12 + 0.05 * sw));
+      lw = 1;
     }
-    // Smoothed, so the gestures flow.
-    const k = this.hands.init ? 1 - Math.exp(-this.dt * 9) : 1;
+    // Smoothed, so the hands don't jump between the clip and a target.
+    const k = this.hands.init ? 1 - Math.exp(-this.dt * 14) : 1;
+    if (!this.hands.init) {
+      this.hands.r.copy(R);
+      this.hands.l.copy(L);
+    }
     this.hands.init = true;
     this.hands.l.lerp(L, k);
     this.hands.r.lerp(R, k);
-    armTo(bones, 'L', this.hands.l, yaw, this.t[4]);
-    armTo(bones, 'R', this.hands.r, yaw, this.t[4]);
+    this.hands.rw += (rw - this.hands.rw) * k;
+    this.hands.lw += (lw - this.hands.lw) * k;
+    this.arm(bones, 'R', this.hands.r, this.hands.rw, fx, fz);
+    this.arm(bones, 'L', this.hands.l, this.hands.lw, fx, fz);
 
     // The mic follows his hand when he holds it.
     if (this.held >= 0.01 && !this.youHold) {
@@ -385,11 +625,31 @@ export class Stage {
         const hand = wrist.getWorldPosition(this.t[1]);
         // Mouth: a little in front of and below the head bone.
         const mouth = this.t[3].set(headP.x + fx * 0.09, headP.y + 0.06, headP.z + fz * 0.09);
-        const inHand = this.t[2].copy(mouth).sub(hand).normalize().multiplyScalar(0.07).add(hand);
-        this.mic.position.copy(MIC_ON_STAND).lerp(inHand, this.held);
-        this.mic.lookAt(this.held > 0.5 ? mouth : MIC_AIM);
+        const free = micFree(step.move, f);
+        // Held up at the mouth, or pointing along his forearm when the arm's away.
+        const inHand = this.t[2].copy(mouth).sub(hand).normalize().multiplyScalar(0.09).add(hand);
+        this.mic.position.copy(this.micOnStandAt).lerp(inHand, this.held);
+        if (free > 0.5 && bones.LowerArmR) {
+          // Along the forearm: from the elbow, out past the hand.
+          const elbow = bones.LowerArmR.getWorldPosition(this.t[4]);
+          this.mic.lookAt(elbow.sub(hand).negate().add(hand));
+        } else this.mic.lookAt(this.held > 0.5 ? mouth : MIC_AIM);
       }
     }
+  }
+
+  /** One of his arms toward `to` by `w` (over the clip), the elbow down, out and back. */
+  private arm(b: Record<string, THREE.Object3D | undefined>, S: 'L' | 'R', to: THREE.Vector3, w: number, fx: number, fz: number) {
+    const upper = b[`UpperArm${S}`],
+      lower = b[`LowerArm${S}`],
+      end = b[`Wrist${S}`] ?? b[`Hand${S}`];
+    if (!upper || !lower || !end || w <= 0.001) return;
+    const dir = S === 'L' ? 1 : -1;
+    const pole = upper.getWorldPosition(this.t[4]);
+    pole.y -= 0.5;
+    pole.x += fz * 0.4 * dir - fx * 0.25;
+    pole.z += -fx * 0.4 * dir - fz * 0.25;
+    reachArm(upper, lower, end, to, pole, w);
   }
 }
 

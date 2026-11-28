@@ -182,6 +182,24 @@ class Assets {
     kinds.forEach((k, i) => models.set(k, mergeCharacter(gltfs[i].scene, mat)));
     this.people = { models, clips };
   }
+
+  private showP: Promise<boolean> | null = null;
+  /**
+   * The headliner's stage moves (people/show.glb, scripts/build-show-anims.mjs):
+   * fetched once, when the pool party first needs him; added to the people's clips.
+   */
+  loadShowClips(): Promise<boolean> {
+    return (this.showP ??= (async () => {
+      const loader = new GLTFLoader();
+      loader.setMeshoptDecoder(MeshoptDecoder);
+      const g = await loader.loadAsync(await binaryUrl('people/show.glb'));
+      for (const c of g.animations) this.people?.clips.set(c.name, c);
+      return g.animations.length > 0 && !!this.people;
+    })().catch((e) => {
+      console.warn('stage moves failed', e);
+      return false;
+    }));
+  }
 }
 
 /** Merges a character's skinned pieces into one SkinnedMesh (one draw call per person). */
@@ -253,7 +271,7 @@ export function spawnCharacter(lib: PeopleLib, kind: string, paint?: Paint) {
   const mixer = new THREE.AnimationMixer(root);
   const actions: Record<string, THREE.AnimationAction> = {};
   // (The fight clips are added when someone squares up: see fightanim.ts.)
-  for (const [name, clip] of lib.clips) if (!name.startsWith('Box_')) actions[name] = mixer.clipAction(clip);
+  for (const [name, clip] of lib.clips) if (!name.startsWith('Box_') && !name.startsWith('Show_')) actions[name] = mixer.clipAction(clip);
   return { root, mesh: body, bones, mixer, actions };
 }
 

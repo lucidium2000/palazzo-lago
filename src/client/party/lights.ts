@@ -274,6 +274,8 @@ export class PartyLights {
   readonly shower: Burst;
   private flash = 0;
   private time = 0;
+  /** 0..1: the beams, lasers and floor dimmed (the headliner's blackout on a freeze). */
+  dim = 0;
   private dummy = new THREE.Object3D();
   private col = new THREE.Color();
   private baseTile: THREE.Color;
@@ -383,7 +385,7 @@ export class PartyLights {
     const u = this.floorMat.uniforms;
     u.beats.value = b.beats;
     u.pulse.value = b.pulse;
-    u.intensity.value = b.intensity;
+    u.intensity.value = b.intensity * (1 - 0.8 * this.dim);
     u.build.value = b.build;
     u.flash.value = this.flash;
     u.section.value = sectionId;
@@ -437,7 +439,7 @@ export class PartyLights {
       this.dummy.updateMatrix();
       this.beams.setMatrixAt(i, this.dummy.matrix);
       const hh = h.sky ? hue + (h.k % 2) * 0.5 : hue + 0.33 + h.k * 0.05;
-      this.col.setHSL(((hh % 1) + 1) % 1, 0.85, 0.55).multiplyScalar(bright + this.flash * 0.8);
+      this.col.setHSL(((hh % 1) + 1) % 1, 0.85, 0.55).multiplyScalar((bright + this.flash * 0.8) * (1 - 0.85 * this.dim));
       this.beams.setColorAt(i, this.col);
     });
     this.beams.instanceMatrix.needsUpdate = true;
@@ -466,7 +468,7 @@ export class PartyLights {
         let on = 1;
         if (b.secBar >= 8 && b.section === 'drop') on = (i + b.beat) % 2 ? 1 : 0.15;
         if (lastBar) on = Math.sin(ph * Math.PI * 8) > 0 ? 1 : 0;
-        this.col.setHSL(i % 3 === 0 ? (lh + 0.5) % 1 : lh, 1, 0.5).multiplyScalar(on * (0.6 + 0.4 * b.pulse));
+        this.col.setHSL(i % 3 === 0 ? (lh + 0.5) % 1 : lh, 1, 0.5).multiplyScalar(on * (0.6 + 0.4 * b.pulse) * (1 - this.dim));
         this.lasers.setColorAt(i, this.col);
       }
       this.lasers.instanceMatrix.needsUpdate = true;

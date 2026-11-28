@@ -57,6 +57,7 @@ type SoundName =
   | 'land'
   | 'crunch'
   | 'munch'
+  | 'adlib'
   | SampleName;
 
 /** Recorded effects (public/audio/<name>.mp3) and the synthesized sound that stands in for each until it's loaded. */
@@ -424,11 +425,70 @@ function buildBuffers(ctx: BaseAudioContext): Buffers {
     return buf;
   })();
 
+  // The headliner's ad-libs between songs (party/stage.ts): wordless shouts (a "woo", a "hey", a
+  // "whoa-oh"), a voice synthesized here from a buzzing glottal source through vowel formants that
+  // glide (no recording, and no one's trademark yelp).
+  const shout = (seconds: number, f0: (t: number) => number, vowel: (t: number) => [number, number, number], amp: (t: number) => number, breath: (t: number) => number) => {
+    const sr = ctx.sampleRate;
+    const res = [0, 0, 0].map(() => ({ y1: 0, y2: 0 }));
+    const tilt = lp(0.25);
+    let ph = 0,
+      peak = 1e-6;
+    const buf = synth(ctx, seconds, (t) => {
+      // A little wobble in the pitch (vibrato and jitter): a voice, not an oscillator.
+      const f = f0(t) * (1 + 0.012 * Math.sin(2 * Math.PI * 5.5 * t) + 0.004 * rand());
+      ph = (ph + f / sr) % 1;
+      const buzz = tilt(ph < 0.65 ? Math.sin((Math.PI * ph) / 0.65) ** 2 : 0) - 0.3;
+      const a = amp(t);
+      const x = buzz * a + rand() * breath(t) * 0.5;
+      const F = vowel(t);
+      let y = 0;
+      for (let k = 0; k < 3; k++) {
+        const bw = [90, 110, 160][k];
+        const r = Math.exp((-Math.PI * bw) / sr);
+        const c = res[k];
+        const v = (1 - r) * x + 2 * r * Math.cos((2 * Math.PI * F[k]) / sr) * c.y1 - r * r * c.y2;
+        c.y2 = c.y1;
+        c.y1 = v;
+        y += v * [1, 0.55, 0.3][k];
+      }
+      return y;
+    });
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+    for (let i = 0; i < d.length; i++) d[i] *= 0.8 / peak;
+    return buf;
+  };
+  const ramp = (t: number, a: number, b: number) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+  const mixV = (u: number, a: [number, number, number], b: [number, number, number]): [number, number, number] => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+  const woo = shout(
+    0.62,
+    (t) => 210 + 230 * ramp(t, 0, 0.16) - 120 * ramp(t, 0.36, 0.62),
+    (t) => mixV(ramp(t, 0, 0.12), [320, 620, 2200], [420, 1000, 2350]),
+    (t) => ramp(t, 0, 0.05) * (1 - ramp(t, 0.42, 0.62)),
+    (t) => 0.12 + 0.2 * ramp(t, 0.4, 0.62),
+  );
+  const hey = shout(
+    0.46,
+    (t) => 300 + 90 * ramp(t, 0.05, 0.14) - 130 * ramp(t, 0.2, 0.46),
+    (t) => mixV(ramp(t, 0.12, 0.4), [560, 1800, 2500], [330, 2250, 2900]),
+    (t) => ramp(t, 0.06, 0.1) * (1 - ramp(t, 0.3, 0.46)),
+    (t) => (t < 0.08 ? 2.2 * ramp(t, 0, 0.03) : 0.1),
+  );
+  const whoa = shout(
+    0.86,
+    (t) => (t < 0.4 ? 330 + 30 * ramp(t, 0, 0.08) : 290 - 50 * ramp(t, 0.6, 0.86)),
+    (t) => mixV(ramp(t, 0, 0.1), [330, 650, 2300], [560, 920, 2450]),
+    (t) => ramp(t, 0, 0.05) * (1 - 0.7 * Math.exp(-(((t - 0.4) / 0.04) ** 2))) * (1 - ramp(t, 0.62, 0.86)),
+    () => 0.14,
+  );
+  const adlibs = [woo, hey, whoa];
+
   return {
     chip, chips, click, ballRoll, ballDrop, reelTick, reelStop, winSmall, winBig, bonus, lever, denied,
     stepMarble, stepCarpet, stepStone, cheer, gasp, clink, shatter, thunk, punch, block, slap, whoosh, pour, sip, door, water, shaker, banjo, gulp, tension, fanfare,
-    ding, liftHum, splash, swim, land, crunch, munch,
-    variants: stepVariants,
+    ding, liftHum, splash, swim, land, crunch, munch, adlib: woo,
+    variants: { ...stepVariants, adlib: adlibs },
   };
 }
 

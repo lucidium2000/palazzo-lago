@@ -6,6 +6,7 @@ import type { Paint, Surface } from './peopleshade';
 import { FINGER, orientHand, reach, setFingers } from './net/embody';
 import { lieLegs, sitLegs, standLegs } from './sitpose';
 import { fightAim, fightHandoff, fightMix, type FightPose } from './fightanim';
+import { showMix, type ShowPose } from './party/showanim';
 import { dry, linkRoutes, pathTo } from './routes';
 import { promenadeShare } from './areas/promenadeplan';
 import { entranceShare } from './areas/entranceplan';
@@ -172,6 +173,8 @@ export class Person {
   speakUntil = 0;
   /** In a fight (fight/): the fight module moves them and poses their arms; their usual walking stops. */
   fight: FightPose | null = null;
+  /** On stage (the headliner: party/stage.ts): his stage moves, played by the beat (party/showanim.ts). */
+  show: ShowPose | null = null;
   /** How angry they look, 0..1 (brows down). */
   angry = 0;
   /** A slapped cheek going red (seconds left), and which side (0 = their left, 1 = their right). */
@@ -1102,7 +1105,10 @@ export class Crowd {
     const busy =
       (p.role === 'pianist' && p.seated) || (p.role !== 'slots' && p.action > 0 && p.actionKind !== 'none' && p.actionKind !== 'offer') ? 1 : 0;
     // A fight's clips (fightanim.ts) take what they need of the body; the ordinary clips get the rest.
-    const fw = this.lib && !p.seated ? fightMix(p, rig, this.lib.clips, step) : 0;
+    const fightW = this.lib && !p.seated ? fightMix(p, rig, this.lib.clips, step) : 0;
+    // As do the headliner's stage moves (party/showanim.ts).
+    const showW = this.lib && !p.seated && (p.show || rig.root.userData.showAnim) ? showMix(p, rig, this.lib.clips, step) : 0;
+    const fw = Math.min(1, fightW + showW);
     const over = Math.max(cheer, gasp * (1 - fw), busy * 0.9) * (1 - fw);
     const baseW = (1 - over) * (1 - fw);
     const w = (name: string, v: number) => a[name]?.setEffectiveWeight(v);
@@ -1180,7 +1186,7 @@ export class Crowd {
       b.Neck?.rotateX(-p.snapX * 0.5);
       b.Neck?.rotateY(p.snapY * 0.4);
     }
-    if (p.fight && fw > 0.01) {
+    if (p.fight && fightW > 0.01) {
       rig.root.updateMatrixWorld(true);
       fightAim(p, rig, sc);
     }

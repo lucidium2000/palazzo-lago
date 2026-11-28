@@ -449,10 +449,8 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   for (let k = 0; k < 4; k++) b.box(truss, STAGE.x0 + 1.1 + k * 1.75, top - 0.12, STAGE.z0 + 0.2, 0.22, 0.2, 0.22);
   // The backdrop behind the marquee.
   b.box(truss, STAGE.spot.x, STAGE.y + 1.95, STAGE.z0 + 0.06, 6.0, 2.3, 0.06);
-  // Mic stand: a weighted base, the pole and the clip.
+  // Mic stand: the weighted base (the pole and its clip are party/stage.ts's: he tilts it).
   b.add(new THREE.CylinderGeometry(0.13, 0.14, 0.025, 20), truss, M(STAGE.mic.x, STAGE.y + 0.012, STAGE.mic.z));
-  b.add(new THREE.CylinderGeometry(0.011, 0.011, 1.44, 8), truss, M(STAGE.mic.x, STAGE.y + 0.72, STAGE.mic.z));
-  b.box(truss, STAGE.mic.x, STAGE.y + 1.47, STAGE.mic.z - 0.03, 0.02, 0.05, 0.07);
   const djSign = textSign('Pool Party', { width: 3.2, px: 130, sub: 'DJ  ·  TONIGHT', bg: 'rgba(10,4,20,0.85)' });
   djSign.position.set(DJ.x, 4.2, DJ.z - 1.5);
   root.add(djSign);
