@@ -8,16 +8,27 @@
 
 export type LandingId = 'casino' | 'pool' | 'promenade' | 'suite' | 'entrance' | 'bowling';
 
-export const LANDINGS: Record<LandingId, { label: string; short: string; floor: number }> = {
-  pool: { label: 'Pool Deck', short: 'P', floor: 2 },
-  casino: { label: 'Casino', short: 'C', floor: 1 },
+/**
+ * Every landing: its name (toasts, the call-plate tooltip), the short mark on
+ * the indicators and the panel's buttons, its floor, and the name on the
+ * panel. The casino lobby and the pool deck are the same floor of the hotel
+ * (the deck is out through the lobby's glass doors), so they share one
+ * button, "Casino / Pool"; the pool deck's own cars are still there, and in
+ * them that button just opens the doors.
+ */
+export const LANDINGS: Record<LandingId, { label: string; short: string; floor: number; panel: string }> = {
+  /** (First: the indicator shows a floor's first one-letter mark, so floor 1 counts as "C".) */
+  casino: { label: 'Casino / Pool', short: 'C', floor: 1, panel: 'Casino / Pool' },
+  /** The pool deck's own bank, on the casino floor: no button of its own. */
+  pool: { label: 'Pool Deck', short: 'P', floor: 1, panel: 'Casino / Pool' },
   /** The mezzanine promenade: food court, the boutique and the arcade. */
-  promenade: { label: 'Promenade', short: 'M', floor: 3 },
-  suite: { label: 'Suite 3201', short: '32', floor: 32 },
-  /** The ground floor: the main lobby and the front entrance (taxis, rideshare, valet). */
-  entrance: { label: 'Main Entrance', short: 'G', floor: 0 },
+  promenade: { label: 'Promenade', short: 'M', floor: 2, panel: 'Promenade' },
+  /** Your room: Suite 3201, high in the tower. */
+  suite: { label: 'Room 3201', short: '32', floor: 32, panel: 'Room 3201' },
+  /** The ground floor: the hotel lobby and the front entrance outside (taxis, rideshare, valet). */
+  entrance: { label: 'Lobby', short: 'L', floor: 0, panel: 'Lobby' },
   /** The lower level: Palazzo Lanes, the bowling lounge. */
-  bowling: { label: 'Palazzo Lanes', short: 'B', floor: -1 },
+  bowling: { label: 'Palazzo Lanes', short: 'B', floor: -1, panel: 'Bowling' },
 };
 
 export const isLanding = (v: unknown): v is LandingId => v === 'casino' || v === 'pool' || v === 'promenade' || v === 'suite' || v === 'entrance' || v === 'bowling';
@@ -28,17 +39,17 @@ export const HALF = 0.95;
 
 /**
  * The floor panel inside the cab (metres): a brass plate on the side wall,
- * centred at shoulder height. Seven rows (the six floors, top to bottom, then
- * the doors), each a round button with its name beside it. Sized for a
- * fingertip: 6 cm buttons, 3 cm apart, and a 1 cm strip between rows that
+ * centred at shoulder height. Six rows, top to bottom like a real panel (the
+ * room, the Promenade, Casino / Pool, the lobby, the lanes below, then the
+ * doors), each a round button with its name beside it. Sized for a
+ * fingertip: 7 cm buttons, 3.5 cm apart, and a 1 cm strip between rows that
  * presses nothing (a poke that lands between two rows picks neither, never
  * the wrong one).
  */
-export const PANEL_ROWS = ['suite', 'promenade', 'pool', 'casino', 'entrance', 'bowling', 'open'] as const;
+export const PANEL_ROWS = ['suite', 'promenade', 'casino', 'entrance', 'bowling', 'open'] as const;
 export type PanelRow = (typeof PANEL_ROWS)[number];
 export const PANEL = {
-  w: 0.26,
-  /** (Taller each time a floor joins, the ground floor and then the lanes below it: rows stay 9 cm.) */
+  w: 0.3,
   h: 0.725,
   /** Centre height above the cab floor. */
   y: 1.3,
@@ -46,8 +57,8 @@ export const PANEL = {
   header: 0.075,
   foot: 0.02,
   /** Button diameter, its centre from the plate's left edge. */
-  button: 0.062,
-  buttonX: 0.05,
+  button: 0.07,
+  buttonX: 0.055,
   /** Unpressable strip at each edge of a row (so 2x between rows). */
   dead: 0.005,
 } as const;
@@ -68,6 +79,22 @@ export function panelRowAt(fromTop: number): PanelRow | null {
   const inRow = y - i * h;
   if (inRow < PANEL.dead || inRow > h - PANEL.dead) return null;
   return PANEL_ROWS[i];
+}
+
+/**
+ * Where a floor button takes a car standing at `here`. "Casino / Pool" in a
+ * pool-deck car is this floor (it opens the doors); from anywhere else it's
+ * the casino lobby's bank, the hotel's main landing.
+ */
+export function panelDest(here: LandingId, row: Exclude<PanelRow, 'open'>): LandingId {
+  if (row === 'casino' && here === 'pool') return 'pool';
+  return row;
+}
+
+/** Can a car at `from` be sent to `dest`? Only to a floor on its panel (never its own, never the pool bank: it's the casino floor). */
+export function canSend(from: LandingId, dest: LandingId): boolean {
+  if (dest === from) return false;
+  return PANEL_ROWS.some((r) => r !== 'open' && panelDest(from, r) === dest);
 }
 
 /** Seconds for the doors to go fully open or shut. */
@@ -103,7 +130,7 @@ export function floorsBetween(from: number, to: number): number[] {
   return Array.from({ length: steps + 1 }, (_, i) => Math.round(from + ((to - from) * i) / steps));
 }
 
-/** What the indicator shows for a floor: a landing's letter (C, P, M), else the number. */
+/** What the indicator shows for a floor: a landing's letter (B, L, C, M), else the number. */
 export function floorLabel(n: number): string {
   for (const l of Object.values(LANDINGS)) if (l.floor === n && l.short.length === 1) return l.short;
   return String(n);

@@ -506,7 +506,7 @@ export function buildPool(scene: THREE.Scene, q: Quality, m: Mats): PoolArea {
   face(L.zs[0] + 0.83, L.zs[1] - 0.83, 0, 9);
   face(L.zs[1] + 0.83, -3.3, 0, 9);
   face(L.zs[0] - 0.83, L.zs[1] + 0.83, 2.6, 9);
-  const liftSign = textSign('Tower Lifts', { width: 1.6, px: 110, sub: 'SUITES  ·  CASINO', bg: 'rgba(16,10,8,0.85)' });
+  const liftSign = textSign('Tower Lifts', { width: 1.6, px: 110, sub: 'ROOM  ·  PROMENADE  ·  LOBBY  ·  BOWLING', bg: 'rgba(16,10,8,0.85)' });
   liftSign.position.set(L.doorX - 0.17, 3.6, -6.3);
   liftSign.rotation.y = -Math.PI / 2;
   root.add(liftSign);

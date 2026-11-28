@@ -160,10 +160,10 @@ describe('Promenade elevators', () => {
     expect(isLanding('promenade')).toBe(true);
   });
 
-  it('counts C, P, M on the way up', () => {
+  it('counts C, M on the way up (the pool deck is the casino floor)', () => {
     expect(LANDINGS.promenade.short).toBe('M');
     expect(floorLabel(LANDINGS.promenade.floor)).toBe('M');
-    expect(floorsBetween(LANDINGS.casino.floor, LANDINGS.promenade.floor).map(floorLabel)).toEqual(['C', 'P', 'M']);
+    expect(floorsBetween(LANDINGS.casino.floor, LANDINGS.promenade.floor).map(floorLabel)).toEqual(['C', 'M']);
     expect(floorLabel(32)).toBe('32');
   });
 });

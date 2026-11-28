@@ -10,6 +10,7 @@ import {
   ARRIVE_OPEN_SECS,
   CALL_SECS,
   canRide,
+  canSend,
   DEPTH,
   destSlot,
   DOOR_SECS,
@@ -22,6 +23,7 @@ import {
   LANDINGS,
   PANEL,
   PANEL_ROWS,
+  panelDest,
   panelRowAt,
   panelRowH,
   panelRowY,
@@ -29,6 +31,7 @@ import {
   RideClock,
   type LandingId,
   type LiftSnapshot,
+  type PanelRow,
 } from './liftlogic';
 
 export type { LandingId } from './liftlogic';
@@ -214,14 +217,17 @@ export class Elevators {
           object: panel,
           label: (e) => {
             const row = this.rowAt(e.hit);
-            return row === 'open' ? 'Open the doors' : row ? `Go to ${LANDINGS[row].label}` : null;
+            if (!row) return null;
+            if (row === 'open') return 'Open the doors';
+            const dest = panelDest(car.landing, row);
+            return dest === car.landing ? `${LANDINGS[row].panel} (this floor)` : `Go to ${LANDINGS[dest].panel}`;
           },
           onSelect: (e) => {
             const row = this.rowAt(e.hit);
             if (!row) return;
             this.sound.play('click', e.hit.point, { volume: 0.5 });
             if (row === 'open') this.open(car);
-            else this.go(car, row);
+            else this.go(car, panelDest(car.landing, row));
           },
         }),
       );
@@ -255,7 +261,7 @@ export class Elevators {
     }
   }
 
-  private rowAt(hit: THREE.Intersection): (LandingId | 'open') | null {
+  private rowAt(hit: THREE.Intersection): PanelRow | null {
     if (!hit.uv) return null;
     return panelRowAt((1 - hit.uv.y) * PANEL.h);
   }
@@ -308,10 +314,11 @@ export class Elevators {
     this.drawAtlas();
   }
 
-  /** Press a floor on the panel of `car`. */
+  /** Press a floor on the panel of `car` (`dest`: where that button goes from this car, see panelDest). */
   go(car: Car, dest: LandingId) {
     if (this.rideOf(car)) return;
     if (dest === car.landing) return this.open(car);
+    if (!canSend(car.landing, dest)) return;
     if (!insideCab(car, this.player.feet())) {
       this.toast('Step into the elevator first');
       return;
@@ -332,7 +339,8 @@ export class Elevators {
    */
   hostRide(slot: number, dest: LandingId): boolean {
     const car = this.cars[slot];
-    if (!car || dest === car.landing) return false;
+    // (Only to a floor on the car's panel: a guest's request is checked here too.)
+    if (!car || !canSend(car.landing, dest)) return false;
     const to = destSlot(this.cars, car, dest);
     if (!canRide(this.rides.map((r) => ({ id: r.id, car: r.car.slot, dest: r.to.slot })), slot, to)) return false;
     const id = this.nextRide++;
@@ -548,8 +556,8 @@ export class Elevators {
         g.closePath();
         g.fill();
       } else {
-        g.font = 'bold 40px Georgia, serif';
-        g.fillText(c.display, 128, y + 33);
+        g.font = 'bold 50px Georgia, serif';
+        g.fillText(c.display, 128, y + 34);
       }
     });
     this.atlasTex.needsUpdate = true;
@@ -640,12 +648,12 @@ function panelTexture(): THREE.CanvasTexture {
       }
     } else {
       const label = LANDINGS[row].short;
-      g.font = `bold ${label.length > 1 ? 28 : 34}px Georgia, serif`;
+      g.font = `bold ${label.length > 1 ? 32 : 38}px Georgia, serif`;
       g.fillText(label, bx, y + 1);
     }
     // The name: as big as fits (about 3 cm letters).
-    const name = row === 'open' ? 'Doors' : LANDINGS[row].label;
-    let size = 36;
+    const name = row === 'open' ? 'Doors' : LANDINGS[row].panel;
+    let size = 38;
     g.font = `600 ${size}px Georgia, serif`;
     while (size > 24 && g.measureText(name).width > maxText) g.font = `600 ${(size -= 1)}px Georgia, serif`;
     g.textAlign = 'left';

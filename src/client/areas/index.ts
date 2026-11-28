@@ -158,10 +158,11 @@ export function buildAreas(deps: {
   ]);
   lifts.registerWorld(deps.world);
   lifts.onRide = (dest: LandingId) => {
-    if (dest === 'suite') deps.toast('Suite 3201');
+    if (dest === 'suite') deps.toast('Room 3201 · your suite');
     if (dest === 'pool') deps.toast('Pool Deck');
     if (dest === 'promenade') deps.toast('The Promenade · food court, Lago Luxe, the arcade');
-    if (dest === 'entrance') deps.toast('Main Entrance · the doors out to the taxis and rideshare');
+    if (dest === 'casino') deps.toast('Casino / Pool · the casino down the hall, the pool deck out the north doors');
+    if (dest === 'entrance') deps.toast('Lobby · out through the glass doors to the taxis and rideshare');
     if (dest === 'bowling') deps.toast('Palazzo Lanes · eight lanes, the bar and the lounge');
   };
   // The lower level: the bowling lounge.
@@ -182,7 +183,7 @@ export function buildAreas(deps: {
     vp('suite', 'Suite 3201', SUITE.x1 - 1.6, 1.2, Math.PI / 2 + 0.5, -0.05),
     vp('promenade', 'Promenade', PROM_CARS.doorX - 2.6, 0, Math.PI / 2, -0.04),
     vp('arcade', 'Arcade', -622.75, 3.2, Math.PI, -0.05),
-    vp('entrance', 'Main Entrance', 300.5, 3.6, Math.PI + 0.55, -0.04),
+    vp('entrance', 'Lobby', 300.5, 3.6, Math.PI + 0.55, -0.04),
     vp('bowling', 'Palazzo Lanes', FOUL_X + 6.4, 2.2, RIG_FACE_PINS + 0.1, -0.06),
   ];
 

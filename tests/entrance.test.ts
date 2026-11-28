@@ -42,11 +42,12 @@ describe('Main Entrance landing', () => {
     expect(isLanding('entrance')).toBe(true);
   });
 
-  it('is the ground floor: G, below the casino', () => {
-    expect(LANDINGS.entrance.short).toBe('G');
-    expect(floorLabel(LANDINGS.entrance.floor)).toBe('G');
-    expect(floorsBetween(LANDINGS.casino.floor, LANDINGS.entrance.floor).map(floorLabel)).toEqual(['C', 'G']);
-    expect(floorsBetween(LANDINGS.entrance.floor, LANDINGS.promenade.floor).map(floorLabel)).toEqual(['G', 'C', 'P', 'M']);
+  it('is the ground floor, the Lobby: L, below the casino', () => {
+    expect(LANDINGS.entrance.label).toBe('Lobby');
+    expect(LANDINGS.entrance.short).toBe('L');
+    expect(floorLabel(LANDINGS.entrance.floor)).toBe('L');
+    expect(floorsBetween(LANDINGS.casino.floor, LANDINGS.entrance.floor).map(floorLabel)).toEqual(['C', 'L']);
+    expect(floorsBetween(LANDINGS.entrance.floor, LANDINGS.promenade.floor).map(floorLabel)).toEqual(['L', 'C', 'M']);
   });
 
   it('lies far from everything else (its own floor)', () => {

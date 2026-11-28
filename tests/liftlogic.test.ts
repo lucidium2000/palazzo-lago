@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PANEL, PANEL_ROWS, panelRowAt, panelRowH, panelRowY, canRide, destSlot, floorLabel, floorsBetween, inDoorway, insideCab, readSlot, readSnapshot, RideClock, TRAVEL_SECS, type CarRef } from '../src/client/areas/liftlogic';
+import { LANDINGS, PANEL, PANEL_ROWS, canSend, panelDest, panelRowAt, panelRowH, panelRowY, canRide, destSlot, floorLabel, floorsBetween, inDoorway, insideCab, readSlot, readSnapshot, RideClock, TRAVEL_SECS, type CarRef } from '../src/client/areas/liftlogic';
 
 // The real layout: four casino cars, two at the pool, one in the suite.
 const CARS: CarRef[] = [
@@ -33,7 +33,9 @@ describe('elevator routes', () => {
     for (let i = 1; i < up.length; i++) expect(up[i]).toBeGreaterThan(up[i - 1]);
     expect(floorsBetween(32, 2).at(-1)).toBe(2);
     expect(floorLabel(1)).toBe('C');
-    expect(floorLabel(2)).toBe('P');
+    expect(floorLabel(2)).toBe('M');
+    expect(floorLabel(0)).toBe('L');
+    expect(floorLabel(-1)).toBe('B');
     expect(floorLabel(32)).toBe('32');
   });
 });
@@ -139,7 +141,7 @@ describe('late joiners', () => {
 
 describe('the floor panel in the cab', () => {
   it('has fingertip-sized buttons (4 cm+) with at least 1 cm between them', () => {
-    expect(PANEL_ROWS).toEqual(['suite', 'promenade', 'pool', 'casino', 'entrance', 'bowling', 'open']);
+    expect(PANEL_ROWS).toEqual(['suite', 'promenade', 'casino', 'entrance', 'bowling', 'open']);
     expect(PANEL.button).toBeGreaterThanOrEqual(0.04);
     expect(panelRowH() - PANEL.button).toBeGreaterThanOrEqual(0.01);
     // The whole row is pressable bar the dead strip: the pressable band is at least the button.
@@ -159,5 +161,58 @@ describe('the floor panel in the cab', () => {
     });
     expect(panelRowAt(0.02)).toBeNull(); // the name plate
     expect(panelRowAt(PANEL.h - 0.005)).toBeNull(); // the bottom margin
+  });
+});
+
+describe('the panel\'s floors', () => {
+  const ALL = ['casino', 'pool', 'promenade', 'suite', 'entrance', 'bowling'] as const;
+  const rows = PANEL_ROWS.filter((r) => r !== 'open');
+
+  it('names them Room, Promenade, Casino / Pool, Lobby, Bowling (one button for the casino floor)', () => {
+    expect(rows.map((r) => LANDINGS[r].panel)).toEqual(['Room 3201', 'Promenade', 'Casino / Pool', 'Lobby', 'Bowling']);
+    expect(LANDINGS.entrance.label).toBe('Lobby');
+    expect(LANDINGS.entrance.short).toBe('L');
+    expect(PANEL_ROWS).not.toContain('pool');
+    // The casino lobby and the pool deck are one floor.
+    expect(LANDINGS.pool.floor).toBe(LANDINGS.casino.floor);
+    // Top to bottom, highest floor first.
+    const floors = rows.map((r) => LANDINGS[r].floor);
+    expect([...floors].sort((a, b) => b - a)).toEqual(floors);
+  });
+
+  it('Casino / Pool goes to the casino lobby bank, except in a pool-deck car (this floor: the doors open)', () => {
+    for (const here of ALL) expect(panelDest(here, 'casino')).toBe(here === 'pool' ? 'pool' : 'casino');
+    for (const here of ALL) for (const r of ['suite', 'promenade', 'entrance', 'bowling'] as const) expect(panelDest(here, r)).toBe(r);
+  });
+
+  it('every landing reaches every floor on the panel, and nothing sends a car to the pool bank', () => {
+    for (const from of ALL)
+      for (const r of rows) {
+        const dest = panelDest(from, r);
+        expect(canSend(from, dest)).toBe(dest !== from);
+      }
+    for (const from of ALL) expect(canSend(from, 'pool')).toBe(false);
+    expect(canSend('pool', 'casino')).toBe(false); // the same floor: walk
+    expect(canSend('casino', 'casino')).toBe(false);
+    expect(canSend('pool', 'suite')).toBe(true);
+    expect(canSend('bowling', 'entrance')).toBe(true);
+  });
+
+  it('every ride from every car on the real layout ends in a car at the floor pressed', () => {
+    const cars: CarRef[] = [
+      ...CARS,
+      ...[-1.3, 1.3].map((z, i) => ({ landing: 'promenade' as const, index: i, slot: 7 + i, x: -600, z })),
+      ...[-6.2, -3.6].map((z, i) => ({ landing: 'entrance' as const, index: i, slot: 9 + i, x: 307, z })),
+      ...[-1.3, 1.3].map((z, i) => ({ landing: 'bowling' as const, index: i, slot: 11 + i, x: -300, z })),
+    ];
+    let rides = 0;
+    for (const from of cars)
+      for (const r of rows) {
+        const dest = panelDest(from.landing, r);
+        if (!canSend(from.landing, dest)) continue;
+        expect(cars[destSlot(cars, from, dest)].landing).toBe(dest);
+        rides++;
+      }
+    expect(rides).toBe(cars.length * 4); // five floor buttons in every car, one of them "here" (in a pool car, Casino / Pool)
   });
 });
